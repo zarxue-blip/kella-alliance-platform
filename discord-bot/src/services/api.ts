@@ -18,7 +18,7 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error(payload.message || "API request failed");
+    throw new Error(`${payload.message || "API request failed"} (${response.status} ${path})`);
   }
 
   return (await response.json()) as T;
