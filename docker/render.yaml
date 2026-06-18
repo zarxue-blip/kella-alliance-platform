@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: cod-amp-backend
+    runtime: docker
+    dockerfilePath: docker/Dockerfile.backend
+    plan: standard
+    healthCheckPath: /api/health
+  - type: web
+    name: cod-amp-frontend
+    runtime: docker
+    dockerfilePath: docker/Dockerfile.frontend
+    plan: standard
+  - type: worker
+    name: cod-amp-discord-bot
+    runtime: docker
+    dockerfilePath: docker/Dockerfile.discord-bot
+    plan: standard

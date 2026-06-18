@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: kella-api-bot
+    runtime: docker
+    dockerfilePath: docker/Dockerfile.free-api-bot
+    plan: free
+    healthCheckPath: /api/health

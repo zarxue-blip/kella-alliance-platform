@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: #09090b;
+  color: #f4f4f5;
+}
+
+body {
+  margin: 0;
+}
+
+::selection {
+  background: rgba(220, 38, 38, 0.36);
+}
+
+.grid-radial {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(220, 38, 38, 0.16), transparent 28rem),
+    radial-gradient(circle at 78% 0%, rgba(250, 204, 21, 0.09), transparent 24rem),
+    linear-gradient(180deg, rgba(24, 24, 27, 0.92), #09090b 34rem);
+}
+
+.battle-grid {
+  background-image:
+    linear-gradient(rgba(244, 244, 245, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244, 244, 245, 0.035) 1px, transparent 1px);
+  background-size: 32px 32px;
+}

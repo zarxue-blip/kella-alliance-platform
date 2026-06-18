@@ -1,0 +1,45 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mongo
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  discord-bot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.discord-bot
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
