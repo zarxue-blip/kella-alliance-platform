@@ -26,4 +26,5 @@ COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/package.json ./backend/package.json
 COPY --from=build /app/discord-bot/dist ./discord-bot/dist
 COPY --from=build /app/discord-bot/package.json ./discord-bot/package.json
-CMD ["sh", "-c", "node discord-bot/dist/index.js & node backend/dist/server.js"]
+COPY docker/start-free-api-bot.mjs ./docker/start-free-api-bot.mjs
+CMD ["node", "docker/start-free-api-bot.mjs"]
