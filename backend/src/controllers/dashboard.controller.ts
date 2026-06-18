@@ -413,14 +413,19 @@ export const dashboardShieldSend = asyncHandler(async (req, res) => {
 export const dashboardAttackSend = asyncHandler(async (req, res) => {
   const body = attackToolSchema.parse(req.body);
   const allianceId = await resolveAllianceId();
-  const message = await sendAttackAlert(body);
+  const alertInput = {
+    channelId: body.channelId || "",
+    roleMentionId: body.roleMentionId || "",
+    message: body.message || "🚨 ATTACK ALERT\n\nCome online now. There is a fight."
+  };
+  const message = await sendAttackAlert(alertInput);
   const alert = await KellaActionModel.create({
     allianceId,
     type: "attack_alert",
     actorName: "Dashboard",
-    targetDiscordId: body.channelId,
+    targetDiscordId: alertInput.channelId,
     status: "Open",
-    payload: { roleMentionId: body.roleMentionId, message: body.message, messageId: message?.id, channelId: message?.channel_id }
+    payload: { roleMentionId: alertInput.roleMentionId, message: alertInput.message, messageId: message?.id, channelId: message?.channel_id }
   });
   res.status(201).json({ alert, message });
 });

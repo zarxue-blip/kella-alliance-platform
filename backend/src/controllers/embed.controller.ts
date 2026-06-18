@@ -83,21 +83,31 @@ export const embedTemplateDelete = asyncHandler(async (req, res) => {
 export const embedSend = asyncHandler(async (req, res) => {
   const body = embedPayloadSchema.parse(req.body);
   const alliance = await resolveAlliance();
-  const message = await sendDiscordEmbed(body);
+  const embedInput = {
+    channelId: body.channelId || "",
+    title: body.title || "",
+    description: body.description || "",
+    color: body.color || "#facc15",
+    imageUrl: body.imageUrl || "",
+    thumbnailUrl: body.thumbnailUrl || "",
+    footer: body.footer || "Sent by Kella",
+    roleMentionId: body.roleMentionId || ""
+  };
+  const message = await sendDiscordEmbed(embedInput);
   const action = await KellaActionModel.create({
     allianceId: alliance._id,
     type: "embed_sent",
     actorName: "Dashboard",
-    targetDiscordId: body.channelId,
+    targetDiscordId: embedInput.channelId,
     status: "Sent",
     payload: {
-      title: body.title,
-      description: body.description,
-      color: body.color,
-      imageUrl: body.imageUrl,
-      thumbnailUrl: body.thumbnailUrl,
-      footer: body.footer,
-      roleMentionId: body.roleMentionId,
+      title: embedInput.title,
+      description: embedInput.description,
+      color: embedInput.color,
+      imageUrl: embedInput.imageUrl,
+      thumbnailUrl: embedInput.thumbnailUrl,
+      footer: embedInput.footer,
+      roleMentionId: embedInput.roleMentionId,
       messageId: message?.id,
       messageLink: env.DISCORD_GUILD_ID && message?.channel_id && message?.id
         ? `https://discord.com/channels/${env.DISCORD_GUILD_ID}/${message.channel_id}/${message.id}`
