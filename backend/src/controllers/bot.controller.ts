@@ -10,6 +10,7 @@ import { OperationModel } from "../models/operation.model.js";
 import { CallToArmsModel } from "../models/callToArms.model.js";
 import { UserModel } from "../models/user.model.js";
 import { RootsOfWarRegistrationModel } from "../models/rootsOfWarRegistration.model.js";
+import { KellaActionModel } from "../models/kellaAction.model.js";
 import { publishCallToArms } from "../services/alert.service.js";
 import { emitAlliance } from "../services/realtime.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -34,6 +35,10 @@ async function resolveAllianceId(allianceId?: string) {
   );
 
   return alliance._id.toString();
+}
+
+async function recordKellaAction(allianceId: string, input: Record<string, unknown>) {
+  return KellaActionModel.create({ allianceId, ...input, sentAt: new Date() });
 }
 
 export const botRegister = asyncHandler(async (req, res) => {
@@ -101,6 +106,195 @@ export const botSummary = asyncHandler(async (req, res) => {
     TaskModel.find({ allianceId, status: { $ne: "Completed" } }).sort({ dueDate: 1 }).limit(5).lean()
   ]);
   res.json({ operations, tasks });
+});
+
+export const botShieldAlert = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema
+    .extend({
+      officerDiscordId: z.string(),
+      officerName: z.string().optional(),
+      playerDiscordId: z.string(),
+      playerName: z.string().optional()
+    })
+    .parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  const alert = await recordKellaAction(allianceId, {
+    type: "shield_alert",
+    actorDiscordId: body.officerDiscordId,
+    actorName: body.officerName,
+    targetDiscordId: body.playerDiscordId,
+    targetName: body.playerName,
+    status: "Sent"
+  });
+  res.status(201).json({ alert });
+});
+
+export const botAttackAlert = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema
+    .extend({
+      officerDiscordId: z.string(),
+      officerName: z.string().optional(),
+      channelId: z.string().optional(),
+      messageId: z.string().optional()
+    })
+    .parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  const alert = await recordKellaAction(allianceId, {
+    type: "attack_alert",
+    actorDiscordId: body.officerDiscordId,
+    actorName: body.officerName,
+    status: "Open",
+    payload: { channelId: body.channelId, messageId: body.messageId }
+  });
+  emitAlliance(allianceId, realtimeEvents.callToArmsCreated, alert);
+  res.status(201).json({ alert });
+});
+
+export const botAttackResponse = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema
+    .extend({
+      discordId: z.string(),
+      displayName: z.string().optional(),
+      status: z.enum(["Joining Fight", "Defending", "On The Way", "Unavailable"])
+    })
+    .parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  const response = await recordKellaAction(allianceId, {
+    type: "attack_response",
+    actorDiscordId: body.discordId,
+    actorName: body.displayName,
+    status: body.status
+  });
+  emitAlliance(allianceId, realtimeEvents.callToArmsResponse, response);
+  res.status(201).json({ response });
+});
+
+export const botRootsResponse = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema
+    .extend({
+      discordId: z.string(),
+      displayName: z.string().optional(),
+      slot: z.enum(["14UTC", "20UTC"]),
+      status: z.enum(["Available", "Absent", "Not Sure"])
+    })
+    .parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  const response = await recordKellaAction(allianceId, {
+    type: "roots_response",
+    actorDiscordId: body.discordId,
+    actorName: body.displayName,
+    eventType: "Roots of War",
+    slot: body.slot,
+    status: body.status
+  });
+  emitAlliance(allianceId, realtimeEvents.attendanceCheckedIn, response);
+  res.status(201).json({ response });
+});
+
+export const botSummitResponse = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema
+    .extend({
+      discordId: z.string(),
+      displayName: z.string().optional(),
+      status: z.enum(["Attending", "Absent", "Not Sure"])
+    })
+    .parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  const response = await recordKellaAction(allianceId, {
+    type: "summit_response",
+    actorDiscordId: body.discordId,
+    actorName: body.displayName,
+    eventType: "Summit",
+    status: body.status
+  });
+  emitAlliance(allianceId, realtimeEvents.attendanceCheckedIn, response);
+  res.status(201).json({ response });
+});
+
+export const botDailyCheckIn = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema
+    .extend({
+      discordId: z.string(),
+      displayName: z.string().optional()
+    })
+    .parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  const checkIn = await recordKellaAction(allianceId, {
+    type: "daily_checkin",
+    actorDiscordId: body.discordId,
+    actorName: body.displayName,
+    status: "Checked In"
+  });
+  emitAlliance(allianceId, realtimeEvents.attendanceCheckedIn, checkIn);
+  res.status(201).json({ checkIn });
+});
+
+export const botAbsence = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema
+    .extend({
+      discordId: z.string(),
+      displayName: z.string().optional(),
+      reason: z.string(),
+      startDate: z.string(),
+      endDate: z.string()
+    })
+    .parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  const absence = await recordKellaAction(allianceId, {
+    type: "absence",
+    actorDiscordId: body.discordId,
+    actorName: body.displayName,
+    status: "Away",
+    payload: { reason: body.reason, startDate: body.startDate, endDate: body.endDate }
+  });
+  res.status(201).json({ absence });
+});
+
+export const botApplication = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema
+    .extend({
+      discordId: z.string(),
+      displayName: z.string().optional(),
+      ign: z.string(),
+      power: z.coerce.number().min(0),
+      timezone: z.string(),
+      mainLegion: z.string()
+    })
+    .parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  const application = await recordKellaAction(allianceId, {
+    type: "application",
+    actorDiscordId: body.discordId,
+    actorName: body.displayName,
+    status: "Pending",
+    payload: {
+      ign: body.ign,
+      power: body.power,
+      timezone: body.timezone,
+      mainLegion: body.mainLegion
+    }
+  });
+  emitAlliance(allianceId, realtimeEvents.recruitmentUpdated, application);
+  res.status(201).json({ application });
+});
+
+export const botEventReminder = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema
+    .extend({
+      officerDiscordId: z.string(),
+      officerName: z.string().optional(),
+      eventType: z.string()
+    })
+    .parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  const reminder = await recordKellaAction(allianceId, {
+    type: "event_reminder",
+    actorDiscordId: body.officerDiscordId,
+    actorName: body.officerName,
+    eventType: body.eventType,
+    status: "Queued"
+  });
+  res.status(201).json({ reminder });
 });
 
 export const botAlert = asyncHandler(async (req, res) => {

@@ -25,54 +25,31 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
 }
 
 export const api = {
-  register(input: { discordId: string; ign: string; uid: string; power: number; alliance: string }) {
-    return request("POST", "/bot/register", { ...input, ...allianceContext() });
+  shieldAlert(input: { officerDiscordId: string; officerName?: string; playerDiscordId: string; playerName?: string }) {
+    return request("POST", "/bot/shield-alert", { ...allianceContext(), ...input });
   },
-  profile(discordId: string) {
-    const params = new URLSearchParams({ discordId, ...allianceContext() });
-    return request<{ member: { ign: string; uid: string; power: number; alliance: string; attendanceScore: number; warScore: number } }>(
-      "GET",
-      `/bot/profile?${params.toString()}`
-    );
+  attackAlert(input: { officerDiscordId: string; officerName?: string; channelId?: string; messageId?: string }) {
+    return request("POST", "/bot/attack", { ...allianceContext(), ...input });
   },
-  attendance(eventId: string, discordId: string) {
-    return request("POST", "/bot/attendance", { ...allianceContext(), eventId, discordId });
+  attackResponse(input: { discordId: string; displayName?: string; status: string }) {
+    return request("POST", "/bot/attack/response", { ...allianceContext(), ...input });
   },
-  rootsOfWarRegister(discordId: string, slot: string) {
-    return request<{ member: { ign: string }; registration: { slot: string; status: string } }>("POST", "/bot/roots-of-war/register", {
-      ...allianceContext(),
-      discordId,
-      slot
-    });
+  rootsResponse(input: { discordId: string; displayName?: string; slot: string; status: string }) {
+    return request("POST", "/bot/roots/response", { ...allianceContext(), ...input });
   },
-  rootsOfWarCheckIn(discordId: string, slot: string) {
-    return request<{ checkedIn: boolean; member: { ign: string }; registration: { slot: string; status: string } }>("POST", "/bot/roots-of-war/check-in", {
-      ...allianceContext(),
-      discordId,
-      slot
-    });
+  summitResponse(input: { discordId: string; displayName?: string; status: string }) {
+    return request("POST", "/bot/summit/response", { ...allianceContext(), ...input });
   },
-  shield(discordId: string, expiresAt: string) {
-    return request("POST", "/bot/shield", { ...allianceContext(), discordId, expiresAt });
+  dailyCheckIn(input: { discordId: string; displayName?: string }) {
+    return request("POST", "/bot/checkin", { ...allianceContext(), ...input });
   },
-  summary() {
-    const params = new URLSearchParams(allianceContext());
-    return request<{ operations: Array<{ operationName: string; target: string; date: string; priority: string }>; tasks: Array<{ title: string; status: string; dueDate?: string }> }>(
-      "GET",
-      `/bot/summary?${params.toString()}`
-    );
+  absence(input: { discordId: string; displayName?: string; reason: string; startDate: string; endDate: string }) {
+    return request("POST", "/bot/absence", { ...allianceContext(), ...input });
   },
-  alert(input: { title: string; message: string; priority: string; target?: string; createdByDiscordId: string }) {
-    return request<{ alert: { _id: string; title: string; priority: string } }>("POST", "/bot/alert", {
-      ...input,
-      ...allianceContext()
-    });
+  application(input: { discordId: string; displayName?: string; ign: string; power: number; timezone: string; mainLegion: string }) {
+    return request("POST", "/bot/application", { ...allianceContext(), ...input });
   },
-  callToArmsResponse(alertId: string, discordId: string, status: string) {
-    return request("POST", `/bot/alert/${alertId}/respond`, {
-      ...allianceContext(),
-      discordId,
-      status
-    });
+  eventReminder(input: { officerDiscordId: string; officerName?: string; eventType: string }) {
+    return request("POST", "/bot/reminder", { ...allianceContext(), ...input });
   }
 };

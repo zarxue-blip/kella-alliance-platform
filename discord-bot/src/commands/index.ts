@@ -5,7 +5,6 @@ import {
   ChatInputCommandInteraction,
   ModalBuilder,
   SlashCommandBuilder,
-  StringSelectMenuBuilder,
   TextInputBuilder,
   TextInputStyle
 } from "discord.js";
@@ -23,186 +22,192 @@ export interface BotCommand {
   execute(interaction: ChatInputCommandInteraction): Promise<void>;
 }
 
+function rootsButtons(slot: "14UTC" | "20UTC", label: string) {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder().setCustomId(`roots:${slot}:Available`).setLabel(`${label} Available`).setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(`roots:${slot}:Absent`).setLabel(`${label} Absent`).setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId(`roots:${slot}:Not Sure`).setLabel(`${label} Not Sure`).setStyle(ButtonStyle.Secondary)
+  );
+}
+
+function summitButtons() {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder().setCustomId("summit:Attending").setLabel("Attending").setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId("summit:Absent").setLabel("Absent").setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId("summit:Not Sure").setLabel("Not Sure").setStyle(ButtonStyle.Secondary)
+  );
+}
+
+async function allianceMention(interaction: ChatInputCommandInteraction) {
+  const roles = await interaction.guild?.roles.fetch().catch(() => null);
+  const role = roles?.find((candidate) => candidate.name.toLowerCase() === "alliance");
+  return role ? { content: `<@&${role.id}>`, roles: [role.id] } : { content: "@Alliance", roles: [] };
+}
+
 export const commands: BotCommand[] = [
   {
-    data: new SlashCommandBuilder().setName("register").setDescription("Register your Call of Dragons profile."),
+    data: new SlashCommandBuilder()
+      .setName("shield")
+      .setDescription("DM a shield warning to a player.")
+      .addUserOption((option) => option.setName("player").setDescription("Player to warn").setRequired(true)),
     async execute(interaction) {
-      const modal = new ModalBuilder().setCustomId("register-modal").setTitle("Alliance Registration");
+      const player = interaction.options.getUser("player", true);
+      const dmText = [
+        "🛡 SHIELD WARNING",
+        "",
+        "Your at risk please shiel ASAP!",
+        "",
+        "Please verify your shield status immediately.",
+        "",
+        "Failure to shield may result in attacks while offline."
+      ].join("\n");
+
+      await player.send(dmText);
+      await api.shieldAlert({
+        officerDiscordId: interaction.user.id,
+        officerName: interaction.user.username,
+        playerDiscordId: player.id,
+        playerName: player.username
+      });
+      await interaction.reply({ ephemeral: true, content: `${botName} sent a shield warning to ${player}.` });
+    }
+  },
+  {
+    data: new SlashCommandBuilder().setName("attack").setDescription("Post an emergency attack alert."),
+    async execute(interaction) {
+      const mention = await allianceMention(interaction);
+      const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setCustomId("attack:Joining Fight").setLabel("Joining Fight").setStyle(ButtonStyle.Danger),
+        new ButtonBuilder().setCustomId("attack:Defending").setLabel("Defending").setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId("attack:On The Way").setLabel("On The Way").setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId("attack:Unavailable").setLabel("Unavailable").setStyle(ButtonStyle.Secondary)
+      );
+
+      await interaction.reply({
+        content: mention.content,
+        allowedMentions: { roles: mention.roles },
+        embeds: [
+          {
+            title: "🚨 ATTACK ALERT 🚨",
+            description: "Enemy activity detected.\n\nEveryone please come online immediately.\n\nReact below:",
+            color: 0xef4444
+          }
+        ],
+        components: [buttons]
+      });
+      const message = await interaction.fetchReply();
+
+      await api.attackAlert({
+        officerDiscordId: interaction.user.id,
+        officerName: interaction.user.username,
+        channelId: message.channelId,
+        messageId: message.id
+      });
+    }
+  },
+  {
+    data: new SlashCommandBuilder().setName("roots").setDescription("Create Roots of War registration buttons."),
+    async execute(interaction) {
+      await interaction.reply({
+        embeds: [
+          {
+            title: "⚔ ROOTS OF WAR REGISTRATION",
+            description: "Select your availability.\n\n🕑 14:00 UTC\n⚔ Available\n❌ Absent\n❔ Not Sure\n\n🕗 20:00 UTC\n⚔ Available\n❌ Absent\n❔ Not Sure",
+            color: 0xfacc15
+          }
+        ],
+        components: [rootsButtons("14UTC", "14 UTC"), rootsButtons("20UTC", "20 UTC")]
+      });
+    }
+  },
+  {
+    data: new SlashCommandBuilder().setName("summit").setDescription("Create Summit registration buttons."),
+    async execute(interaction) {
+      await interaction.reply({
+        embeds: [
+          {
+            title: "🏔 SUMMIT REGISTRATION",
+            description: "React below.",
+            color: 0x22c55e
+          }
+        ],
+        components: [summitButtons()]
+      });
+    }
+  },
+  {
+    data: new SlashCommandBuilder()
+      .setName("remind")
+      .setDescription("Queue a simple event reminder.")
+      .addStringOption((option) =>
+        option
+          .setName("event")
+          .setDescription("Event to remind")
+          .setRequired(true)
+          .addChoices(
+            { name: "Summit", value: "Summit" },
+            { name: "Roots", value: "Roots" },
+            { name: "Fortress", value: "Fortress" },
+            { name: "Stronghold", value: "Stronghold" },
+            { name: "Pass Defense", value: "Pass Defense" },
+            { name: "Behemoth", value: "Behemoth" }
+          )
+      ),
+    async execute(interaction) {
+      const eventType = interaction.options.getString("event", true);
+      await api.eventReminder({
+        officerDiscordId: interaction.user.id,
+        officerName: interaction.user.username,
+        eventType
+      });
+      await interaction.reply({ ephemeral: true, content: `${botName} queued reminders for ${eventType}.` });
+    }
+  },
+  {
+    data: new SlashCommandBuilder().setName("checkin").setDescription("Create a daily check-in button."),
+    async execute(interaction) {
+      const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setCustomId("checkin:daily").setLabel("Daily Check-In").setStyle(ButtonStyle.Success)
+      );
+      await interaction.reply({
+        embeds: [
+          {
+            title: "✅ DAILY CHECK-IN",
+            description: "Members click below so officers can see daily and weekly activity.",
+            color: 0x22c55e
+          }
+        ],
+        components: [buttons]
+      });
+    }
+  },
+  {
+    data: new SlashCommandBuilder().setName("absence").setDescription("Submit an absence notice."),
+    async execute(interaction) {
+      const modal = new ModalBuilder().setCustomId("absence-modal").setTitle("Absence Notice");
       modal.addComponents(
-        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("ign").setLabel("In-game name").setStyle(TextInputStyle.Short).setRequired(true)),
-        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("uid").setLabel("Player UID").setStyle(TextInputStyle.Short).setRequired(true)),
-        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("power").setLabel("Power").setStyle(TextInputStyle.Short).setRequired(true)),
-        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("alliance").setLabel("Alliance tag").setStyle(TextInputStyle.Short).setRequired(true))
+        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("reason").setLabel("Reason").setStyle(TextInputStyle.Paragraph).setRequired(true)),
+        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("startDate").setLabel("Start Date").setStyle(TextInputStyle.Short).setRequired(true)),
+        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("endDate").setLabel("End Date").setStyle(TextInputStyle.Short).setRequired(true))
       );
       await interaction.showModal(modal);
     }
   },
   {
-    data: new SlashCommandBuilder().setName("profile").setDescription("View your alliance profile."),
+    data: new SlashCommandBuilder().setName("apply").setDescription("Apply to the alliance."),
     async execute(interaction) {
-      const { member } = await api.profile(interaction.user.id);
-      await interaction.reply({
-        ephemeral: true,
-        embeds: [
-          {
-            title: `${member.ign} (${member.uid})`,
-            color: 0xf59e0b,
-            fields: [
-              { name: "Power", value: member.power.toLocaleString(), inline: true },
-              { name: "Alliance", value: member.alliance, inline: true },
-              { name: "Attendance", value: String(member.attendanceScore), inline: true },
-              { name: "War Score", value: String(member.warScore), inline: true }
-            ]
-          }
-        ]
-      });
-    }
-  },
-  {
-    data: new SlashCommandBuilder()
-      .setName("attendance")
-      .setDescription("Check in to an attendance event.")
-      .addStringOption((option) => option.setName("event_id").setDescription("Attendance event ID from the dashboard.").setRequired(true)),
-    async execute(interaction) {
-      const eventId = interaction.options.getString("event_id", true);
-      await api.attendance(eventId, interaction.user.id);
-      await interaction.reply({ ephemeral: true, content: `${botName} checked you in. Your dashboard attendance score is updated.` });
-    }
-  },
-  {
-    data: new SlashCommandBuilder()
-      .setName("roots-of-war")
-      .setDescription("Register or check in for Roots of War.")
-      .addSubcommand((subcommand) =>
-        subcommand
-          .setName("register")
-          .setDescription("Register for a Roots of War UTC slot.")
-          .addStringOption((option) =>
-            option
-              .setName("slot")
-              .setDescription("Roots of War time slot")
-              .setRequired(true)
-              .addChoices({ name: "14:00 UTC", value: "14UTC" }, { name: "20:00 UTC", value: "20UTC" })
-          )
-      )
-      .addSubcommand((subcommand) =>
-        subcommand
-          .setName("check-in")
-          .setDescription("Check attendance for your Roots of War slot.")
-          .addStringOption((option) =>
-            option
-              .setName("slot")
-              .setDescription("Roots of War time slot")
-              .setRequired(true)
-              .addChoices({ name: "14:00 UTC", value: "14UTC" }, { name: "20:00 UTC", value: "20UTC" })
-          )
-      ),
-    async execute(interaction) {
-      const action = interaction.options.getSubcommand();
-      const slot = interaction.options.getString("slot", true);
-      const slotLabel = slot === "14UTC" ? "14:00 UTC" : "20:00 UTC";
-
-      if (action === "register") {
-        const result = await api.rootsOfWarRegister(interaction.user.id, slot);
-        await interaction.reply({
-          ephemeral: true,
-          content: `${botName} registered ${result.member.ign} for Roots of War at ${slotLabel}.`
-        });
-        return;
-      }
-
-      const result = await api.rootsOfWarCheckIn(interaction.user.id, slot);
-      await interaction.reply({
-        ephemeral: true,
-        content: result.checkedIn
-          ? `${botName} checked in ${result.member.ign} for Roots of War at ${slotLabel}.`
-          : `${botName} already had ${result.member.ign} checked in for Roots of War.`
-      });
-    }
-  },
-  {
-    data: new SlashCommandBuilder()
-      .setName("shield")
-      .setDescription("Update your shield timer.")
-      .addIntegerOption((option) => option.setName("hours").setDescription("Hours remaining on your shield.").setRequired(true).setMinValue(1).setMaxValue(720)),
-    async execute(interaction) {
-      const hours = interaction.options.getInteger("hours", true);
-      const expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
-      await api.shield(interaction.user.id, expiresAt);
-      await interaction.reply({ ephemeral: true, content: `Shield updated. Expires <t:${Math.floor(new Date(expiresAt).getTime() / 1000)}:R>.` });
-    }
-  },
-  {
-    data: new SlashCommandBuilder().setName("operation").setDescription("Show active war operations."),
-    async execute(interaction) {
-      const summary = await api.summary();
-      const description = summary.operations.length
-        ? summary.operations.map((op) => `**${op.operationName}** -> ${op.target} (${op.priority}) <t:${Math.floor(new Date(op.date).getTime() / 1000)}:R>`).join("\n")
-        : "No active operations.";
-      await interaction.reply({ ephemeral: true, embeds: [{ title: "War Operations", description, color: 0xef4444 }] });
-    }
-  },
-  {
-    data: new SlashCommandBuilder()
-      .setName("alert")
-      .setDescription("Create a Call to Arms alert.")
-      .addStringOption((option) => option.setName("title").setDescription("Alert title").setRequired(true))
-      .addStringOption((option) => option.setName("message").setDescription("Alert message").setRequired(true))
-      .addStringOption((option) =>
-        option
-          .setName("priority")
-          .setDescription("Priority")
-          .setRequired(true)
-          .addChoices({ name: "LOW", value: "LOW" }, { name: "MEDIUM", value: "MEDIUM" }, { name: "HIGH", value: "HIGH" }, { name: "CRITICAL", value: "CRITICAL" })
-      )
-      .addStringOption((option) => option.setName("target").setDescription("Target or rally location")),
-    async execute(interaction) {
-      const alert = await api.alert({
-        title: interaction.options.getString("title", true),
-        message: interaction.options.getString("message", true),
-        priority: interaction.options.getString("priority", true),
-        target: interaction.options.getString("target") ?? undefined,
-        createdByDiscordId: interaction.user.id
-      });
-
-      const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder().setCustomId(`cta:${alert.alert._id}:Responding`).setLabel("Responding").setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId(`cta:${alert.alert._id}:Reinforcing`).setLabel("Reinforcing").setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId(`cta:${alert.alert._id}:Unavailable`).setLabel("Unavailable").setStyle(ButtonStyle.Secondary)
+      const modal = new ModalBuilder().setCustomId("application-modal").setTitle("Alliance Application");
+      modal.addComponents(
+        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("ign").setLabel("IGN").setStyle(TextInputStyle.Short).setRequired(true)),
+        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("power").setLabel("Power").setStyle(TextInputStyle.Short).setRequired(true)),
+        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("timezone").setLabel("Timezone").setStyle(TextInputStyle.Short).setRequired(true)),
+        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("mainLegion").setLabel("Main Legion").setStyle(TextInputStyle.Short).setRequired(true))
       );
-
-      await interaction.reply({ content: `Call to Arms created: **${alert.alert.title}**`, components: [buttons] });
+      await interaction.showModal(modal);
     }
   },
   {
-    data: new SlashCommandBuilder().setName("task").setDescription("Show your alliance task queue."),
-    async execute(interaction) {
-      const summary = await api.summary();
-      const description = summary.tasks.length ? summary.tasks.map((task) => `**${task.status}** - ${task.title}`).join("\n") : "No open tasks.";
-      await interaction.reply({ ephemeral: true, embeds: [{ title: "Task Board", description, color: 0x22c55e }] });
-    }
-  },
-  {
-    data: new SlashCommandBuilder().setName("event").setDescription("Open the alliance event calendar."),
-    async execute(interaction) {
-      const menu = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-        new StringSelectMenuBuilder()
-          .setCustomId("event-type-select")
-          .setPlaceholder("Choose an event type")
-          .addOptions(
-            { label: "Summit", value: "Summit" },
-            { label: "Fortress", value: "Fortress" },
-            { label: "Stronghold", value: "Stronghold" },
-            { label: "Roots of War", value: "Roots of War" },
-            { label: "Behemoth", value: "Behemoth" },
-            { label: "Meeting", value: "Meeting" }
-          )
-      );
-      await interaction.reply({ ephemeral: true, content: `Event calendar: ${config.PUBLIC_APP_URL}/events`, components: [menu] });
-    }
-  },
-  {
-    data: new SlashCommandBuilder().setName("dashboard").setDescription("Open the Alliance Command dashboard."),
+    data: new SlashCommandBuilder().setName("dashboard").setDescription("Open the Kella dashboard."),
     async execute(interaction) {
       await interaction.reply({ ephemeral: true, content: `Dashboard: ${config.PUBLIC_APP_URL}` });
     }
