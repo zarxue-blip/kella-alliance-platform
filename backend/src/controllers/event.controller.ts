@@ -30,8 +30,12 @@ export const rsvpEvent = asyncHandler(async (req: AuthenticatedRequest, res) => 
   const body = z.object({ memberId: z.string(), status: z.enum(["Going", "Maybe", "Unavailable"]) }).parse(req.body);
   const event = await EventModel.findOne({ _id: req.params.id, allianceId: req.user.allianceId });
   if (!event) throw new HttpError(404, "Event not found");
-  event.rsvps = event.rsvps.filter((rsvp) => rsvp.memberId.toString() !== body.memberId);
-  event.rsvps.push({ memberId: body.memberId, status: body.status, respondedAt: new Date() });
+  event.set(
+    "rsvps",
+    event.rsvps
+      .filter((rsvp: any) => rsvp.memberId.toString() !== body.memberId)
+      .concat({ memberId: body.memberId, status: body.status, respondedAt: new Date() } as never)
+  );
   await event.save();
   res.json({ event });
 });

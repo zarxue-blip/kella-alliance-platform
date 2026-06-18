@@ -57,7 +57,7 @@ export const checkInAttendance = asyncHandler(async (req: AuthenticatedRequest, 
     : await MemberModel.findOne({ discordId: body.discordId ?? req.user.discordId, allianceId: req.user.allianceId });
   if (!member) throw new HttpError(404, "Member not found");
 
-  const alreadyCheckedIn = event.checkIns.some((entry) => entry.memberId.toString() === member._id.toString());
+  const alreadyCheckedIn = event.checkIns.some((entry: any) => entry.memberId.toString() === member._id.toString());
   if (!alreadyCheckedIn) {
     event.checkIns.push({
       memberId: member._id,

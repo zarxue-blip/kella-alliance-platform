@@ -87,7 +87,7 @@ export const bulkUpdateMembers = asyncHandler(async (req: AuthenticatedRequest, 
 export const exportMembers = asyncHandler(async (req: AuthenticatedRequest, res) => {
   const rows = await MemberModel.find({ allianceId: req.user.allianceId }).lean();
   const csv = membersToCsv(
-    rows.map((row) => ({
+    rows.map((row: any) => ({
       id: row._id.toString(),
       discordId: row.discordId,
       ign: row.ign,

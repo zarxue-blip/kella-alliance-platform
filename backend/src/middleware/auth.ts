@@ -36,7 +36,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
 
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
-    const user = await UserModel.findById(payload.id).lean();
+    const user = (await UserModel.findById(payload.id).lean()) as any;
     if (!user || user.disabled) {
       next(new HttpError(401, "Session is no longer valid"));
       return;

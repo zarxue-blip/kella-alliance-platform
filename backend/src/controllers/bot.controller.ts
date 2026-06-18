@@ -70,7 +70,7 @@ export const botAttendance = asyncHandler(async (req, res) => {
   const member = await MemberModel.findOne({ allianceId, discordId: body.discordId });
   const event = await AttendanceEventModel.findOne({ _id: body.eventId, allianceId });
   if (!member || !event) throw new HttpError(404, "Member or event not found");
-  if (!event.checkIns.some((entry) => entry.memberId.toString() === member._id.toString())) {
+  if (!event.checkIns.some((entry: any) => entry.memberId.toString() === member._id.toString())) {
     event.checkIns.push({ memberId: member._id, discordId: member.discordId, method: "discord", checkedInAt: new Date() });
     await event.save();
     await MemberModel.updateOne({ _id: member._id }, { $inc: { attendanceScore: 1 }, $set: { lastActivity: new Date() } });
@@ -214,7 +214,7 @@ export const botCallToArmsResponse = asyncHandler(async (req, res) => {
   alert.set(
     "responses",
     alert.responses
-      .filter((response) => response.memberId.toString() !== member._id.toString())
+      .filter((response: any) => response.memberId.toString() !== member._id.toString())
       .concat({ memberId: member._id, status: body.status, respondedAt: new Date() } as never)
   );
   await alert.save();

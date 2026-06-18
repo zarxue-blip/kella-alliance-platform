@@ -79,7 +79,7 @@ export const respondToCallToArms = asyncHandler(async (req: AuthenticatedRequest
   alert.set(
     "responses",
     alert.responses
-      .filter((response) => response.memberId.toString() !== body.memberId)
+      .filter((response: any) => response.memberId.toString() !== body.memberId)
       .concat({ memberId: body.memberId, status: body.status, message: body.message, respondedAt: new Date() } as never)
   );
   await alert.save();
