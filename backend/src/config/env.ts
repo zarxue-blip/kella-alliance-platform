@@ -13,6 +13,7 @@ const envSchema = z.object({
   DISCORD_BOT_TOKEN: z.string().optional(),
   DISCORD_GUILD_ID: z.string().optional(),
   DISCORD_ALERT_CHANNEL_ID: z.string().optional(),
+  DASHBOARD_ADMIN_TOKEN: z.string().optional(),
   FRONTEND_ORIGIN: z.string().url().default("http://localhost:3000"),
   PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
   BOT_API_TOKEN: z.string().min(16),

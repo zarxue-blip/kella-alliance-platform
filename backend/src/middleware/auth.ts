@@ -62,3 +62,13 @@ export function authenticateService(req: Request, _res: Response, next: NextFunc
   }
   next();
 }
+
+export function authenticateDashboardAdmin(req: Request, _res: Response, next: NextFunction) {
+  const token = req.header("x-dashboard-admin-token") || req.header("x-service-token");
+  const expected = env.DASHBOARD_ADMIN_TOKEN || env.BOT_API_TOKEN;
+  if (!token || token !== expected) {
+    next(new HttpError(401, "Admin key required"));
+    return;
+  }
+  next();
+}

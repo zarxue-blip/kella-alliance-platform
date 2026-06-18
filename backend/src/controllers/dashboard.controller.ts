@@ -4,6 +4,7 @@ import { env } from "../config/env.js";
 import { AllianceModel } from "../models/alliance.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
+import { sendAttackAlert, sendDiscordDm, sendDiscordEmbed } from "../services/discord.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
 
@@ -11,6 +12,7 @@ const rootsSlots = ["14UTC", "20UTC"] as const;
 const rootsStatuses = ["Available", "Absent", "Not Sure"] as const;
 type DashboardAction = {
   _id: { toString(): string };
+  type?: string;
   actorDiscordId?: string;
   actorName?: string;
   targetDiscordId?: string;
@@ -21,6 +23,17 @@ type DashboardAction = {
   status?: string;
   payload?: Record<string, any>;
   sentAt?: Date;
+};
+
+type DashboardMember = {
+  _id: { toString(): string };
+  discordId?: string;
+  ign?: string;
+  role?: string;
+  attendanceScore?: number;
+  notes?: string;
+  alliance?: string;
+  power?: number;
 };
 
 const dashboardSettingsSchema = z.object({
@@ -36,6 +49,23 @@ const dashboardSettingsSchema = z.object({
       moduleStates: z.record(z.boolean()).optional()
     })
     .optional()
+});
+
+const shieldToolSchema = z.object({
+  memberId: z.string().optional(),
+  discordId: z.string().optional(),
+  message: z.string().max(1800).optional()
+});
+
+const attackToolSchema = z.object({
+  channelId: z.string().min(1, "Target channel is required"),
+  roleMentionId: z.string().optional(),
+  message: z.string().min(1).max(1800).default("🚨 ATTACK ALERT\n\nCome online now. There is a fight.")
+});
+
+const rootsReportSendSchema = z.object({
+  channelId: z.string().min(1, "Target channel is required"),
+  roleMentionId: z.string().optional()
 });
 
 async function resolveAlliance(): Promise<any> {
@@ -127,7 +157,17 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
   const today = startOfToday();
   const recentWindow = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  const [totalMembers, todayCheckIns, activeAlerts, pendingShieldWarnings, pendingApplications, latestRoots, recentRegistrations] =
+  const [
+    totalMembers,
+    todayCheckIns,
+    activeAlerts,
+    pendingShieldWarnings,
+    pendingApplications,
+    latestRoots,
+    recentRegistrations,
+    latestShieldAlerts,
+    recentAdminActions
+  ] =
     await Promise.all([
       MemberModel.countDocuments(filter),
       KellaActionModel.countDocuments({ ...filter, type: "daily_checkin", sentAt: { $gte: today } }),
@@ -135,17 +175,29 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
       KellaActionModel.countDocuments({ ...filter, type: "shield_alert", sentAt: { $gte: recentWindow } }),
       KellaActionModel.countDocuments({ ...filter, type: "application", status: "Pending" }),
       KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean(),
-      KellaActionModel.find({ ...filter, type: "roots_response" }).sort({ sentAt: -1 }).limit(8).lean()
+      KellaActionModel.find({ ...filter, type: "roots_response" }).sort({ sentAt: -1 }).limit(8).lean(),
+      KellaActionModel.find({ ...filter, type: "shield_alert" }).sort({ sentAt: -1 }).limit(5).lean(),
+      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "event_reminder", "embed_sent", "roots_report_sent"] } })
+        .sort({ sentAt: -1 })
+        .limit(8)
+        .lean()
     ]);
   const latestRootsAction = latestRoots as DashboardAction | null;
   const recentRootsRegistrations = recentRegistrations as DashboardAction[];
+  const shieldAlerts = latestShieldAlerts as DashboardAction[];
+  const adminActions = recentAdminActions as DashboardAction[];
 
   const latestRootsId = latestRootsAction?._id?.toString();
   const rootsResponses = latestRootsId
-    ? ((await KellaActionModel.find({ ...filter, type: "roots_response", reportId: latestRootsId }).lean()) as DashboardAction[])
+    ? ((await KellaActionModel.find({
+        ...filter,
+        type: "roots_response",
+        $or: [{ reportId: latestRootsId }, { reportId: { $exists: false } }, { reportId: "" }]
+      }).lean()) as DashboardAction[])
     : [];
 
   res.json({
+    botStatus: env.DISCORD_BOT_TOKEN ? "Configured" : "Missing Discord bot token",
     totalMembers,
     todayCheckIns,
     activeAlerts,
@@ -165,6 +217,19 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
       slot: registration.slot,
       status: registration.status,
       sentAt: registration.sentAt
+    })),
+    latestShieldAlerts: shieldAlerts.map((alert) => ({
+      id: alert._id.toString(),
+      officer: alert.actorName || alert.actorDiscordId || "Dashboard",
+      player: displayName(alert),
+      sentAt: alert.sentAt
+    })),
+    recentAdminActions: adminActions.map((action) => ({
+      id: action._id.toString(),
+      type: action.type,
+      officer: action.actorName || action.actorDiscordId || "Dashboard",
+      target: action.targetName || action.targetDiscordId || action.status || "",
+      sentAt: action.sentAt
     }))
   });
 });
@@ -181,15 +246,16 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
     ];
   }
 
-  const members = await MemberModel.find(filter)
+  const members = (await MemberModel.find(filter)
     .sort({ attendanceScore: -1, power: -1 })
     .limit(500)
     .select("discordId ign role attendanceScore notes alliance power")
-    .lean();
+    .lean()) as DashboardMember[];
 
   res.json({
     members: members.map((member: any) => ({
       id: member._id.toString(),
+      discordId: member.discordId,
       discordName: member.discordId,
       ign: member.ign,
       role: member.role,
@@ -204,13 +270,13 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
 export const dashboardAlerts = asyncHandler(async (_req, res) => {
   const allianceId = await resolveAllianceId();
   const filter = allianceFilter(allianceId);
-  const alerts = await KellaActionModel.find({
+  const alerts = (await KellaActionModel.find({
     ...filter,
     type: { $in: ["shield_alert", "attack_alert", "attack_response"] }
   })
     .sort({ sentAt: -1 })
     .limit(100)
-    .lean();
+    .lean()) as DashboardAction[];
 
   res.json({
     alerts: alerts.map((alert) => ({
@@ -230,12 +296,16 @@ export const rootsReportList = asyncHandler(async (_req, res) => {
   const sessions = (await KellaActionModel.find({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).limit(100).lean()) as DashboardAction[];
   const sessionIds = sessions.map((session) => session._id.toString());
   const responses = sessionIds.length
-    ? ((await KellaActionModel.find({ ...filter, type: "roots_response", reportId: { $in: sessionIds } }).lean()) as DashboardAction[])
+    ? ((await KellaActionModel.find({
+        ...filter,
+        type: "roots_response",
+        $or: [{ reportId: { $in: sessionIds } }, { reportId: { $exists: false } }, { reportId: "" }]
+      }).lean()) as DashboardAction[])
     : [];
 
-  const reports = sessions.flatMap((session) => {
+  const reports = sessions.flatMap((session, index) => {
     const sessionId = session._id.toString();
-    const sessionResponses = responses.filter((response) => response.reportId === sessionId);
+    const sessionResponses = responses.filter((response) => response.reportId === sessionId || (index === 0 && !response.reportId));
     return rootsSlots.map((slot) => ({
       id: reportId(sessionId, slot),
       date: session.sentAt,
@@ -258,7 +328,12 @@ export const rootsReportDetails = asyncHandler(async (req, res) => {
   const session = (await KellaActionModel.findOne({ ...filter, _id: sessionId, type: "roots_registration" }).lean()) as DashboardAction | null;
   if (!session) throw new HttpError(404, "Roots report not found");
 
-  const responses = (await KellaActionModel.find({ ...filter, type: "roots_response", reportId: sessionId, slot }).sort({ actorName: 1 }).lean()) as DashboardAction[];
+  const latestSession = (await KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean()) as DashboardAction | null;
+  const responseFilter =
+    latestSession?._id?.toString() === sessionId
+      ? { ...filter, type: "roots_response", slot, $or: [{ reportId: sessionId }, { reportId: { $exists: false } }, { reportId: "" }] }
+      : { ...filter, type: "roots_response", reportId: sessionId, slot };
+  const responses = (await KellaActionModel.find(responseFilter).sort({ actorName: 1 }).lean()) as DashboardAction[];
   const playersByStatus = Object.fromEntries(
     rootsStatuses.map((status) => [
       status,
@@ -308,4 +383,100 @@ export const dashboardSettingsUpdate = asyncHandler(async (req, res) => {
   const updated = await AllianceModel.findByIdAndUpdate(alliance._id, { $set: update }, { new: true, runValidators: true });
   if (!updated) throw new HttpError(404, "Dashboard settings not found");
   res.json(publicSettings(updated));
+});
+
+export const dashboardShieldSend = asyncHandler(async (req, res) => {
+  const body = shieldToolSchema.parse(req.body);
+  const allianceId = await resolveAllianceId();
+  const filter = allianceFilter(allianceId);
+  const member = (body.memberId
+    ? await MemberModel.findOne({ ...filter, _id: body.memberId }).lean()
+    : await MemberModel.findOne({ ...filter, discordId: body.discordId }).lean()) as DashboardMember | null;
+  if (!member) throw new HttpError(404, "Member not found");
+
+  const message =
+    body.message?.trim() ||
+    "🛡 Shield Warning\n\nYou may be at risk. Please check your shield immediately.";
+  await sendDiscordDm(member.discordId, message);
+  const alert = await KellaActionModel.create({
+    allianceId,
+    type: "shield_alert",
+    actorName: "Dashboard",
+    targetDiscordId: member.discordId,
+    targetName: member.ign,
+    status: "Sent",
+    payload: { message }
+  });
+  res.status(201).json({ alert });
+});
+
+export const dashboardAttackSend = asyncHandler(async (req, res) => {
+  const body = attackToolSchema.parse(req.body);
+  const allianceId = await resolveAllianceId();
+  const message = await sendAttackAlert(body);
+  const alert = await KellaActionModel.create({
+    allianceId,
+    type: "attack_alert",
+    actorName: "Dashboard",
+    targetDiscordId: body.channelId,
+    status: "Open",
+    payload: { roleMentionId: body.roleMentionId, message: body.message, messageId: message?.id, channelId: message?.channel_id }
+  });
+  res.status(201).json({ alert, message });
+});
+
+export const rootsReportSend = asyncHandler(async (req, res) => {
+  const body = rootsReportSendSchema.parse(req.body);
+  const { sessionId, slot } = parseReportId(req.params.id);
+  if (!Types.ObjectId.isValid(sessionId)) throw new HttpError(400, "Invalid Roots report id");
+
+  const allianceId = await resolveAllianceId();
+  const filter = allianceFilter(allianceId);
+  const session = (await KellaActionModel.findOne({ ...filter, _id: sessionId, type: "roots_registration" }).lean()) as DashboardAction | null;
+  if (!session) throw new HttpError(404, "Roots report not found");
+
+  const latestSession = (await KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean()) as DashboardAction | null;
+  const responseFilter =
+    latestSession?._id?.toString() === sessionId
+      ? { ...filter, type: "roots_response", slot, $or: [{ reportId: sessionId }, { reportId: { $exists: false } }, { reportId: "" }] }
+      : { ...filter, type: "roots_response", reportId: sessionId, slot };
+  const responses = (await KellaActionModel.find(responseFilter).sort({ actorName: 1 }).lean()) as DashboardAction[];
+  const byStatus = (status: string) => responses.filter((response) => response.status === status).map((response) => displayName(response));
+  const available = byStatus("Available");
+  const absent = byStatus("Absent");
+  const unsure = byStatus("Not Sure");
+  const lineList = (players: string[]) => (players.length ? players.map((player, index) => `${index + 1}. ${player}`).join("\n") : "None");
+  const description = [
+    `Date: ${session.sentAt ? new Date(session.sentAt).toISOString().slice(0, 10) : "Unknown"}`,
+    `Time Slot: ${slotLabel(slot)}`,
+    "",
+    "AVAILABLE:",
+    lineList(available),
+    "",
+    "ABSENT:",
+    lineList(absent),
+    "",
+    "NOT SURE:",
+    lineList(unsure)
+  ].join("\n");
+
+  const message = await sendDiscordEmbed({
+    channelId: body.channelId,
+    roleMentionId: body.roleMentionId,
+    title: "ROOTS OF WAR REPORT",
+    description,
+    color: "#facc15",
+    footer: "Sent by Kella"
+  });
+  const action = await KellaActionModel.create({
+    allianceId,
+    type: "roots_report_sent",
+    actorName: "Dashboard",
+    targetDiscordId: body.channelId,
+    status: "Sent",
+    reportId: sessionId,
+    slot,
+    payload: { messageId: message?.id, channelId: message?.channel_id }
+  });
+  res.status(201).json({ message, action });
 });

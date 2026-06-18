@@ -15,7 +15,9 @@ const kellaActionSchema = new Schema(
         "daily_checkin",
         "absence",
         "application",
-        "event_reminder"
+        "event_reminder",
+        "embed_sent",
+        "roots_report_sent"
       ],
       required: true,
       index: true

@@ -39,9 +39,20 @@ export function createApp() {
   app.use(rateLimit({ windowMs: 60_000, limit: 240 }));
 
   app.get(
-    ["/", "/members", "/roots-registration", "/roots-reports", "/roots-reports/:id", "/events", "/alerts", "/shield-alerts", "/settings"],
+    [
+      "/",
+      "/members",
+      "/roots-registration",
+      "/roots-reports",
+      "/roots-reports/:id",
+      "/events",
+      "/alerts",
+      "/shield-alerts",
+      "/embed-sender",
+      "/settings"
+    ],
     (_req, res) => {
-    res.type("html").send(kellaDashboardHtml());
+      res.type("html").send(kellaDashboardHtml());
     }
   );
 
