@@ -12,6 +12,8 @@ import {
   botProfile,
   botRegister,
   botRootsResponse,
+  botRootsSession,
+  botRootsSessionUpdate,
   botRootsOfWarCheckIn,
   botRootsOfWarRegister,
   botShield,
@@ -34,6 +36,8 @@ botRouter.post("/shield-alert", botShieldAlert);
 botRouter.post("/attack", botAttackAlert);
 botRouter.post("/attack/response", botAttackResponse);
 botRouter.post("/roots/response", botRootsResponse);
+botRouter.post("/roots/session", botRootsSession);
+botRouter.patch("/roots/session/:id", botRootsSessionUpdate);
 botRouter.post("/summit/response", botSummitResponse);
 botRouter.post("/checkin", botDailyCheckIn);
 botRouter.post("/absence", botAbsence);

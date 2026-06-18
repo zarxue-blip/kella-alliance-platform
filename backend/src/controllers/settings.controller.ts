@@ -13,7 +13,12 @@ const settingsSchema = z.object({
     .object({
       attendanceGraceMinutes: z.coerce.number().min(0).max(120).optional(),
       shieldAlertMinutes: z.array(z.number().min(1)).optional(),
-      defaultAlliance: z.string().optional()
+      defaultAlliance: z.string().optional(),
+      announcementChannel: z.string().max(120).optional(),
+      attendanceChannel: z.string().max(120).optional(),
+      alertChannel: z.string().max(120).optional(),
+      officerRoles: z.array(z.string().min(1).max(80)).optional(),
+      moduleStates: z.record(z.boolean()).optional()
     })
     .optional()
 });

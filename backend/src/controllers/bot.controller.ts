@@ -174,21 +174,85 @@ export const botRootsResponse = asyncHandler(async (req, res) => {
     .extend({
       discordId: z.string(),
       displayName: z.string().optional(),
+      reportId: z.string().optional(),
       slot: z.enum(["14UTC", "20UTC"]),
       status: z.enum(["Available", "Absent", "Not Sure"])
     })
     .parse(req.body);
   const allianceId = await resolveAllianceId(body.allianceId);
-  const response = await recordKellaAction(allianceId, {
-    type: "roots_response",
-    actorDiscordId: body.discordId,
-    actorName: body.displayName,
-    eventType: "Roots of War",
-    slot: body.slot,
-    status: body.status
-  });
+  const response = body.reportId
+    ? await KellaActionModel.findOneAndUpdate(
+        {
+          allianceId,
+          type: "roots_response",
+          reportId: body.reportId,
+          actorDiscordId: body.discordId,
+          slot: body.slot
+        },
+        {
+          $setOnInsert: {
+            allianceId,
+            type: "roots_response",
+            reportId: body.reportId,
+            actorDiscordId: body.discordId,
+            slot: body.slot
+          },
+          $set: {
+            actorName: body.displayName,
+            eventType: "Roots of War",
+            status: body.status,
+            sentAt: new Date()
+          }
+        },
+        { upsert: true, new: true }
+      )
+    : await recordKellaAction(allianceId, {
+        type: "roots_response",
+        actorDiscordId: body.discordId,
+        actorName: body.displayName,
+        eventType: "Roots of War",
+        slot: body.slot,
+        status: body.status
+      });
   emitAlliance(allianceId, realtimeEvents.attendanceCheckedIn, response);
   res.status(201).json({ response });
+});
+
+export const botRootsSession = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema
+    .extend({
+      officerDiscordId: z.string(),
+      officerName: z.string().optional()
+    })
+    .parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  const session = await recordKellaAction(allianceId, {
+    type: "roots_registration",
+    actorDiscordId: body.officerDiscordId,
+    actorName: body.officerName,
+    eventType: "Roots of War",
+    status: "Open"
+  });
+  res.status(201).json({ session });
+});
+
+export const botRootsSessionUpdate = asyncHandler(async (req, res) => {
+  const body = z
+    .object({
+      guildId: z.string().optional(),
+      channelId: z.string().optional(),
+      messageId: z.string().optional()
+    })
+    .parse(req.body);
+  const session = await KellaActionModel.findById(req.params.id);
+  if (!session) throw new HttpError(404, "Roots registration session not found");
+  const messageLink =
+    body.guildId && body.channelId && body.messageId
+      ? `https://discord.com/channels/${body.guildId}/${body.channelId}/${body.messageId}`
+      : undefined;
+  session.payload = { ...session.payload, ...body, messageLink };
+  await session.save();
+  res.json({ session });
 });
 
 export const botSummitResponse = asyncHandler(async (req, res) => {

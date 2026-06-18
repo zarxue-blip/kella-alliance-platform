@@ -14,7 +14,17 @@ export function createApp() {
   const app = express();
 
   app.set("trust proxy", 1);
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          "script-src": ["'self'", "'unsafe-inline'"],
+          "style-src": ["'self'", "'unsafe-inline'"],
+          "img-src": ["'self'", "data:", "https:"]
+        }
+      }
+    })
+  );
   app.use(
     cors({
       origin: env.FRONTEND_ORIGIN,
@@ -28,9 +38,12 @@ export function createApp() {
   app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
   app.use(rateLimit({ windowMs: 60_000, limit: 240 }));
 
-  app.get("/", (_req, res) => {
+  app.get(
+    ["/", "/members", "/roots-registration", "/roots-reports", "/roots-reports/:id", "/events", "/alerts", "/shield-alerts", "/settings"],
+    (_req, res) => {
     res.type("html").send(kellaDashboardHtml());
-  });
+    }
+  );
 
   app.use("/api", apiRouter);
   app.use(errorHandler);

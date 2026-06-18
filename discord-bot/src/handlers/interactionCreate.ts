@@ -36,9 +36,10 @@ export async function handleInteraction(interaction: Interaction) {
     }
 
     if (interaction.isButton() && interaction.customId.startsWith("roots:")) {
-      const [, slot, status] = interaction.customId.split(":");
-      if (!slot || !status) return;
-      await api.rootsResponse({ discordId: interaction.user.id, displayName: displayName(interaction), slot, status });
+      const [, reportId, slot, statusValue] = interaction.customId.split(":");
+      if (!reportId || !slot || !statusValue) return;
+      const status = statusValue === "Unsure" ? "Not Sure" : statusValue;
+      await api.rootsResponse({ discordId: interaction.user.id, displayName: displayName(interaction), reportId, slot, status });
       await interaction.reply({ ephemeral: true, content: `${botName} recorded ${status} for Roots of War ${slot}.` });
       return;
     }

@@ -4,6 +4,7 @@ import { announcementRouter } from "./announcement.routes.js";
 import { attendanceRouter } from "./attendance.routes.js";
 import { authRouter } from "./auth.routes.js";
 import { botRouter } from "./bot.routes.js";
+import { dashboardRouter } from "./dashboard.routes.js";
 import { diplomacyRouter } from "./diplomacy.routes.js";
 import { eventRouter } from "./event.routes.js";
 import { memberRouter } from "./member.routes.js";
@@ -17,6 +18,7 @@ import { taskRouter } from "./task.routes.js";
 export const apiRouter = Router();
 
 apiRouter.get("/health", (_req, res) => res.json({ ok: true, service: "cod-amp-api" }));
+apiRouter.use("/dashboard", dashboardRouter);
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/members", memberRouter);
 apiRouter.use("/attendance", attendanceRouter);

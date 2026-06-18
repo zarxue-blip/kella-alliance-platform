@@ -34,8 +34,14 @@ export const api = {
   attackResponse(input: { discordId: string; displayName?: string; status: string }) {
     return request("POST", "/bot/attack/response", { ...allianceContext(), ...input });
   },
-  rootsResponse(input: { discordId: string; displayName?: string; slot: string; status: string }) {
+  rootsResponse(input: { discordId: string; displayName?: string; reportId?: string; slot: string; status: string }) {
     return request("POST", "/bot/roots/response", { ...allianceContext(), ...input });
+  },
+  rootsSession(input: { officerDiscordId: string; officerName?: string }) {
+    return request<{ session: { _id: string } }>("POST", "/bot/roots/session", { ...allianceContext(), ...input });
+  },
+  updateRootsSession(sessionId: string, input: { guildId?: string; channelId?: string; messageId?: string }) {
+    return request("PATCH", `/bot/roots/session/${sessionId}`, input);
   },
   summitResponse(input: { discordId: string; displayName?: string; status: string }) {
     return request("POST", "/bot/summit/response", { ...allianceContext(), ...input });

@@ -10,7 +10,12 @@ const allianceSchema = new Schema(
     settings: {
       attendanceGraceMinutes: { type: Number, default: 10 },
       shieldAlertMinutes: { type: [Number], default: [1440, 720, 360, 60, 15] },
-      defaultAlliance: { type: String }
+      defaultAlliance: { type: String },
+      announcementChannel: { type: String, default: "" },
+      attendanceChannel: { type: String, default: "" },
+      alertChannel: { type: String, default: "" },
+      officerRoles: { type: [String], default: ["Leader", "R4 Officer", "War Marshal", "Event Manager", "Recruiter"] },
+      moduleStates: { type: Map, of: Boolean, default: {} }
     }
   },
   { timestamps: true }

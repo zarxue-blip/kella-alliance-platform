@@ -22,11 +22,11 @@ export interface BotCommand {
   execute(interaction: ChatInputCommandInteraction): Promise<void>;
 }
 
-function rootsButtons(slot: "14UTC" | "20UTC", label: string) {
+function rootsButtons(reportId: string, slot: "14UTC" | "20UTC", label: string) {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setCustomId(`roots:${slot}:Available`).setLabel(`${label} Available`).setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(`roots:${slot}:Absent`).setLabel(`${label} Absent`).setStyle(ButtonStyle.Danger),
-    new ButtonBuilder().setCustomId(`roots:${slot}:Not Sure`).setLabel(`${label} Not Sure`).setStyle(ButtonStyle.Secondary)
+    new ButtonBuilder().setCustomId(`roots:${reportId}:${slot}:Available`).setLabel(`${label} Available`).setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(`roots:${reportId}:${slot}:Absent`).setLabel(`${label} Absent`).setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId(`roots:${reportId}:${slot}:Unsure`).setLabel(`${label} Unsure`).setStyle(ButtonStyle.Secondary)
   );
 }
 
@@ -108,6 +108,10 @@ export const commands: BotCommand[] = [
   {
     data: new SlashCommandBuilder().setName("roots").setDescription("Create Roots of War registration buttons."),
     async execute(interaction) {
+      const { session } = await api.rootsSession({
+        officerDiscordId: interaction.user.id,
+        officerName: interaction.user.username
+      });
       await interaction.reply({
         embeds: [
           {
@@ -116,7 +120,13 @@ export const commands: BotCommand[] = [
             color: 0xfacc15
           }
         ],
-        components: [rootsButtons("14UTC", "14 UTC"), rootsButtons("20UTC", "20 UTC")]
+        components: [rootsButtons(session._id, "14UTC", "14 UTC"), rootsButtons(session._id, "20UTC", "20 UTC")]
+      });
+      const message = await interaction.fetchReply();
+      await api.updateRootsSession(session._id, {
+        guildId: interaction.guildId ?? undefined,
+        channelId: message.channelId,
+        messageId: message.id
       });
     }
   },

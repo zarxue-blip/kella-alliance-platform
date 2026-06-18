@@ -9,6 +9,7 @@ const kellaActionSchema = new Schema(
         "shield_alert",
         "attack_alert",
         "attack_response",
+        "roots_registration",
         "roots_response",
         "summit_response",
         "daily_checkin",
@@ -23,6 +24,7 @@ const kellaActionSchema = new Schema(
     actorName: { type: String },
     targetDiscordId: { type: String, index: true },
     targetName: { type: String },
+    reportId: { type: String, index: true },
     eventType: { type: String, index: true },
     slot: { type: String, index: true },
     status: { type: String, index: true },
@@ -34,6 +36,7 @@ const kellaActionSchema = new Schema(
 
 kellaActionSchema.index({ allianceId: 1, type: 1, sentAt: -1 });
 kellaActionSchema.index({ allianceId: 1, eventType: 1, slot: 1, status: 1 });
+kellaActionSchema.index({ allianceId: 1, reportId: 1, slot: 1, status: 1 });
 
 export type KellaActionDocument = InferSchemaType<typeof kellaActionSchema>;
 export const KellaActionModel = model<any>("KellaAction", kellaActionSchema);
