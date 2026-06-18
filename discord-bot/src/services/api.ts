@@ -2,7 +2,7 @@ import { config } from "../config.js";
 
 type Method = "GET" | "POST" | "PATCH";
 
-function allianceContext() {
+function allianceContext(): Record<string, string> {
   return config.BOT_ALLIANCE_ID ? { allianceId: config.BOT_ALLIANCE_ID } : {};
 }
 
