@@ -9,6 +9,19 @@ import { HttpError } from "../utils/httpError.js";
 
 const rootsSlots = ["14UTC", "20UTC"] as const;
 const rootsStatuses = ["Available", "Absent", "Not Sure"] as const;
+type DashboardAction = {
+  _id: { toString(): string };
+  actorDiscordId?: string;
+  actorName?: string;
+  targetDiscordId?: string;
+  targetName?: string;
+  reportId?: string;
+  eventType?: string;
+  slot?: string;
+  status?: string;
+  payload?: Record<string, any>;
+  sentAt?: Date;
+};
 
 const dashboardSettingsSchema = z.object({
   name: z.string().min(1).max(120).optional(),
@@ -25,7 +38,7 @@ const dashboardSettingsSchema = z.object({
     .optional()
 });
 
-async function resolveAlliance() {
+async function resolveAlliance(): Promise<any> {
   const alliance =
     (env.DISCORD_GUILD_ID ? await AllianceModel.findOne({ discordGuildId: env.DISCORD_GUILD_ID }).lean() : undefined) ??
     (await AllianceModel.findOne().sort({ createdAt: 1 }).lean());
@@ -124,10 +137,12 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
       KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean(),
       KellaActionModel.find({ ...filter, type: "roots_response" }).sort({ sentAt: -1 }).limit(8).lean()
     ]);
+  const latestRootsAction = latestRoots as DashboardAction | null;
+  const recentRootsRegistrations = recentRegistrations as DashboardAction[];
 
-  const latestRootsId = latestRoots?._id?.toString();
+  const latestRootsId = latestRootsAction?._id?.toString();
   const rootsResponses = latestRootsId
-    ? await KellaActionModel.find({ ...filter, type: "roots_response", reportId: latestRootsId }).lean()
+    ? ((await KellaActionModel.find({ ...filter, type: "roots_response", reportId: latestRootsId }).lean()) as DashboardAction[])
     : [];
 
   res.json({
@@ -136,15 +151,15 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
     activeAlerts,
     pendingShieldWarnings,
     pendingApplications,
-    upcomingRoots: latestRoots
+    upcomingRoots: latestRootsAction
       ? {
           id: latestRootsId,
-          date: latestRoots.sentAt,
-          createdBy: latestRoots.actorName || "Unknown Officer",
+          date: latestRootsAction.sentAt,
+          createdBy: latestRootsAction.actorName || "Unknown Officer",
           slots: rootsSlots.map((slot) => ({ slot, label: slotLabel(slot), ...summarizeRootsResponses(rootsResponses, slot) }))
         }
       : undefined,
-    recentRegistrations: recentRegistrations.map((registration) => ({
+    recentRegistrations: recentRootsRegistrations.map((registration) => ({
       id: registration._id.toString(),
       player: displayName(registration),
       slot: registration.slot,
@@ -212,10 +227,10 @@ export const dashboardAlerts = asyncHandler(async (_req, res) => {
 export const rootsReportList = asyncHandler(async (_req, res) => {
   const allianceId = await resolveAllianceId();
   const filter = allianceFilter(allianceId);
-  const sessions = await KellaActionModel.find({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).limit(100).lean();
+  const sessions = (await KellaActionModel.find({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).limit(100).lean()) as DashboardAction[];
   const sessionIds = sessions.map((session) => session._id.toString());
   const responses = sessionIds.length
-    ? await KellaActionModel.find({ ...filter, type: "roots_response", reportId: { $in: sessionIds } }).lean()
+    ? ((await KellaActionModel.find({ ...filter, type: "roots_response", reportId: { $in: sessionIds } }).lean()) as DashboardAction[])
     : [];
 
   const reports = sessions.flatMap((session) => {
@@ -240,10 +255,10 @@ export const rootsReportDetails = asyncHandler(async (req, res) => {
 
   const allianceId = await resolveAllianceId();
   const filter = allianceFilter(allianceId);
-  const session = await KellaActionModel.findOne({ ...filter, _id: sessionId, type: "roots_registration" }).lean();
+  const session = (await KellaActionModel.findOne({ ...filter, _id: sessionId, type: "roots_registration" }).lean()) as DashboardAction | null;
   if (!session) throw new HttpError(404, "Roots report not found");
 
-  const responses = await KellaActionModel.find({ ...filter, type: "roots_response", reportId: sessionId, slot }).sort({ actorName: 1 }).lean();
+  const responses = (await KellaActionModel.find({ ...filter, type: "roots_response", reportId: sessionId, slot }).sort({ actorName: 1 }).lean()) as DashboardAction[];
   const playersByStatus = Object.fromEntries(
     rootsStatuses.map((status) => [
       status,
