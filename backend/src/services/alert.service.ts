@@ -4,7 +4,7 @@ import { CallToArmsModel } from "../models/callToArms.model.js";
 import { emitAlliance, emitNotification, moduleNotification } from "./realtime.service.js";
 
 export async function publishCallToArms(alertId: string) {
-  const alert = await CallToArmsModel.findById(alertId).lean();
+  const alert = (await CallToArmsModel.findById(alertId).lean()) as any;
   if (!alert) return;
 
   emitAlliance(alert.allianceId.toString(), realtimeEvents.callToArmsCreated, alert);
@@ -36,7 +36,7 @@ export async function publishCallToArms(alertId: string) {
     });
   }
 
-  if (env.PUSH_WEBHOOK_URL && alert.channels.includes("push")) {
+  if (env.PUSH_WEBHOOK_URL && (alert.channels ?? []).includes("push")) {
     await fetch(env.PUSH_WEBHOOK_URL, {
       method: "POST",
       headers: { "content-type": "application/json" },
