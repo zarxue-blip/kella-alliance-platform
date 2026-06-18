@@ -1,4 +1,5 @@
 import { realtimeEvents } from "@cod-amp/shared";
+import { Types } from "mongoose";
 import { z } from "zod";
 import { MemberModel } from "../models/member.model.js";
 import { UserModel } from "../models/user.model.js";
@@ -111,10 +112,11 @@ export const exportMembers = asyncHandler(async (req: AuthenticatedRequest, res)
 
 export const importMembers = asyncHandler(async (req: AuthenticatedRequest, res) => {
   const body = z.object({ members: z.array(memberSchema) }).parse(req.body);
+  const allianceId = new Types.ObjectId(req.user.allianceId);
   const operations = body.members.map((member) => ({
     updateOne: {
-      filter: { allianceId: req.user.allianceId, uid: member.uid },
-      update: { $set: { ...member, allianceId: req.user.allianceId } },
+      filter: { allianceId, uid: member.uid },
+      update: { $set: { ...member, allianceId } },
       upsert: true
     }
   }));

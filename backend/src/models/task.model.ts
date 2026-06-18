@@ -35,4 +35,4 @@ const taskSchema = new Schema(
 );
 
 export type TaskDocument = InferSchemaType<typeof taskSchema>;
-export const TaskModel = model("Task", taskSchema);
+export const TaskModel = model<any>("Task", taskSchema);

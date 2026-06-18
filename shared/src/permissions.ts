@@ -1,4 +1,4 @@
-import type { DashboardModule, UserRole } from "./types";
+import type { DashboardModule, UserRole } from "./types.js";
 
 export type PermissionAction = "read" | "create" | "update" | "delete" | "export" | "manage";
 export type Permission = `${DashboardModule}:${PermissionAction}` | "system:admin";

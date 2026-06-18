@@ -27,4 +27,4 @@ memberSchema.index({ allianceId: 1, uid: 1 }, { unique: true });
 memberSchema.index({ allianceId: 1, discordId: 1 }, { unique: true });
 
 export type MemberDocument = InferSchemaType<typeof memberSchema>;
-export const MemberModel = model("Member", memberSchema);
+export const MemberModel = model<any>("Member", memberSchema);

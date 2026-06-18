@@ -12,4 +12,4 @@ const auditLogSchema = new Schema(
   { timestamps: true }
 );
 
-export const AuditLogModel = model("AuditLog", auditLogSchema);
+export const AuditLogModel = model<any>("AuditLog", auditLogSchema);

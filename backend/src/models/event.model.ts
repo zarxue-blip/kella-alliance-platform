@@ -28,4 +28,4 @@ const eventSchema = new Schema(
 );
 
 export type EventDocument = InferSchemaType<typeof eventSchema>;
-export const EventModel = model("Event", eventSchema);
+export const EventModel = model<any>("Event", eventSchema);

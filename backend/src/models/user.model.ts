@@ -18,4 +18,4 @@ const userSchema = new Schema(
 );
 
 export type UserDocument = InferSchemaType<typeof userSchema>;
-export const UserModel = model("User", userSchema);
+export const UserModel = model<any>("User", userSchema);

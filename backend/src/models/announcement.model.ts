@@ -25,4 +25,4 @@ const announcementSchema = new Schema(
 );
 
 export type AnnouncementDocument = InferSchemaType<typeof announcementSchema>;
-export const AnnouncementModel = model("Announcement", announcementSchema);
+export const AnnouncementModel = model<any>("Announcement", announcementSchema);

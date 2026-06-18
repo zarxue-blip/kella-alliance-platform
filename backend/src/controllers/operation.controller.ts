@@ -76,8 +76,12 @@ export const respondToCallToArms = asyncHandler(async (req: AuthenticatedRequest
   const alert = await CallToArmsModel.findOne({ _id: req.params.id, allianceId: req.user.allianceId });
   if (!alert) throw new HttpError(404, "Call to Arms alert not found");
 
-  alert.responses = alert.responses.filter((response) => response.memberId.toString() !== body.memberId);
-  alert.responses.push({ memberId: body.memberId, status: body.status, message: body.message, respondedAt: new Date() });
+  alert.set(
+    "responses",
+    alert.responses
+      .filter((response) => response.memberId.toString() !== body.memberId)
+      .concat({ memberId: body.memberId, status: body.status, message: body.message, respondedAt: new Date() } as never)
+  );
   await alert.save();
 
   emitAlliance(req.user.allianceId, realtimeEvents.callToArmsResponse, { alertId: alert._id, response: body });

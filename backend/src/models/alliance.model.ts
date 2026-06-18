@@ -16,4 +16,4 @@ const allianceSchema = new Schema(
   { timestamps: true }
 );
 
-export const AllianceModel = model("Alliance", allianceSchema);
+export const AllianceModel = model<any>("Alliance", allianceSchema);

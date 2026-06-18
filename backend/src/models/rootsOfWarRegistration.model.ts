@@ -23,4 +23,4 @@ rootsOfWarRegistrationSchema.index({ allianceId: 1, memberId: 1 }, { unique: tru
 rootsOfWarRegistrationSchema.index({ allianceId: 1, slot: 1, status: 1 });
 
 export type RootsOfWarRegistrationDocument = InferSchemaType<typeof rootsOfWarRegistrationSchema>;
-export const RootsOfWarRegistrationModel = model("RootsOfWarRegistration", rootsOfWarRegistrationSchema);
+export const RootsOfWarRegistrationModel = model<any>("RootsOfWarRegistration", rootsOfWarRegistrationSchema);

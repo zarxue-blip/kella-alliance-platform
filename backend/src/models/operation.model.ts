@@ -46,4 +46,4 @@ const operationSchema = new Schema(
 );
 
 export type OperationDocument = InferSchemaType<typeof operationSchema>;
-export const OperationModel = model("Operation", operationSchema);
+export const OperationModel = model<any>("Operation", operationSchema);

@@ -16,4 +16,4 @@ const shieldSchema = new Schema(
 shieldSchema.index({ allianceId: 1, expiresAt: 1 });
 
 export type ShieldDocument = InferSchemaType<typeof shieldSchema>;
-export const ShieldModel = model("Shield", shieldSchema);
+export const ShieldModel = model<any>("Shield", shieldSchema);

@@ -29,4 +29,4 @@ const recruitmentApplicationSchema = new Schema(
 );
 
 export type RecruitmentApplicationDocument = InferSchemaType<typeof recruitmentApplicationSchema>;
-export const RecruitmentApplicationModel = model("RecruitmentApplication", recruitmentApplicationSchema);
+export const RecruitmentApplicationModel = model<any>("RecruitmentApplication", recruitmentApplicationSchema);

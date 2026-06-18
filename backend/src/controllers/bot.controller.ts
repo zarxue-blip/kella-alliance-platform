@@ -211,8 +211,12 @@ export const botCallToArmsResponse = asyncHandler(async (req, res) => {
   const member = await MemberModel.findOne({ allianceId, discordId: body.discordId });
   const alert = await CallToArmsModel.findOne({ _id: req.params.id, allianceId });
   if (!member || !alert) throw new HttpError(404, "Member or alert not found");
-  alert.responses = alert.responses.filter((response) => response.memberId.toString() !== member._id.toString());
-  alert.responses.push({ memberId: member._id, status: body.status, respondedAt: new Date() });
+  alert.set(
+    "responses",
+    alert.responses
+      .filter((response) => response.memberId.toString() !== member._id.toString())
+      .concat({ memberId: member._id, status: body.status, respondedAt: new Date() } as never)
+  );
   await alert.save();
   emitAlliance(allianceId, realtimeEvents.callToArmsResponse, { alertId: alert._id, memberId: member._id, status: body.status });
   res.json({ alert });

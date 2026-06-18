@@ -28,4 +28,4 @@ const callToArmsSchema = new Schema(
 );
 
 export type CallToArmsDocument = InferSchemaType<typeof callToArmsSchema>;
-export const CallToArmsModel = model("CallToArms", callToArmsSchema);
+export const CallToArmsModel = model<any>("CallToArms", callToArmsSchema);

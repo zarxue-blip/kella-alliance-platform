@@ -24,4 +24,4 @@ const diplomacySchema = new Schema(
 );
 
 export type DiplomacyDocument = InferSchemaType<typeof diplomacySchema>;
-export const DiplomacyModel = model("Diplomacy", diplomacySchema);
+export const DiplomacyModel = model<any>("Diplomacy", diplomacySchema);

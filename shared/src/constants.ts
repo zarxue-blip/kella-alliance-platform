@@ -1,4 +1,4 @@
-import type { DashboardModule } from "./types";
+import type { DashboardModule } from "./types.js";
 
 export const appName = "Dragon Command";
 export const botName = "Kella";

@@ -44,4 +44,4 @@ attendanceEventSchema.index({ allianceId: 1, startsAt: -1 });
 attendanceEventSchema.index({ allianceId: 1, "checkIns.memberId": 1 });
 
 export type AttendanceEventDocument = InferSchemaType<typeof attendanceEventSchema>;
-export const AttendanceEventModel = model("AttendanceEvent", attendanceEventSchema);
+export const AttendanceEventModel = model<any>("AttendanceEvent", attendanceEventSchema);
