@@ -39,25 +39,27 @@ export function kellaDashboardHtml() {
     <style>
       :root {
         color-scheme: dark;
-        --bg: #090b10;
-        --panel: #151821;
-        --panel-2: #10131b;
-        --panel-3: #1b202d;
-        --line: #282e40;
-        --muted: #8f99b3;
+        --bg: #08090d;
+        --panel: #12141c;
+        --panel-2: #0c0e14;
+        --panel-3: #181b26;
+        --line: #2c3343;
+        --muted: #939bb0;
         --text: #f8fafc;
-        --green: #5cffc8;
-        --red: #ff4f62;
+        --green: #4ff0aa;
+        --red: #ff4565;
         --gold: #facc15;
-        --blue: #7ca3ff;
+        --blue: #8097ff;
+        --pink: #ff4d75;
       }
 
       * { box-sizing: border-box; }
       body {
         margin: 0;
         background:
-          radial-gradient(circle at 10% 100%, rgba(239, 68, 68, 0.18), transparent 26%),
-          radial-gradient(circle at 92% 0%, rgba(250, 204, 21, 0.11), transparent 28%),
+          radial-gradient(circle at 10% 96%, rgba(255, 69, 101, 0.18), transparent 28%),
+          radial-gradient(circle at 92% 0%, rgba(128, 151, 255, 0.13), transparent 26%),
+          linear-gradient(180deg, #11131a 0%, #08090d 38%, #08090d 100%),
           var(--bg);
         color: var(--text);
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -68,50 +70,103 @@ export function kellaDashboardHtml() {
       button:disabled { cursor: not-allowed; opacity: 0.62; }
       a { color: inherit; }
 
-      .shell { min-height: 100vh; display: grid; grid-template-columns: 270px 1fr; }
-      aside {
-        position: sticky;
-        top: 0;
-        height: 100vh;
+      .shell {
+        width: min(1180px, calc(100vw - 32px));
+        min-height: min(820px, calc(100vh - 32px));
+        margin: 16px auto;
+        display: grid;
+        grid-template-columns: 245px 1fr;
+        overflow: hidden;
+        border: 1px solid #596170;
+        border-radius: 24px;
+        background: rgba(9, 11, 17, 0.96);
+        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255,255,255,0.08);
+      }
+      .shell > aside {
         border-right: 1px solid var(--line);
-        background: rgba(12, 14, 21, 0.95);
-        padding: 28px 18px;
+        background: linear-gradient(180deg, #141822 0%, #0c0e15 62%, #0b0d13 100%);
+        padding: 20px 14px;
+        display: flex;
+        flex-direction: column;
       }
 
-      .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 34px; padding: 0 8px; }
+      .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding: 0 7px; }
       .mark {
-        width: 42px;
-        height: 42px;
-        border-radius: 11px;
-        background: linear-gradient(135deg, var(--red), #8b1d2c);
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--pink), #9f1731);
         display: grid;
         place-items: center;
         font-weight: 1000;
-        box-shadow: 0 0 30px rgba(255, 79, 98, 0.22);
+        color: white;
+        box-shadow: 0 0 26px rgba(255, 69, 101, 0.26);
       }
-      .brand strong { display: block; letter-spacing: 0.14em; font-size: 20px; }
-      .brand span { color: var(--muted); font-size: 12px; }
+      .brand strong { display: block; letter-spacing: 0.02em; font-size: 16px; }
+      .brand span { color: #ff92a7; font-size: 11px; text-transform: uppercase; font-weight: 900; letter-spacing: 0.08em; }
 
       nav { display: grid; gap: 7px; }
       nav a {
-        color: #c8cee0;
+        color: #c4cbdb;
         text-decoration: none;
-        border-radius: 8px;
-        padding: 13px 14px;
+        border-radius: 7px;
+        padding: 11px 12px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        font-weight: 850;
+        font-weight: 900;
+        font-size: 14px;
         transition: background 160ms ease, color 160ms ease, transform 160ms ease;
       }
-      nav a.active, nav a:hover { background: #191d29; color: var(--green); transform: translateX(2px); }
+      nav a.active, nav a:hover { background: var(--pink); color: white; transform: translateX(2px); box-shadow: 0 12px 28px rgba(255, 69, 101, 0.22); }
+      .side-spacer { flex: 1; min-height: 24px; }
+      .side-footer {
+        margin-top: 24px;
+        padding: 14px 8px 0;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 850;
+        line-height: 1.45;
+      }
+      .side-footer strong { display: block; color: var(--text); font-size: 13px; margin-bottom: 4px; }
 
-      main { padding: 28px 36px 48px; min-width: 0; }
-      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 28px; }
+      main { padding: 0; min-width: 0; background: #090b11; }
+      .topbar {
+        display: grid;
+        grid-template-columns: 1fr minmax(260px, 360px) auto;
+        align-items: center;
+        gap: 14px;
+        min-height: 58px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(12, 14, 20, 0.94);
+        padding: 10px 20px;
+      }
+      .command-search {
+        height: 34px;
+        border-radius: 999px;
+        padding: 0 14px;
+        background: #151923;
+        border-color: #33394b;
+        font-size: 12px;
+      }
+      .top-actions { display: flex; align-items: center; gap: 8px; }
+      .icon-button {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        background: #151923;
+        color: #dbe1ef;
+        border: 1px solid #343a4d;
+        padding: 0;
+      }
+      .content { padding: 24px 20px 28px; }
       .guild { display: flex; align-items: center; gap: 14px; }
       .avatar {
-        width: 58px;
-        height: 58px;
+        width: 42px;
+        height: 42px;
         border-radius: 50%;
         display: grid;
         place-items: center;
@@ -119,22 +174,22 @@ export function kellaDashboardHtml() {
         border: 2px solid #394150;
         font-weight: 1000;
       }
-      h1 { margin: 0; font-size: clamp(26px, 4vw, 42px); }
+      h1 { margin: 0; font-size: 22px; }
       h2 { margin: 0 0 10px; font-size: 28px; }
       h3 { margin: 0; font-size: 18px; }
       .muted { color: var(--muted); }
 
       .primary, .secondary, .danger, .ghost {
-        border: 1px solid #2d3447;
+        border: 1px solid #343a4d;
         border-radius: 8px;
-        padding: 10px 14px;
+        padding: 9px 13px;
         font-weight: 900;
         text-decoration: none;
         background: #10131b;
         color: #dbeafe;
       }
-      .primary { background: var(--red); border-color: #ff7281; color: white; }
-      .secondary { background: #222737; color: #dbeafe; }
+      .primary { background: linear-gradient(135deg, var(--pink), #ff284f); border-color: #ff7281; color: white; box-shadow: 0 14px 28px rgba(255,69,101,0.22); }
+      .secondary { background: #171b26; color: #dbeafe; }
       .danger { background: #3b1016; color: #fecdd3; border-color: #7f1d1d; }
       .ghost { background: transparent; }
 
@@ -157,11 +212,11 @@ export function kellaDashboardHtml() {
       .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
       .form-grid .wide { grid-column: 1 / -1; }
 
-      .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px; }
+      .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
       .stat, .card, .module-card, .table-wrap, .preview {
-        background: rgba(21, 24, 33, 0.94);
+        background: linear-gradient(180deg, rgba(24, 27, 38, 0.98), rgba(14, 17, 25, 0.98));
         border: 1px solid var(--line);
-        border-radius: 9px;
+        border-radius: 10px;
         box-shadow: 0 18px 50px rgba(0, 0, 0, 0.16);
       }
       .stat { padding: 17px; }
@@ -170,6 +225,63 @@ export function kellaDashboardHtml() {
 
       .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
       .two { display: grid; grid-template-columns: 1.12fr 0.88fr; gap: 18px; }
+      .dashboard-main { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; margin-bottom: 16px; }
+      .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      .panel-title h3 { font-size: 21px; }
+      .status-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      .command-chip {
+        border-radius: 999px;
+        padding: 6px 10px;
+        background: rgba(255, 69, 101, 0.14);
+        color: #ff9daf;
+        border: 1px solid rgba(255, 69, 101, 0.36);
+        font-size: 11px;
+        font-weight: 1000;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .overview-panel {
+        min-height: 248px;
+        padding: 22px;
+        overflow: hidden;
+        position: relative;
+        background:
+          linear-gradient(180deg, rgba(10, 12, 18, 0.30), rgba(10, 12, 18, 0.92)),
+          radial-gradient(circle at 54% 48%, rgba(255, 69, 101, 0.48), transparent 24%),
+          linear-gradient(135deg, #101521, #0b0d13 65%);
+      }
+      .overview-panel:before {
+        content: "";
+        position: absolute;
+        inset: 54px 18px 18px;
+        border: 1px solid rgba(255,255,255,0.05);
+        background:
+          linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+        background-size: 26px 26px;
+        opacity: 0.75;
+        mask-image: linear-gradient(180deg, transparent, black 18%, black 80%, transparent);
+      }
+      .overview-content { position: relative; z-index: 1; display: grid; gap: 14px; height: 100%; align-content: end; }
+      .overview-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+      .kpi-card { background: rgba(14,17,25,0.86); border: 1px solid rgba(255,255,255,0.09); border-radius: 10px; padding: 13px; }
+      .kpi-card span { display: block; color: var(--muted); font-size: 11px; font-weight: 1000; text-transform: uppercase; letter-spacing: 0.08em; }
+      .kpi-card strong { display: block; margin-top: 7px; font-size: 22px; color: var(--text); }
+      .activity-card { min-height: 248px; }
+      .activity-list { display: grid; gap: 10px; }
+      .activity-item { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; padding: 10px; background: #0d1018; border: 1px solid #272d3d; border-radius: 9px; }
+      .activity-dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,69,101,0.13); color: #ff8ca0; border: 1px solid rgba(255,69,101,0.35); font-size: 13px; }
+      .activity-item strong { display: block; font-size: 13px; line-height: 1.25; }
+      .activity-time { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+      .quick-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+      .quick-card { min-height: 128px; display: grid; align-content: space-between; gap: 14px; transition: transform 160ms ease, border-color 160ms ease; }
+      .quick-card:hover { transform: translateY(-2px); border-color: #465069; }
+      .quick-card .big { font-size: 25px; font-weight: 1000; color: var(--text); }
+      .readiness { display: grid; gap: 9px; }
+      .readiness-row { display: grid; gap: 6px; }
+      .readiness-row span { display: flex; justify-content: space-between; gap: 10px; color: #cbd5e1; font-size: 12px; font-weight: 850; }
+      .bar { height: 7px; background: #262b39; border-radius: 999px; overflow: hidden; }
+      .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--green), var(--gold)); }
       .card, .preview { padding: 20px; }
       .card-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
       .card p { color: #aeb8d3; line-height: 1.55; font-weight: 650; }
@@ -271,21 +383,22 @@ export function kellaDashboardHtml() {
       .toast.error { border-color: rgba(255,79,98,0.5); }
 
       @media (max-width: 1120px) {
-        .grid, .stats, .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .two, .players { grid-template-columns: 1fr; }
+        .grid, .stats, .form-grid, .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .two, .players, .dashboard-main { grid-template-columns: 1fr; }
       }
       @media (max-width: 780px) {
-        .shell { grid-template-columns: 1fr; }
-        aside { position: static; height: auto; }
-        main { padding: 24px 16px; }
+        .shell { width: 100%; min-height: 100vh; margin: 0; border-radius: 0; grid-template-columns: 1fr; }
+        .shell > aside { min-height: auto; }
+        nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .content { padding: 20px 14px 26px; }
         .hero, .topbar { grid-template-columns: 1fr; display: grid; align-items: start; }
-        .grid, .stats, .form-grid { grid-template-columns: 1fr; }
+        .grid, .stats, .form-grid, .quick-grid, .overview-kpis { grid-template-columns: 1fr; }
       }
     </style>
   </head>
   <body>
     <div class="shell">
-      <aside>
+      <aside class="sidebar">
         <div class="brand">
           <div class="mark">K</div>
           <div>
@@ -294,6 +407,11 @@ export function kellaDashboardHtml() {
           </div>
         </div>
         <nav aria-label="Dashboard navigation">${navItems.map(navLink).join("")}</nav>
+        <div class="side-spacer"></div>
+        <div class="side-footer">
+          <strong>Alliance Ops</strong>
+          Fast tools for Roots, alerts, embeds, and officer reports.
+        </div>
       </aside>
       <main>
         <header class="topbar">
@@ -304,8 +422,16 @@ export function kellaDashboardHtml() {
               <span class="muted" id="guildTagline">Command Center</span>
             </div>
           </div>
+          <input class="command-search" data-command-search placeholder="Search command tools..." />
+          <div class="top-actions" aria-label="Quick actions">
+            <button class="icon-button" type="button" data-link-button="/embed-sender" title="Embed Sender">+</button>
+            <button class="icon-button" type="button" data-link-button="/alerts" title="Alerts">!</button>
+            <button class="icon-button" type="button" data-action="refresh-current" title="Refresh">↻</button>
+          </div>
         </header>
-        <section id="app" aria-live="polite"><div class="skeleton">Loading Kella dashboard...</div></section>
+        <div class="content">
+          <section id="app" aria-live="polite"><div class="skeleton">Loading Kella dashboard...</div></section>
+        </div>
       </main>
     </div>
     <div id="toasts" class="toast-stack" aria-live="polite"></div>
@@ -434,6 +560,12 @@ export function kellaDashboardHtml() {
         });
       }
 
+      function filterDashboardCards(term) {
+        document.querySelectorAll("[data-module-card], [data-quick-card]").forEach(function(card) {
+          card.style.display = card.textContent.toLowerCase().includes(term) ? "" : "none";
+        });
+      }
+
       async function loadSummary() {
         if (!state.summary) state.summary = await fetchJson("/api/dashboard/summary");
         return state.summary;
@@ -505,32 +637,87 @@ export function kellaDashboardHtml() {
         return '<option value="">Select channel</option>' + options;
       }
 
+      function percent(value, total) {
+        if (!total) return 0;
+        return Math.max(0, Math.min(100, Math.round((Number(value || 0) / Number(total || 1)) * 100)));
+      }
+
       function renderDashboardData(summary) {
         const roots = summary.upcomingRoots;
+        const slots = roots?.slots || [];
+        const slot14 = slots.find(function(slot) { return slot.slot === "14UTC"; }) || { label: "14:00 UTC", available: 0, absent: 0, unsure: 0 };
+        const slot20 = slots.find(function(slot) { return slot.slot === "20UTC"; }) || { label: "20:00 UTC", available: 0, absent: 0, unsure: 0 };
         const rootsLabel = roots ? formatDate(roots.date) + " by " + roots.createdBy : "None";
-        const latestShield = (summary.latestShieldAlerts || []).length
-          ? '<ul class="list">' + summary.latestShieldAlerts.map(function(alert) { return '<li><strong>' + escapeHtml(alert.player) + '</strong><br><span class="muted">' + escapeHtml(alert.officer) + ' - ' + formatDateTime(alert.sentAt) + '</span></li>'; }).join("") + '</ul>'
-          : empty("No shield alerts yet.");
-        const actions = (summary.recentAdminActions || []).length
-          ? '<ul class="list">' + summary.recentAdminActions.map(function(action) { return '<li><strong>' + escapeHtml(action.type) + '</strong><br><span class="muted">' + escapeHtml(action.officer) + ' - ' + formatDateTime(action.sentAt) + '</span></li>'; }).join("") + '</ul>'
-          : empty("No admin actions recorded yet.");
-        const rootsHtml = roots
-          ? '<div class="card"><div class="card-header"><h3>Latest Roots Registration</h3><button class="secondary" data-link-button="/roots-reports/' + roots.id + '_14UTC">Quick View</button></div><p>' + escapeHtml(rootsLabel) + '</p>' +
-            roots.slots.map(function(slot) { return '<p><strong>' + slot.label + '</strong>: ' + slot.available + ' Available, ' + slot.absent + ' Absent, ' + slot.unsure + ' Not Sure</p>'; }).join("") + '</div>'
-          : '<div class="card"><div class="card-header"><h3>Latest Roots Registration</h3><button class="secondary" data-action="copy-command" data-value="/roots">Copy /roots</button></div><p>No Roots registration has been created yet.</p></div>';
+        const reportPath = roots ? "/roots-reports/" + roots.id + "_14UTC" : "/roots-registration";
+        const totalMembers = Number(summary.totalMembers || 0);
+        const checkinPercent = percent(summary.todayCheckIns || 0, totalMembers || 1);
+        const rootsResponses = slot14.available + slot14.absent + slot14.unsure + slot20.available + slot20.absent + slot20.unsure;
+        const shieldCount = (summary.latestShieldAlerts || []).length;
+        const adminCount = (summary.recentAdminActions || []).length;
+        const activityItems = [];
+
+        if (roots) {
+          activityItems.push({
+            icon: "R",
+            title: "Roots registration active for " + formatDate(roots.date),
+            meta: "Created by " + (roots.createdBy || "Unknown Officer")
+          });
+        }
+        (summary.recentRegistrations || []).slice(0, 3).forEach(function(registration) {
+          activityItems.push({
+            icon: "V",
+            title: (registration.player || "Player") + " chose " + (registration.status || "Unknown"),
+            meta: (registration.slot || "Roots") + " - " + formatDateTime(registration.sentAt)
+          });
+        });
+        (summary.latestShieldAlerts || []).slice(0, 2).forEach(function(alert) {
+          activityItems.push({
+            icon: "S",
+            title: "Shield warning sent to " + (alert.player || "Unknown Player"),
+            meta: (alert.officer || "Dashboard") + " - " + formatDateTime(alert.sentAt)
+          });
+        });
+        (summary.recentAdminActions || []).slice(0, 3).forEach(function(action) {
+          activityItems.push({
+            icon: "A",
+            title: (action.type || "Admin action").replaceAll("_", " "),
+            meta: (action.officer || "Dashboard") + " - " + formatDateTime(action.sentAt)
+          });
+        });
+
+        const activityHtml = activityItems.length
+          ? '<div class="activity-list">' + activityItems.slice(0, 7).map(function(item) {
+              return '<div class="activity-item"><span class="activity-dot">' + escapeHtml(item.icon) + '</span><div><strong>' + escapeHtml(item.title) + '</strong><span class="activity-time">' + escapeHtml(item.meta) + '</span></div></div>';
+            }).join("") + '</div>'
+          : empty("No recent alliance activity yet.");
 
         app.innerHTML =
-          pageHeader("Dashboard", "Kella keeps alliance tools simple: click, send, track, report.", '<button class="secondary" data-action="refresh-dashboard">Refresh</button>') +
+          pageHeader("Dashboard", "Welcome back, Commander. Kella keeps Roots, alerts, embeds, and officer reports in one fast control room.", '<button class="secondary" data-action="refresh-dashboard">Sync Data</button><button class="primary" data-link-button="/embed-sender">Direct Command</button>') +
+          '<section class="dashboard-main">' +
+            '<div class="card overview-panel">' +
+              '<div class="overview-content">' +
+                '<div class="panel-title"><div><span class="command-chip">Alliance Overview</span><h3>Command Board</h3></div><div class="status-row"><span class="badge good">' + escapeHtml(summary.botStatus) + '</span>' + (roots ? '<span class="badge warn">Roots of War</span>' : '<span class="badge bad">No Roots Active</span>') + '</div></div>' +
+                '<p>Kella is tracking live alliance actions from Discord and the dashboard. Use the command tools below when officers need to move fast.</p>' +
+                '<div class="overview-kpis">' +
+                  '<div class="kpi-card"><span>Total Members</span><strong>' + escapeHtml(totalMembers) + '</strong></div>' +
+                  '<div class="kpi-card"><span>Today Check-ins</span><strong>' + escapeHtml(summary.todayCheckIns || 0) + '</strong></div>' +
+                  '<div class="kpi-card"><span>Active Alerts</span><strong>' + escapeHtml(summary.activeAlerts || 0) + '</strong></div>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="card activity-card"><div class="card-header"><h3>Live Activity</h3><button class="secondary" data-link-button="/alerts">Open</button></div>' + activityHtml + '</div>' +
+          '</section>' +
+          '<section class="quick-grid">' +
+            '<div class="card quick-card" data-quick-card><div><h3>Upcoming Roots</h3><p>' + (roots ? escapeHtml(rootsLabel) : "No Roots registration has been created yet.") + '</p></div><button class="secondary" data-link-button="' + reportPath + '">' + (roots ? "Quick View" : "Open Setup") + '</button></div>' +
+            '<div class="card quick-card" data-quick-card><div><h3>Roots Availability</h3><p><strong>' + escapeHtml(slot14.label) + '</strong>: ' + slot14.available + ' available<br><strong>' + escapeHtml(slot20.label) + '</strong>: ' + slot20.available + ' available</p></div><button class="secondary" data-link-button="/roots-reports">Reports</button></div>' +
+            '<div class="card quick-card" data-quick-card><div><h3>Troop Readiness</h3><div class="readiness"><div class="readiness-row"><span><b>Daily Activity</b><b>' + checkinPercent + '%</b></span><div class="bar"><i style="width:' + checkinPercent + '%"></i></div></div><div class="readiness-row"><span><b>Roots Responses</b><b>' + rootsResponses + '</b></span><div class="bar"><i style="width:' + Math.min(100, rootsResponses) + '%"></i></div></div></div></div><button class="secondary" data-link-button="/members">Members</button></div>' +
+            '<div class="card quick-card" data-quick-card><div><h3>Officer Signals</h3><p><span class="big">' + (shieldCount + adminCount) + '</span><br>' + shieldCount + ' shield alerts, ' + adminCount + ' admin actions</p></div><button class="secondary" data-link-button="/shield-alerts">Shield Alerts</button></div>' +
+          '</section>' +
           '<section class="stats">' +
             stat("Bot Status", summary.botStatus) +
-            stat("Total Members", summary.totalMembers) +
-            stat("Active Alerts", summary.activeAlerts) +
-            stat("Latest Roots Registration", rootsLabel) +
-            stat("Latest Shield Alerts", (summary.latestShieldAlerts || []).length) +
-            stat("Recent Admin Actions", (summary.recentAdminActions || []).length) +
+            stat("Pending Shield Warnings", summary.pendingShieldWarnings || 0) +
+            stat("Pending Applications", summary.pendingApplications || 0) +
           '</section>' +
-          '<section class="two">' + rootsHtml + '<div class="card"><div class="card-header"><h3>Latest Shield Alerts</h3><button class="secondary" data-link-button="/shield-alerts">Open</button></div>' + latestShield + '</div></section>' +
-          '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Recent Admin Actions</h3><button class="secondary" data-link-button="/alerts">View Alerts</button></div>' + actions + '</section>' +
           renderModulesGrid();
       }
 
@@ -862,6 +1049,12 @@ export function kellaDashboardHtml() {
           toast((action.getAttribute("data-module") || "Module") + " settings opened.");
           navigate("/settings");
         }
+        if (kind === "refresh-current") withFeedback(action, async function() {
+          state.summary = null;
+          state.alerts = [];
+          state.reports = [];
+          await route();
+        }, "Page refreshed.");
         if (kind === "refresh-dashboard") withFeedback(action, async function() { state.summary = null; await renderDashboard(); }, "Dashboard refreshed.");
         if (kind === "refresh-reports") withFeedback(action, async function() { await renderRootsReports(); }, "Reports refreshed.");
         if (kind === "refresh-alerts") withFeedback(action, async function() { state.alerts = []; await loadAlerts(); await renderAlerts(location.pathname === "/shield-alerts" ? "shield" : undefined); }, "Alerts refreshed.");
@@ -942,6 +1135,15 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("input", async function(event) {
+        if (event.target.matches("[data-command-search]")) {
+          const term = event.target.value.toLowerCase();
+          if (location.pathname !== "/" && term) {
+            navigate("/");
+            setTimeout(function() { filterDashboardCards(term); }, 100);
+          } else {
+            filterDashboardCards(term);
+          }
+        }
         if (event.target.matches("[data-module-search]")) {
           const term = event.target.value.toLowerCase();
           document.querySelectorAll("[data-module-card]").forEach(function(card) {
