@@ -523,8 +523,8 @@ export function kellaDashboardHtml() {
       async function withFeedback(button, work, successMessage) {
         setLoading(button, true);
         try {
-          await work();
-          toast(successMessage);
+          const message = await work();
+          toast(message || successMessage);
         } catch (error) {
           toast(error.message || "Action failed", "error");
         } finally {
@@ -1071,7 +1071,7 @@ export function kellaDashboardHtml() {
           navigate("/settings");
         }
         if (kind === "sync-discord-members") withFeedback(action, async function() {
-          await sendJson("POST", "/api/dashboard/sync-discord-members", {}, true);
+          const sync = await sendJson("POST", "/api/dashboard/sync-discord-members", {}, true);
           state.summary = null;
           state.members = [];
           state.alerts = [];
@@ -1080,6 +1080,7 @@ export function kellaDashboardHtml() {
           } else {
             await renderDashboard();
           }
+          return "Synced " + sync.total + " Discord members (" + sync.created + " new, " + sync.updated + " updated).";
         }, "Discord members synced. Open Members to view profiles.");
         if (kind === "refresh-current") withFeedback(action, async function() {
           state.summary = null;

@@ -103,13 +103,24 @@ export async function listDiscordGuildMembers() {
   const members: DiscordGuildMember[] = [];
   let after = "0";
 
-  for (let page = 0; page < 20; page += 1) {
-    const batch = await discordRequest<DiscordGuildMember[]>(`/guilds/${env.DISCORD_GUILD_ID}/members?limit=1000&after=${after}`);
-    members.push(...batch);
-    if (batch.length < 1000) break;
-    const lastUserId = batch[batch.length - 1]?.user?.id;
-    if (!lastUserId) break;
-    after = lastUserId;
+  try {
+    for (let page = 0; page < 20; page += 1) {
+      const batch = await discordRequest<DiscordGuildMember[]>(`/guilds/${env.DISCORD_GUILD_ID}/members?limit=1000&after=${after}`);
+      members.push(...batch);
+      if (batch.length < 1000) break;
+      const lastUserId = batch[batch.length - 1]?.user?.id;
+      if (!lastUserId) break;
+      after = lastUserId;
+    }
+  } catch (error) {
+    if (error instanceof HttpError && error.statusCode === 403) {
+      throw new HttpError(
+        403,
+        "Discord blocked member sync. Enable Server Members Intent in Discord Developer Portal, make sure Kella is invited to this server, then restart the Render service.",
+        error.details
+      );
+    }
+    throw error;
   }
 
   return members
