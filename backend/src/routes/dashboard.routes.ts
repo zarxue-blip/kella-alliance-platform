@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   dashboardAlerts,
   dashboardMembers,
+  dashboardDiscordMemberSync,
   dashboardSettings,
   dashboardSettingsUpdate,
   dashboardAttackSend,
@@ -17,6 +18,7 @@ export const dashboardRouter = Router();
 
 dashboardRouter.get("/summary", dashboardSummary);
 dashboardRouter.get("/members", dashboardMembers);
+dashboardRouter.post("/sync-discord-members", authenticateDashboardAdmin, dashboardDiscordMemberSync);
 dashboardRouter.get("/alerts", dashboardAlerts);
 dashboardRouter.get("/settings", dashboardSettings);
 dashboardRouter.patch("/settings", dashboardSettingsUpdate);

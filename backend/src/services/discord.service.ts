@@ -21,6 +21,20 @@ interface SendAttackInput {
   message: string;
 }
 
+interface DiscordGuildMember {
+  avatar?: string | null;
+  joined_at?: string | null;
+  nick?: string | null;
+  user?: {
+    id: string;
+    username: string;
+    global_name?: string | null;
+    discriminator?: string;
+    avatar?: string | null;
+    bot?: boolean;
+  };
+}
+
 function requireBotToken() {
   if (!env.DISCORD_BOT_TOKEN) throw new HttpError(503, "Discord bot token is not configured");
   return env.DISCORD_BOT_TOKEN;
@@ -69,6 +83,48 @@ export async function listDiscordTextChannels() {
     .filter((channel) => channel.type === 0 || channel.type === 5)
     .sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0))
     .map((channel) => ({ id: channel.id, name: channel.name, type: channel.type }));
+}
+
+function discordAvatarUrl(member: DiscordGuildMember) {
+  const user = member.user;
+  if (!user) return "";
+  if (member.avatar && env.DISCORD_GUILD_ID) {
+    return `https://cdn.discordapp.com/guilds/${env.DISCORD_GUILD_ID}/users/${user.id}/avatars/${member.avatar}.png?size=128`;
+  }
+  if (user.avatar) {
+    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`;
+  }
+  const fallbackIndex = Number(user.discriminator || 0) % 5;
+  return `https://cdn.discordapp.com/embed/avatars/${fallbackIndex}.png`;
+}
+
+export async function listDiscordGuildMembers() {
+  if (!env.DISCORD_GUILD_ID) throw new HttpError(503, "Discord guild id is not configured");
+  const members: DiscordGuildMember[] = [];
+  let after = "0";
+
+  for (let page = 0; page < 20; page += 1) {
+    const batch = await discordRequest<DiscordGuildMember[]>(`/guilds/${env.DISCORD_GUILD_ID}/members?limit=1000&after=${after}`);
+    members.push(...batch);
+    if (batch.length < 1000) break;
+    const lastUserId = batch[batch.length - 1]?.user?.id;
+    if (!lastUserId) break;
+    after = lastUserId;
+  }
+
+  return members
+    .filter((member) => member.user?.id && !member.user.bot)
+    .map((member) => {
+      const user = member.user!;
+      const displayName = member.nick || user.global_name || user.username;
+      return {
+        discordId: user.id,
+        discordUsername: user.discriminator && user.discriminator !== "0" ? `${user.username}#${user.discriminator}` : user.username,
+        discordDisplayName: displayName,
+        discordAvatarUrl: discordAvatarUrl(member),
+        joinedAt: member.joined_at || undefined
+      };
+    });
 }
 
 export async function sendDiscordEmbed(input: SendEmbedInput) {

@@ -4,7 +4,7 @@ import { env } from "../config/env.js";
 import { AllianceModel } from "../models/alliance.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
-import { sendAttackAlert, sendDiscordDm, sendDiscordEmbed } from "../services/discord.service.js";
+import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed } from "../services/discord.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
 
@@ -28,6 +28,9 @@ type DashboardAction = {
 type DashboardMember = {
   _id: { toString(): string };
   discordId?: string;
+  discordUsername?: string;
+  discordDisplayName?: string;
+  discordAvatarUrl?: string;
   ign?: string;
   role?: string;
   attendanceScore?: number;
@@ -177,7 +180,7 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
       KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean(),
       KellaActionModel.find({ ...filter, type: "roots_response" }).sort({ sentAt: -1 }).limit(8).lean(),
       KellaActionModel.find({ ...filter, type: "shield_alert" }).sort({ sentAt: -1 }).limit(5).lean(),
-      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "event_reminder", "embed_sent", "roots_report_sent"] } })
+      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "event_reminder", "embed_sent", "roots_report_sent", "discord_member_sync"] } })
         .sort({ sentAt: -1 })
         .limit(8)
         .lean()
@@ -249,14 +252,17 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
   const members = (await MemberModel.find(filter)
     .sort({ attendanceScore: -1, power: -1 })
     .limit(500)
-    .select("discordId ign role attendanceScore notes alliance power")
+    .select("discordId discordUsername discordDisplayName discordAvatarUrl ign role attendanceScore notes alliance power")
     .lean()) as DashboardMember[];
 
   res.json({
     members: members.map((member: any) => ({
       id: member._id.toString(),
       discordId: member.discordId,
-      discordName: member.discordId,
+      discordName: member.discordDisplayName || member.ign || member.discordId,
+      discordUsername: member.discordUsername || member.discordId,
+      discordDisplayName: member.discordDisplayName || member.ign || member.discordUsername || member.discordId,
+      discordAvatarUrl: member.discordAvatarUrl || "",
       ign: member.ign,
       role: member.role,
       attendance: member.attendanceScore,
@@ -265,6 +271,58 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
       power: member.power
     }))
   });
+});
+
+export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
+  const alliance = await resolveAlliance();
+  const allianceId = alliance._id.toString();
+  const syncedAt = new Date();
+  const discordMembers = await listDiscordGuildMembers();
+  let created = 0;
+  let updated = 0;
+
+  for (const member of discordMembers) {
+    const result = await MemberModel.updateOne(
+      { allianceId, discordId: member.discordId },
+      {
+        $set: {
+          discordUsername: member.discordUsername,
+          discordDisplayName: member.discordDisplayName,
+          discordAvatarUrl: member.discordAvatarUrl,
+          lastActivity: syncedAt
+        },
+        $setOnInsert: {
+          ign: member.discordDisplayName || member.discordUsername || member.discordId,
+          uid: member.discordId,
+          power: 0,
+          alliance: alliance.tag || alliance.name || "Discord",
+          rank: "Discord",
+          role: "Member",
+          timezone: alliance.timezone || "UTC",
+          country: "Unknown",
+          joinDate: member.joinedAt ? new Date(member.joinedAt) : syncedAt,
+          attendanceScore: 0,
+          warScore: 0,
+          contributionScore: 0,
+          notes: ""
+        }
+      },
+      { upsert: true }
+    );
+
+    if (result.upsertedCount) created += result.upsertedCount;
+    else if (result.modifiedCount || result.matchedCount) updated += 1;
+  }
+
+  await KellaActionModel.create({
+    allianceId,
+    type: "discord_member_sync",
+    actorName: "Dashboard",
+    status: "Completed",
+    payload: { total: discordMembers.length, created, updated }
+  });
+
+  res.json({ total: discordMembers.length, created, updated, syncedAt });
 });
 
 export const dashboardAlerts = asyncHandler(async (_req, res) => {

@@ -366,6 +366,22 @@ export function kellaDashboardHtml() {
 
       .list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
       .list li { background: #10131b; border: 1px solid var(--line); border-radius: 7px; padding: 12px 14px; }
+      .member-cell { display: flex; align-items: center; gap: 12px; min-width: 240px; }
+      .member-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        object-fit: cover;
+        background: linear-gradient(135deg, #272d3d, #111827);
+        border: 1px solid #3f4659;
+        color: #e5e7eb;
+        font-weight: 1000;
+      }
+      .member-name { display: block; font-weight: 1000; color: var(--text); }
+      .member-username { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 800; }
       .players { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
       .stack { display: grid; gap: 14px; }
       .preview {
@@ -692,7 +708,7 @@ export function kellaDashboardHtml() {
           : empty("No recent alliance activity yet.");
 
         app.innerHTML =
-          pageHeader("Dashboard", "Welcome back, Commander. Kella keeps Roots, alerts, embeds, and officer reports in one fast control room.", '<button class="secondary" data-action="refresh-dashboard">Sync Data</button><button class="primary" data-link-button="/embed-sender">Direct Command</button>') +
+          pageHeader("Dashboard", "Welcome back, Commander. Kella keeps Roots, alerts, embeds, and officer reports in one fast control room.", '<button class="secondary" data-action="sync-discord-members">Sync Data</button><button class="primary" data-link-button="/embed-sender">Direct Command</button>') +
           '<section class="dashboard-main">' +
             '<div class="card overview-panel">' +
               '<div class="overview-content">' +
@@ -733,9 +749,14 @@ export function kellaDashboardHtml() {
 
       function renderMembersTable(members) {
         if (!members.length) return empty("No members found yet.");
-        return '<div class="table-wrap"><table><thead><tr><th>Discord ID</th><th>IGN</th><th>Alliance Role</th><th>Attendance</th><th>Officer Notes</th></tr></thead><tbody>' +
+        return '<div class="table-wrap"><table><thead><tr><th>Member</th><th>IGN</th><th>Alliance Role</th><th>Attendance</th><th>Officer Notes</th></tr></thead><tbody>' +
           members.map(function(member) {
-            return '<tr><td>' + escapeHtml(member.discordId || member.discordName) + '</td><td>' + escapeHtml(member.ign) + '</td><td>' + escapeHtml(member.role) + '</td><td>' + escapeHtml(member.attendance) + '</td><td>' + escapeHtml(member.notes || "") + '</td></tr>';
+            const displayName = member.discordDisplayName || member.discordName || member.ign || member.discordId || "Unknown Member";
+            const username = member.discordUsername || member.discordId || "";
+            const avatar = member.discordAvatarUrl
+              ? '<img class="member-avatar" src="' + escapeHtml(member.discordAvatarUrl) + '" alt="" loading="lazy" />'
+              : '<span class="member-avatar">' + escapeHtml(displayName.slice(0, 1).toUpperCase()) + '</span>';
+            return '<tr><td><div class="member-cell">' + avatar + '<span><span class="member-name">' + escapeHtml(displayName) + '</span><span class="member-username">' + escapeHtml(username ? "@" + username.replace(/^@/, "") : "No Discord username") + '</span></span></div></td><td>' + escapeHtml(member.ign) + '</td><td>' + escapeHtml(member.role) + '</td><td>' + escapeHtml(member.attendance) + '</td><td>' + escapeHtml(member.notes || "") + '</td></tr>';
           }).join("") + '</tbody></table></div>';
       }
 
@@ -743,7 +764,7 @@ export function kellaDashboardHtml() {
         skeleton("Loading members...");
         try {
           const members = await loadMembers();
-          app.innerHTML = pageHeader("Members", "Search members and review Discord ID, IGN, alliance role, attendance, and notes.", '<input class="search" data-member-search placeholder="Search members" />') + renderMembersTable(members);
+          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, IGN, alliance role, attendance, and notes.", '<input class="search" data-member-search placeholder="Search members" /><button class="secondary" data-action="sync-discord-members">Sync Data</button>') + renderMembersTable(members);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load members. ' + escapeHtml(error.message) + '</div>';
         }
@@ -1049,6 +1070,17 @@ export function kellaDashboardHtml() {
           toast((action.getAttribute("data-module") || "Module") + " settings opened.");
           navigate("/settings");
         }
+        if (kind === "sync-discord-members") withFeedback(action, async function() {
+          await sendJson("POST", "/api/dashboard/sync-discord-members", {}, true);
+          state.summary = null;
+          state.members = [];
+          state.alerts = [];
+          if (location.pathname === "/members") {
+            await renderMembers();
+          } else {
+            await renderDashboard();
+          }
+        }, "Discord members synced. Open Members to view profiles.");
         if (kind === "refresh-current") withFeedback(action, async function() {
           state.summary = null;
           state.alerts = [];

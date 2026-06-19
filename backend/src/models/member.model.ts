@@ -5,6 +5,9 @@ const memberSchema = new Schema(
   {
     allianceId: { type: Schema.Types.ObjectId, ref: "Alliance", required: true, index: true },
     discordId: { type: String, required: true, index: true },
+    discordUsername: { type: String, default: "", trim: true },
+    discordDisplayName: { type: String, default: "", trim: true },
+    discordAvatarUrl: { type: String, default: "", trim: true },
     ign: { type: String, required: true, trim: true, index: "text" },
     uid: { type: String, required: true, trim: true, index: true },
     power: { type: Number, default: 0, min: 0, index: true },
