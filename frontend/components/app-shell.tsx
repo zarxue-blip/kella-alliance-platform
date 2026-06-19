@@ -16,7 +16,7 @@ import {
   UserPlus,
   Users
 } from "lucide-react";
-import { appName, botName } from "@cod-amp/shared";
+import { appName, botName } from "@/lib/shared";
 import { discordLoginUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";

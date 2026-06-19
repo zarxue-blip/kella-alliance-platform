@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { io } from "socket.io-client";
-import { realtimeEvents, type NotificationDto } from "@cod-amp/shared";
+import { realtimeEvents, type NotificationDto } from "@/lib/shared";
 import { apiBaseUrl } from "@/lib/api";
 
 interface RealtimeContextValue {

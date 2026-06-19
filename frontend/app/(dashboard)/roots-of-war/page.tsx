@@ -1,5 +1,5 @@
 import { Swords } from "lucide-react";
-import { botName } from "@cod-amp/shared";
+import { botName } from "@/lib/shared";
 import { PageHeader } from "@/components/page-header";
 import { RootsOfWarPanel } from "@/components/roots-of-war-panel";
 import { Badge } from "@/components/ui/badge";

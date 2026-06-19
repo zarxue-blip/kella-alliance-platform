@@ -1,4 +1,4 @@
-import type { TaskStatus } from "@cod-amp/shared";
+import type { TaskStatus } from "@/lib/shared";
 
 export const stats = [
   { label: "Registered Members", value: "8,742", change: "+14.2%" },
