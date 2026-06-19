@@ -5,6 +5,7 @@ import { AllianceModel } from "../models/alliance.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed } from "../services/discord.service.js";
+import { fetchFarlightTopnMembers } from "../services/farlightTopn.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
 
@@ -32,6 +33,8 @@ type DashboardMember = {
   discordDisplayName?: string;
   discordAvatarUrl?: string;
   ign?: string;
+  uid?: string;
+  rank?: string;
   role?: string;
   attendanceScore?: number;
   notes?: string;
@@ -69,6 +72,14 @@ const attackToolSchema = z.object({
 const rootsReportSendSchema = z.object({
   channelId: z.string().min(1, "Target channel is required"),
   roleMentionId: z.string().optional()
+});
+
+const farlightTopnSyncSchema = z.object({
+  serverId: z.string().min(1, "Server ID is required"),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  token: z.string().min(1, "Farlight token is required"),
+  keyword: z.string().optional()
 });
 
 async function resolveAlliance(): Promise<any> {
@@ -126,6 +137,11 @@ function normalizeModuleStates(value: unknown) {
   return {};
 }
 
+function numeric(value: unknown) {
+  const parsed = Number(value || 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function publicSettings(alliance: any) {
   const settings = alliance.settings || {};
   return {
@@ -180,7 +196,7 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
       KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean(),
       KellaActionModel.find({ ...filter, type: "roots_response" }).sort({ sentAt: -1 }).limit(8).lean(),
       KellaActionModel.find({ ...filter, type: "shield_alert" }).sort({ sentAt: -1 }).limit(5).lean(),
-      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "event_reminder", "embed_sent", "roots_report_sent", "discord_member_sync"] } })
+      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "event_reminder", "embed_sent", "roots_report_sent", "discord_member_sync", "farlight_topn_sync"] } })
         .sort({ sentAt: -1 })
         .limit(8)
         .lean()
@@ -252,7 +268,7 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
   const members = (await MemberModel.find(filter)
     .sort({ attendanceScore: -1, power: -1 })
     .limit(500)
-    .select("discordId discordUsername discordDisplayName discordAvatarUrl ign role attendanceScore notes alliance power")
+    .select("discordId discordUsername discordDisplayName discordAvatarUrl ign uid rank role attendanceScore notes alliance power")
     .lean()) as DashboardMember[];
 
   res.json({
@@ -264,6 +280,8 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
       discordDisplayName: member.discordDisplayName || member.ign || member.discordUsername || member.discordId,
       discordAvatarUrl: member.discordAvatarUrl || "",
       ign: member.ign,
+      uid: member.uid,
+      rank: member.rank,
       role: member.role,
       attendance: member.attendanceScore,
       notes: member.notes,
@@ -323,6 +341,76 @@ export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
   });
 
   res.json({ total: discordMembers.length, created, updated, syncedAt });
+});
+
+export const dashboardFarlightTopnSync = asyncHandler(async (req, res) => {
+  const body = farlightTopnSyncSchema.parse(req.body) as {
+    serverId: string;
+    startDate?: string;
+    endDate?: string;
+    token: string;
+    keyword?: string;
+  };
+  const alliance = await resolveAlliance();
+  const allianceId = alliance._id.toString();
+  const syncedAt = new Date();
+  const rows = await fetchFarlightTopnMembers(body);
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+
+  for (const row of rows) {
+    const uid = String(row.role_id || "").trim();
+    const ign = String(row.role_name || "").trim();
+    if (!uid || !ign) {
+      skipped += 1;
+      continue;
+    }
+
+    const existing = ((
+      (await MemberModel.findOne({ allianceId, uid }).select("_id").lean()) ??
+      (await MemberModel.findOne({ allianceId, ign }).select("_id").lean())
+    ) as any);
+
+    const update = {
+      $set: {
+        uid,
+        ign,
+        power: numeric(row.power),
+        alliance: alliance.tag || alliance.name || `Server ${body.serverId}`,
+        rank: row.rank ? `TopN #${row.rank}` : "TopN",
+        lastActivity: syncedAt
+      },
+      $setOnInsert: {
+        discordId: `topn:${body.serverId}:${uid}`,
+        role: "Member",
+        timezone: alliance.timezone || "UTC",
+        country: "Unknown",
+        joinDate: syncedAt,
+        attendanceScore: 0,
+        warScore: 0,
+        contributionScore: 0,
+        notes: ""
+      }
+    };
+
+    const result = existing
+      ? await MemberModel.updateOne({ _id: existing._id, allianceId }, update)
+      : await MemberModel.updateOne({ allianceId, uid }, update, { upsert: true });
+
+    if (result.upsertedCount) created += result.upsertedCount;
+    else if (result.modifiedCount || result.matchedCount) updated += 1;
+  }
+
+  await KellaActionModel.create({
+    allianceId,
+    type: "farlight_topn_sync",
+    actorName: "Dashboard",
+    status: "Completed",
+    payload: { serverId: body.serverId, total: rows.length, created, updated, skipped }
+  });
+
+  res.json({ total: rows.length, created, updated, skipped, syncedAt });
 });
 
 export const dashboardAlerts = asyncHandler(async (_req, res) => {

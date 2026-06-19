@@ -3,6 +3,7 @@ import {
   dashboardAlerts,
   dashboardMembers,
   dashboardDiscordMemberSync,
+  dashboardFarlightTopnSync,
   dashboardSettings,
   dashboardSettingsUpdate,
   dashboardAttackSend,
@@ -19,6 +20,7 @@ export const dashboardRouter = Router();
 dashboardRouter.get("/summary", dashboardSummary);
 dashboardRouter.get("/members", dashboardMembers);
 dashboardRouter.post("/sync-discord-members", authenticateDashboardAdmin, dashboardDiscordMemberSync);
+dashboardRouter.post("/sync-farlight-topn", authenticateDashboardAdmin, dashboardFarlightTopnSync);
 dashboardRouter.get("/alerts", dashboardAlerts);
 dashboardRouter.get("/settings", dashboardSettings);
 dashboardRouter.patch("/settings", dashboardSettingsUpdate);

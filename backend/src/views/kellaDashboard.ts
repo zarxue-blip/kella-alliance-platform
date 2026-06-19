@@ -574,6 +574,11 @@ export function kellaDashboardHtml() {
         return '<div class="stat"><span>' + label + '</span><strong>' + escapeHtml(value) + '</strong></div>';
       }
 
+      function formatNumber(value) {
+        const parsed = Number(value || 0);
+        return Number.isFinite(parsed) ? parsed.toLocaleString("en-US") : "0";
+      }
+
       function moduleState(moduleId) {
         const states = state.settings?.settings?.moduleStates || {};
         return states[moduleId] !== false;
@@ -775,22 +780,33 @@ export function kellaDashboardHtml() {
 
       function renderMembersTable(members) {
         if (!members.length) return empty("No members found yet.");
-        return '<div class="table-wrap"><table><thead><tr><th>Member</th><th>IGN</th><th>Alliance Role</th><th>Attendance</th><th>Officer Notes</th></tr></thead><tbody>' +
+        return '<div class="table-wrap"><table><thead><tr><th>Member</th><th>IGN</th><th>UID</th><th>Power</th><th>Game Rank</th><th>Alliance Role</th><th>Attendance</th><th>Officer Notes</th></tr></thead><tbody>' +
           members.map(function(member) {
             const displayName = member.discordDisplayName || member.discordName || member.ign || member.discordId || "Unknown Member";
             const username = member.discordUsername || member.discordId || "";
             const avatar = member.discordAvatarUrl
               ? '<img class="member-avatar" src="' + escapeHtml(member.discordAvatarUrl) + '" alt="" loading="lazy" />'
               : '<span class="member-avatar">' + escapeHtml(displayName.slice(0, 1).toUpperCase()) + '</span>';
-            return '<tr><td><div class="member-cell">' + avatar + '<span><span class="member-name">' + escapeHtml(displayName) + '</span><span class="member-username">' + escapeHtml(username ? "@" + username.replace(/^@/, "") : "No Discord username") + '</span></span></div></td><td>' + escapeHtml(member.ign) + '</td><td>' + escapeHtml(member.role) + '</td><td>' + escapeHtml(member.attendance) + '</td><td>' + escapeHtml(member.notes || "") + '</td></tr>';
+            return '<tr><td><div class="member-cell">' + avatar + '<span><span class="member-name">' + escapeHtml(displayName) + '</span><span class="member-username">' + escapeHtml(username ? "@" + username.replace(/^@/, "") : "No Discord username") + '</span></span></div></td><td>' + escapeHtml(member.ign) + '</td><td>' + escapeHtml(member.uid || "") + '</td><td>' + formatNumber(member.power) + '</td><td>' + escapeHtml(member.rank || "") + '</td><td>' + escapeHtml(member.role) + '</td><td>' + escapeHtml(member.attendance) + '</td><td>' + escapeHtml(member.notes || "") + '</td></tr>';
           }).join("") + '</tbody></table></div>';
+      }
+
+      function renderGameToolsSyncCard() {
+        const serverId = localStorage.getItem("kellaTopnServerId") || "881";
+        const date = localStorage.getItem("kellaTopnDate") || "";
+        const token = localStorage.getItem("kellaFarlightToken") || "";
+        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Game Tools Sync</h3><span class="muted">Pull TopN member power from Farlight Game Tools into Kella.</span></div><button class="primary" data-action="sync-farlight-topn">Sync Game Tools</button></div><div class="form-grid">' +
+          '<label>Server ID<input data-topn="serverId" value="' + escapeHtml(serverId) + '" placeholder="881" /></label>' +
+          '<label>Data Date<input data-topn="date" value="' + escapeHtml(date) + '" placeholder="Leave blank for latest available date" /></label>' +
+          '<label class="wide">Farlight Token<input type="password" data-topn="token" value="' + escapeHtml(token) + '" placeholder="Paste Farlight Game Tools login token" /></label>' +
+        '</div></section>';
       }
 
       async function renderMembers() {
         skeleton("Loading members...");
         try {
           const members = await loadMembers();
-          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, IGN, alliance role, attendance, and notes.", '<input class="search" data-member-search placeholder="Search members" /><button class="secondary" data-action="sync-discord-members">Sync Data</button>') + renderMembersTable(members);
+          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, UID, power, alliance role, attendance, and notes.", '<input class="search" data-member-search placeholder="Search members" /><button class="secondary" data-action="sync-discord-members">Sync Discord</button>') + renderGameToolsSyncCard() + renderMembersTable(members);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load members. ' + escapeHtml(error.message) + '</div>';
         }
@@ -1053,6 +1069,27 @@ export function kellaDashboardHtml() {
         };
       }
 
+      function readFarlightForm() {
+        const value = function(name) {
+          return (document.querySelector('[data-topn="' + name + '"]')?.value || "").trim();
+        };
+        const serverId = value("serverId");
+        const date = value("date");
+        const token = value("token");
+        if (!serverId) throw new Error("Server ID is required.");
+        if (!token) throw new Error("Farlight token is required.");
+        localStorage.setItem("kellaTopnServerId", serverId);
+        if (date) localStorage.setItem("kellaTopnDate", date);
+        else localStorage.removeItem("kellaTopnDate");
+        localStorage.setItem("kellaFarlightToken", token);
+        return {
+          serverId,
+          startDate: date || undefined,
+          endDate: date || undefined,
+          token
+        };
+      }
+
       async function route() {
         setActiveNav();
         if (!state.settings) loadSettings().catch(function() {});
@@ -1126,6 +1163,13 @@ export function kellaDashboardHtml() {
           }
           return "Synced " + sync.total + " Discord members (" + sync.created + " new, " + sync.updated + " updated).";
         }, "Discord members synced. Open Members to view profiles.");
+        if (kind === "sync-farlight-topn") withFeedback(action, async function() {
+          const sync = await sendJson("POST", "/api/dashboard/sync-farlight-topn", readFarlightForm(), true);
+          state.summary = null;
+          state.members = [];
+          await renderMembers();
+          return "Synced " + sync.total + " Game Tools members (" + sync.created + " new, " + sync.updated + " updated, " + sync.skipped + " skipped).";
+        }, "Game Tools members synced.");
         if (kind === "refresh-current") withFeedback(action, async function() {
           state.summary = null;
           state.alerts = [];
