@@ -102,6 +102,14 @@ export function kellaDashboardHtml() {
         color: white;
         box-shadow: 0 0 26px rgba(255, 69, 101, 0.26);
       }
+      .brand-logo {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        object-fit: cover;
+        background: #12141c;
+        box-shadow: 0 0 26px rgba(255, 69, 101, 0.22);
+      }
       .brand strong { display: block; letter-spacing: 0.02em; font-size: 16px; }
       .brand span { color: #ff92a7; font-size: 11px; text-transform: uppercase; font-weight: 900; letter-spacing: 0.08em; }
 
@@ -173,6 +181,15 @@ export function kellaDashboardHtml() {
         background: radial-gradient(circle, #facc15, #7f1d1d 62%, #111827);
         border: 2px solid #394150;
         font-weight: 1000;
+      }
+      .avatar-img {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #394150;
+        background: #111827;
+        box-shadow: 0 0 22px rgba(250, 204, 21, 0.16);
       }
       h1 { margin: 0; font-size: 22px; }
       h2 { margin: 0 0 10px; font-size: 28px; }
@@ -342,6 +359,15 @@ export function kellaDashboardHtml() {
         font-weight: 800;
       }
       .error { border-color: #7f1d1d; color: #fecdd3; }
+      .locked-note {
+        margin-bottom: 16px;
+        border: 1px solid rgba(250, 204, 21, 0.32);
+        background: rgba(250, 204, 21, 0.08);
+        color: #fde68a;
+        border-radius: 10px;
+        padding: 13px 15px;
+        font-weight: 850;
+      }
       .skeleton { position: relative; overflow: hidden; min-height: 160px; }
       .skeleton:after {
         content: "";
@@ -416,7 +442,7 @@ export function kellaDashboardHtml() {
     <div class="shell">
       <aside class="sidebar">
         <div class="brand">
-          <div class="mark">K</div>
+          <img class="brand-logo" src="/assets/kellacoin.png" alt="Kella logo" />
           <div>
             <strong>KELLA</strong>
             <span>Call of Dragons tools</span>
@@ -432,7 +458,7 @@ export function kellaDashboardHtml() {
       <main>
         <header class="topbar">
           <div class="guild">
-            <div class="avatar" id="guildAvatar">K</div>
+            <img class="avatar-img" id="guildAvatar" src="/assets/kellacoin.png" alt="Kella logo" />
             <div>
               <h1 id="guildName">Kella</h1>
               <span class="muted" id="guildTagline">Command Center</span>
@@ -631,7 +657,7 @@ export function kellaDashboardHtml() {
 
       async function saveSettings(payload) {
         const body = payload && (payload.settings || payload.name || payload.tag || payload.timezone) ? payload : { settings: payload };
-        state.settings = await sendJson("PATCH", "/api/dashboard/settings", body);
+        state.settings = await sendJson("PATCH", "/api/dashboard/settings", body, true);
         applyGuildHeader(state.settings);
         return state.settings;
       }
@@ -640,7 +666,7 @@ export function kellaDashboardHtml() {
         const alliance = settings?.alliance || {};
         const name = alliance.name || "Kella";
         const tag = alliance.tag || "COD";
-        document.getElementById("guildAvatar").textContent = tag.slice(0, 3).toUpperCase();
+        document.getElementById("guildAvatar").alt = name + " logo";
         document.getElementById("guildName").textContent = name;
         document.getElementById("guildTagline").textContent = tag + " Command Center";
       }
@@ -974,26 +1000,44 @@ export function kellaDashboardHtml() {
           const data = await loadSettings();
           const alliance = data.alliance || {};
           const settings = data.settings || {};
-          app.innerHTML = pageHeader("Settings", "Saved admin preferences for Kella channels, officer roles, and enabled modules.", '<button class="primary" data-action="save-settings">Save Settings</button>') +
+          const locked = !adminToken();
+          const lockedAttr = locked ? " disabled" : "";
+          app.innerHTML = pageHeader("Settings", "Saved admin preferences for Kella channels, officer roles, and enabled modules.", '<button class="primary" data-action="save-settings"' + lockedAttr + '>Save Settings</button>') +
+            '<div class="locked-note" data-settings-locked-note' + (locked ? "" : ' style="display:none"') + '>Enter the admin password first. Only admins with the correct password can edit and save settings.</div>' +
             '<section class="grid" data-settings-panel>' +
-              '<div class="card"><h3>Admin Key</h3><p>Used only in this browser for Discord-send actions.</p><input type="password" data-setting="adminKey" value="' + escapeHtml(adminToken()) + '" placeholder="BOT_API_TOKEN or DASHBOARD_ADMIN_TOKEN" /></div>' +
-              '<div class="card"><h3>Alliance Name</h3><p>Name shown at the top of the dashboard.</p><input data-setting="allianceName" value="' + escapeHtml(alliance.name || "") + '" /></div>' +
-              '<div class="card"><h3>Alliance Tag</h3><p>Short tag shown in the round badge.</p><input data-setting="allianceTag" value="' + escapeHtml(alliance.tag || "") + '" /></div>' +
-              '<div class="card"><h3>Announcement Channel</h3><p>Where Kella should post event announcements.</p><input data-setting="announcementChannel" placeholder="Channel name or ID" value="' + escapeHtml(settings.announcementChannel || "") + '" /></div>' +
-              '<div class="card"><h3>Attendance Channel</h3><p>Where Roots, Summit, and check-in panels should be used.</p><input data-setting="attendanceChannel" placeholder="Channel name or ID" value="' + escapeHtml(settings.attendanceChannel || "") + '" /></div>' +
-              '<div class="card"><h3>Alert Channel</h3><p>Where attack and shield alert logs should be reviewed.</p><input data-setting="alertChannel" placeholder="Channel name or ID" value="' + escapeHtml(settings.alertChannel || "") + '" /></div>' +
-              '<div class="card"><h3>Officer Roles</h3><p>Comma-separated Discord roles that can operate Kella.</p><input data-setting="officerRoles" value="' + escapeHtml((settings.officerRoles || []).join(", ")) + '" /></div>' +
+              '<div class="card"><h3>Password</h3><p>Used only in this browser for admin actions.</p><input type="password" data-setting="adminKey" value="' + escapeHtml(adminToken()) + '" placeholder="Password" /></div>' +
+              '<div class="card"><h3>Alliance Name</h3><p>Name shown at the top of the dashboard.</p><input data-setting="allianceName" data-admin-required value="' + escapeHtml(alliance.name || "") + '"' + lockedAttr + ' /></div>' +
+              '<div class="card"><h3>Alliance Tag</h3><p>Short tag shown in the round badge.</p><input data-setting="allianceTag" data-admin-required value="' + escapeHtml(alliance.tag || "") + '"' + lockedAttr + ' /></div>' +
+              '<div class="card"><h3>Announcement Channel</h3><p>Where Kella should post event announcements.</p><input data-setting="announcementChannel" data-admin-required placeholder="Channel name or ID" value="' + escapeHtml(settings.announcementChannel || "") + '"' + lockedAttr + ' /></div>' +
+              '<div class="card"><h3>Attendance Channel</h3><p>Where Roots, Summit, and check-in panels should be used.</p><input data-setting="attendanceChannel" data-admin-required placeholder="Channel name or ID" value="' + escapeHtml(settings.attendanceChannel || "") + '"' + lockedAttr + ' /></div>' +
+              '<div class="card"><h3>Alert Channel</h3><p>Where attack and shield alert logs should be reviewed.</p><input data-setting="alertChannel" data-admin-required placeholder="Channel name or ID" value="' + escapeHtml(settings.alertChannel || "") + '"' + lockedAttr + ' /></div>' +
+              '<div class="card"><h3>Officer Roles</h3><p>Comma-separated Discord roles that can operate Kella.</p><input data-setting="officerRoles" data-admin-required value="' + escapeHtml((settings.officerRoles || []).join(", ")) + '"' + lockedAttr + ' /></div>' +
               '<div class="card"><h3>Enabled Modules</h3><p>' + dashboardModules.filter(function(module) { return moduleState(module.id); }).length + ' of ' + dashboardModules.length + ' modules enabled.</p><button class="secondary" data-link-button="/">Back to Modules</button></div>' +
             '</section>';
+          syncSettingsLock();
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load settings. ' + escapeHtml(error.message) + '</div>';
         }
+      }
+
+      function syncSettingsLock() {
+        if (location.pathname !== "/settings") return;
+        const password = (document.querySelector('[data-setting="adminKey"]')?.value || "").trim();
+        const locked = !password;
+        document.querySelectorAll("[data-admin-required]").forEach(function(input) {
+          input.disabled = locked;
+        });
+        const saveButton = document.querySelector('[data-action="save-settings"]');
+        if (saveButton) saveButton.disabled = locked;
+        const note = document.querySelector("[data-settings-locked-note]");
+        if (note) note.style.display = locked ? "" : "none";
       }
 
       function readSettingsForm() {
         const value = function(name) {
           return (document.querySelector('[data-setting="' + name + '"]')?.value || "").trim();
         };
+        if (!value("adminKey")) throw new Error("Password required to save settings.");
         localStorage.setItem("kellaAdminKey", value("adminKey"));
         state.channels = null;
         state.templates = null;
@@ -1189,6 +1233,7 @@ export function kellaDashboardHtml() {
           const current = app.querySelector(".table-wrap, .empty");
           if (current) current.outerHTML = table;
         }
+        if (event.target.matches('[data-setting="adminKey"]')) syncSettingsLock();
         if (event.target.matches("[data-embed]")) updateEmbedPreview();
       });
 

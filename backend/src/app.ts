@@ -37,6 +37,7 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
   app.use(rateLimit({ windowMs: 60_000, limit: 240 }));
+  app.use("/assets", express.static("backend/public", { maxAge: "7d", immutable: true }));
 
   app.get(
     [

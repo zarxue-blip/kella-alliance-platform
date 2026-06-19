@@ -23,6 +23,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/shared/dist ./shared/dist
 COPY --from=build /app/shared/package.json ./shared/package.json
 COPY --from=build /app/backend/dist ./backend/dist
+COPY --from=build /app/backend/public ./backend/public
 COPY --from=build /app/backend/package.json ./backend/package.json
 COPY --from=build /app/discord-bot/dist ./discord-bot/dist
 COPY --from=build /app/discord-bot/package.json ./discord-bot/package.json
