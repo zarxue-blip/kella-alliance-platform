@@ -3,9 +3,10 @@ import { botName } from "@cod-amp/shared";
 import { config } from "./config.js";
 import { commands } from "./commands/index.js";
 import { handleInteraction } from "./handlers/interactionCreate.js";
+import { handleMessageMention } from "./handlers/messageCreate.js";
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
 });
 
 client.once(Events.ClientReady, (readyClient) => {
@@ -17,6 +18,7 @@ client.once(Events.ClientReady, (readyClient) => {
 });
 
 client.on(Events.InteractionCreate, handleInteraction);
+client.on(Events.MessageCreate, handleMessageMention);
 
 function describeError(error: unknown) {
   if (error instanceof Error) return error.message;
