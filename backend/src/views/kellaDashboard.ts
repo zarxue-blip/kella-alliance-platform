@@ -49,20 +49,26 @@ export function kellaDashboardHtml() {
         --green: #4ff0aa;
         --red: #ff4565;
         --gold: #facc15;
+        --gold-soft: #f8d777;
+        --ember: #ff7438;
         --blue: #8097ff;
         --pink: #ff4d75;
+        --glass: rgba(8, 11, 18, 0.82);
       }
 
       * { box-sizing: border-box; }
       body {
         margin: 0;
         background:
-          radial-gradient(circle at 10% 96%, rgba(255, 69, 101, 0.18), transparent 28%),
-          radial-gradient(circle at 92% 0%, rgba(128, 151, 255, 0.13), transparent 26%),
+          linear-gradient(180deg, rgba(3, 6, 12, 0.50) 0%, rgba(3, 6, 12, 0.86) 42%, rgba(3, 6, 12, 0.95) 100%),
+          radial-gradient(circle at 13% 92%, rgba(255, 88, 56, 0.18), transparent 28%),
+          radial-gradient(circle at 86% 6%, rgba(250, 204, 21, 0.15), transparent 22%),
+          url("/assets/kella-bg.png") center top / cover fixed,
           linear-gradient(180deg, #11131a 0%, #08090d 38%, #08090d 100%),
           var(--bg);
         color: var(--text);
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        min-height: 100vh;
       }
 
       button, input, select, textarea { font: inherit; }
@@ -71,20 +77,23 @@ export function kellaDashboardHtml() {
       a { color: inherit; }
 
       .shell {
-        width: min(1180px, calc(100vw - 32px));
+        width: min(1240px, calc(100vw - 28px));
         min-height: min(820px, calc(100vh - 32px));
         margin: 16px auto;
         display: grid;
         grid-template-columns: 245px 1fr;
         overflow: hidden;
-        border: 1px solid #596170;
-        border-radius: 24px;
-        background: rgba(9, 11, 17, 0.96);
-        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255,255,255,0.08);
+        border: 1px solid rgba(250, 204, 21, 0.28);
+        border-radius: 18px;
+        background: rgba(7, 9, 15, 0.92);
+        box-shadow: 0 34px 110px rgba(0, 0, 0, 0.58), inset 0 1px 0 rgba(255,255,255,0.08);
+        backdrop-filter: blur(18px);
       }
       .shell > aside {
-        border-right: 1px solid var(--line);
-        background: linear-gradient(180deg, #141822 0%, #0c0e15 62%, #0b0d13 100%);
+        border-right: 1px solid rgba(250, 204, 21, 0.16);
+        background:
+          linear-gradient(180deg, rgba(23, 18, 13, 0.35), transparent 25%),
+          linear-gradient(180deg, #111724 0%, #090d15 62%, #080a10 100%);
         padding: 20px 14px;
         display: flex;
         flex-direction: column;
@@ -108,14 +117,15 @@ export function kellaDashboardHtml() {
         border-radius: 14px;
         object-fit: cover;
         background: #12141c;
-        box-shadow: 0 0 26px rgba(255, 69, 101, 0.22);
+        border: 1px solid rgba(250, 204, 21, 0.28);
+        box-shadow: 0 0 28px rgba(250, 204, 21, 0.16), 0 0 34px rgba(255, 69, 101, 0.18);
       }
       .brand strong { display: block; letter-spacing: 0.02em; font-size: 16px; }
-      .brand span { color: #ff92a7; font-size: 11px; text-transform: uppercase; font-weight: 900; letter-spacing: 0.08em; }
+      .brand span { color: var(--gold-soft); font-size: 11px; text-transform: uppercase; font-weight: 900; letter-spacing: 0.08em; }
 
       nav { display: grid; gap: 7px; }
       nav a {
-        color: #c4cbdb;
+        color: #d4d9e8;
         text-decoration: none;
         border-radius: 7px;
         padding: 11px 12px;
@@ -126,7 +136,12 @@ export function kellaDashboardHtml() {
         font-size: 14px;
         transition: background 160ms ease, color 160ms ease, transform 160ms ease;
       }
-      nav a.active, nav a:hover { background: var(--pink); color: white; transform: translateX(2px); box-shadow: 0 12px 28px rgba(255, 69, 101, 0.22); }
+      nav a.active, nav a:hover {
+        background: linear-gradient(135deg, rgba(255, 77, 117, 0.96), rgba(255, 116, 56, 0.90));
+        color: white;
+        transform: translateX(2px);
+        box-shadow: 0 12px 28px rgba(255, 69, 101, 0.24);
+      }
       .side-spacer { flex: 1; min-height: 24px; }
       .side-footer {
         margin-top: 24px;
@@ -139,23 +154,30 @@ export function kellaDashboardHtml() {
       }
       .side-footer strong { display: block; color: var(--text); font-size: 13px; margin-bottom: 4px; }
 
-      main { padding: 0; min-width: 0; background: #090b11; }
+      main {
+        padding: 0;
+        min-width: 0;
+        background:
+          radial-gradient(circle at 72% 5%, rgba(250, 204, 21, 0.08), transparent 30%),
+          rgba(6, 8, 13, 0.83);
+      }
       .topbar {
         display: grid;
         grid-template-columns: 1fr minmax(260px, 360px) auto;
         align-items: center;
         gap: 14px;
         min-height: 58px;
-        border-bottom: 1px solid var(--line);
-        background: rgba(12, 14, 20, 0.94);
+        border-bottom: 1px solid rgba(250, 204, 21, 0.14);
+        background: rgba(7, 10, 17, 0.80);
         padding: 10px 20px;
+        backdrop-filter: blur(12px);
       }
       .command-search {
         height: 34px;
         border-radius: 999px;
         padding: 0 14px;
-        background: #151923;
-        border-color: #33394b;
+        background: rgba(16, 20, 31, 0.88);
+        border-color: rgba(250, 204, 21, 0.18);
         font-size: 12px;
       }
       .top-actions { display: flex; align-items: center; gap: 8px; }
@@ -165,11 +187,12 @@ export function kellaDashboardHtml() {
         border-radius: 9px;
         display: grid;
         place-items: center;
-        background: #151923;
+        background: rgba(16, 20, 31, 0.94);
         color: #dbe1ef;
-        border: 1px solid #343a4d;
+        border: 1px solid rgba(250, 204, 21, 0.18);
         padding: 0;
       }
+      .icon-button:hover { border-color: rgba(250, 204, 21, 0.48); color: var(--gold-soft); }
       .content { padding: 24px 20px 28px; }
       .guild { display: flex; align-items: center; gap: 14px; }
       .avatar {
@@ -178,8 +201,8 @@ export function kellaDashboardHtml() {
         border-radius: 50%;
         display: grid;
         place-items: center;
-        background: radial-gradient(circle, #facc15, #7f1d1d 62%, #111827);
-        border: 2px solid #394150;
+        background: radial-gradient(circle, #facc15, #9a3412 58%, #111827);
+        border: 2px solid rgba(250, 204, 21, 0.34);
         font-weight: 1000;
       }
       .avatar-img {
@@ -187,9 +210,9 @@ export function kellaDashboardHtml() {
         height: 46px;
         border-radius: 50%;
         object-fit: cover;
-        border: 2px solid #394150;
+        border: 2px solid rgba(250, 204, 21, 0.34);
         background: #111827;
-        box-shadow: 0 0 22px rgba(250, 204, 21, 0.16);
+        box-shadow: 0 0 24px rgba(250, 204, 21, 0.20);
       }
       h1 { margin: 0; font-size: 22px; }
       h2 { margin: 0 0 10px; font-size: 28px; }
@@ -202,11 +225,11 @@ export function kellaDashboardHtml() {
         padding: 9px 13px;
         font-weight: 900;
         text-decoration: none;
-        background: #10131b;
+        background: rgba(16, 19, 27, 0.90);
         color: #dbeafe;
       }
-      .primary { background: linear-gradient(135deg, var(--pink), #ff284f); border-color: #ff7281; color: white; box-shadow: 0 14px 28px rgba(255,69,101,0.22); }
-      .secondary { background: #171b26; color: #dbeafe; }
+      .primary { background: linear-gradient(135deg, #ff4d75, #ff7438); border-color: rgba(250, 204, 21, 0.40); color: white; box-shadow: 0 14px 28px rgba(255,69,101,0.24); }
+      .secondary { background: rgba(23, 27, 38, 0.92); color: #f7e7a0; border-color: rgba(250, 204, 21, 0.22); }
       .danger { background: #3b1016; color: #fecdd3; border-color: #7f1d1d; }
       .ghost { background: transparent; }
 
@@ -216,12 +239,16 @@ export function kellaDashboardHtml() {
 
       input, select, textarea {
         width: 100%;
-        border: 1px solid var(--line);
+        border: 1px solid rgba(250, 204, 21, 0.13);
         border-radius: 8px;
-        background: #252a36;
+        background: rgba(37, 42, 54, 0.92);
         color: var(--text);
         padding: 12px 13px;
         outline: none;
+      }
+      input:focus, select:focus, textarea:focus {
+        border-color: rgba(250, 204, 21, 0.55);
+        box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.10);
       }
       textarea { min-height: 130px; resize: vertical; line-height: 1.45; }
       label { display: grid; gap: 7px; color: #cbd5e1; font-weight: 850; font-size: 13px; }
@@ -231,14 +258,16 @@ export function kellaDashboardHtml() {
 
       .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
       .stat, .card, .module-card, .table-wrap, .preview {
-        background: linear-gradient(180deg, rgba(24, 27, 38, 0.98), rgba(14, 17, 25, 0.98));
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.16);
+        background:
+          linear-gradient(180deg, rgba(27, 30, 42, 0.92), rgba(11, 14, 22, 0.94)),
+          rgba(14, 17, 25, 0.92);
+        border: 1px solid rgba(250, 204, 21, 0.14);
+        border-radius: 8px;
+        box-shadow: 0 18px 54px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255,255,255,0.04);
       }
       .stat { padding: 17px; }
       .stat span { color: var(--muted); display: block; font-size: 13px; font-weight: 850; }
-      .stat strong { display: block; margin-top: 8px; font-size: 27px; overflow-wrap: anywhere; }
+      .stat strong { display: block; margin-top: 8px; font-size: 27px; overflow-wrap: anywhere; color: #fff7d6; }
 
       .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
       .two { display: grid; grid-template-columns: 1.12fr 0.88fr; gap: 18px; }
@@ -263,9 +292,11 @@ export function kellaDashboardHtml() {
         overflow: hidden;
         position: relative;
         background:
-          linear-gradient(180deg, rgba(10, 12, 18, 0.30), rgba(10, 12, 18, 0.92)),
-          radial-gradient(circle at 54% 48%, rgba(255, 69, 101, 0.48), transparent 24%),
-          linear-gradient(135deg, #101521, #0b0d13 65%);
+          linear-gradient(180deg, rgba(10, 12, 18, 0.16), rgba(10, 12, 18, 0.92)),
+          radial-gradient(circle at 62% 44%, rgba(255, 116, 56, 0.44), transparent 24%),
+          radial-gradient(circle at 28% 18%, rgba(250, 204, 21, 0.18), transparent 20%),
+          linear-gradient(135deg, #111827, #080b12 65%);
+        border-color: rgba(250, 204, 21, 0.22);
       }
       .overview-panel:before {
         content: "";
@@ -291,8 +322,8 @@ export function kellaDashboardHtml() {
       .activity-item strong { display: block; font-size: 13px; line-height: 1.25; }
       .activity-time { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
       .quick-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
-      .quick-card { min-height: 128px; display: grid; align-content: space-between; gap: 14px; transition: transform 160ms ease, border-color 160ms ease; }
-      .quick-card:hover { transform: translateY(-2px); border-color: #465069; }
+      .quick-card { min-height: 128px; display: grid; align-content: space-between; gap: 14px; transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
+      .quick-card:hover { transform: translateY(-2px); border-color: rgba(250, 204, 21, 0.42); box-shadow: 0 20px 56px rgba(0, 0, 0, 0.30); }
       .quick-card .big { font-size: 25px; font-weight: 1000; color: var(--text); }
       .readiness { display: grid; gap: 9px; }
       .readiness-row { display: grid; gap: 6px; }
@@ -303,8 +334,8 @@ export function kellaDashboardHtml() {
       .card-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
       .card p { color: #aeb8d3; line-height: 1.55; font-weight: 650; }
 
-      .module-card { min-height: 168px; padding: 21px 19px; transition: transform 160ms ease, border-color 160ms ease; }
-      .module-card:hover { transform: translateY(-2px); border-color: #3b445c; }
+      .module-card { min-height: 168px; padding: 21px 19px; transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
+      .module-card:hover { transform: translateY(-2px); border-color: rgba(250, 204, 21, 0.36); box-shadow: 0 22px 58px rgba(0,0,0,0.30); }
       .module-top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
       .meta { margin-top: 11px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
       .meta span, .meta strong, .badge {
@@ -329,13 +360,13 @@ export function kellaDashboardHtml() {
         flex: 0 0 auto;
       }
       .switch i { display: block; width: 20px; height: 20px; border-radius: 50%; background: #7f879a; }
-      .switch.on i { margin-left: auto; background: var(--green); box-shadow: 0 0 18px rgba(92, 255, 200, 0.42); }
+      .switch.on i { margin-left: auto; background: linear-gradient(135deg, var(--green), var(--gold)); box-shadow: 0 0 18px rgba(92, 255, 200, 0.42); }
       .module-actions { display: flex; gap: 10px; align-items: center; }
       .module-actions button {
         border: 0;
         border-radius: 5px;
-        background: #222737;
-        color: #ff6676;
+        background: rgba(34, 39, 55, 0.92);
+        color: #ffd166;
         padding: 9px 12px;
         font-weight: 1000;
         font-size: 12px;
@@ -344,10 +375,11 @@ export function kellaDashboardHtml() {
       }
 
       table { width: 100%; border-collapse: collapse; min-width: 760px; }
-      th, td { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
-      th { color: #aeb8d3; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; background: #10131b; }
+      th, td { padding: 14px 16px; border-bottom: 1px solid rgba(250, 204, 21, 0.10); text-align: left; vertical-align: top; }
+      th { color: #f5d987; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; background: rgba(16, 19, 27, 0.92); }
       td { color: #eef2ff; }
       .table-wrap { overflow-x: auto; }
+      tbody tr { transition: background 150ms ease, transform 150ms ease; }
 
       .empty, .error, .skeleton {
         border: 1px dashed #343b4f;
@@ -408,6 +440,12 @@ export function kellaDashboardHtml() {
       }
       .member-name { display: block; font-weight: 1000; color: var(--text); }
       .member-username { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 800; }
+      .member-row { cursor: pointer; }
+      .member-row:hover, .member-row:focus {
+        background: rgba(250, 204, 21, 0.07);
+        outline: none;
+      }
+      .member-row:focus-visible { box-shadow: inset 3px 0 0 var(--gold); }
       .players { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
       .stack { display: grid; gap: 14px; }
       .preview {
@@ -424,17 +462,136 @@ export function kellaDashboardHtml() {
       .toast.success { border-color: rgba(92,255,200,0.35); }
       .toast.error { border-color: rgba(255,79,98,0.5); }
 
+      .member-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+      }
+      body.modal-open { overflow: hidden; }
+      .member-modal.open { display: flex; }
+      .member-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(2, 4, 9, 0.76);
+        backdrop-filter: blur(8px);
+      }
+      .member-modal-panel {
+        position: relative;
+        z-index: 1;
+        width: min(720px, calc(100vw - 28px));
+        max-height: calc(100vh - 36px);
+        overflow: auto;
+        border-radius: 12px;
+        border: 1px solid rgba(250, 204, 21, 0.30);
+        background:
+          linear-gradient(180deg, rgba(30, 25, 22, 0.72), rgba(8, 11, 18, 0.96)),
+          #090d15;
+        box-shadow: 0 35px 110px rgba(0, 0, 0, 0.66), inset 0 1px 0 rgba(255,255,255,0.07);
+        padding: 22px;
+      }
+      .modal-close {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        border: 1px solid rgba(250, 204, 21, 0.18);
+        background: rgba(11, 14, 22, 0.88);
+        color: #fef3c7;
+        font-size: 20px;
+        line-height: 1;
+      }
+      .member-profile-hero {
+        display: grid;
+        grid-template-columns: 92px 1fr;
+        gap: 18px;
+        align-items: center;
+        padding-right: 42px;
+      }
+      .profile-avatar {
+        width: 92px;
+        height: 92px;
+        border-radius: 22px;
+        display: grid;
+        place-items: center;
+        object-fit: cover;
+        border: 1px solid rgba(250, 204, 21, 0.42);
+        background: radial-gradient(circle, rgba(250, 204, 21, 0.22), rgba(255, 77, 117, 0.14) 56%, rgba(15, 23, 42, 0.92));
+        box-shadow: 0 0 34px rgba(250, 204, 21, 0.16);
+        color: #fff7d6;
+        font-size: 34px;
+        font-weight: 1000;
+      }
+      .profile-kicker { color: var(--gold-soft); text-transform: uppercase; letter-spacing: 0.11em; font-size: 11px; font-weight: 1000; }
+      .member-profile-hero h3 { margin-top: 4px; font-size: 28px; }
+      .profile-subtitle { color: #b9c3d9; font-weight: 800; margin-top: 5px; }
+      .profile-stats {
+        margin-top: 20px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .profile-stat {
+        border: 1px solid rgba(250, 204, 21, 0.13);
+        border-radius: 8px;
+        padding: 13px;
+        background: rgba(12, 16, 25, 0.82);
+      }
+      .profile-stat span { color: #99a6bf; display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 1000; }
+      .profile-stat strong { display: block; margin-top: 6px; color: #fff7d6; font-size: 17px; overflow-wrap: anywhere; }
+      .profile-note {
+        margin-top: 14px;
+        border: 1px solid rgba(250, 204, 21, 0.13);
+        border-radius: 8px;
+        padding: 14px;
+        background: rgba(12, 16, 25, 0.82);
+        color: #dce4f6;
+        line-height: 1.55;
+        font-weight: 700;
+      }
+      .power-meter {
+        margin-top: 16px;
+        height: 9px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.08);
+        overflow: hidden;
+      }
+      .power-meter i {
+        display: block;
+        height: 100%;
+        width: var(--power-width, 0%);
+        background: linear-gradient(90deg, #ff4d75, #ff7438, #facc15);
+        box-shadow: 0 0 18px rgba(250, 204, 21, 0.28);
+      }
+
       @media (max-width: 1120px) {
         .grid, .stats, .form-grid, .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .two, .players, .dashboard-main { grid-template-columns: 1fr; }
       }
       @media (max-width: 780px) {
-        .shell { width: 100%; min-height: 100vh; margin: 0; border-radius: 0; grid-template-columns: 1fr; }
-        .shell > aside { min-height: auto; }
-        nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        body { background-attachment: scroll; }
+        .shell { width: 100%; min-height: 100vh; margin: 0; border-radius: 0; grid-template-columns: 1fr; border-left: 0; border-right: 0; }
+        .shell > aside { min-height: auto; padding: 14px; }
+        .brand { margin-bottom: 14px; }
+        nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        nav a { min-height: 44px; padding: 10px; }
         .content { padding: 20px 14px 26px; }
         .hero, .topbar { grid-template-columns: 1fr; display: grid; align-items: start; }
+        .topbar { padding: 14px; gap: 12px; }
+        .command-search { max-width: none; height: 42px; }
+        .top-actions { width: 100%; }
+        .top-actions .icon-button { flex: 1; }
         .grid, .stats, .form-grid, .quick-grid, .overview-kpis { grid-template-columns: 1fr; }
+        .member-modal { padding: 10px; align-items: end; }
+        .member-modal-panel { width: 100%; max-height: calc(100vh - 24px); border-radius: 14px 14px 0 0; padding: 18px; }
+        .member-profile-hero { grid-template-columns: 1fr; text-align: center; padding-right: 0; justify-items: center; }
+        .profile-stats { grid-template-columns: 1fr; }
+        .modal-close { top: 10px; right: 10px; }
       }
     </style>
   </head>
@@ -476,10 +633,19 @@ export function kellaDashboardHtml() {
         </div>
       </main>
     </div>
+    <div id="memberModal" class="member-modal" aria-hidden="true">
+      <div class="member-modal-backdrop" data-member-modal-close></div>
+      <section class="member-modal-panel" role="dialog" aria-modal="true" aria-labelledby="memberModalTitle">
+        <button class="modal-close" type="button" data-member-modal-close aria-label="Close member stats">×</button>
+        <div data-member-modal-content></div>
+      </section>
+    </div>
     <div id="toasts" class="toast-stack" aria-live="polite"></div>
     <script>
       const app = document.getElementById("app");
       const toasts = document.getElementById("toasts");
+      const memberModal = document.getElementById("memberModal");
+      const memberModalContent = document.querySelector("[data-member-modal-content]");
       const state = { summary: null, reports: [], members: [], alerts: [], settings: null, channels: null, templates: null, currentReport: null };
       const dashboardModules = ${JSON.stringify(modules)};
 
@@ -577,6 +743,70 @@ export function kellaDashboardHtml() {
       function formatNumber(value) {
         const parsed = Number(value || 0);
         return Number.isFinite(parsed) ? parsed.toLocaleString("en-US") : "0";
+      }
+
+      function memberDisplayName(member) {
+        return member?.discordDisplayName || member?.discordName || member?.ign || member?.discordId || "Unknown Member";
+      }
+
+      function memberUsername(member) {
+        const username = member?.discordUsername || member?.discordId || "";
+        return username ? "@" + String(username).replace(/^@/, "") : "No Discord username";
+      }
+
+      function memberAvatar(member, className) {
+        const displayName = memberDisplayName(member);
+        if (member?.discordAvatarUrl) {
+          return '<img class="' + className + '" src="' + escapeHtml(member.discordAvatarUrl) + '" alt="" loading="lazy" />';
+        }
+        return '<span class="' + className + '">' + escapeHtml(displayName.slice(0, 1).toUpperCase()) + '</span>';
+      }
+
+      function findMemberById(id) {
+        return (state.members || []).find(function(member) { return String(member.id) === String(id); });
+      }
+
+      function profileStat(label, value) {
+        const safeValue = value === undefined || value === null || value === "" ? "Unknown" : value;
+        return '<div class="profile-stat"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(safeValue) + '</strong></div>';
+      }
+
+      function memberPowerPercent(member) {
+        const topPower = Math.max.apply(null, (state.members || []).map(function(item) { return Number(item.power || 0); }).concat([Number(member?.power || 0), 1]));
+        return Math.max(4, Math.min(100, Math.round((Number(member?.power || 0) / topPower) * 100)));
+      }
+
+      function openMemberModal(member) {
+        if (!member || !memberModal || !memberModalContent) return;
+        const displayName = memberDisplayName(member);
+        const gameName = member.ign || displayName;
+        const username = memberUsername(member);
+        const power = formatNumber(member.power);
+        memberModalContent.innerHTML =
+          '<div class="member-profile-hero">' +
+            memberAvatar(member, "profile-avatar") +
+            '<div><span class="profile-kicker">Player Stats</span><h3 id="memberModalTitle">' + escapeHtml(displayName) + '</h3><div class="profile-subtitle">' + escapeHtml(username) + ' · IGN: ' + escapeHtml(gameName) + '</div><div class="power-meter" style="--power-width:' + memberPowerPercent(member) + '%"><i></i></div></div>' +
+          '</div>' +
+          '<div class="profile-stats">' +
+            profileStat("Power", power) +
+            profileStat("UID", member.uid || "") +
+            profileStat("Game Rank", member.rank || "") +
+            profileStat("Alliance Role", member.role || "") +
+            profileStat("Attendance", member.attendance ?? 0) +
+            profileStat("Alliance", member.alliance || "") +
+          '</div>' +
+          '<div class="profile-note"><strong>Officer Notes</strong><br>' + escapeHtml(member.notes || "No notes yet.") + '</div>' +
+          '<div class="profile-note"><strong>Discord ID</strong><br>' + escapeHtml(member.discordId || "Not synced yet") + '</div>';
+        memberModal.classList.add("open");
+        memberModal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-open");
+      }
+
+      function closeMemberModal() {
+        if (!memberModal) return;
+        memberModal.classList.remove("open");
+        memberModal.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("modal-open");
       }
 
       function moduleState(moduleId) {
@@ -787,12 +1017,9 @@ export function kellaDashboardHtml() {
         });
         return '<div class="table-wrap"><table><thead><tr><th>Member</th><th>IGN</th><th>UID</th><th>Power ↓</th><th>Game Rank</th><th>Alliance Role</th><th>Attendance</th><th>Officer Notes</th></tr></thead><tbody>' +
           sorted.map(function(member) {
-            const displayName = member.discordDisplayName || member.discordName || member.ign || member.discordId || "Unknown Member";
-            const username = member.discordUsername || member.discordId || "";
-            const avatar = member.discordAvatarUrl
-              ? '<img class="member-avatar" src="' + escapeHtml(member.discordAvatarUrl) + '" alt="" loading="lazy" />'
-              : '<span class="member-avatar">' + escapeHtml(displayName.slice(0, 1).toUpperCase()) + '</span>';
-            return '<tr><td><div class="member-cell">' + avatar + '<span><span class="member-name">' + escapeHtml(displayName) + '</span><span class="member-username">' + escapeHtml(username ? "@" + username.replace(/^@/, "") : "No Discord username") + '</span></span></div></td><td>' + escapeHtml(member.ign) + '</td><td>' + escapeHtml(member.uid || "") + '</td><td>' + formatNumber(member.power) + '</td><td>' + escapeHtml(member.rank || "") + '</td><td>' + escapeHtml(member.role) + '</td><td>' + escapeHtml(member.attendance) + '</td><td>' + escapeHtml(member.notes || "") + '</td></tr>';
+            const displayName = memberDisplayName(member);
+            const rowId = escapeHtml(member.id || "");
+            return '<tr class="member-row" data-member-row data-member-id="' + rowId + '" tabindex="0" role="button" aria-label="View stats for ' + escapeHtml(displayName) + '"><td><div class="member-cell">' + memberAvatar(member, "member-avatar") + '<span><span class="member-name">' + escapeHtml(displayName) + '</span><span class="member-username">' + escapeHtml(memberUsername(member)) + '</span></span></div></td><td>' + escapeHtml(member.ign) + '</td><td>' + escapeHtml(member.uid || "") + '</td><td>' + formatNumber(member.power) + '</td><td>' + escapeHtml(member.rank || "") + '</td><td>' + escapeHtml(member.role) + '</td><td>' + escapeHtml(member.attendance) + '</td><td>' + escapeHtml(member.notes || "") + '</td></tr>';
           }).join("") + '</tbody></table></div>';
       }
 
@@ -806,7 +1033,7 @@ export function kellaDashboardHtml() {
         skeleton("Loading members...");
         try {
           const members = await loadMembers();
-          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, UID, power, alliance role, attendance, and notes. Sync Discord for avatars, then upload Excel for power.", '<input class="search" data-member-search placeholder="Search members" /><button class="secondary" data-action="sync-discord-members">Sync Discord</button>') + renderMemberUploadCard() + renderMembersTable(members);
+          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, UID, power, alliance role, attendance, and notes. Click any player row to open their full stats.", '<input class="search" data-member-search placeholder="Search members" /><button class="secondary" data-action="sync-discord-members">Sync Discord</button>') + renderMemberUploadCard() + renderMembersTable(members);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load members. ' + escapeHtml(error.message) + '</div>';
         }
@@ -1122,6 +1349,12 @@ export function kellaDashboardHtml() {
       }
 
       document.addEventListener("click", function(event) {
+        const modalClose = event.target.closest("[data-member-modal-close]");
+        if (modalClose) {
+          closeMemberModal();
+          return;
+        }
+
         const link = event.target.closest("[data-link]");
         if (link) {
           event.preventDefault();
@@ -1132,6 +1365,13 @@ export function kellaDashboardHtml() {
         const linkButton = event.target.closest("[data-link-button]");
         if (linkButton) {
           navigate(linkButton.getAttribute("data-link-button"));
+          return;
+        }
+
+        const memberRow = event.target.closest("[data-member-row]");
+        if (memberRow) {
+          const member = findMemberById(memberRow.getAttribute("data-member-id"));
+          if (member) openMemberModal(member);
           return;
         }
 
@@ -1234,6 +1474,19 @@ export function kellaDashboardHtml() {
           state.templates = null;
           await renderEmbedSender();
         }, "Template deleted.");
+      });
+
+      document.addEventListener("keydown", function(event) {
+        if (event.key === "Escape" && memberModal?.classList.contains("open")) {
+          closeMemberModal();
+          return;
+        }
+
+        const memberRow = event.target.closest?.("[data-member-row]");
+        if (!memberRow || (event.key !== "Enter" && event.key !== " ")) return;
+        event.preventDefault();
+        const member = findMemberById(memberRow.getAttribute("data-member-id"));
+        if (member) openMemberModal(member);
       });
 
       document.addEventListener("change", function(event) {
