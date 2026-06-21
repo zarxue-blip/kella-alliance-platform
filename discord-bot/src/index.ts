@@ -1,12 +1,17 @@
-import { ActivityType, Client, Events, GatewayIntentBits, REST, Routes } from "discord.js";
+import { ActivityType, Client, Events, GatewayIntentBits, Partials, REST, Routes } from "discord.js";
 import { botName } from "@cod-amp/shared";
 import { config } from "./config.js";
 import { commands } from "./commands/index.js";
 import { handleInteraction } from "./handlers/interactionCreate.js";
 import { handleMessageMention } from "./handlers/messageCreate.js";
+import { handleMessageReactionAdd } from "./handlers/messageReactionAdd.js";
+
+const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMessageReactions];
+if (config.ENABLE_MESSAGE_CONTENT_INTENT) intents.push(GatewayIntentBits.MessageContent);
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
+  intents,
+  partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
 client.once(Events.ClientReady, (readyClient) => {
@@ -19,6 +24,7 @@ client.once(Events.ClientReady, (readyClient) => {
 
 client.on(Events.InteractionCreate, handleInteraction);
 client.on(Events.MessageCreate, handleMessageMention);
+client.on(Events.MessageReactionAdd, handleMessageReactionAdd);
 
 function describeError(error: unknown) {
   if (error instanceof Error) return error.message;
