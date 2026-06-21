@@ -84,6 +84,18 @@ function normalizeMessageText(value: string) {
     .trim();
 }
 
+function comparableText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[.,!?'"`*_~()[\]{}:;|-]/g, "")
+    .trim();
+}
+
+function isSameTranslation(sourceText: string, translatedText: string) {
+  return comparableText(sourceText) === comparableText(translatedText);
+}
+
 export function getLanguageFromFlag(flag: string) {
   const countryCode = flagToCountryCode(flag);
   if (!countryCode) return null;
@@ -135,6 +147,68 @@ async function requestMyMemoryTranslation(text: string, sourceLanguage: string, 
   } satisfies TranslationResult;
 }
 
+async function requestGooglePublicTranslation(text: string, targetLanguage: string) {
+  const url = new URL("https://translate.googleapis.com/translate_a/single");
+  url.searchParams.set("client", "gtx");
+  url.searchParams.set("sl", "auto");
+  url.searchParams.set("tl", targetLanguage);
+  url.searchParams.set("dt", "t");
+  url.searchParams.set("q", text);
+
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "Kella Discord Bot"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Translation service returned ${response.status}`);
+  }
+
+  const payload = (await response.json()) as unknown;
+  if (!Array.isArray(payload) || !Array.isArray(payload[0])) {
+    throw new Error("Translation service returned an unexpected response.");
+  }
+
+  const translatedText = payload[0]
+    .map((part) => (Array.isArray(part) ? part[0] : ""))
+    .filter((part) => typeof part === "string")
+    .join("")
+    .trim();
+
+  if (!translatedText) throw new Error("Translation service returned an empty response.");
+
+  return {
+    translatedText,
+    detectedSource: typeof payload[2] === "string" ? payload[2] : undefined,
+    provider: "Google Translate"
+  } satisfies TranslationResult;
+}
+
+async function firstUsefulTranslation(text: string, targetLanguage: string) {
+  const attempts = [
+    () => requestGooglePublicTranslation(text, targetLanguage),
+    () => requestMyMemoryTranslation(text, "en", targetLanguage),
+    () => requestMyMemoryTranslation(text, "Autodetect", targetLanguage)
+  ];
+
+  let lastError: unknown;
+
+  for (const attempt of attempts) {
+    try {
+      const result = await attempt();
+      if (!isSameTranslation(text, result.translatedText)) return result;
+      lastError = new Error("Translation came back unchanged.");
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError instanceof Error) throw lastError;
+  throw new Error("No translation service produced a useful result.");
+}
+
 export async function translateForFlag(messageText: string, flag: string) {
   const language = getLanguageFromFlag(flag);
   if (!language) return null;
@@ -143,9 +217,7 @@ export async function translateForFlag(messageText: string, flag: string) {
   if (!normalized) throw new Error("There is no readable text to translate.");
 
   const trimmed = trimToUtf8Bytes(normalized, 480);
-  const result = await requestMyMemoryTranslation(trimmed, "Autodetect", language.code).catch(() =>
-    requestMyMemoryTranslation(trimmed, "en", language.code)
-  );
+  const result = await firstUsefulTranslation(trimmed, language.code);
 
   return {
     ...result,
