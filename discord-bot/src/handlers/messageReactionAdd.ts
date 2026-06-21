@@ -33,7 +33,16 @@ export async function handleMessageReactionAdd(
 
     const message = await fetchMessage(reaction);
     const sourceText = message.content?.trim();
-    if (!sourceText) return;
+    if (!sourceText) {
+      if (message.attachments.size > 0) return;
+
+      await message.reply({
+        content:
+          "I saw the flag, but Discord is hiding the message text from me. Turn on Message Content Intent for Kella in the Discord Developer Portal, make sure ENABLE_MESSAGE_CONTENT_INTENT is true on Render, then redeploy.",
+        allowedMentions: { repliedUser: false }
+      });
+      return;
+    }
 
     const translation = await translateForFlag(sourceText, flag);
     if (!translation) return;
