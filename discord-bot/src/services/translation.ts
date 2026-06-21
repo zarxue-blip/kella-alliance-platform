@@ -23,6 +23,7 @@ const flagLanguageMap: Record<string, { code: string; label: string }> = {
   FI: { code: "fi", label: "Finnish" },
   FR: { code: "fr", label: "French" },
   GB: { code: "en", label: "English" },
+  GU: { code: "en", label: "English" },
   GR: { code: "el", label: "Greek" },
   HK: { code: "zh-TW", label: "Chinese" },
   ID: { code: "id", label: "Indonesian" },
@@ -35,6 +36,7 @@ const flagLanguageMap: Record<string, { code: string; label: string }> = {
   MY: { code: "ms", label: "Malay" },
   NL: { code: "nl", label: "Dutch" },
   NO: { code: "no", label: "Norwegian" },
+  NZ: { code: "en", label: "English" },
   PE: { code: "es", label: "Spanish" },
   PH: { code: "tl", label: "Tagalog" },
   PK: { code: "ur", label: "Urdu" },
@@ -47,6 +49,7 @@ const flagLanguageMap: Record<string, { code: string; label: string }> = {
   TR: { code: "tr", label: "Turkish" },
   TW: { code: "zh-TW", label: "Chinese" },
   UA: { code: "uk", label: "Ukrainian" },
+  UM: { code: "en", label: "English" },
   US: { code: "en", label: "English" },
   VE: { code: "es", label: "Spanish" },
   VN: { code: "vi", label: "Vietnamese" }
