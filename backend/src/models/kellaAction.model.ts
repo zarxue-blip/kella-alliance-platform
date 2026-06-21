@@ -16,8 +16,12 @@ const kellaActionSchema = new Schema(
         "absence",
         "application",
         "event_reminder",
+        "event_created",
         "embed_sent",
-        "roots_report_sent"
+        "roots_report_sent",
+        "complaint",
+        "discord_member_sync",
+        "member_xlsx_import"
       ],
       required: true,
       index: true

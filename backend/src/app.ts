@@ -50,6 +50,7 @@ export function createApp() {
       "/alerts",
       "/shield-alerts",
       "/embed-sender",
+      "/complaints",
       "/settings"
     ],
     (_req, res) => {

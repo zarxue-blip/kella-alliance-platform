@@ -74,6 +74,18 @@ const rootsReportSendSchema = z.object({
   roleMentionId: z.string().optional()
 });
 
+const eventCreateSchema = z.object({
+  channelId: z.string().min(1, "Target channel is required"),
+  title: z.string().min(1, "Event title is required").max(120),
+  description: z.string().min(1, "Event description is required").max(1800),
+  startsAt: z.coerce.date(),
+  roleMentionId: z.string().optional()
+});
+
+const complaintStatusSchema = z.object({
+  status: z.enum(["Pending", "Resolved"])
+});
+
 const memberXlsxImportSchema = z.object({
   filename: z.string().max(180).optional(),
   fileBase64: z.string().min(1, "Excel file is required")
@@ -128,6 +140,26 @@ function parseReportId(id: string) {
 
 function displayName(action: any) {
   return action.actorName || action.targetName || action.actorDiscordId || action.targetDiscordId || "Unknown Player";
+}
+
+function discordMessageLink(message?: any) {
+  return env.DISCORD_GUILD_ID && message?.channel_id && message?.id
+    ? `https://discord.com/channels/${env.DISCORD_GUILD_ID}/${message.channel_id}/${message.id}`
+    : undefined;
+}
+
+function formatUtcDateTime(value: Date) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  })
+    .format(value)
+    .replace(",", "");
 }
 
 function normalizeModuleStates(value: unknown) {
@@ -557,6 +589,110 @@ export const dashboardAlerts = asyncHandler(async (_req, res) => {
       sentAt: alert.sentAt
     }))
   });
+});
+
+export const dashboardEvents = asyncHandler(async (_req, res) => {
+  const allianceId = await resolveAllianceId();
+  const filter = allianceFilter(allianceId);
+  const events = (await KellaActionModel.find({ ...filter, type: "event_created" })
+    .sort({ sentAt: -1 })
+    .limit(100)
+    .lean()) as DashboardAction[];
+
+  res.json({
+    events: events.map((event) => ({
+      id: event._id.toString(),
+      title: event.eventType || event.payload?.title || "Alliance Event",
+      description: event.payload?.description || "",
+      startsAt: event.payload?.startsAt,
+      channelId: event.payload?.channelId || event.targetDiscordId || "",
+      messageLink: event.payload?.messageLink,
+      status: event.status || "Sent",
+      createdBy: event.actorName || "Dashboard",
+      sentAt: event.sentAt
+    }))
+  });
+});
+
+export const dashboardEventSend = asyncHandler(async (req, res) => {
+  const body = eventCreateSchema.parse(req.body);
+  const allianceId = await resolveAllianceId();
+  const startsAt = new Date(body.startsAt);
+  if (Number.isNaN(startsAt.getTime())) throw new HttpError(400, "Event time is invalid");
+
+  const description = [
+    body.description.trim(),
+    "",
+    `Server Time: ${formatUtcDateTime(startsAt)} UTC`,
+    "All Call of Dragons event times are shown in 24-hour UTC server time."
+  ].join("\n");
+
+  const message = await sendDiscordEmbed({
+    channelId: body.channelId,
+    roleMentionId: body.roleMentionId,
+    title: body.title,
+    description,
+    color: "#facc15",
+    footer: "Call of Dragons Server Time - UTC"
+  });
+
+  const action = await KellaActionModel.create({
+    allianceId,
+    type: "event_created",
+    actorName: "Dashboard",
+    targetDiscordId: body.channelId,
+    eventType: body.title,
+    status: "Sent",
+    payload: {
+      title: body.title,
+      description: body.description,
+      startsAt: startsAt.toISOString(),
+      channelId: body.channelId,
+      roleMentionId: body.roleMentionId,
+      messageId: message?.id,
+      messageLink: discordMessageLink(message)
+    }
+  });
+
+  res.status(201).json({ event: action, message });
+});
+
+export const dashboardComplaints = asyncHandler(async (_req, res) => {
+  const allianceId = await resolveAllianceId();
+  const filter = allianceFilter(allianceId);
+  const complaints = (await KellaActionModel.find({ ...filter, type: "complaint" })
+    .sort({ sentAt: -1 })
+    .limit(200)
+    .lean()) as DashboardAction[];
+
+  res.json({
+    complaints: complaints.map((complaint) => ({
+      id: complaint._id.toString(),
+      kind: complaint.eventType || complaint.payload?.kind || "Complaint",
+      player: displayName(complaint),
+      discordId: complaint.actorDiscordId,
+      message: complaint.payload?.message || "",
+      status: complaint.status || "Pending",
+      sentAt: complaint.sentAt,
+      resolvedAt: complaint.payload?.resolvedAt
+    }))
+  });
+});
+
+export const dashboardComplaintStatusUpdate = asyncHandler(async (req, res) => {
+  const body = complaintStatusSchema.parse(req.body);
+  if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid complaint id");
+  const allianceId = await resolveAllianceId();
+  const filter = allianceFilter(allianceId);
+  const resolvedAt = body.status === "Resolved" ? new Date().toISOString() : "";
+  const complaint = await KellaActionModel.findOneAndUpdate(
+    { ...filter, _id: req.params.id, type: "complaint" },
+    { $set: { status: body.status, "payload.resolvedAt": resolvedAt } },
+    { new: true }
+  ).lean();
+
+  if (!complaint) throw new HttpError(404, "Complaint not found");
+  res.json({ complaint });
 });
 
 export const rootsReportList = asyncHandler(async (_req, res) => {

@@ -55,6 +55,9 @@ export const api = {
   application(input: { discordId: string; displayName?: string; ign: string; power: number; timezone: string; mainLegion: string }) {
     return request("POST", "/bot/application", { ...allianceContext(), ...input });
   },
+  complaint(input: { discordId: string; displayName?: string; kind: "Complaint" | "Suggestion"; message: string }) {
+    return request("POST", "/bot/complaint", { ...allianceContext(), ...input });
+  },
   eventReminder(input: { officerDiscordId: string; officerName?: string; eventType: string }) {
     return request("POST", "/bot/reminder", { ...allianceContext(), ...input });
   }

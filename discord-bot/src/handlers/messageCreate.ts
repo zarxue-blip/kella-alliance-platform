@@ -12,6 +12,9 @@ const topics = [
   "apply",
   "checkin",
   "summit",
+  "complain",
+  "complaint",
+  "suggestion",
   "help"
 ];
 
@@ -35,8 +38,9 @@ function helpText() {
     "- attack: emergency alert",
     "- members: roster and sync",
     "- dashboard: command center link",
+    "- complain: private complaint or suggestion for admins",
     "",
-    "Useful commands: /roots, /summit, /shield, /attack, /checkin, /absence, /apply, /dashboard"
+    "Useful commands: /roots, /summit, /shield, /attack, /checkin, /absence, /apply, /complain, /dashboard"
   ].join("\n");
 }
 
@@ -75,6 +79,10 @@ function answerMention(question: string) {
 
   if (hasAny(text, ["checkin", "activity", "inactive"])) {
     return "/checkin creates a daily check-in button. The dashboard tracks activity so officers can see who vanished into the fog.";
+  }
+
+  if (hasAny(text, ["complain", "complaint", "suggestion", "feedback"])) {
+    return "/complain opens a private complaint or suggestion form. Admins review it on the Complaints page and mark it Pending or Resolved. Finally, organized drama.";
   }
 
   if (hasAny(text, ["summit"])) {

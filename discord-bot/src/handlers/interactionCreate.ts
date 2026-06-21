@@ -80,6 +80,19 @@ export async function handleInteraction(interaction: Interaction) {
         mainLegion: interaction.fields.getTextInputValue("mainLegion")
       });
       await interaction.reply({ ephemeral: true, content: `${botName} submitted your application. Officers can approve or reject it from the dashboard.` });
+      return;
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId.startsWith("complaint-modal:")) {
+      const [, rawKind] = interaction.customId.split(":");
+      const kind = rawKind === "Suggestion" ? "Suggestion" : "Complaint";
+      await api.complaint({
+        discordId: interaction.user.id,
+        displayName: displayName(interaction),
+        kind,
+        message: interaction.fields.getTextInputValue("message")
+      });
+      await interaction.reply({ ephemeral: true, content: `${botName} sent your ${kind.toLowerCase()} to the admins.` });
     }
   } catch (error) {
     await replyError(interaction, error);

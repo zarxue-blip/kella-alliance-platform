@@ -217,6 +217,33 @@ export const commands: BotCommand[] = [
     }
   },
   {
+    data: new SlashCommandBuilder()
+      .setName("complain")
+      .setDescription("Send a private complaint or suggestion to admins.")
+      .addStringOption((option) =>
+        option
+          .setName("type")
+          .setDescription("What are you sending?")
+          .setRequired(false)
+          .addChoices({ name: "Complaint", value: "Complaint" }, { name: "Suggestion", value: "Suggestion" })
+      ),
+    async execute(interaction) {
+      const kind = interaction.options.getString("type") || "Complaint";
+      const modal = new ModalBuilder().setCustomId(`complaint-modal:${kind}`).setTitle(`${kind} for Admins`);
+      modal.addComponents(
+        new ActionRowBuilder<TextInputBuilder>().addComponents(
+          new TextInputBuilder()
+            .setCustomId("message")
+            .setLabel("What should admins know?")
+            .setStyle(TextInputStyle.Paragraph)
+            .setRequired(true)
+            .setMaxLength(1800)
+        )
+      );
+      await interaction.showModal(modal);
+    }
+  },
+  {
     data: new SlashCommandBuilder().setName("dashboard").setDescription("Open the Kella dashboard."),
     async execute(interaction) {
       await interaction.reply({ ephemeral: true, content: `Dashboard: ${config.PUBLIC_APP_URL}` });

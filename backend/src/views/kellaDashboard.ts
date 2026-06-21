@@ -163,7 +163,7 @@ export function kellaDashboardHtml() {
       }
       .topbar {
         display: grid;
-        grid-template-columns: 1fr minmax(260px, 360px) auto;
+        grid-template-columns: 1fr auto minmax(220px, 360px) auto;
         align-items: center;
         gap: 14px;
         min-height: 58px;
@@ -179,6 +179,27 @@ export function kellaDashboardHtml() {
         background: rgba(16, 20, 31, 0.88);
         border-color: rgba(250, 204, 21, 0.18);
         font-size: 12px;
+      }
+      .server-clock {
+        display: grid;
+        justify-items: end;
+        gap: 2px;
+        min-width: 142px;
+        border: 1px solid rgba(250, 204, 21, 0.18);
+        border-radius: 10px;
+        background: rgba(16, 20, 31, 0.78);
+        padding: 8px 11px;
+      }
+      .server-clock span {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 1000;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .server-clock strong {
+        color: #fff7d6;
+        font-size: 13px;
       }
       .top-actions { display: flex; align-items: center; gap: 8px; }
       .icon-button {
@@ -605,7 +626,7 @@ export function kellaDashboardHtml() {
             <span>Call of Dragons tools</span>
           </div>
         </div>
-        <nav aria-label="Dashboard navigation">${navItems.map(navLink).join("")}</nav>
+        <nav aria-label="Dashboard navigation">${navItems.map(navLink).join("")}<a href="/complaints" data-link data-path="/complaints"><span>! Complaints</span></a></nav>
         <div class="side-spacer"></div>
         <div class="side-footer">
           <strong>Alliance Ops</strong>
@@ -620,6 +641,10 @@ export function kellaDashboardHtml() {
               <h1 id="guildName">Kella</h1>
               <span class="muted" id="guildTagline">Command Center</span>
             </div>
+          </div>
+          <div class="server-clock" title="Call of Dragons server time">
+            <span>Server Time</span>
+            <strong data-server-clock>--:--:-- UTC</strong>
           </div>
           <input class="command-search" data-command-search placeholder="Search command tools..." />
           <div class="top-actions" aria-label="Quick actions">
@@ -646,8 +671,15 @@ export function kellaDashboardHtml() {
       const toasts = document.getElementById("toasts");
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
-      const state = { summary: null, reports: [], members: [], alerts: [], settings: null, channels: null, templates: null, currentReport: null };
+      const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], settings: null, channels: null, templates: null, currentReport: null };
       const dashboardModules = ${JSON.stringify(modules)};
+      dashboardModules.splice(Math.max(0, dashboardModules.length - 2), 0, {
+        id: "complaints",
+        name: "Complaints",
+        badge: "Feedback",
+        command: "/complain",
+        description: "Members send private complaints or suggestions. Admins can mark them Pending or Resolved."
+      });
 
       function escapeHtml(value) {
         return String(value ?? "").replace(/[&<>"']/g, function(char) {
@@ -663,6 +695,31 @@ export function kellaDashboardHtml() {
       function formatDateTime(value) {
         if (!value) return "Unknown";
         return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+      }
+
+      function formatUtcDateTime(value) {
+        if (!value) return "Unknown";
+        return new Intl.DateTimeFormat("en-GB", {
+          timeZone: "UTC",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false
+        }).format(new Date(value)).replace(",", "") + " UTC";
+      }
+
+      function updateServerClock() {
+        const target = document.querySelector("[data-server-clock]");
+        if (!target) return;
+        target.textContent = new Intl.DateTimeFormat("en-GB", {
+          timeZone: "UTC",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false
+        }).format(new Date()) + " UTC";
       }
 
       function adminToken() {
@@ -864,6 +921,18 @@ export function kellaDashboardHtml() {
         const data = await fetchJson("/api/dashboard/alerts");
         state.alerts = data.alerts || [];
         return state.alerts;
+      }
+
+      async function loadDashboardEvents() {
+        const data = await fetchJson("/api/dashboard/events");
+        state.events = data.events || [];
+        return state.events;
+      }
+
+      async function loadComplaints() {
+        const data = await fetchJson("/api/dashboard/complaints", true);
+        state.complaints = data.complaints || [];
+        return state.complaints;
       }
 
       async function loadSettings() {
@@ -1126,12 +1195,65 @@ export function kellaDashboardHtml() {
         }
       }
 
-      function renderEvents() {
-        const commands = ["/roots", "/summit", "/attack", "/checkin", "/remind", "/absence", "/apply"];
-        app.innerHTML = pageHeader("Events", "Create officer-friendly Discord workflows with one command.", "") +
-          '<section class="grid">' + commands.map(function(command) {
-            return '<div class="card"><div class="card-header"><h3>' + command + '</h3><button class="secondary" data-action="copy-command" data-value="' + command + '">Copy Command</button></div><p>Use this in Discord to create the matching Kella workflow.</p></div>';
-          }).join("") + '</section>';
+      function defaultUtcInputValue() {
+        const value = new Date(Date.now() + 60 * 60 * 1000);
+        value.setUTCMinutes(0, 0, 0);
+        return value.toISOString().slice(0, 16);
+      }
+
+      function eventFormValue(name) {
+        return document.querySelector('[data-event="' + name + '"]')?.value?.trim() || "";
+      }
+
+      function eventPayload() {
+        const startsAt = eventFormValue("startsAt");
+        if (!startsAt) throw new Error("Event time is required.");
+        return {
+          channelId: eventFormValue("channelId") || eventFormValue("channelManual"),
+          title: eventFormValue("title"),
+          description: eventFormValue("description"),
+          startsAt: new Date(startsAt + ":00Z").toISOString(),
+          roleMentionId: eventFormValue("roleMentionId")
+        };
+      }
+
+      function renderRecentEvents(events) {
+        if (!events.length) return empty("No dashboard-created events yet.");
+        return '<div class="table-wrap"><table><thead><tr><th>Event</th><th>Server Time</th><th>Created By</th><th>Status</th><th>Discord</th></tr></thead><tbody>' +
+          events.map(function(event) {
+            return '<tr><td><strong>' + escapeHtml(event.title || "Alliance Event") + '</strong><br><span class="muted">' + escapeHtml(event.description || "") + '</span></td><td>' + formatUtcDateTime(event.startsAt) + '</td><td>' + escapeHtml(event.createdBy || "Dashboard") + '</td><td>' + escapeHtml(event.status || "Sent") + '</td><td>' + (event.messageLink ? '<a class="secondary" target="_blank" rel="noreferrer" href="' + escapeHtml(event.messageLink) + '">Open</a>' : '<span class="muted">No link</span>') + '</td></tr>';
+          }).join("") +
+          '</tbody></table></div>';
+      }
+
+      async function renderEvents() {
+        skeleton("Loading events...");
+        let channelHtml = '<label>Discord Channel<input data-event="channelManual" placeholder="Paste channel ID" /></label>';
+        try {
+          await loadChannels();
+          channelHtml = '<label>Discord Channel<select data-event="channelId">' + channelOptions() + '</select></label>';
+        } catch {
+          channelHtml = '<label>Discord Channel<input data-event="channelManual" placeholder="Paste channel ID or add Password in Settings" /></label>';
+        }
+        try {
+          const events = await loadDashboardEvents();
+          const commands = ["/roots", "/summit", "/attack", "/checkin", "/remind", "/absence", "/apply", "/complain"];
+          app.innerHTML =
+            pageHeader("Events", "Create event embeds using Call of Dragons 24-hour UTC server time.", '<button class="primary" data-action="send-event-embed">Send Event</button>') +
+            '<section class="card"><div class="card-header"><div><h3>Create Event Embed</h3><span class="muted">Time is saved and sent in UTC server time.</span></div><span class="badge warn">24-hour UTC</span></div><div class="form-grid">' +
+              channelHtml +
+              '<label>Role Mention ID<input data-event="roleMentionId" placeholder="Optional role ID" /></label>' +
+              '<label>Event Title<input data-event="title" placeholder="Summit, Roots of War, Fortress..." /></label>' +
+              '<label>Event Time UTC<input type="datetime-local" data-event="startsAt" value="' + defaultUtcInputValue() + '" /></label>' +
+              '<label class="wide">Description<textarea data-event="description" placeholder="Tell members what to do, where to go, and what time to be ready."></textarea></label>' +
+            '</div></section>' +
+            '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Recent Sent Events</h3><button class="secondary" data-action="refresh-events">Refresh</button></div>' + renderRecentEvents(events) + '</section>' +
+            '<section class="grid" style="margin-top:18px">' + commands.map(function(command) {
+              return '<div class="card"><div class="card-header"><h3>' + command + '</h3><button class="secondary" data-action="copy-command" data-value="' + command + '">Copy Command</button></div><p>Use this in Discord to create the matching Kella workflow.</p></div>';
+            }).join("") + '</section>';
+        } catch (error) {
+          app.innerHTML = '<div class="error">Could not load events. ' + escapeHtml(error.message) + '</div>';
+        }
       }
 
       async function renderAlerts(type) {
@@ -1155,6 +1277,30 @@ export function kellaDashboardHtml() {
             return '<tr><td>' + escapeHtml(alert.type) + '</td><td>' + escapeHtml(alert.officer || "") + '</td><td>' + escapeHtml(alert.player || "") + '</td><td>' + escapeHtml(alert.status || "") + '</td><td>' + formatDateTime(alert.sentAt) + '</td></tr>';
           }).join("") +
           '</tbody></table></div>';
+      }
+
+      function renderComplaintsTable(complaints) {
+        if (!complaints.length) return empty("No complaints or suggestions yet. Members can use /complain in Discord.");
+        return '<div class="table-wrap"><table><thead><tr><th>Type</th><th>Player</th><th>Message</th><th>Status</th><th>Sent</th><th>Actions</th></tr></thead><tbody>' +
+          complaints.map(function(item) {
+            const resolved = item.status === "Resolved";
+            return '<tr><td>' + escapeHtml(item.kind || "Complaint") + '</td><td><strong>' + escapeHtml(item.player || "Unknown") + '</strong><br><span class="muted">' + escapeHtml(item.discordId || "") + '</span></td><td>' + escapeHtml(item.message || "") + '</td><td><span class="badge ' + (resolved ? "good" : "warn") + '">' + escapeHtml(item.status || "Pending") + '</span></td><td>' + formatDateTime(item.sentAt) + '</td><td><div class="toolbar"><button class="secondary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Pending">Pending</button><button class="primary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Resolved">Resolve</button></div></td></tr>';
+          }).join("") +
+          '</tbody></table></div>';
+      }
+
+      async function renderComplaints() {
+        skeleton("Loading complaints...");
+        try {
+          const complaints = await loadComplaints();
+          app.innerHTML =
+            pageHeader("Complaints", "Private complaints and suggestions submitted with /complain.", '<button class="secondary" data-action="refresh-complaints">Refresh</button>') +
+            '<section class="card"><div class="card-header"><div><h3>Admin Inbox</h3><span class="muted">Use Pending while reviewing, then Resolve when handled.</span></div><button class="secondary" data-action="copy-command" data-value="/complain">Copy /complain</button></div>' +
+            renderComplaintsTable(complaints) +
+            '</section>';
+        } catch (error) {
+          app.innerHTML = '<div class="error">Could not load complaints. ' + escapeHtml(error.message) + '. Add your Password in Settings if needed.</div>';
+        }
       }
 
       function memberOptions() {
@@ -1339,6 +1485,7 @@ export function kellaDashboardHtml() {
           return renderAlerts("shield");
         }
         if (path === "/embed-sender") return renderEmbedSender();
+        if (path === "/complaints") return renderComplaints();
         if (path === "/settings") return renderSettings();
         navigate("/");
       }
@@ -1421,6 +1568,21 @@ export function kellaDashboardHtml() {
         if (kind === "refresh-dashboard") withFeedback(action, async function() { state.summary = null; await renderDashboard(); }, "Dashboard refreshed.");
         if (kind === "refresh-reports") withFeedback(action, async function() { await renderRootsReports(); }, "Reports refreshed.");
         if (kind === "refresh-alerts") withFeedback(action, async function() { state.alerts = []; await loadAlerts(); await renderAlerts(location.pathname === "/shield-alerts" ? "shield" : undefined); }, "Alerts refreshed.");
+        if (kind === "refresh-events") withFeedback(action, async function() { state.events = []; await renderEvents(); }, "Events refreshed.");
+        if (kind === "refresh-complaints") withFeedback(action, async function() { state.complaints = []; await renderComplaints(); }, "Complaints refreshed.");
+        if (kind === "send-event-embed") withFeedback(action, async function() {
+          await sendJson("POST", "/api/dashboard/events", eventPayload(), true);
+          state.summary = null;
+          state.events = [];
+          await renderEvents();
+        }, "Event embed sent.");
+        if (kind === "set-complaint-status") withFeedback(action, async function() {
+          const id = action.getAttribute("data-complaint-id") || "";
+          const status = action.getAttribute("data-status") || "Pending";
+          await sendJson("PATCH", "/api/dashboard/complaints/" + encodeURIComponent(id) + "/status", { status }, true);
+          state.complaints = [];
+          await renderComplaints();
+        }, "Complaint updated.");
         if (kind === "save-settings") withFeedback(action, async function() { await saveSettings(readSettingsForm()); }, "Settings saved.");
         if (kind === "copy-report") withFeedback(action, function() { return navigator.clipboard.writeText(reportText(state.currentReport)); }, "Report copied.");
         if (kind === "export-json") withFeedback(action, async function() { downloadBlob(new Blob([JSON.stringify(state.currentReport, null, 2)], { type: "application/json" }), "roots-report.json"); }, "JSON exported.");
@@ -1548,12 +1710,16 @@ export function kellaDashboardHtml() {
       }
 
       window.addEventListener("popstate", route);
+      updateServerClock();
+      setInterval(updateServerClock, 1000);
       setInterval(function() {
         if (document.hidden) return;
         if (document.activeElement && document.activeElement.matches("input, textarea, select")) return;
-        if (location.pathname === "/" || location.pathname.startsWith("/roots") || location.pathname === "/alerts" || location.pathname === "/shield-alerts") {
+        if (location.pathname === "/" || location.pathname.startsWith("/roots") || location.pathname === "/alerts" || location.pathname === "/shield-alerts" || location.pathname === "/events" || location.pathname === "/complaints") {
           state.summary = null;
           state.alerts = [];
+          state.events = [];
+          state.complaints = [];
           route();
         }
       }, 45000);

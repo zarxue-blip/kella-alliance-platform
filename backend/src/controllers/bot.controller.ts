@@ -342,6 +342,30 @@ export const botApplication = asyncHandler(async (req, res) => {
   res.status(201).json({ application });
 });
 
+export const botComplaint = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema
+    .extend({
+      discordId: z.string(),
+      displayName: z.string().optional(),
+      kind: z.enum(["Complaint", "Suggestion"]).default("Complaint"),
+      message: z.string().min(1).max(1800)
+    })
+    .parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  const complaint = await recordKellaAction(allianceId, {
+    type: "complaint",
+    actorDiscordId: body.discordId,
+    actorName: body.displayName,
+    eventType: body.kind,
+    status: "Pending",
+    payload: {
+      kind: body.kind,
+      message: body.message
+    }
+  });
+  res.status(201).json({ complaint });
+});
+
 export const botEventReminder = asyncHandler(async (req, res) => {
   const body = serviceContextSchema
     .extend({
