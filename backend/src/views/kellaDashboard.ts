@@ -1,13 +1,14 @@
 const navItems = [
-  { path: "/", icon: "🏠", label: "Dashboard" },
-  { path: "/members", icon: "👥", label: "Members" },
-  { path: "/roots-registration", icon: "⚔", label: "Roots Registration" },
-  { path: "/roots-reports", icon: "📊", label: "Roots Reports" },
-  { path: "/events", icon: "📅", label: "Events" },
-  { path: "/alerts", icon: "🚨", label: "Alerts" },
-  { path: "/shield-alerts", icon: "🛡", label: "Shield Alerts" },
-  { path: "/embed-sender", icon: "✉", label: "Embed Sender" },
-  { path: "/settings", icon: "⚙", label: "Settings" }
+  { path: "/", icon: "/assets/icons/dashboard.png", label: "Dashboard" },
+  { path: "/members", icon: "/assets/icons/members.png", label: "Members" },
+  { path: "/roots-registration", icon: "/assets/icons/root-registration.png", label: "Roots Registration" },
+  { path: "/roots-reports", icon: "/assets/icons/roots-report.png", label: "Roots Reports" },
+  { path: "/events", icon: "/assets/icons/events.png", label: "Events" },
+  { path: "/alerts", icon: "/assets/icons/alerts.png", label: "Alerts" },
+  { path: "/shield-alerts", icon: "/assets/icons/shield-alerts.png", label: "Shield Alerts" },
+  { path: "/embed-sender", icon: "/assets/icons/embed-sender.png", label: "Embed Sender" },
+  { path: "/complaints", icon: "/assets/icons/complaints.png", label: "Complaints" },
+  { path: "/settings", icon: "/assets/icons/settings.png", label: "Settings" }
 ];
 
 const modules = [
@@ -26,7 +27,7 @@ const modules = [
 ];
 
 function navLink(item: (typeof navItems)[number]) {
-  return `<a href="${item.path}" data-link data-path="${item.path}"><span>${item.icon} ${item.label}</span></a>`;
+  return `<a href="${item.path}" data-link data-path="${item.path}"><img class="nav-icon" src="${item.icon}" alt="" loading="lazy" /><span>${item.label}</span></a>`;
 }
 
 export function kellaDashboardHtml() {
@@ -128,19 +129,32 @@ export function kellaDashboardHtml() {
         color: #d4d9e8;
         text-decoration: none;
         border-radius: 7px;
-        padding: 11px 12px;
+        padding: 9px 10px;
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
+        gap: 10px;
         font-weight: 900;
         font-size: 14px;
         transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+      }
+      .nav-icon {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+        flex: 0 0 auto;
+        filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.20));
+        transition: transform 160ms ease, filter 160ms ease;
       }
       nav a.active, nav a:hover {
         background: linear-gradient(135deg, rgba(255, 77, 117, 0.96), rgba(255, 116, 56, 0.90));
         color: white;
         transform: translateX(2px);
         box-shadow: 0 12px 28px rgba(255, 69, 101, 0.24);
+      }
+      nav a.active .nav-icon, nav a:hover .nav-icon {
+        transform: scale(1.08);
+        filter: drop-shadow(0 0 12px rgba(255, 247, 214, 0.42));
       }
       .side-spacer { flex: 1; min-height: 24px; }
       .side-footer {
@@ -606,7 +620,8 @@ export function kellaDashboardHtml() {
         .shell > aside { min-height: auto; padding: 14px; }
         .brand { margin-bottom: 14px; }
         nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-        nav a { min-height: 44px; padding: 10px; }
+        nav a { min-height: 44px; padding: 8px 9px; font-size: 13px; }
+        .nav-icon { width: 26px; height: 26px; }
         .content { padding: 20px 14px 26px; }
         .hero, .topbar { grid-template-columns: 1fr; display: grid; align-items: start; }
         .topbar { padding: 14px; gap: 12px; }
@@ -632,7 +647,7 @@ export function kellaDashboardHtml() {
             <span>Call of Dragons tools</span>
           </div>
         </div>
-        <nav aria-label="Dashboard navigation">${navItems.map(navLink).join("")}<a href="/complaints" data-link data-path="/complaints"><span>! Complaints</span></a></nav>
+        <nav aria-label="Dashboard navigation">${navItems.map(navLink).join("")}</nav>
         <div class="side-spacer"></div>
         <div class="side-footer">
           <strong>Alliance Ops</strong>
