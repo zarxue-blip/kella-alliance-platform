@@ -55,8 +55,41 @@ const flagLanguageMap: Record<string, { code: string; label: string }> = {
   VN: { code: "vi", label: "Vietnamese" }
 };
 
+const flagAliases: Record<string, string> = {
+  en: "US",
+  english: "US",
+  flag_au: "AU",
+  flag_ca: "CA",
+  flag_gb: "GB",
+  flag_gu: "GU",
+  flag_nz: "NZ",
+  flag_um: "UM",
+  flag_us: "US",
+  gb: "GB",
+  uk: "GB",
+  united_kingdom: "GB",
+  united_states: "US",
+  united_states_of_america: "US",
+  us: "US",
+  usa: "US"
+};
+
+function countryCodeFromAlias(value: string) {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/^:+|:+$/g, "")
+    .replace(/[\s-]+/g, "_");
+
+  return flagAliases[normalized] ?? null;
+}
+
 function flagToCountryCode(flag: string) {
-  const codePoints = [...flag].map((char) => char.codePointAt(0));
+  const alias = countryCodeFromAlias(flag);
+  if (alias) return alias;
+
+  const cleanFlag = flag.replace(/\ufe0f/g, "").replace(/\u200d/g, "");
+  const codePoints = [...cleanFlag].map((char) => char.codePointAt(0));
   if (codePoints.length !== 2 || codePoints.some((point) => !point || point < 0x1f1e6 || point > 0x1f1ff)) {
     return null;
   }
