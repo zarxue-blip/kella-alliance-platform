@@ -780,8 +780,13 @@ export function kellaDashboardHtml() {
 
       function renderMembersTable(members) {
         if (!members.length) return empty("No members found yet.");
-        return '<div class="table-wrap"><table><thead><tr><th>Member</th><th>IGN</th><th>UID</th><th>Power</th><th>Game Rank</th><th>Alliance Role</th><th>Attendance</th><th>Officer Notes</th></tr></thead><tbody>' +
-          members.map(function(member) {
+        const sorted = members.slice().sort(function(a, b) {
+          const byPower = Number(b.power || 0) - Number(a.power || 0);
+          if (byPower) return byPower;
+          return String(a.ign || "").localeCompare(String(b.ign || ""));
+        });
+        return '<div class="table-wrap"><table><thead><tr><th>Member</th><th>IGN</th><th>UID</th><th>Power ↓</th><th>Game Rank</th><th>Alliance Role</th><th>Attendance</th><th>Officer Notes</th></tr></thead><tbody>' +
+          sorted.map(function(member) {
             const displayName = member.discordDisplayName || member.discordName || member.ign || member.discordId || "Unknown Member";
             const username = member.discordUsername || member.discordId || "";
             const avatar = member.discordAvatarUrl
@@ -802,11 +807,17 @@ export function kellaDashboardHtml() {
         '</div></section>';
       }
 
+      function renderMemberUploadCard() {
+        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Excel Power Upload</h3><span class="muted">Upload the Call of Dragons TopN .xlsx export. Kella updates UID, IGN, rank, and power, then keeps the list sorted strongest first.</span></div><button class="primary" data-action="upload-member-xlsx">Upload & Update</button></div><div class="form-grid">' +
+          '<label class="wide">TopN Excel File<input type="file" data-member-upload accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" /></label>' +
+        '</div></section>';
+      }
+
       async function renderMembers() {
         skeleton("Loading members...");
         try {
           const members = await loadMembers();
-          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, UID, power, alliance role, attendance, and notes.", '<input class="search" data-member-search placeholder="Search members" /><button class="secondary" data-action="sync-discord-members">Sync Discord</button>') + renderGameToolsSyncCard() + renderMembersTable(members);
+          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, UID, power, alliance role, attendance, and notes. Sorted by power from highest to lowest.", '<input class="search" data-member-search placeholder="Search members" /><button class="secondary" data-action="sync-discord-members">Sync Discord</button>') + renderMemberUploadCard() + renderGameToolsSyncCard() + renderMembersTable(members);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load members. ' + escapeHtml(error.message) + '</div>';
         }
@@ -1090,6 +1101,29 @@ export function kellaDashboardHtml() {
         };
       }
 
+      function arrayBufferToBase64(buffer) {
+        const bytes = new Uint8Array(buffer);
+        const chunkSize = 32768;
+        let binary = "";
+        for (let index = 0; index < bytes.length; index += chunkSize) {
+          binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(index, index + chunkSize)));
+        }
+        return btoa(binary);
+      }
+
+      async function readMemberUploadForm() {
+        if (!adminToken()) throw new Error("Password required. Open Settings and enter your Password first.");
+        const input = document.querySelector("[data-member-upload]");
+        const file = input?.files?.[0];
+        if (!file) throw new Error("Choose an Excel .xlsx file first.");
+        if (!file.name.toLowerCase().endsWith(".xlsx")) throw new Error("Please upload a .xlsx Excel file.");
+        if (file.size > 8 * 1024 * 1024) throw new Error("Excel file is too large. Please upload a file under 8 MB.");
+        return {
+          filename: file.name,
+          fileBase64: arrayBufferToBase64(await file.arrayBuffer())
+        };
+      }
+
       async function route() {
         setActiveNav();
         if (!state.settings) loadSettings().catch(function() {});
@@ -1170,6 +1204,13 @@ export function kellaDashboardHtml() {
           await renderMembers();
           return "Synced " + sync.total + " Game Tools members (" + sync.created + " new, " + sync.updated + " updated, " + sync.skipped + " skipped).";
         }, "Game Tools members synced.");
+        if (kind === "upload-member-xlsx") withFeedback(action, async function() {
+          const sync = await sendJson("POST", "/api/dashboard/members/import-xlsx", await readMemberUploadForm(), true);
+          state.summary = null;
+          state.members = [];
+          await renderMembers();
+          return "Imported " + sync.total + " Excel members (" + sync.created + " new, " + sync.updated + " updated, " + sync.skipped + " skipped).";
+        }, "Excel members imported.");
         if (kind === "refresh-current") withFeedback(action, async function() {
           state.summary = null;
           state.alerts = [];

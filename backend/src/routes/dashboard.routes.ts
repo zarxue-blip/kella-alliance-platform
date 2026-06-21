@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   dashboardAlerts,
   dashboardMembers,
+  dashboardMemberXlsxImport,
   dashboardDiscordMemberSync,
   dashboardFarlightTopnSync,
   dashboardSettings,
@@ -19,6 +20,7 @@ export const dashboardRouter = Router();
 
 dashboardRouter.get("/summary", dashboardSummary);
 dashboardRouter.get("/members", dashboardMembers);
+dashboardRouter.post("/members/import-xlsx", authenticateDashboardAdmin, dashboardMemberXlsxImport);
 dashboardRouter.post("/sync-discord-members", authenticateDashboardAdmin, dashboardDiscordMemberSync);
 dashboardRouter.post("/sync-farlight-topn", authenticateDashboardAdmin, dashboardFarlightTopnSync);
 dashboardRouter.get("/alerts", dashboardAlerts);

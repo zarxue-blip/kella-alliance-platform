@@ -6,6 +6,7 @@ import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed } from "../services/discord.service.js";
 import { fetchFarlightTopnMembers } from "../services/farlightTopn.service.js";
+import { parseTopnWorkbook } from "../services/xlsx.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
 
@@ -82,6 +83,11 @@ const farlightTopnSyncSchema = z.object({
   keyword: z.string().optional()
 });
 
+const memberXlsxImportSchema = z.object({
+  filename: z.string().max(180).optional(),
+  fileBase64: z.string().min(1, "Excel file is required")
+});
+
 async function resolveAlliance(): Promise<any> {
   const alliance =
     (env.DISCORD_GUILD_ID ? await AllianceModel.findOne({ discordGuildId: env.DISCORD_GUILD_ID }).lean() : undefined) ??
@@ -140,6 +146,14 @@ function normalizeModuleStates(value: unknown) {
 function numeric(value: unknown) {
   const parsed = Number(value || 0);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function decodeUploadedBase64(value: string) {
+  const base64 = value.includes(",") ? value.split(",").pop() || "" : value;
+  const buffer = Buffer.from(base64, "base64");
+  if (!buffer.length) throw new HttpError(400, "Uploaded Excel file is empty.");
+  if (buffer.length > 8 * 1024 * 1024) throw new HttpError(413, "Excel file is too large. Please upload a file under 8 MB.");
+  return buffer;
 }
 
 function publicSettings(alliance: any) {
@@ -260,13 +274,16 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
   if (q) {
     filter.$or = [
       { ign: { $regex: q, $options: "i" } },
+      { uid: { $regex: q, $options: "i" } },
       { discordId: { $regex: q, $options: "i" } },
+      { discordUsername: { $regex: q, $options: "i" } },
+      { discordDisplayName: { $regex: q, $options: "i" } },
       { role: { $regex: q, $options: "i" } }
     ];
   }
 
   const members = (await MemberModel.find(filter)
-    .sort({ attendanceScore: -1, power: -1 })
+    .sort({ power: -1, attendanceScore: -1, ign: 1 })
     .limit(500)
     .select("discordId discordUsername discordDisplayName discordAvatarUrl ign uid rank role attendanceScore notes alliance power")
     .lean()) as DashboardMember[];
@@ -289,6 +306,68 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
       power: member.power
     }))
   });
+});
+
+export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
+  const body = memberXlsxImportSchema.parse(req.body);
+  const alliance = await resolveAlliance();
+  const allianceId = alliance._id.toString();
+  const syncedAt = new Date();
+  const rows = parseTopnWorkbook(decodeUploadedBase64(body.fileBase64));
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+
+  for (const row of rows) {
+    const uid = String(row.uid || "").trim();
+    const ign = String(row.ign || "").trim();
+    if (!uid || !ign) {
+      skipped += 1;
+      continue;
+    }
+
+    const existing = ((await MemberModel.findOne({ allianceId, uid }).select("_id").lean()) ??
+      (await MemberModel.findOne({ allianceId, ign }).select("_id").lean())) as any;
+
+    const update = {
+      $set: {
+        uid,
+        ign,
+        power: numeric(row.power),
+        alliance: alliance.tag || alliance.name || "Imported",
+        rank: row.rank ? `TopN #${row.rank}` : "TopN",
+        lastActivity: syncedAt
+      },
+      $setOnInsert: {
+        discordId: `xlsx:${uid}`,
+        role: "Member",
+        timezone: alliance.timezone || "UTC",
+        country: "Unknown",
+        joinDate: syncedAt,
+        attendanceScore: 0,
+        warScore: 0,
+        contributionScore: 0,
+        notes: ""
+      }
+    };
+
+    const result = existing
+      ? await MemberModel.updateOne({ _id: existing._id, allianceId }, update)
+      : await MemberModel.updateOne({ allianceId, uid }, update, { upsert: true });
+
+    if (result.upsertedCount) created += result.upsertedCount;
+    else if (result.modifiedCount || result.matchedCount) updated += 1;
+  }
+
+  await KellaActionModel.create({
+    allianceId,
+    type: "member_xlsx_import",
+    actorName: "Dashboard",
+    status: "Completed",
+    payload: { filename: body.filename || "members.xlsx", total: rows.length, created, updated, skipped }
+  });
+
+  res.json({ total: rows.length, created, updated, skipped, syncedAt });
 });
 
 export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {

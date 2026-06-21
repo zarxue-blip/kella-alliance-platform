@@ -33,7 +33,7 @@ export function createApp() {
   );
   app.use(compression());
   app.use(cookieParser());
-  app.use(express.json({ limit: "2mb" }));
+  app.use(express.json({ limit: "12mb" }));
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
   app.use(rateLimit({ windowMs: 60_000, limit: 240 }));
