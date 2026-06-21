@@ -276,6 +276,12 @@ export function kellaDashboardHtml() {
       .search { height: 46px; max-width: 380px; }
       .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
       .form-grid .wide { grid-column: 1 / -1; }
+      .time-row {
+        display: grid;
+        grid-template-columns: minmax(180px, 1fr) 110px 110px;
+        gap: 12px;
+        align-items: end;
+      }
 
       .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
       .stat, .card, .module-card, .table-wrap, .preview {
@@ -607,7 +613,7 @@ export function kellaDashboardHtml() {
         .command-search { max-width: none; height: 42px; }
         .top-actions { width: 100%; }
         .top-actions .icon-button { flex: 1; }
-        .grid, .stats, .form-grid, .quick-grid, .overview-kpis { grid-template-columns: 1fr; }
+        .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row { grid-template-columns: 1fr; }
         .member-modal { padding: 10px; align-items: end; }
         .member-modal-panel { width: 100%; max-height: calc(100vh - 24px); border-radius: 14px 14px 0 0; padding: 18px; }
         .member-profile-hero { grid-template-columns: 1fr; text-align: center; padding-right: 0; justify-items: center; }
@@ -1195,10 +1201,30 @@ export function kellaDashboardHtml() {
         }
       }
 
-      function defaultUtcInputValue() {
+      function defaultUtcParts() {
         const value = new Date(Date.now() + 60 * 60 * 1000);
         value.setUTCMinutes(0, 0, 0);
-        return value.toISOString().slice(0, 16);
+        return {
+          date: value.toISOString().slice(0, 10),
+          hour: String(value.getUTCHours()).padStart(2, "0"),
+          minute: String(value.getUTCMinutes()).padStart(2, "0")
+        };
+      }
+
+      function optionRange(count, selected) {
+        return Array.from({ length: count }, function(_item, index) {
+          const value = String(index).padStart(2, "0");
+          return '<option value="' + value + '"' + (value === selected ? " selected" : "") + '>' + value + '</option>';
+        }).join("");
+      }
+
+      function utcEventTimeControls() {
+        const parts = defaultUtcParts();
+        return '<div class="wide time-row">' +
+          '<label>Event Date UTC<input type="date" data-event="date" value="' + parts.date + '" /></label>' +
+          '<label>Hour UTC<select data-event="hour">' + optionRange(24, parts.hour) + '</select></label>' +
+          '<label>Minute UTC<select data-event="minute">' + optionRange(60, parts.minute) + '</select></label>' +
+        '</div>';
       }
 
       function eventFormValue(name) {
@@ -1206,13 +1232,17 @@ export function kellaDashboardHtml() {
       }
 
       function eventPayload() {
-        const startsAt = eventFormValue("startsAt");
-        if (!startsAt) throw new Error("Event time is required.");
+        const date = eventFormValue("date");
+        const hour = eventFormValue("hour");
+        const minute = eventFormValue("minute");
+        if (!date || !hour || !minute) throw new Error("Event date and 24-hour UTC time are required.");
+        const startsAt = new Date(date + "T" + hour + ":" + minute + ":00Z");
+        if (Number.isNaN(startsAt.getTime())) throw new Error("Event time is invalid.");
         return {
           channelId: eventFormValue("channelId") || eventFormValue("channelManual"),
           title: eventFormValue("title"),
           description: eventFormValue("description"),
-          startsAt: new Date(startsAt + ":00Z").toISOString(),
+          startsAt: startsAt.toISOString(),
           roleMentionId: eventFormValue("roleMentionId")
         };
       }
@@ -1244,7 +1274,7 @@ export function kellaDashboardHtml() {
               channelHtml +
               '<label>Role Mention ID<input data-event="roleMentionId" placeholder="Optional role ID" /></label>' +
               '<label>Event Title<input data-event="title" placeholder="Summit, Roots of War, Fortress..." /></label>' +
-              '<label>Event Time UTC<input type="datetime-local" data-event="startsAt" value="' + defaultUtcInputValue() + '" /></label>' +
+              utcEventTimeControls() +
               '<label class="wide">Description<textarea data-event="description" placeholder="Tell members what to do, where to go, and what time to be ready."></textarea></label>' +
             '</div></section>' +
             '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Recent Sent Events</h3><button class="secondary" data-action="refresh-events">Refresh</button></div>' + renderRecentEvents(events) + '</section>' +
