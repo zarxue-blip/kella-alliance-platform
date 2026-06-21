@@ -40,35 +40,40 @@ export function kellaDashboardHtml() {
     <style>
       :root {
         color-scheme: dark;
-        --bg: #08090d;
-        --panel: #12141c;
-        --panel-2: #0c0e14;
-        --panel-3: #181b26;
-        --line: #2c3343;
-        --muted: #939bb0;
-        --text: #f8fafc;
+        --bg: #150f09;
+        --panel: #ead8ae;
+        --panel-2: #d9bf82;
+        --panel-3: #f5e7bf;
+        --line: rgba(98, 62, 24, 0.36);
+        --muted: #725736;
+        --text: #241509;
+        --ink: #241509;
+        --paper: #f2dfae;
+        --paper-soft: #fff2c8;
+        --paper-deep: #c9974f;
+        --leather: #26170d;
         --green: #4ff0aa;
-        --red: #ff4565;
-        --gold: #facc15;
-        --gold-soft: #f8d777;
-        --ember: #ff7438;
+        --red: #b3262f;
+        --gold: #ffd65a;
+        --gold-soft: #fff1a8;
+        --ember: #a4451f;
         --blue: #8097ff;
-        --pink: #ff4d75;
-        --glass: rgba(8, 11, 18, 0.82);
+        --pink: #b3262f;
+        --glass: rgba(255, 236, 187, 0.78);
       }
 
       * { box-sizing: border-box; }
       body {
         margin: 0;
         background:
-          linear-gradient(180deg, rgba(3, 6, 12, 0.50) 0%, rgba(3, 6, 12, 0.86) 42%, rgba(3, 6, 12, 0.95) 100%),
-          radial-gradient(circle at 13% 92%, rgba(255, 88, 56, 0.18), transparent 28%),
-          radial-gradient(circle at 86% 6%, rgba(250, 204, 21, 0.15), transparent 22%),
+          linear-gradient(180deg, rgba(34, 25, 11, 0.28) 0%, rgba(31, 20, 9, 0.70) 46%, rgba(13, 8, 5, 0.88) 100%),
+          radial-gradient(circle at 13% 92%, rgba(255, 210, 90, 0.20), transparent 28%),
+          radial-gradient(circle at 86% 6%, rgba(255, 214, 90, 0.20), transparent 22%),
           url("/assets/kella-bg.png") center top / cover fixed,
-          linear-gradient(180deg, #11131a 0%, #08090d 38%, #08090d 100%),
+          linear-gradient(180deg, #3d2b15 0%, #16100a 46%, #090604 100%),
           var(--bg);
         color: var(--text);
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: "Trebuchet MS", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
         min-height: 100vh;
       }
 
@@ -84,17 +89,20 @@ export function kellaDashboardHtml() {
         display: grid;
         grid-template-columns: 245px 1fr;
         overflow: hidden;
-        border: 1px solid rgba(250, 204, 21, 0.28);
+        border: 2px solid rgba(255, 214, 90, 0.52);
         border-radius: 18px;
-        background: rgba(7, 9, 15, 0.92);
-        box-shadow: 0 34px 110px rgba(0, 0, 0, 0.58), inset 0 1px 0 rgba(255,255,255,0.08);
-        backdrop-filter: blur(18px);
+        background:
+          linear-gradient(90deg, rgba(67, 42, 20, 0.32), transparent 21%, transparent 79%, rgba(67, 42, 20, 0.22)),
+          var(--paper);
+        box-shadow: 0 34px 110px rgba(0, 0, 0, 0.58), inset 0 0 0 1px rgba(105, 64, 24, 0.22), inset 0 0 44px rgba(92, 55, 18, 0.16);
+        backdrop-filter: blur(12px);
       }
       .shell > aside {
-        border-right: 1px solid rgba(250, 204, 21, 0.16);
+        color: #fff8d7;
+        border-right: 2px solid rgba(111, 69, 25, 0.56);
         background:
-          linear-gradient(180deg, rgba(23, 18, 13, 0.35), transparent 25%),
-          linear-gradient(180deg, #111724 0%, #090d15 62%, #080a10 100%);
+          radial-gradient(circle at 50% -10%, rgba(255, 214, 90, 0.16), transparent 34%),
+          linear-gradient(180deg, rgba(59, 36, 18, 0.82), rgba(17, 10, 6, 0.96) 64%, #090604 100%);
         padding: 20px 14px;
         display: flex;
         flex-direction: column;
@@ -121,14 +129,15 @@ export function kellaDashboardHtml() {
         border: 1px solid rgba(250, 204, 21, 0.28);
         box-shadow: 0 0 28px rgba(250, 204, 21, 0.16), 0 0 34px rgba(255, 69, 101, 0.18);
       }
-      .brand strong { display: block; letter-spacing: 0.02em; font-size: 16px; }
+      .brand strong { display: block; letter-spacing: 0.03em; font-size: 16px; color: #fff7d6; }
       .brand span { color: var(--gold-soft); font-size: 11px; text-transform: uppercase; font-weight: 900; letter-spacing: 0.08em; }
 
       nav { display: grid; gap: 7px; }
       nav a {
-        color: #d4d9e8;
+        color: #f3dfaa;
         text-decoration: none;
-        border-radius: 7px;
+        border: 1px solid transparent;
+        border-radius: 6px;
         padding: 9px 10px;
         display: flex;
         align-items: center;
@@ -136,7 +145,8 @@ export function kellaDashboardHtml() {
         gap: 10px;
         font-weight: 900;
         font-size: 14px;
-        transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+        text-shadow: 0 1px 0 rgba(0,0,0,0.42);
+        transition: background 160ms ease, color 160ms ease, transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
       }
       .nav-icon {
         width: 28px;
@@ -147,10 +157,14 @@ export function kellaDashboardHtml() {
         transition: transform 160ms ease, filter 160ms ease;
       }
       nav a.active, nav a:hover {
-        background: linear-gradient(135deg, rgba(255, 77, 117, 0.96), rgba(255, 116, 56, 0.90));
-        color: white;
+        background:
+          linear-gradient(180deg, rgba(255, 246, 162, 0.98), rgba(236, 164, 50, 0.96)),
+          var(--gold);
+        border-color: rgba(255, 249, 184, 0.92);
+        color: #221205;
         transform: translateX(2px);
-        box-shadow: 0 12px 28px rgba(255, 69, 101, 0.24);
+        text-shadow: 0 1px 0 rgba(255,255,255,0.46);
+        box-shadow: 0 0 0 1px rgba(103, 58, 14, 0.34), 0 0 20px rgba(255, 214, 90, 0.46), inset 0 0 18px rgba(255, 251, 210, 0.52);
       }
       nav a.active .nav-icon, nav a:hover .nav-icon {
         transform: scale(1.08);
@@ -160,20 +174,22 @@ export function kellaDashboardHtml() {
       .side-footer {
         margin-top: 24px;
         padding: 14px 8px 0;
-        border-top: 1px solid var(--line);
-        color: var(--muted);
+        border-top: 1px solid rgba(255, 214, 90, 0.24);
+        color: #d7bd82;
         font-size: 12px;
         font-weight: 850;
         line-height: 1.45;
       }
-      .side-footer strong { display: block; color: var(--text); font-size: 13px; margin-bottom: 4px; }
+      .side-footer strong { display: block; color: #fff7d6; font-size: 13px; margin-bottom: 4px; }
 
       main {
         padding: 0;
         min-width: 0;
         background:
-          radial-gradient(circle at 72% 5%, rgba(250, 204, 21, 0.08), transparent 30%),
-          rgba(6, 8, 13, 0.83);
+          radial-gradient(circle at 72% 5%, rgba(255, 214, 90, 0.18), transparent 30%),
+          linear-gradient(90deg, rgba(83, 49, 18, 0.16), transparent 16%, transparent 84%, rgba(83, 49, 18, 0.12)),
+          radial-gradient(circle at 50% 36%, rgba(255,255,255,0.20), transparent 42%),
+          var(--paper);
       }
       .topbar {
         display: grid;
@@ -181,17 +197,18 @@ export function kellaDashboardHtml() {
         align-items: center;
         gap: 14px;
         min-height: 58px;
-        border-bottom: 1px solid rgba(250, 204, 21, 0.14);
-        background: rgba(7, 10, 17, 0.80);
+        border-bottom: 2px solid rgba(102, 63, 24, 0.36);
+        background:
+          linear-gradient(180deg, rgba(255, 242, 197, 0.90), rgba(224, 189, 124, 0.64)),
+          var(--paper-soft);
         padding: 10px 20px;
-        backdrop-filter: blur(12px);
       }
       .command-search {
         height: 34px;
         border-radius: 999px;
         padding: 0 14px;
-        background: rgba(16, 20, 31, 0.88);
-        border-color: rgba(250, 204, 21, 0.18);
+        background: rgba(255, 248, 222, 0.68);
+        border-color: rgba(109, 69, 25, 0.28);
         font-size: 12px;
       }
       .server-clock {
@@ -199,20 +216,20 @@ export function kellaDashboardHtml() {
         justify-items: end;
         gap: 2px;
         min-width: 142px;
-        border: 1px solid rgba(250, 204, 21, 0.18);
+        border: 1px solid rgba(109, 69, 25, 0.30);
         border-radius: 10px;
-        background: rgba(16, 20, 31, 0.78);
+        background: rgba(70, 43, 18, 0.12);
         padding: 8px 11px;
       }
       .server-clock span {
-        color: var(--muted);
+        color: #6a4b22;
         font-size: 10px;
         font-weight: 1000;
         letter-spacing: 0.08em;
         text-transform: uppercase;
       }
       .server-clock strong {
-        color: #fff7d6;
+        color: #241509;
         font-size: 13px;
       }
       .top-actions { display: flex; align-items: center; gap: 8px; }
@@ -222,12 +239,12 @@ export function kellaDashboardHtml() {
         border-radius: 9px;
         display: grid;
         place-items: center;
-        background: rgba(16, 20, 31, 0.94);
-        color: #dbe1ef;
-        border: 1px solid rgba(250, 204, 21, 0.18);
+        background: rgba(255, 244, 205, 0.62);
+        color: #3b220c;
+        border: 1px solid rgba(109, 69, 25, 0.30);
         padding: 0;
       }
-      .icon-button:hover { border-color: rgba(250, 204, 21, 0.48); color: var(--gold-soft); }
+      .icon-button:hover { border-color: rgba(255, 214, 90, 0.92); color: #5c3106; box-shadow: 0 0 16px rgba(255, 214, 90, 0.28); }
       .content { padding: 24px 20px 28px; }
       .guild { display: flex; align-items: center; gap: 14px; }
       .avatar {
@@ -249,23 +266,34 @@ export function kellaDashboardHtml() {
         background: #111827;
         box-shadow: 0 0 24px rgba(250, 204, 21, 0.20);
       }
-      h1 { margin: 0; font-size: 22px; }
-      h2 { margin: 0 0 10px; font-size: 28px; }
-      h3 { margin: 0; font-size: 18px; }
+      h1, h2, h3 {
+        font-family: Georgia, "Times New Roman", serif;
+        color: #1f1308;
+        letter-spacing: 0.01em;
+        text-shadow: 0 1px 0 rgba(255,255,255,0.52);
+      }
+      h1 { margin: 0; font-size: 24px; }
+      h2 { margin: 0 0 10px; font-size: 32px; }
+      h3 { margin: 0; font-size: 20px; }
       .muted { color: var(--muted); }
 
       .primary, .secondary, .danger, .ghost {
-        border: 1px solid #343a4d;
+        border: 1px solid rgba(100, 62, 22, 0.34);
         border-radius: 8px;
         padding: 9px 13px;
         font-weight: 900;
         text-decoration: none;
-        background: rgba(16, 19, 27, 0.90);
-        color: #dbeafe;
+        background: rgba(255, 246, 217, 0.70);
+        color: #2b1706;
       }
-      .primary { background: linear-gradient(135deg, #ff4d75, #ff7438); border-color: rgba(250, 204, 21, 0.40); color: white; box-shadow: 0 14px 28px rgba(255,69,101,0.24); }
-      .secondary { background: rgba(23, 27, 38, 0.92); color: #f7e7a0; border-color: rgba(250, 204, 21, 0.22); }
-      .danger { background: #3b1016; color: #fecdd3; border-color: #7f1d1d; }
+      .primary {
+        background: linear-gradient(180deg, #fff08a, #e8a938 56%, #b86a1b);
+        border-color: rgba(120, 71, 16, 0.46);
+        color: #241205;
+        box-shadow: 0 12px 26px rgba(151, 84, 14, 0.24), inset 0 1px 0 rgba(255,255,255,0.58);
+      }
+      .secondary { background: rgba(88, 53, 20, 0.10); color: #5d350e; border-color: rgba(100, 62, 22, 0.30); }
+      .danger { background: #6d1e19; color: #fff0dc; border-color: #9b2d24; }
       .ghost { background: transparent; }
 
       .hero { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: end; margin-bottom: 22px; }
@@ -274,19 +302,19 @@ export function kellaDashboardHtml() {
 
       input, select, textarea {
         width: 100%;
-        border: 1px solid rgba(250, 204, 21, 0.13);
+        border: 1px solid rgba(100, 62, 22, 0.30);
         border-radius: 8px;
-        background: rgba(37, 42, 54, 0.92);
+        background: rgba(255, 247, 219, 0.68);
         color: var(--text);
         padding: 12px 13px;
         outline: none;
       }
       input:focus, select:focus, textarea:focus {
         border-color: rgba(250, 204, 21, 0.55);
-        box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.10);
+        box-shadow: 0 0 0 3px rgba(255, 214, 90, 0.20), 0 0 18px rgba(255, 214, 90, 0.20);
       }
       textarea { min-height: 130px; resize: vertical; line-height: 1.45; }
-      label { display: grid; gap: 7px; color: #cbd5e1; font-weight: 850; font-size: 13px; }
+      label { display: grid; gap: 7px; color: #4d3216; font-weight: 850; font-size: 13px; }
       .search { height: 46px; max-width: 380px; }
       .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
       .form-grid .wide { grid-column: 1 / -1; }
@@ -300,15 +328,16 @@ export function kellaDashboardHtml() {
       .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
       .stat, .card, .module-card, .table-wrap, .preview {
         background:
-          linear-gradient(180deg, rgba(27, 30, 42, 0.92), rgba(11, 14, 22, 0.94)),
-          rgba(14, 17, 25, 0.92);
-        border: 1px solid rgba(250, 204, 21, 0.14);
+          radial-gradient(circle at 50% -10%, rgba(255,255,255,0.28), transparent 26%),
+          linear-gradient(180deg, rgba(255, 243, 203, 0.94), rgba(222, 187, 123, 0.94)),
+          var(--paper);
+        border: 1px solid rgba(111, 69, 25, 0.36);
         border-radius: 8px;
-        box-shadow: 0 18px 54px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255,255,255,0.04);
+        box-shadow: 0 18px 42px rgba(73, 42, 14, 0.18), inset 0 0 0 1px rgba(255,255,255,0.24), inset 0 0 28px rgba(103, 59, 18, 0.08);
       }
       .stat { padding: 17px; }
       .stat span { color: var(--muted); display: block; font-size: 13px; font-weight: 850; }
-      .stat strong { display: block; margin-top: 8px; font-size: 27px; overflow-wrap: anywhere; color: #fff7d6; }
+      .stat strong { display: block; margin-top: 8px; font-size: 27px; overflow-wrap: anywhere; color: #3a220c; }
 
       .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
       .two { display: grid; grid-template-columns: 1.12fr 0.88fr; gap: 18px; }
@@ -333,50 +362,50 @@ export function kellaDashboardHtml() {
         overflow: hidden;
         position: relative;
         background:
-          linear-gradient(180deg, rgba(10, 12, 18, 0.16), rgba(10, 12, 18, 0.92)),
-          radial-gradient(circle at 62% 44%, rgba(255, 116, 56, 0.44), transparent 24%),
-          radial-gradient(circle at 28% 18%, rgba(250, 204, 21, 0.18), transparent 20%),
-          linear-gradient(135deg, #111827, #080b12 65%);
-        border-color: rgba(250, 204, 21, 0.22);
+          linear-gradient(180deg, rgba(255, 244, 207, 0.40), rgba(92, 50, 18, 0.20)),
+          radial-gradient(circle at 62% 44%, rgba(255, 214, 90, 0.38), transparent 24%),
+          radial-gradient(circle at 28% 18%, rgba(166, 82, 26, 0.18), transparent 20%),
+          linear-gradient(135deg, #f1dca9, #cf9f58 65%);
+        border-color: rgba(111, 69, 25, 0.42);
       }
       .overview-panel:before {
         content: "";
         position: absolute;
         inset: 54px 18px 18px;
-        border: 1px solid rgba(255,255,255,0.05);
+        border: 1px solid rgba(78, 45, 15, 0.12);
         background:
-          linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+          linear-gradient(rgba(78, 45, 15,0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(78, 45, 15,0.05) 1px, transparent 1px);
         background-size: 26px 26px;
         opacity: 0.75;
         mask-image: linear-gradient(180deg, transparent, black 18%, black 80%, transparent);
       }
       .overview-content { position: relative; z-index: 1; display: grid; gap: 14px; height: 100%; align-content: end; }
       .overview-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-      .kpi-card { background: rgba(14,17,25,0.86); border: 1px solid rgba(255,255,255,0.09); border-radius: 10px; padding: 13px; }
+      .kpi-card { background: rgba(255, 247, 219, 0.54); border: 1px solid rgba(92, 55, 18, 0.18); border-radius: 10px; padding: 13px; }
       .kpi-card span { display: block; color: var(--muted); font-size: 11px; font-weight: 1000; text-transform: uppercase; letter-spacing: 0.08em; }
       .kpi-card strong { display: block; margin-top: 7px; font-size: 22px; color: var(--text); }
       .activity-card { min-height: 248px; }
       .activity-list { display: grid; gap: 10px; }
-      .activity-item { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; padding: 10px; background: #0d1018; border: 1px solid #272d3d; border-radius: 9px; }
-      .activity-dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,69,101,0.13); color: #ff8ca0; border: 1px solid rgba(255,69,101,0.35); font-size: 13px; }
+      .activity-item { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; padding: 10px; background: rgba(255, 247, 219, 0.42); border: 1px solid rgba(92, 55, 18, 0.18); border-radius: 9px; }
+      .activity-dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: rgba(184,106,27,0.15); color: #8b3d15; border: 1px solid rgba(184,106,27,0.35); font-size: 13px; }
       .activity-item strong { display: block; font-size: 13px; line-height: 1.25; }
       .activity-time { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
       .quick-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
       .quick-card { min-height: 128px; display: grid; align-content: space-between; gap: 14px; transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
-      .quick-card:hover { transform: translateY(-2px); border-color: rgba(250, 204, 21, 0.42); box-shadow: 0 20px 56px rgba(0, 0, 0, 0.30); }
+      .quick-card:hover { transform: translateY(-2px); border-color: rgba(255, 214, 90, 0.72); box-shadow: 0 20px 44px rgba(100, 55, 17, 0.26), 0 0 20px rgba(255, 214, 90, 0.20); }
       .quick-card .big { font-size: 25px; font-weight: 1000; color: var(--text); }
       .readiness { display: grid; gap: 9px; }
       .readiness-row { display: grid; gap: 6px; }
-      .readiness-row span { display: flex; justify-content: space-between; gap: 10px; color: #cbd5e1; font-size: 12px; font-weight: 850; }
-      .bar { height: 7px; background: #262b39; border-radius: 999px; overflow: hidden; }
-      .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--green), var(--gold)); }
+      .readiness-row span { display: flex; justify-content: space-between; gap: 10px; color: #4d3216; font-size: 12px; font-weight: 850; }
+      .bar { height: 7px; background: rgba(76, 47, 18, 0.20); border-radius: 999px; overflow: hidden; }
+      .bar i { display: block; height: 100%; background: linear-gradient(90deg, #9b4d1e, var(--gold)); }
       .card, .preview { padding: 20px; }
       .card-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
-      .card p { color: #aeb8d3; line-height: 1.55; font-weight: 650; }
+      .card p { color: #5f4729; line-height: 1.55; font-weight: 650; }
 
       .module-card { min-height: 168px; padding: 21px 19px; transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
-      .module-card:hover { transform: translateY(-2px); border-color: rgba(250, 204, 21, 0.36); box-shadow: 0 22px 58px rgba(0,0,0,0.30); }
+      .module-card:hover { transform: translateY(-2px); border-color: rgba(255, 214, 90, 0.72); box-shadow: 0 22px 44px rgba(100,55,17,0.28), 0 0 18px rgba(255,214,90,0.18); }
       .module-top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
       .meta { margin-top: 11px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
       .meta span, .meta strong, .badge {
@@ -385,29 +414,29 @@ export function kellaDashboardHtml() {
         font-size: 12px;
         font-weight: 1000;
       }
-      .meta span { background: #1e2432; color: #c7d2fe; }
-      .meta strong, .badge.good { background: rgba(92, 255, 200, 0.13); color: var(--green); }
-      .badge.warn { background: rgba(250, 204, 21, 0.14); color: var(--gold); }
-      .badge.bad { background: rgba(255, 79, 98, 0.14); color: #ff9aa5; }
-      .module-card p { min-height: 58px; color: #aeb8d3; line-height: 1.45; font-weight: 700; }
+      .meta span { background: rgba(92, 55, 18, 0.12); color: #5d350e; border: 1px solid rgba(92,55,18,0.12); }
+      .meta strong, .badge.good { background: rgba(18, 122, 70, 0.13); color: #16603d; }
+      .badge.warn { background: rgba(255, 214, 90, 0.24); color: #7c4b08; }
+      .badge.bad { background: rgba(179, 38, 47, 0.12); color: #8c1d22; }
+      .module-card p { min-height: 58px; color: #5f4729; line-height: 1.45; font-weight: 700; }
 
       .switch {
         width: 52px;
         height: 26px;
         border: 0;
         border-radius: 999px;
-        background: #202431;
+        background: rgba(83, 49, 18, 0.20);
         padding: 3px;
         flex: 0 0 auto;
       }
-      .switch i { display: block; width: 20px; height: 20px; border-radius: 50%; background: #7f879a; }
-      .switch.on i { margin-left: auto; background: linear-gradient(135deg, var(--green), var(--gold)); box-shadow: 0 0 18px rgba(92, 255, 200, 0.42); }
+      .switch i { display: block; width: 20px; height: 20px; border-radius: 50%; background: #8c6b41; }
+      .switch.on i { margin-left: auto; background: linear-gradient(135deg, #ffe88a, #b96b1c); box-shadow: 0 0 18px rgba(255, 214, 90, 0.42); }
       .module-actions { display: flex; gap: 10px; align-items: center; }
       .module-actions button {
         border: 0;
         border-radius: 5px;
-        background: rgba(34, 39, 55, 0.92);
-        color: #ffd166;
+        background: rgba(255, 238, 183, 0.62);
+        color: #5d350e;
         padding: 9px 12px;
         font-weight: 1000;
         font-size: 12px;
@@ -416,27 +445,27 @@ export function kellaDashboardHtml() {
       }
 
       table { width: 100%; border-collapse: collapse; min-width: 760px; }
-      th, td { padding: 14px 16px; border-bottom: 1px solid rgba(250, 204, 21, 0.10); text-align: left; vertical-align: top; }
-      th { color: #f5d987; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; background: rgba(16, 19, 27, 0.92); }
-      td { color: #eef2ff; }
+      th, td { padding: 14px 16px; border-bottom: 1px solid rgba(98, 62, 24, 0.20); text-align: left; vertical-align: top; }
+      th { color: #5d350e; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; background: rgba(210, 162, 83, 0.28); }
+      td { color: #2b1706; }
       .table-wrap { overflow-x: auto; }
       tbody tr { transition: background 150ms ease, transform 150ms ease; }
 
       .empty, .error, .skeleton {
-        border: 1px dashed #343b4f;
+        border: 1px dashed rgba(100, 62, 22, 0.42);
         border-radius: 10px;
         padding: 28px;
         color: var(--muted);
-        background: rgba(16, 19, 27, 0.72);
+        background: rgba(255, 247, 219, 0.38);
         text-align: center;
         font-weight: 800;
       }
-      .error { border-color: #7f1d1d; color: #fecdd3; }
+      .error { border-color: #9b2d24; color: #7a1715; }
       .locked-note {
         margin-bottom: 16px;
         border: 1px solid rgba(250, 204, 21, 0.32);
-        background: rgba(250, 204, 21, 0.08);
-        color: #fde68a;
+        background: rgba(255, 224, 126, 0.22);
+        color: #5d350e;
         border-radius: 10px;
         padding: 13px 15px;
         font-weight: 850;
@@ -464,7 +493,7 @@ export function kellaDashboardHtml() {
       }
 
       .list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
-      .list li { background: #10131b; border: 1px solid var(--line); border-radius: 7px; padding: 12px 14px; }
+      .list li { background: rgba(255, 247, 219, 0.42); border: 1px solid var(--line); border-radius: 7px; padding: 12px 14px; }
       .member-cell { display: flex; align-items: center; gap: 12px; min-width: 240px; }
       .member-avatar {
         width: 42px;
@@ -474,23 +503,23 @@ export function kellaDashboardHtml() {
         place-items: center;
         flex: 0 0 auto;
         object-fit: cover;
-        background: linear-gradient(135deg, #272d3d, #111827);
-        border: 1px solid #3f4659;
-        color: #e5e7eb;
+        background: linear-gradient(135deg, #f4db9d, #ba7b2c);
+        border: 1px solid rgba(92, 55, 18, 0.36);
+        color: #2b1706;
         font-weight: 1000;
       }
       .member-name { display: block; font-weight: 1000; color: var(--text); }
       .member-username { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 800; }
       .member-row { cursor: pointer; }
       .member-row:hover, .member-row:focus {
-        background: rgba(250, 204, 21, 0.07);
+        background: rgba(255, 214, 90, 0.16);
         outline: none;
       }
       .member-row:focus-visible { box-shadow: inset 3px 0 0 var(--gold); }
       .players { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
       .stack { display: grid; gap: 14px; }
       .preview {
-        border-left: 5px solid var(--gold);
+        border-left: 5px solid #b96b1c;
         min-height: 220px;
       }
       .preview h3 { margin-bottom: 12px; }
@@ -499,7 +528,7 @@ export function kellaDashboardHtml() {
       .preview footer { margin-top: 16px; color: var(--muted); font-size: 13px; }
 
       .toast-stack { position: fixed; right: 18px; bottom: 18px; z-index: 30; display: grid; gap: 10px; width: min(380px, calc(100vw - 36px)); }
-      .toast { border: 1px solid var(--line); background: #151821; color: var(--text); border-radius: 9px; padding: 13px 14px; box-shadow: 0 18px 40px rgba(0,0,0,0.35); font-weight: 750; }
+      .toast { border: 1px solid rgba(100, 62, 22, 0.40); background: #fff0c6; color: #241509; border-radius: 9px; padding: 13px 14px; box-shadow: 0 18px 40px rgba(0,0,0,0.35); font-weight: 750; }
       .toast.success { border-color: rgba(92,255,200,0.35); }
       .toast.error { border-color: rgba(255,79,98,0.5); }
 
@@ -517,7 +546,7 @@ export function kellaDashboardHtml() {
       .member-modal-backdrop {
         position: absolute;
         inset: 0;
-        background: rgba(2, 4, 9, 0.76);
+        background: rgba(20, 12, 6, 0.72);
         backdrop-filter: blur(8px);
       }
       .member-modal-panel {
@@ -527,10 +556,11 @@ export function kellaDashboardHtml() {
         max-height: calc(100vh - 36px);
         overflow: auto;
         border-radius: 12px;
-        border: 1px solid rgba(250, 204, 21, 0.30);
+        border: 1px solid rgba(111, 69, 25, 0.42);
         background:
-          linear-gradient(180deg, rgba(30, 25, 22, 0.72), rgba(8, 11, 18, 0.96)),
-          #090d15;
+          radial-gradient(circle at 50% -12%, rgba(255,255,255,0.32), transparent 28%),
+          linear-gradient(180deg, rgba(255, 243, 203, 0.98), rgba(216, 178, 106, 0.98)),
+          var(--paper);
         box-shadow: 0 35px 110px rgba(0, 0, 0, 0.66), inset 0 1px 0 rgba(255,255,255,0.07);
         padding: 22px;
       }
@@ -542,8 +572,8 @@ export function kellaDashboardHtml() {
         height: 34px;
         border-radius: 8px;
         border: 1px solid rgba(250, 204, 21, 0.18);
-        background: rgba(11, 14, 22, 0.88);
-        color: #fef3c7;
+        background: rgba(92, 55, 18, 0.12);
+        color: #4a2b10;
         font-size: 20px;
         line-height: 1;
       }
@@ -570,7 +600,7 @@ export function kellaDashboardHtml() {
       }
       .profile-kicker { color: var(--gold-soft); text-transform: uppercase; letter-spacing: 0.11em; font-size: 11px; font-weight: 1000; }
       .member-profile-hero h3 { margin-top: 4px; font-size: 28px; }
-      .profile-subtitle { color: #b9c3d9; font-weight: 800; margin-top: 5px; }
+      .profile-subtitle { color: #6d512f; font-weight: 800; margin-top: 5px; }
       .profile-stats {
         margin-top: 20px;
         display: grid;
@@ -581,17 +611,17 @@ export function kellaDashboardHtml() {
         border: 1px solid rgba(250, 204, 21, 0.13);
         border-radius: 8px;
         padding: 13px;
-        background: rgba(12, 16, 25, 0.82);
+        background: rgba(255, 247, 219, 0.46);
       }
-      .profile-stat span { color: #99a6bf; display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 1000; }
-      .profile-stat strong { display: block; margin-top: 6px; color: #fff7d6; font-size: 17px; overflow-wrap: anywhere; }
+      .profile-stat span { color: #725736; display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 1000; }
+      .profile-stat strong { display: block; margin-top: 6px; color: #3a220c; font-size: 17px; overflow-wrap: anywhere; }
       .profile-note {
         margin-top: 14px;
         border: 1px solid rgba(250, 204, 21, 0.13);
         border-radius: 8px;
         padding: 14px;
-        background: rgba(12, 16, 25, 0.82);
-        color: #dce4f6;
+        background: rgba(255, 247, 219, 0.46);
+        color: #4d3216;
         line-height: 1.55;
         font-weight: 700;
       }
