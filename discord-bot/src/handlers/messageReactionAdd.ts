@@ -1,5 +1,5 @@
 import type { MessageReaction, PartialMessageReaction, PartialUser, User } from "discord.js";
-import { translateForFlag } from "../services/translation.js";
+import { getLanguageFromFlag, translateForFlag } from "../services/translation.js";
 
 async function fetchReaction(reaction: MessageReaction | PartialMessageReaction) {
   if (reaction.partial) return (await reaction.fetch()) as MessageReaction;
@@ -29,16 +29,11 @@ export async function handleMessageReactionAdd(
   try {
     const reaction = await fetchReaction(reactionInput);
     const flag = getEmojiName(reaction);
+    if (!getLanguageFromFlag(flag)) return;
+
     const message = await fetchMessage(reaction);
     const sourceText = message.content?.trim();
-    if (!sourceText) {
-      await message.reply({
-        content:
-          "I saw the flag, but I cannot read that message yet. Turn on Message Content Intent for Kella in the Discord Developer Portal, then redeploy.",
-        allowedMentions: { repliedUser: false }
-      });
-      return;
-    }
+    if (!sourceText) return;
 
     const translation = await translateForFlag(sourceText, flag);
     if (!translation) return;
