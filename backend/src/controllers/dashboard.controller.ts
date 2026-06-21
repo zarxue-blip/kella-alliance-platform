@@ -5,7 +5,6 @@ import { AllianceModel } from "../models/alliance.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed } from "../services/discord.service.js";
-import { fetchFarlightTopnMembers } from "../services/farlightTopn.service.js";
 import { parseTopnWorkbook } from "../services/xlsx.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
@@ -75,18 +74,12 @@ const rootsReportSendSchema = z.object({
   roleMentionId: z.string().optional()
 });
 
-const farlightTopnSyncSchema = z.object({
-  serverId: z.string().min(1, "Server ID is required"),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  token: z.string().min(1, "Farlight token is required"),
-  keyword: z.string().optional()
-});
-
 const memberXlsxImportSchema = z.object({
   filename: z.string().max(180).optional(),
   fileBase64: z.string().min(1, "Excel file is required")
 });
+
+type MergeCandidate = Pick<DashboardMember, "_id" | "ign" | "discordId" | "discordUsername" | "discordDisplayName" | "uid">;
 
 async function resolveAlliance(): Promise<any> {
   const alliance =
@@ -156,6 +149,114 @@ function decodeUploadedBase64(value: string) {
   return buffer;
 }
 
+function collapseRepeatedLetters(value: string) {
+  return value.replace(/([a-z0-9])\1+/g, "$1");
+}
+
+function rosterTokens(value: string) {
+  const noise = new Set(["ckr", "kog", "cod", "row", "aga", "alliance", "guild"]);
+  return String(value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(" ")
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 3 && !noise.has(token));
+}
+
+function rosterVariants(value: string) {
+  const tokens = rosterTokens(value);
+  const variants = new Set<string>();
+  for (const token of tokens) {
+    variants.add(token);
+    variants.add(collapseRepeatedLetters(token));
+  }
+  const compact = tokens.join("");
+  if (compact) {
+    variants.add(compact);
+    variants.add(collapseRepeatedLetters(compact));
+  }
+  return Array.from(variants).filter((variant) => variant.length >= 3);
+}
+
+function namesLookRelated(left?: string, right?: string) {
+  const leftVariants = rosterVariants(left || "");
+  const rightVariants = rosterVariants(right || "");
+  if (!leftVariants.length || !rightVariants.length) return false;
+
+  for (const leftVariant of leftVariants) {
+    for (const rightVariant of rightVariants) {
+      if (leftVariant === rightVariant) return true;
+      const shorter = leftVariant.length <= rightVariant.length ? leftVariant : rightVariant;
+      const longer = leftVariant.length <= rightVariant.length ? rightVariant : leftVariant;
+      if (shorter.length >= 4 && longer.includes(shorter) && shorter.length / longer.length >= 0.35) return true;
+    }
+  }
+
+  return false;
+}
+
+function memberMatchesName(member: MergeCandidate, name: string) {
+  return [member.ign, member.discordDisplayName, member.discordUsername]
+    .filter(Boolean)
+    .some((value) => namesLookRelated(String(value), name));
+}
+
+function discordMemberMatchesRoster(member: MergeCandidate, displayName: string, username: string) {
+  return [displayName, username].some((value) => memberMatchesName(member, value));
+}
+
+function memberId(value: MergeCandidate) {
+  return value._id.toString();
+}
+
+function isUploadedOnlyMember(member?: MergeCandidate | null) {
+  const discordId = String(member?.discordId || "");
+  return discordId.startsWith("xlsx:") || discordId.startsWith("topn:");
+}
+
+async function findMemberForGameRow(allianceId: string, uid: string, ign: string) {
+  const exact = ((await MemberModel.findOne({ allianceId, uid }).select("_id ign discordId discordUsername discordDisplayName uid").lean()) ??
+    (await MemberModel.findOne({ allianceId, ign }).select("_id ign discordId discordUsername discordDisplayName uid").lean())) as MergeCandidate | null;
+
+  const candidates = (await MemberModel.find({
+    allianceId,
+    $or: [
+      { discordAvatarUrl: { $ne: "" } },
+      { discordUsername: { $ne: "" } },
+      { discordDisplayName: { $ne: "" } },
+      { discordId: { $not: /^(xlsx|topn):/ } }
+    ]
+  })
+    .select("_id ign discordId discordUsername discordDisplayName uid")
+    .limit(1200)
+    .lean()) as MergeCandidate[];
+
+  const profileMatch = candidates.find((candidate) => memberMatchesName(candidate, ign)) ?? null;
+  if (profileMatch && exact && memberId(profileMatch) !== memberId(exact) && isUploadedOnlyMember(exact)) {
+    await MemberModel.deleteOne({ _id: exact._id, allianceId });
+    return profileMatch;
+  }
+
+  return exact ?? profileMatch;
+}
+
+async function findMemberForDiscordProfile(allianceId: string, discordId: string, displayName: string, username: string) {
+  const exact = (await MemberModel.findOne({ allianceId, discordId }).select("_id ign discordId discordUsername discordDisplayName uid").lean()) as MergeCandidate | null;
+  if (exact) return exact;
+
+  const candidates = (await MemberModel.find({
+    allianceId,
+    discordId: /^(xlsx|topn):/
+  })
+    .select("_id ign discordId discordUsername discordDisplayName uid")
+    .limit(1200)
+    .lean()) as MergeCandidate[];
+
+  return candidates.find((candidate) => discordMemberMatchesRoster(candidate, displayName, username)) ?? null;
+}
+
 function publicSettings(alliance: any) {
   const settings = alliance.settings || {};
   return {
@@ -210,7 +311,7 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
       KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean(),
       KellaActionModel.find({ ...filter, type: "roots_response" }).sort({ sentAt: -1 }).limit(8).lean(),
       KellaActionModel.find({ ...filter, type: "shield_alert" }).sort({ sentAt: -1 }).limit(5).lean(),
-      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "event_reminder", "embed_sent", "roots_report_sent", "discord_member_sync", "farlight_topn_sync"] } })
+      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "event_reminder", "embed_sent", "roots_report_sent", "discord_member_sync", "member_xlsx_import"] } })
         .sort({ sentAt: -1 })
         .limit(8)
         .lean()
@@ -317,6 +418,7 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
   let created = 0;
   let updated = 0;
   let skipped = 0;
+  let merged = 0;
 
   for (const row of rows) {
     const uid = String(row.uid || "").trim();
@@ -326,8 +428,7 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
       continue;
     }
 
-    const existing = ((await MemberModel.findOne({ allianceId, uid }).select("_id").lean()) ??
-      (await MemberModel.findOne({ allianceId, ign }).select("_id").lean())) as any;
+    const existing = (await findMemberForGameRow(allianceId, uid, ign)) as any;
 
     const update = {
       $set: {
@@ -356,7 +457,10 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
       : await MemberModel.updateOne({ allianceId, uid }, update, { upsert: true });
 
     if (result.upsertedCount) created += result.upsertedCount;
-    else if (result.modifiedCount || result.matchedCount) updated += 1;
+    else if (result.modifiedCount || result.matchedCount) {
+      updated += 1;
+      if (existing?.discordId && !String(existing.discordId).startsWith("xlsx:")) merged += 1;
+    }
   }
 
   await KellaActionModel.create({
@@ -364,10 +468,10 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
     type: "member_xlsx_import",
     actorName: "Dashboard",
     status: "Completed",
-    payload: { filename: body.filename || "members.xlsx", total: rows.length, created, updated, skipped }
+    payload: { filename: body.filename || "members.xlsx", total: rows.length, created, updated, merged, skipped }
   });
 
-  res.json({ total: rows.length, created, updated, skipped, syncedAt });
+  res.json({ total: rows.length, created, updated, merged, skipped, syncedAt });
 });
 
 export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
@@ -377,38 +481,48 @@ export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
   const discordMembers = await listDiscordGuildMembers();
   let created = 0;
   let updated = 0;
+  let merged = 0;
 
   for (const member of discordMembers) {
-    const result = await MemberModel.updateOne(
-      { allianceId, discordId: member.discordId },
-      {
-        $set: {
-          discordUsername: member.discordUsername,
-          discordDisplayName: member.discordDisplayName,
-          discordAvatarUrl: member.discordAvatarUrl,
-          lastActivity: syncedAt
-        },
-        $setOnInsert: {
-          ign: member.discordDisplayName || member.discordUsername || member.discordId,
-          uid: member.discordId,
-          power: 0,
-          alliance: alliance.tag || alliance.name || "Discord",
-          rank: "Discord",
-          role: "Member",
-          timezone: alliance.timezone || "UTC",
-          country: "Unknown",
-          joinDate: member.joinedAt ? new Date(member.joinedAt) : syncedAt,
-          attendanceScore: 0,
-          warScore: 0,
-          contributionScore: 0,
-          notes: ""
-        }
+    const existing = (await findMemberForDiscordProfile(
+      allianceId,
+      member.discordId,
+      member.discordDisplayName,
+      member.discordUsername
+    )) as any;
+    const update = {
+      $set: {
+        discordId: member.discordId,
+        discordUsername: member.discordUsername,
+        discordDisplayName: member.discordDisplayName,
+        discordAvatarUrl: member.discordAvatarUrl,
+        lastActivity: syncedAt
       },
-      { upsert: true }
-    );
+      $setOnInsert: {
+        ign: member.discordDisplayName || member.discordUsername || member.discordId,
+        uid: member.discordId,
+        power: 0,
+        alliance: alliance.tag || alliance.name || "Discord",
+        rank: "Discord",
+        role: "Member",
+        timezone: alliance.timezone || "UTC",
+        country: "Unknown",
+        joinDate: member.joinedAt ? new Date(member.joinedAt) : syncedAt,
+        attendanceScore: 0,
+        warScore: 0,
+        contributionScore: 0,
+        notes: ""
+      }
+    };
+    const result = existing
+      ? await MemberModel.updateOne({ _id: existing._id, allianceId }, update)
+      : await MemberModel.updateOne({ allianceId, discordId: member.discordId }, update, { upsert: true });
 
     if (result.upsertedCount) created += result.upsertedCount;
-    else if (result.modifiedCount || result.matchedCount) updated += 1;
+    else if (result.modifiedCount || result.matchedCount) {
+      updated += 1;
+      if (existing?.discordId && String(existing.discordId).startsWith("xlsx:")) merged += 1;
+    }
   }
 
   await KellaActionModel.create({
@@ -416,80 +530,10 @@ export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
     type: "discord_member_sync",
     actorName: "Dashboard",
     status: "Completed",
-    payload: { total: discordMembers.length, created, updated }
+    payload: { total: discordMembers.length, created, updated, merged }
   });
 
-  res.json({ total: discordMembers.length, created, updated, syncedAt });
-});
-
-export const dashboardFarlightTopnSync = asyncHandler(async (req, res) => {
-  const body = farlightTopnSyncSchema.parse(req.body) as {
-    serverId: string;
-    startDate?: string;
-    endDate?: string;
-    token: string;
-    keyword?: string;
-  };
-  const alliance = await resolveAlliance();
-  const allianceId = alliance._id.toString();
-  const syncedAt = new Date();
-  const rows = await fetchFarlightTopnMembers(body);
-  let created = 0;
-  let updated = 0;
-  let skipped = 0;
-
-  for (const row of rows) {
-    const uid = String(row.role_id || "").trim();
-    const ign = String(row.role_name || "").trim();
-    if (!uid || !ign) {
-      skipped += 1;
-      continue;
-    }
-
-    const existing = ((
-      (await MemberModel.findOne({ allianceId, uid }).select("_id").lean()) ??
-      (await MemberModel.findOne({ allianceId, ign }).select("_id").lean())
-    ) as any);
-
-    const update = {
-      $set: {
-        uid,
-        ign,
-        power: numeric(row.power),
-        alliance: alliance.tag || alliance.name || `Server ${body.serverId}`,
-        rank: row.rank ? `TopN #${row.rank}` : "TopN",
-        lastActivity: syncedAt
-      },
-      $setOnInsert: {
-        discordId: `topn:${body.serverId}:${uid}`,
-        role: "Member",
-        timezone: alliance.timezone || "UTC",
-        country: "Unknown",
-        joinDate: syncedAt,
-        attendanceScore: 0,
-        warScore: 0,
-        contributionScore: 0,
-        notes: ""
-      }
-    };
-
-    const result = existing
-      ? await MemberModel.updateOne({ _id: existing._id, allianceId }, update)
-      : await MemberModel.updateOne({ allianceId, uid }, update, { upsert: true });
-
-    if (result.upsertedCount) created += result.upsertedCount;
-    else if (result.modifiedCount || result.matchedCount) updated += 1;
-  }
-
-  await KellaActionModel.create({
-    allianceId,
-    type: "farlight_topn_sync",
-    actorName: "Dashboard",
-    status: "Completed",
-    payload: { serverId: body.serverId, total: rows.length, created, updated, skipped }
-  });
-
-  res.json({ total: rows.length, created, updated, skipped, syncedAt });
+  res.json({ total: discordMembers.length, created, updated, merged, syncedAt });
 });
 
 export const dashboardAlerts = asyncHandler(async (_req, res) => {

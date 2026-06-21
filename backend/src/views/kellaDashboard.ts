@@ -796,19 +796,8 @@ export function kellaDashboardHtml() {
           }).join("") + '</tbody></table></div>';
       }
 
-      function renderGameToolsSyncCard() {
-        const serverId = localStorage.getItem("kellaTopnServerId") || "881";
-        const date = localStorage.getItem("kellaTopnDate") || "";
-        const token = localStorage.getItem("kellaFarlightToken") || "";
-        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Game Tools Sync</h3><span class="muted">Pull TopN member power from Farlight Game Tools into Kella.</span></div><button class="primary" data-action="sync-farlight-topn">Sync Game Tools</button></div><div class="form-grid">' +
-          '<label>Server ID<input data-topn="serverId" value="' + escapeHtml(serverId) + '" placeholder="881" /></label>' +
-          '<label>Data Date<input data-topn="date" value="' + escapeHtml(date) + '" placeholder="Leave blank for latest available date" /></label>' +
-          '<label class="wide">Farlight Token<input type="password" data-topn="token" value="' + escapeHtml(token) + '" placeholder="Paste Farlight Game Tools login token" /></label>' +
-        '</div></section>';
-      }
-
       function renderMemberUploadCard() {
-        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Excel Power Upload</h3><span class="muted">Upload the Call of Dragons TopN .xlsx export. Kella updates UID, IGN, rank, and power, then keeps the list sorted strongest first.</span></div><button class="primary" data-action="upload-member-xlsx">Upload & Update</button></div><div class="form-grid">' +
+        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Excel Power Upload</h3><span class="muted">Upload the Call of Dragons TopN .xlsx export. Kella merges it with synced Discord profiles by UID, IGN, display name, or similar names.</span></div><button class="primary" data-action="upload-member-xlsx">Upload & Update</button></div><div class="form-grid">' +
           '<label class="wide">TopN Excel File<input type="file" data-member-upload accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" /></label>' +
         '</div></section>';
       }
@@ -817,7 +806,7 @@ export function kellaDashboardHtml() {
         skeleton("Loading members...");
         try {
           const members = await loadMembers();
-          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, UID, power, alliance role, attendance, and notes. Sorted by power from highest to lowest.", '<input class="search" data-member-search placeholder="Search members" /><button class="secondary" data-action="sync-discord-members">Sync Discord</button>') + renderMemberUploadCard() + renderGameToolsSyncCard() + renderMembersTable(members);
+          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, UID, power, alliance role, attendance, and notes. Sync Discord for avatars, then upload Excel for power.", '<input class="search" data-member-search placeholder="Search members" /><button class="secondary" data-action="sync-discord-members">Sync Discord</button>') + renderMemberUploadCard() + renderMembersTable(members);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load members. ' + escapeHtml(error.message) + '</div>';
         }
@@ -1080,27 +1069,6 @@ export function kellaDashboardHtml() {
         };
       }
 
-      function readFarlightForm() {
-        const value = function(name) {
-          return (document.querySelector('[data-topn="' + name + '"]')?.value || "").trim();
-        };
-        const serverId = value("serverId");
-        const date = value("date");
-        const token = value("token");
-        if (!serverId) throw new Error("Server ID is required.");
-        if (!token) throw new Error("Farlight token is required.");
-        localStorage.setItem("kellaTopnServerId", serverId);
-        if (date) localStorage.setItem("kellaTopnDate", date);
-        else localStorage.removeItem("kellaTopnDate");
-        localStorage.setItem("kellaFarlightToken", token);
-        return {
-          serverId,
-          startDate: date || undefined,
-          endDate: date || undefined,
-          token
-        };
-      }
-
       function arrayBufferToBase64(buffer) {
         const bytes = new Uint8Array(buffer);
         const chunkSize = 32768;
@@ -1197,19 +1165,12 @@ export function kellaDashboardHtml() {
           }
           return "Synced " + sync.total + " Discord members (" + sync.created + " new, " + sync.updated + " updated).";
         }, "Discord members synced. Open Members to view profiles.");
-        if (kind === "sync-farlight-topn") withFeedback(action, async function() {
-          const sync = await sendJson("POST", "/api/dashboard/sync-farlight-topn", readFarlightForm(), true);
-          state.summary = null;
-          state.members = [];
-          await renderMembers();
-          return "Synced " + sync.total + " Game Tools members (" + sync.created + " new, " + sync.updated + " updated, " + sync.skipped + " skipped).";
-        }, "Game Tools members synced.");
         if (kind === "upload-member-xlsx") withFeedback(action, async function() {
           const sync = await sendJson("POST", "/api/dashboard/members/import-xlsx", await readMemberUploadForm(), true);
           state.summary = null;
           state.members = [];
           await renderMembers();
-          return "Imported " + sync.total + " Excel members (" + sync.created + " new, " + sync.updated + " updated, " + sync.skipped + " skipped).";
+          return "Imported " + sync.total + " Excel members (" + sync.created + " new, " + sync.updated + " updated, " + (sync.merged || 0) + " merged with Discord, " + sync.skipped + " skipped).";
         }, "Excel members imported.");
         if (kind === "refresh-current") withFeedback(action, async function() {
           state.summary = null;
