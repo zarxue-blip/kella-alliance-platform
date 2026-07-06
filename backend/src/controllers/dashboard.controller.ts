@@ -69,6 +69,11 @@ const attackToolSchema = z.object({
   message: z.string().min(1).max(1800).default("🚨 ATTACK ALERT\n\nCome online now. There is a fight.")
 });
 
+const dmAlertToolSchema = z.object({
+  title: z.string().min(1).max(120).default("Kella Alliance Alert"),
+  message: z.string().min(1, "Alert message is required").max(1700)
+});
+
 const rootsReportSendSchema = z.object({
   channelId: z.string().min(1, "Target channel is required"),
   roleMentionId: z.string().optional()
@@ -248,6 +253,26 @@ function isUploadedOnlyMember(member?: MergeCandidate | null) {
   return discordId.startsWith("xlsx:") || discordId.startsWith("topn:");
 }
 
+function isRealDiscordUserId(value?: string) {
+  return /^\d{15,25}$/.test(String(value || ""));
+}
+
+function dmAlertContent(input: z.infer<typeof dmAlertToolSchema>) {
+  return [`**${input.title.trim()}**`, "", input.message.trim(), "", "Sent by Kella"].join("\n");
+}
+
+async function runWithConcurrency<T>(items: T[], limit: number, worker: (item: T) => Promise<void>) {
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const item = items[cursor];
+      cursor += 1;
+      await worker(item);
+    }
+  });
+  await Promise.all(workers);
+}
+
 async function findMemberForGameRow(allianceId: string, uid: string, ign: string) {
   const exact = ((await MemberModel.findOne({ allianceId, uid }).select("_id ign discordId discordUsername discordDisplayName uid").lean()) ??
     (await MemberModel.findOne({ allianceId, ign }).select("_id ign discordId discordUsername discordDisplayName uid").lean())) as MergeCandidate | null;
@@ -337,13 +362,13 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
     await Promise.all([
       MemberModel.countDocuments(filter),
       KellaActionModel.countDocuments({ ...filter, type: "daily_checkin", sentAt: { $gte: today } }),
-      KellaActionModel.countDocuments({ ...filter, type: "attack_alert", sentAt: { $gte: recentWindow } }),
+      KellaActionModel.countDocuments({ ...filter, type: { $in: ["attack_alert", "dm_alert"] }, sentAt: { $gte: recentWindow } }),
       KellaActionModel.countDocuments({ ...filter, type: "shield_alert", sentAt: { $gte: recentWindow } }),
       KellaActionModel.countDocuments({ ...filter, type: "application", status: "Pending" }),
       KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean(),
       KellaActionModel.find({ ...filter, type: "roots_response" }).sort({ sentAt: -1 }).limit(8).lean(),
       KellaActionModel.find({ ...filter, type: "shield_alert" }).sort({ sentAt: -1 }).limit(5).lean(),
-      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "event_reminder", "embed_sent", "roots_report_sent", "discord_member_sync", "member_xlsx_import"] } })
+      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "dm_alert", "event_reminder", "embed_sent", "roots_report_sent", "discord_member_sync", "member_xlsx_import"] } })
         .sort({ sentAt: -1 })
         .limit(8)
         .lean()
@@ -573,7 +598,7 @@ export const dashboardAlerts = asyncHandler(async (_req, res) => {
   const filter = allianceFilter(allianceId);
   const alerts = (await KellaActionModel.find({
     ...filter,
-    type: { $in: ["shield_alert", "attack_alert", "attack_response"] }
+    type: { $in: ["shield_alert", "attack_alert", "dm_alert", "attack_response"] }
   })
     .sort({ sentAt: -1 })
     .limit(100)
@@ -586,7 +611,8 @@ export const dashboardAlerts = asyncHandler(async (_req, res) => {
       officer: alert.actorName || alert.actorDiscordId,
       player: alert.targetName || alert.targetDiscordId,
       status: alert.status,
-      sentAt: alert.sentAt
+      sentAt: alert.sentAt,
+      payload: alert.payload || {}
     }))
   });
 });
@@ -833,6 +859,61 @@ export const dashboardAttackSend = asyncHandler(async (req, res) => {
     payload: { roleMentionId: alertInput.roleMentionId, message: alertInput.message, messageId: message?.id, channelId: message?.channel_id }
   });
   res.status(201).json({ alert, message });
+});
+
+export const dashboardDmAlertSend = asyncHandler(async (req, res) => {
+  const body = dmAlertToolSchema.parse(req.body);
+  const allianceId = await resolveAllianceId();
+  const filter = allianceFilter(allianceId);
+  const members = (await MemberModel.find({
+    ...filter,
+    discordId: /^\d{15,25}$/
+  })
+    .select("discordId discordUsername discordDisplayName ign")
+    .sort({ ign: 1, discordDisplayName: 1 })
+    .limit(5000)
+    .lean()) as DashboardMember[];
+
+  const recipients = members.filter((member) => isRealDiscordUserId(member.discordId));
+  if (!recipients.length) {
+    throw new HttpError(400, "No synced Discord members found. Use Sync Discord on the Members page first.");
+  }
+
+  const content = dmAlertContent(body);
+  const failures: Array<{ discordId?: string; name?: string; error: string }> = [];
+  let sent = 0;
+
+  await runWithConcurrency(recipients, 3, async (member) => {
+    try {
+      await sendDiscordDm(member.discordId || "", content);
+      sent += 1;
+    } catch (error) {
+      failures.push({
+        discordId: member.discordId,
+        name: member.ign || member.discordDisplayName || member.discordUsername || member.discordId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  const failed = failures.length;
+  const alert = await KellaActionModel.create({
+    allianceId,
+    type: "dm_alert",
+    actorName: "Dashboard",
+    targetName: "All synced members",
+    status: failed ? `Sent ${sent} / Failed ${failed}` : `Sent ${sent}`,
+    payload: {
+      title: body.title,
+      message: body.message,
+      total: recipients.length,
+      sent,
+      failed,
+      failures: failures.slice(0, 50)
+    }
+  });
+
+  res.status(201).json({ alert, total: recipients.length, sent, failed, failures: failures.slice(0, 50) });
 });
 
 export const rootsReportSend = asyncHandler(async (req, res) => {

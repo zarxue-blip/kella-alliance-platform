@@ -40,22 +40,45 @@ function requireBotToken() {
   return env.DISCORD_BOT_TOKEN;
 }
 
-async function discordRequest<T>(path: string, init: RequestInit = {}) {
-  const response = await fetch(`https://discord.com/api/v10${path}`, {
-    ...init,
-    headers: {
-      authorization: `Bot ${requireBotToken()}`,
-      "content-type": "application/json"
-    }
-  });
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => response.statusText);
-    throw new HttpError(response.status >= 500 ? 502 : response.status, `Discord API error: ${text || response.statusText}`);
+function parseJsonText(text: string) {
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {};
+  }
+}
+
+async function discordRequest<T>(path: string, init: RequestInit = {}) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(`https://discord.com/api/v10${path}`, {
+      ...init,
+      headers: {
+        authorization: `Bot ${requireBotToken()}`,
+        "content-type": "application/json"
+      }
+    });
+    const text = response.status === 204 ? "" : await response.text().catch(() => "");
+
+    if (response.status === 429 && attempt < 2) {
+      const payload = parseJsonText(text);
+      const retryAfter = Number(payload.retry_after || response.headers.get("retry-after") || 1);
+      await sleep(Math.min(8000, retryAfter * 1000 + 300));
+      continue;
+    }
+
+    if (!response.ok) {
+      throw new HttpError(response.status >= 500 ? 502 : response.status, `Discord API error: ${text || response.statusText}`);
+    }
+
+    if (response.status === 204 || !text) return undefined as T;
+    return JSON.parse(text) as T;
   }
 
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
+  throw new HttpError(429, "Discord is rate limiting Kella. Please wait a moment and try again.");
 }
 
 export function parseDiscordColor(value?: string) {

@@ -4,6 +4,7 @@ import {
   dashboardMembers,
   dashboardMemberXlsxImport,
   dashboardDiscordMemberSync,
+  dashboardDmAlertSend,
   dashboardSettings,
   dashboardSettingsUpdate,
   dashboardAttackSend,
@@ -37,3 +38,4 @@ dashboardRouter.post("/roots-reports/:id/send", authenticateDashboardAdmin, root
 dashboardRouter.get("/roots-reports/:id", rootsReportDetails);
 dashboardRouter.post("/tools/shield-alert", authenticateDashboardAdmin, dashboardShieldSend);
 dashboardRouter.post("/tools/attack-alert", authenticateDashboardAdmin, dashboardAttackSend);
+dashboardRouter.post("/tools/dm-alert", authenticateDashboardAdmin, dashboardDmAlertSend);

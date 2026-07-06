@@ -8,6 +8,7 @@ const kellaActionSchema = new Schema(
       enum: [
         "shield_alert",
         "attack_alert",
+        "dm_alert",
         "attack_response",
         "roots_registration",
         "roots_response",

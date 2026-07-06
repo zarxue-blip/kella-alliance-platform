@@ -862,6 +862,10 @@ export function kellaDashboardHtml() {
         return username ? "@" + String(username).replace(/^@/, "") : "No Discord username";
       }
 
+      function isDmCapableMember(member) {
+        return /^\\d{15,25}$/.test(String(member?.discordId || ""));
+      }
+
       function memberAvatar(member, className) {
         const displayName = memberDisplayName(member);
         if (member?.discordAvatarUrl) {
@@ -1338,7 +1342,7 @@ export function kellaDashboardHtml() {
           const filtered = type === "shield" ? alerts.filter(function(alert) { return alert.type === "shield_alert"; }) : alerts;
           app.innerHTML =
             pageHeader(type === "shield" ? "Shield Alerts" : "Alerts", "Recent Kella alert activity from MongoDB.", '<button class="secondary" data-action="refresh-alerts">Refresh</button>') +
-            (type === "shield" ? renderShieldTool() : renderAttackTool()) +
+            (type === "shield" ? renderShieldTool() : '<section class="two">' + renderAttackTool() + renderDmAlertTool() + '</section>') +
             '<div style="height:18px"></div>' + renderAlertsTable(filtered);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load alerts. ' + escapeHtml(error.message) + '</div>';
@@ -1393,6 +1397,11 @@ export function kellaDashboardHtml() {
           ? '<select data-attack-channel>' + channelOptions() + '</select>'
           : '<input data-attack-channel-manual placeholder="Paste channel ID or add Admin Key in Settings" />';
         return '<section class="card"><div class="card-header"><h3>Send Attack Alert</h3><button class="primary" data-action="send-attack-alert">Send Alert</button></div><div class="form-grid"><label>Target Channel' + channelSelect + '</label><label>Role to Mention<input data-attack-role placeholder="Optional role ID" /></label><label class="wide">Message<textarea data-attack-message>🚨 ATTACK ALERT\\n\\nCome online now. There is a fight.</textarea></label></div></section>';
+      }
+
+      function renderDmAlertTool() {
+        const recipients = (state.members || []).filter(isDmCapableMember);
+        return '<section class="card"><div class="card-header"><div><h3>Send Private DM Alert</h3><span class="muted">Kella will DM every synced Discord member. Recipients: ' + recipients.length + '</span></div><button class="primary" data-action="send-dm-alert">Send DM Alert</button></div><div class="form-grid"><label>Alert Title<input data-dm-alert-title value="Kella Alliance Alert" /></label><label>Total Recipients<input value="' + recipients.length + ' synced members" disabled /></label><label class="wide">Private Message<textarea data-dm-alert-message placeholder="Write the alert members should receive in their DMs.">Commanders, please check Discord. Alliance action is needed.</textarea></label></div><p class="muted" style="margin-top:12px">Tip: Use this for important private notices only. Members who block DMs from server bots may fail.</p></section>';
       }
 
       function embedFormValue(name) {
@@ -1552,7 +1561,10 @@ export function kellaDashboardHtml() {
         if (path.startsWith("/roots-reports/")) return renderRootsReportDetails(path.split("/").pop());
         if (path === "/events") return renderEvents();
         if (path === "/alerts") {
-          await loadChannels().catch(function() { state.channels = []; });
+          await Promise.all([
+            loadChannels().catch(function() { state.channels = []; }),
+            loadMembers().catch(function() { state.members = []; })
+          ]);
           return renderAlerts();
         }
         if (path === "/shield-alerts") {
@@ -1695,6 +1707,20 @@ export function kellaDashboardHtml() {
           await loadAlerts();
           await renderAlerts();
         }, "Attack alert sent.");
+        if (kind === "send-dm-alert") withFeedback(action, async function() {
+          const title = document.querySelector("[data-dm-alert-title]")?.value || "Kella Alliance Alert";
+          const message = document.querySelector("[data-dm-alert-message]")?.value || "";
+          const recipients = (state.members || []).filter(isDmCapableMember).length;
+          if (!recipients) throw new Error("No synced Discord members found. Use Sync Discord on the Members page first.");
+          if (!message.trim()) throw new Error("Write a private message first.");
+          if (!window.confirm("Send this private DM alert to " + recipients + " synced Discord members?")) return "DM alert cancelled.";
+          const result = await sendJson("POST", "/api/dashboard/tools/dm-alert", { title, message }, true);
+          state.summary = null;
+          state.alerts = [];
+          await loadAlerts();
+          await renderAlerts();
+          return "DM alert sent to " + result.sent + " of " + result.total + " members" + (result.failed ? " (" + result.failed + " failed)." : ".");
+        }, "DM alert sent.");
         if (kind === "preview-embed") withFeedback(action, async function() { updateEmbedPreview(); }, "Preview updated.");
         if (kind === "send-embed") withFeedback(action, async function() { await sendJson("POST", "/api/embed/send", embedPayload(), true); state.summary = null; }, "Embed sent.");
         if (kind === "save-template") withFeedback(action, async function() {
