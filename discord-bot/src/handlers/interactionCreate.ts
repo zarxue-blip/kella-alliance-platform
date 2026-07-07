@@ -1,4 +1,11 @@
-import type { Interaction } from "discord.js";
+import {
+  ActionRowBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  type ChatInputCommandInteraction,
+  type Interaction
+} from "discord.js";
 import { botName } from "@cod-amp/shared";
 import { api } from "../services/api.js";
 import { commandMap } from "../commands/index.js";
@@ -7,11 +14,31 @@ function displayName(interaction: Interaction) {
   return interaction.user.username;
 }
 
+async function showComplaintModal(interaction: ChatInputCommandInteraction) {
+  const kind = interaction.options.getString("type") === "Suggestion" ? "Suggestion" : "Complaint";
+  const modal = new ModalBuilder().setCustomId(`complaint-modal:${kind}`).setTitle(`${kind} for Admins`);
+  modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().addComponents(
+      new TextInputBuilder()
+        .setCustomId("message")
+        .setLabel("What should admins know?")
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(true)
+        .setMaxLength(1800)
+    )
+  );
+  await interaction.showModal(modal);
+}
+
 async function replyError(interaction: Interaction, error: unknown) {
   const message = error instanceof Error ? error.message : "Kella could not complete that action.";
   if (interaction.isRepliable()) {
     if (interaction.deferred || interaction.replied) {
-      await interaction.followUp({ ephemeral: true, content: message });
+      if (interaction.deferred && !interaction.replied) {
+        await interaction.editReply({ content: message });
+      } else {
+        await interaction.followUp({ ephemeral: true, content: message });
+      }
     } else {
       await interaction.reply({ ephemeral: true, content: message });
     }
@@ -21,8 +48,16 @@ async function replyError(interaction: Interaction, error: unknown) {
 export async function handleInteraction(interaction: Interaction) {
   try {
     if (interaction.isChatInputCommand()) {
+      if (interaction.commandName === "complain") {
+        await showComplaintModal(interaction);
+        return;
+      }
+
       const command = commandMap.get(interaction.commandName);
-      if (!command) return;
+      if (!command) {
+        await interaction.reply({ ephemeral: true, content: `${botName} does not recognize /${interaction.commandName} yet. Please try again after Kella refreshes commands.` });
+        return;
+      }
       await command.execute(interaction);
       return;
     }
@@ -86,15 +121,17 @@ export async function handleInteraction(interaction: Interaction) {
     if (interaction.isModalSubmit() && interaction.customId.startsWith("complaint-modal:")) {
       const [, rawKind] = interaction.customId.split(":");
       const kind = rawKind === "Suggestion" ? "Suggestion" : "Complaint";
+      await interaction.deferReply({ ephemeral: true });
       await api.complaint({
         discordId: interaction.user.id,
         displayName: displayName(interaction),
         kind,
         message: interaction.fields.getTextInputValue("message")
       });
-      await interaction.reply({ ephemeral: true, content: `${botName} sent your ${kind.toLowerCase()} to the admins.` });
+      await interaction.editReply({ content: `${botName} sent your ${kind.toLowerCase()} to the admins.` });
     }
   } catch (error) {
+    console.error(`${botName} interaction failed`, error);
     await replyError(interaction, error);
   }
 }
