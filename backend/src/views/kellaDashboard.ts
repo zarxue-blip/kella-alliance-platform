@@ -1168,6 +1168,13 @@ export function kellaDashboardHtml() {
         try {
           const reports = await loadReports();
           const latest = reports[0];
+          let channelHtml = '<label>Discord Channel<input data-roots-channel-manual placeholder="Paste channel ID" /></label>';
+          try {
+            await loadChannels();
+            channelHtml = '<label>Discord Channel<select data-roots-channel>' + channelOptions() + '</select></label>';
+          } catch {
+            channelHtml = '<label>Discord Channel<input data-roots-channel-manual placeholder="Paste channel ID or add Password in Settings" /></label>';
+          }
           app.innerHTML =
             pageHeader("Roots Registration", "Use /roots in Discord. Members click one button for 14 UTC or 20 UTC, and Kella saves one current answer per player per slot.", '<button class="primary" data-action="copy-command" data-value="/roots">Copy /roots</button>') +
             '<section class="two"><div class="card"><h3>Buttons Included</h3><p>14 UTC: ⚔ Available, ❌ Absent, ❔ Not Sure</p><p>20 UTC: ⚔ Available, ❌ Absent, ❔ Not Sure</p><p>Members can click again to update their answer.</p></div>' +
@@ -1526,6 +1533,61 @@ export function kellaDashboardHtml() {
         };
       }
 
+      async function renderRootsRegistration() {
+        skeleton("Loading Roots registration...");
+        try {
+          const reports = await loadReports();
+          const latest = reports[0];
+          let channelHtml = '<label>Discord Channel<input data-roots-channel-manual placeholder="Paste channel ID" /></label>';
+          try {
+            await loadChannels();
+            channelHtml = '<label>Discord Channel<select data-roots-channel>' + channelOptions() + '</select></label>';
+          } catch {
+            channelHtml = '<label>Discord Channel<input data-roots-channel-manual placeholder="Paste channel ID or add Password in Settings" /></label>';
+          }
+
+          app.innerHTML =
+            pageHeader("Roots Registration", "Create a Roots of War registration panel from the dashboard or use /roots in Discord.", '<button class="secondary" data-action="copy-command" data-value="/roots">Copy /roots</button><button class="primary" data-action="send-roots-registration">Create Roots Panel</button>') +
+            '<section class="two"><div class="card"><div class="card-header"><div><h3>Create Roots Panel</h3><span class="muted">Kella sends 14 UTC and 20 UTC buttons to Discord, then stores every answer in reports.</span></div><span class="badge warn">24-hour UTC</span></div><div class="form-grid">' +
+              channelHtml +
+              '<label>Role Mention ID<input data-roots-role placeholder="Optional role ID" /></label>' +
+            '</div><p class="muted" style="margin-top:12px">Members can choose Available, Absent, or Not Sure for each slot and update their answer any time.</p></div>' +
+            '<div class="card"><div class="card-header"><h3>Latest Report</h3><button class="secondary" data-link-button="/roots-reports">Reports</button></div>' +
+            (latest ? '<p>' + formatDate(latest.date) + ' - ' + latest.timeSlot + '</p><p>' + latest.available + ' Available, ' + latest.absent + ' Absent, ' + latest.unsure + ' Not Sure</p>' : '<p>No Roots reports yet.</p>') +
+            '</div></section>';
+        } catch (error) {
+          app.innerHTML = '<div class="error">Could not load Roots data. ' + escapeHtml(error.message) + '</div>';
+        }
+      }
+
+      function renderAlertsTable(alerts) {
+        if (!alerts.length) return empty("No alerts recorded yet.");
+        return '<div class="table-wrap"><table><thead><tr><th>Type</th><th>Officer</th><th>Target Player</th><th>Status</th><th>Time Sent</th><th>Delivery</th></tr></thead><tbody>' +
+          alerts.map(function(alert) {
+            const failed = Number(alert.payload?.failed || 0);
+            const delivery = alert.type === "dm_alert" && failed
+              ? '<button class="secondary" data-action="resend-failed-dm-alert" data-alert-id="' + escapeHtml(alert.id) + '">Resend ' + failed + ' Failed</button>'
+              : '<span class="muted">' + (alert.type === "dm_alert" ? escapeHtml(String(alert.payload?.sent || 0)) + " sent" : "Recorded") + '</span>';
+            return '<tr><td>' + escapeHtml(alert.type) + '</td><td>' + escapeHtml(alert.officer || "") + '</td><td>' + escapeHtml(alert.player || "") + '</td><td>' + escapeHtml(alert.status || "") + '</td><td>' + formatDateTime(alert.sentAt) + '</td><td>' + delivery + '</td></tr>';
+          }).join("") +
+          '</tbody></table></div>';
+      }
+
+      function renderComplaintsTable(complaints) {
+        if (!complaints.length) return empty("No complaints or suggestions yet. Members can use /complain in Discord.");
+        return '<div class="table-wrap"><table><thead><tr><th>Type</th><th>Player</th><th>Message</th><th>Status</th><th>Admin Notes</th><th>Sent</th><th>Actions</th></tr></thead><tbody>' +
+          complaints.map(function(item) {
+            const resolved = item.status === "Resolved";
+            const notes = [
+              item.assignedTo ? "Assigned: " + item.assignedTo : "",
+              item.adminNote ? "Note: " + item.adminNote : "",
+              item.lastReply ? "Last reply: " + item.lastReply : ""
+            ].filter(Boolean).join("\\n");
+            return '<tr><td>' + escapeHtml(item.kind || "Complaint") + '</td><td><strong>' + escapeHtml(item.player || "Unknown") + '</strong><br><span class="muted">' + escapeHtml(item.discordId || "") + '</span></td><td>' + escapeHtml(item.message || "") + '</td><td><span class="badge ' + (resolved ? "good" : "warn") + '">' + escapeHtml(item.status || "Pending") + '</span></td><td><span class="muted">' + escapeHtml(notes || "No admin notes yet.") + '</span></td><td>' + formatDateTime(item.sentAt) + '</td><td><div class="toolbar"><button class="secondary" data-action="assign-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Assign</button><button class="secondary" data-action="note-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Note</button><button class="secondary" data-action="reply-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Reply</button><button class="secondary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Pending">Pending</button><button class="primary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Resolved">Resolve</button></div></td></tr>';
+          }).join("") +
+          '</tbody></table></div>';
+      }
+
       function arrayBufferToBase64(buffer) {
         const bytes = new Uint8Array(buffer);
         const chunkSize = 32768;
@@ -1663,6 +1725,15 @@ export function kellaDashboardHtml() {
           state.events = [];
           await renderEvents();
         }, "Event embed sent.");
+        if (kind === "send-roots-registration") withFeedback(action, async function() {
+          const channelId = document.querySelector("[data-roots-channel]")?.value || document.querySelector("[data-roots-channel-manual]")?.value || "";
+          const roleMentionId = document.querySelector("[data-roots-role]")?.value || "";
+          if (!channelId.trim()) throw new Error("Choose a Discord channel first.");
+          await sendJson("POST", "/api/dashboard/tools/roots-registration", { channelId, roleMentionId }, true);
+          state.summary = null;
+          state.reports = [];
+          await renderRootsRegistration();
+        }, "Roots registration panel sent.");
         if (kind === "set-complaint-status") withFeedback(action, async function() {
           const id = action.getAttribute("data-complaint-id") || "";
           const status = action.getAttribute("data-status") || "Pending";
@@ -1670,6 +1741,31 @@ export function kellaDashboardHtml() {
           state.complaints = [];
           await renderComplaints();
         }, "Complaint updated.");
+        if (kind === "assign-complaint") withFeedback(action, async function() {
+          const id = action.getAttribute("data-complaint-id") || "";
+          const assignedTo = prompt("Assign complaint to who?");
+          if (assignedTo === null) return "Assignment cancelled.";
+          await sendJson("PATCH", "/api/dashboard/complaints/" + encodeURIComponent(id) + "/status", { assignedTo }, true);
+          state.complaints = [];
+          await renderComplaints();
+        }, "Complaint assigned.");
+        if (kind === "note-complaint") withFeedback(action, async function() {
+          const id = action.getAttribute("data-complaint-id") || "";
+          const adminNote = prompt("Admin note");
+          if (adminNote === null) return "Note cancelled.";
+          await sendJson("PATCH", "/api/dashboard/complaints/" + encodeURIComponent(id) + "/status", { adminNote }, true);
+          state.complaints = [];
+          await renderComplaints();
+        }, "Complaint note saved.");
+        if (kind === "reply-complaint") withFeedback(action, async function() {
+          const id = action.getAttribute("data-complaint-id") || "";
+          const message = prompt("Reply by DM to this member");
+          if (!message) return "Reply cancelled.";
+          const resolve = window.confirm("Mark this complaint resolved after sending the reply?");
+          await sendJson("POST", "/api/dashboard/complaints/" + encodeURIComponent(id) + "/reply", { message, resolve }, true);
+          state.complaints = [];
+          await renderComplaints();
+        }, "Reply sent.");
         if (kind === "save-settings") withFeedback(action, async function() { await saveSettings(readSettingsForm()); }, "Settings saved.");
         if (kind === "copy-report") withFeedback(action, function() { return navigator.clipboard.writeText(reportText(state.currentReport)); }, "Report copied.");
         if (kind === "export-json") withFeedback(action, async function() { downloadBlob(new Blob([JSON.stringify(state.currentReport, null, 2)], { type: "application/json" }), "roots-report.json"); }, "JSON exported.");
@@ -1721,6 +1817,17 @@ export function kellaDashboardHtml() {
           await renderAlerts();
           return "DM alert sent to " + result.sent + " of " + result.total + " members" + (result.failed ? " (" + result.failed + " failed)." : ".");
         }, "DM alert sent.");
+        if (kind === "resend-failed-dm-alert") withFeedback(action, async function() {
+          const id = action.getAttribute("data-alert-id") || "";
+          if (!id) throw new Error("Alert id missing.");
+          if (!window.confirm("Retry the failed private DM recipients for this alert?")) return "Retry cancelled.";
+          const result = await sendJson("POST", "/api/dashboard/tools/dm-alert/" + encodeURIComponent(id) + "/resend-failed", {}, true);
+          state.summary = null;
+          state.alerts = [];
+          await loadAlerts();
+          await renderAlerts();
+          return "Retried " + result.total + " failed recipients: " + result.sent + " sent" + (result.failed ? ", " + result.failed + " still failed." : ".");
+        }, "Failed DM recipients retried.");
         if (kind === "preview-embed") withFeedback(action, async function() { updateEmbedPreview(); }, "Preview updated.");
         if (kind === "send-embed") withFeedback(action, async function() { await sendJson("POST", "/api/embed/send", embedPayload(), true); state.summary = null; }, "Embed sent.");
         if (kind === "save-template") withFeedback(action, async function() {

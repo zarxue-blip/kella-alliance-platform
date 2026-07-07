@@ -4,7 +4,7 @@ import { env } from "../config/env.js";
 import { AllianceModel } from "../models/alliance.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
-import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed } from "../services/discord.service.js";
+import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendRootsRegistration } from "../services/discord.service.js";
 import { parseTopnWorkbook } from "../services/xlsx.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
@@ -79,6 +79,11 @@ const rootsReportSendSchema = z.object({
   roleMentionId: z.string().optional()
 });
 
+const rootsCreateSchema = z.object({
+  channelId: z.string().min(1, "Target channel is required"),
+  roleMentionId: z.string().optional()
+});
+
 const eventCreateSchema = z.object({
   channelId: z.string().min(1, "Target channel is required"),
   title: z.string().min(1, "Event title is required").max(120),
@@ -88,7 +93,14 @@ const eventCreateSchema = z.object({
 });
 
 const complaintStatusSchema = z.object({
-  status: z.enum(["Pending", "Resolved"])
+  status: z.enum(["Pending", "Resolved"]).optional(),
+  adminNote: z.string().max(1000).optional(),
+  assignedTo: z.string().max(120).optional()
+});
+
+const complaintReplySchema = z.object({
+  message: z.string().min(1, "Reply message is required").max(1700),
+  resolve: z.boolean().optional()
 });
 
 const memberXlsxImportSchema = z.object({
@@ -700,25 +712,103 @@ export const dashboardComplaints = asyncHandler(async (_req, res) => {
       message: complaint.payload?.message || "",
       status: complaint.status || "Pending",
       sentAt: complaint.sentAt,
-      resolvedAt: complaint.payload?.resolvedAt
+      resolvedAt: complaint.payload?.resolvedAt,
+      adminNote: complaint.payload?.adminNote || "",
+      assignedTo: complaint.payload?.assignedTo || "",
+      lastReply: complaint.payload?.lastReply || "",
+      repliedAt: complaint.payload?.repliedAt || ""
     }))
   });
 });
 
 export const dashboardComplaintStatusUpdate = asyncHandler(async (req, res) => {
   const body = complaintStatusSchema.parse(req.body);
+  if (!body.status && body.adminNote === undefined && body.assignedTo === undefined) {
+    throw new HttpError(400, "Nothing to update");
+  }
   if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid complaint id");
   const allianceId = await resolveAllianceId();
   const filter = allianceFilter(allianceId);
-  const resolvedAt = body.status === "Resolved" ? new Date().toISOString() : "";
+  const update: Record<string, unknown> = {};
+  if (body.status) {
+    update.status = body.status;
+    update["payload.resolvedAt"] = body.status === "Resolved" ? new Date().toISOString() : "";
+  }
+  if (body.adminNote !== undefined) update["payload.adminNote"] = body.adminNote.trim();
+  if (body.assignedTo !== undefined) update["payload.assignedTo"] = body.assignedTo.trim();
   const complaint = await KellaActionModel.findOneAndUpdate(
     { ...filter, _id: req.params.id, type: "complaint" },
-    { $set: { status: body.status, "payload.resolvedAt": resolvedAt } },
+    { $set: update },
     { new: true }
   ).lean();
 
   if (!complaint) throw new HttpError(404, "Complaint not found");
   res.json({ complaint });
+});
+
+export const dashboardComplaintReply = asyncHandler(async (req, res) => {
+  const body = complaintReplySchema.parse(req.body);
+  if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid complaint id");
+  const allianceId = await resolveAllianceId();
+  const filter = allianceFilter(allianceId);
+  const complaint = (await KellaActionModel.findOne({ ...filter, _id: req.params.id, type: "complaint" }).lean()) as DashboardAction | null;
+  if (!complaint) throw new HttpError(404, "Complaint not found");
+  if (!complaint.actorDiscordId) throw new HttpError(400, "This complaint has no Discord user to reply to");
+
+  await sendDiscordDm(complaint.actorDiscordId, `Kella admin reply:\n\n${body.message}`);
+  const update: Record<string, unknown> = {
+    "payload.lastReply": body.message,
+    "payload.repliedAt": new Date().toISOString()
+  };
+  if (body.resolve) {
+    update.status = "Resolved";
+    update["payload.resolvedAt"] = new Date().toISOString();
+  }
+
+  const updated = await KellaActionModel.findOneAndUpdate(
+    { ...filter, _id: req.params.id, type: "complaint" },
+    { $set: update },
+    { new: true }
+  ).lean();
+
+  res.json({ complaint: updated });
+});
+
+export const dashboardRootsCreate = asyncHandler(async (req, res) => {
+  const body = rootsCreateSchema.parse(req.body);
+  const allianceId = await resolveAllianceId();
+  const session = await KellaActionModel.create({
+    allianceId,
+    type: "roots_registration",
+    actorName: "Dashboard",
+    targetDiscordId: body.channelId,
+    status: "Open",
+    payload: {
+      channelId: body.channelId,
+      roleMentionId: body.roleMentionId,
+      createdFromDashboard: true
+    }
+  });
+
+  const message = await sendRootsRegistration({
+    channelId: body.channelId,
+    roleMentionId: body.roleMentionId,
+    reportId: session._id.toString()
+  });
+
+  const updated = await KellaActionModel.findByIdAndUpdate(
+    session._id,
+    {
+      $set: {
+        "payload.messageId": message?.id,
+        "payload.messageLink": discordMessageLink(message),
+        "payload.discordChannelId": message?.channel_id || body.channelId
+      }
+    },
+    { new: true }
+  ).lean();
+
+  res.status(201).json({ session: updated || session, message });
 });
 
 export const rootsReportList = asyncHandler(async (_req, res) => {
@@ -914,6 +1004,58 @@ export const dashboardDmAlertSend = asyncHandler(async (req, res) => {
   });
 
   res.status(201).json({ alert, total: recipients.length, sent, failed, failures: failures.slice(0, 50) });
+});
+
+export const dashboardDmAlertResendFailed = asyncHandler(async (req, res) => {
+  if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid alert id");
+  const allianceId = await resolveAllianceId();
+  const filter = allianceFilter(allianceId);
+  const original = (await KellaActionModel.findOne({ ...filter, _id: req.params.id, type: "dm_alert" }).lean()) as DashboardAction | null;
+  if (!original) throw new HttpError(404, "DM alert not found");
+
+  const failures = Array.isArray(original.payload?.failures) ? (original.payload.failures as Array<{ discordId?: string; name?: string }>) : [];
+  const recipients = failures.filter((failure) => isRealDiscordUserId(failure.discordId));
+  if (!recipients.length) throw new HttpError(400, "No failed recipients with valid Discord IDs found");
+
+  const content = dmAlertContent({
+    title: String(original.payload?.title || "Kella Alliance Alert"),
+    message: String(original.payload?.message || "")
+  });
+  const retryFailures: Array<{ discordId?: string; name?: string; error: string }> = [];
+  let sent = 0;
+
+  await runWithConcurrency(recipients, 3, async (member) => {
+    try {
+      await sendDiscordDm(member.discordId || "", content);
+      sent += 1;
+    } catch (error) {
+      retryFailures.push({
+        discordId: member.discordId,
+        name: member.name || member.discordId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  const failed = retryFailures.length;
+  const alert = await KellaActionModel.create({
+    allianceId,
+    type: "dm_alert",
+    actorName: "Dashboard",
+    targetName: `Retry failed recipients from ${original._id.toString()}`,
+    status: failed ? `Retry sent ${sent} / Failed ${failed}` : `Retry sent ${sent}`,
+    payload: {
+      title: original.payload?.title,
+      message: original.payload?.message,
+      total: recipients.length,
+      sent,
+      failed,
+      failures: retryFailures.slice(0, 50),
+      retryOf: original._id.toString()
+    }
+  });
+
+  res.status(201).json({ alert, total: recipients.length, sent, failed, failures: retryFailures.slice(0, 50) });
 });
 
 export const rootsReportSend = asyncHandler(async (req, res) => {

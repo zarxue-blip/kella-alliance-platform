@@ -21,6 +21,12 @@ interface SendAttackInput {
   message: string;
 }
 
+interface SendRootsRegistrationInput {
+  channelId: string;
+  roleMentionId?: string;
+  reportId: string;
+}
+
 interface DiscordGuildMember {
   avatar?: string | null;
   joined_at?: string | null;
@@ -211,6 +217,56 @@ export async function sendAttackAlert(input: SendAttackInput) {
             { type: 2, custom_id: "attack:Defending", label: "🛡 Defending", style: 1 },
             { type: 2, custom_id: "attack:On The Way", label: "⌛ On the way", style: 3 },
             { type: 2, custom_id: "attack:Unavailable", label: "❌ Unavailable", style: 2 }
+          ]
+        }
+      ]
+    })
+  });
+}
+
+export async function sendRootsRegistration(input: SendRootsRegistrationInput) {
+  if (!input.channelId) throw new HttpError(400, "Target channel is required");
+  if (!input.reportId) throw new HttpError(400, "Roots report id is required");
+
+  const button = (slot: "14UTC" | "20UTC", status: "Available" | "Absent" | "Not Sure", label: string, style: number) => ({
+    type: 2,
+    custom_id: `roots:${input.reportId}:${slot}:${status}`,
+    label,
+    style
+  });
+
+  return discordRequest<any>(`/channels/${input.channelId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({
+      content: input.roleMentionId ? `<@&${input.roleMentionId}>` : undefined,
+      allowed_mentions: input.roleMentionId ? { roles: [input.roleMentionId] } : { parse: [] },
+      embeds: [
+        {
+          title: "ROOTS OF WAR REGISTRATION",
+          description: [
+            "Select your availability. You can click again later to update your answer.",
+            "",
+            "14:00 UTC and 20:00 UTC are tracked separately."
+          ].join("\n"),
+          color: 0xfacc15,
+          footer: { text: "Kella Alliance Command Center" }
+        }
+      ],
+      components: [
+        {
+          type: 1,
+          components: [
+            button("14UTC", "Available", "14 UTC Available", 3),
+            button("14UTC", "Absent", "14 UTC Absent", 4),
+            button("14UTC", "Not Sure", "14 UTC Not Sure", 2)
+          ]
+        },
+        {
+          type: 1,
+          components: [
+            button("20UTC", "Available", "20 UTC Available", 3),
+            button("20UTC", "Absent", "20 UTC Absent", 4),
+            button("20UTC", "Not Sure", "20 UTC Not Sure", 2)
           ]
         }
       ]
