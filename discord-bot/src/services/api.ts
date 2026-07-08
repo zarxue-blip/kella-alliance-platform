@@ -58,6 +58,23 @@ export const api = {
   complaint(input: { discordId: string; displayName?: string; kind: "Complaint" | "Suggestion"; message: string }) {
     return request("POST", "/bot/complaint", { ...allianceContext(), ...input });
   },
+  members(query: string) {
+    return request<{
+      members: Array<{
+        id: string;
+        discordId?: string;
+        discordUsername?: string;
+        discordDisplayName?: string;
+        ign?: string;
+        uid?: string;
+        power?: number;
+        alliance?: string;
+        rank?: string;
+        role?: string;
+        attendance?: number;
+      }>;
+    }>("GET", `/dashboard/members?q=${encodeURIComponent(query)}`);
+  },
   eventReminder(input: { officerDiscordId: string; officerName?: string; eventType: string }) {
     return request("POST", "/bot/reminder", { ...allianceContext(), ...input });
   }
