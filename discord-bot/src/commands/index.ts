@@ -222,6 +222,13 @@ export const commands: BotCommand[] = [
       .setDescription("Send a private complaint or suggestion to admins.")
       .addStringOption((option) =>
         option
+          .setName("message")
+          .setDescription("What do you want R4s to review?")
+          .setRequired(false)
+          .setMaxLength(1800)
+      )
+      .addStringOption((option) =>
+        option
           .setName("type")
           .setDescription("What are you sending?")
           .setRequired(false)
@@ -230,6 +237,32 @@ export const commands: BotCommand[] = [
     async execute(interaction) {
       const kind = interaction.options.getString("type") || "Complaint";
       const modal = new ModalBuilder().setCustomId(`complaint-modal:${kind}`).setTitle(`${kind} for Admins`);
+      modal.addComponents(
+        new ActionRowBuilder<TextInputBuilder>().addComponents(
+          new TextInputBuilder()
+            .setCustomId("message")
+            .setLabel("What should admins know?")
+            .setStyle(TextInputStyle.Paragraph)
+            .setRequired(true)
+            .setMaxLength(1800)
+        )
+      );
+      await interaction.showModal(modal);
+    }
+  },
+  {
+    data: new SlashCommandBuilder()
+      .setName("suggest")
+      .setDescription("Send a private suggestion to admins.")
+      .addStringOption((option) =>
+        option
+          .setName("message")
+          .setDescription("What should admins consider?")
+          .setRequired(false)
+          .setMaxLength(1800)
+      ),
+    async execute(interaction) {
+      const modal = new ModalBuilder().setCustomId("complaint-modal:Suggestion").setTitle("Suggestion for Admins");
       modal.addComponents(
         new ActionRowBuilder<TextInputBuilder>().addComponents(
           new TextInputBuilder()

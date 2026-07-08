@@ -1,5 +1,6 @@
 const navItems = [
   { path: "/", icon: "/assets/icons/dashboard.png", label: "Dashboard" },
+  { path: "/profile", icon: "/assets/icons/members.png", label: "My Profile" },
   { path: "/members", icon: "/assets/icons/members.png", label: "Members" },
   { path: "/roots-registration", icon: "/assets/icons/root-registration.png", label: "Roots Registration" },
   { path: "/roots-reports", icon: "/assets/icons/roots-report.png", label: "Roots Reports" },
@@ -193,7 +194,7 @@ export function kellaDashboardHtml() {
       }
       .topbar {
         display: grid;
-        grid-template-columns: 1fr auto minmax(220px, 360px) auto;
+        grid-template-columns: 1fr minmax(220px, 360px) auto;
         align-items: center;
         gap: 14px;
         min-height: 58px;
@@ -233,6 +234,7 @@ export function kellaDashboardHtml() {
         font-size: 13px;
       }
       .top-actions { display: flex; align-items: center; gap: 8px; }
+      .top-actions .server-clock { min-width: 150px; }
       .auth-pill {
         display: inline-flex;
         align-items: center;
@@ -257,6 +259,15 @@ export function kellaDashboardHtml() {
         color: #3b220c;
         border: 1px solid rgba(109, 69, 25, 0.30);
         padding: 0;
+      }
+      .auth-button {
+        min-height: 36px;
+        border-radius: 10px;
+        border: 1px solid rgba(109, 69, 25, 0.30);
+        background: rgba(255, 244, 205, 0.72);
+        color: #3b220c;
+        padding: 0 13px;
+        font-weight: 1000;
       }
       [data-auth-login], [data-auth-logout] { width: auto; padding: 0 10px; }
       .icon-button:hover { border-color: rgba(255, 214, 90, 0.92); color: #5c3106; box-shadow: 0 0 16px rgba(255, 214, 90, 0.28); }
@@ -671,8 +682,9 @@ export function kellaDashboardHtml() {
         .hero, .topbar { grid-template-columns: 1fr; display: grid; align-items: start; }
         .topbar { padding: 14px; gap: 12px; }
         .command-search { max-width: none; height: 42px; }
-        .top-actions { width: 100%; }
-        .top-actions .icon-button { flex: 1; }
+        .top-actions { width: 100%; flex-wrap: wrap; }
+        .top-actions .server-clock { flex: 1 1 100%; justify-items: start; }
+        .top-actions .auth-button { flex: 1; }
         .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row { grid-template-columns: 1fr; }
         .member-modal { padding: 10px; align-items: end; }
         .member-modal-panel { width: 100%; max-height: calc(100vh - 24px); border-radius: 14px 14px 0 0; padding: 18px; }
@@ -708,18 +720,15 @@ export function kellaDashboardHtml() {
               <span class="muted" id="guildTagline">Command Center</span>
             </div>
           </div>
-          <div class="server-clock" title="Call of Dragons server time">
-            <span>Server Time</span>
-            <strong data-server-clock>--:--:-- UTC</strong>
-          </div>
           <input class="command-search" data-command-search placeholder="Search command tools..." />
           <div class="top-actions" aria-label="Quick actions">
+            <div class="server-clock" title="Call of Dragons server time">
+              <span>Server Time</span>
+              <strong data-server-clock>--:--:-- UTC</strong>
+            </div>
             <span class="auth-pill" data-auth-status>Checking login...</span>
-            <button class="icon-button" type="button" data-action="discord-login" data-auth-login title="Discord Login">Login</button>
-            <button class="icon-button" type="button" data-action="discord-logout" data-auth-logout title="Logout" style="display:none">Logout</button>
-            <button class="icon-button" type="button" data-link-button="/embed-sender" title="Embed Sender">+</button>
-            <button class="icon-button" type="button" data-link-button="/alerts" title="Alerts">!</button>
-            <button class="icon-button" type="button" data-action="refresh-current" title="Refresh">↻</button>
+            <button class="auth-button" type="button" data-action="discord-login" data-auth-login title="Discord Login">Login</button>
+            <button class="auth-button" type="button" data-action="discord-logout" data-auth-logout title="Logout" style="display:none">Logout</button>
           </div>
         </header>
         <div class="content">
@@ -740,7 +749,7 @@ export function kellaDashboardHtml() {
       const toasts = document.getElementById("toasts");
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
-      const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], settings: null, channels: null, templates: null, currentReport: null, auth: null };
+      const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null };
       const dashboardModules = ${JSON.stringify(modules)};
       dashboardModules.splice(Math.max(0, dashboardModules.length - 2), 0, {
         id: "complaints",
@@ -890,8 +899,9 @@ export function kellaDashboardHtml() {
 
       function memberAvatar(member, className) {
         const displayName = memberDisplayName(member);
-        if (member?.discordAvatarUrl) {
-          return '<img class="' + className + '" src="' + escapeHtml(member.discordAvatarUrl) + '" alt="" loading="lazy" />';
+        const photoUrl = member?.profilePhotoUrl || member?.discordAvatarUrl;
+        if (photoUrl) {
+          return '<img class="' + className + '" src="' + escapeHtml(photoUrl) + '" alt="" loading="lazy" />';
         }
         return '<span class="' + className + '">' + escapeHtml(displayName.slice(0, 1).toUpperCase()) + '</span>';
       }
@@ -908,6 +918,31 @@ export function kellaDashboardHtml() {
       function memberPowerPercent(member) {
         const topPower = Math.max.apply(null, (state.members || []).map(function(item) { return Number(item.power || 0); }).concat([Number(member?.power || 0), 1]));
         return Math.max(4, Math.min(100, Math.round((Number(member?.power || 0) / topPower) * 100)));
+      }
+
+      function roleOptions(selected) {
+        return ["Owner", "Leader", "R4 Officer", "War Marshal", "Recruiter", "Event Manager", "Member"].map(function(role) {
+          return '<option value="' + escapeHtml(role) + '"' + (role === selected ? " selected" : "") + '>' + escapeHtml(role) + '</option>';
+        }).join("");
+      }
+
+      function adminMemberForm(member) {
+        if (!isDashboardAdmin() && !adminToken()) {
+          return '<div class="profile-note"><strong>Admin Edit</strong><br>Login as an admin or enter the Password in Settings to edit player data.</div>';
+        }
+        return '<section class="profile-note"><div class="card-header"><div><strong>Admin Edit</strong><br><span class="muted">Update this player card directly.</span></div><button class="primary" data-action="save-member-admin" data-member-id="' + escapeHtml(member.id || "") + '">Save Player</button></div><div class="form-grid" data-admin-member-form>' +
+          '<label>Profile Photo URL<input data-admin-member="profilePhotoUrl" value="' + escapeHtml(member.profilePhotoUrl || "") + '" placeholder="https://..." /></label>' +
+          '<label>Discord Avatar URL<input data-admin-member="discordAvatarUrl" value="' + escapeHtml(member.discordAvatarUrl || "") + '" placeholder="https://..." /></label>' +
+          '<label>IGN<input data-admin-member="ign" value="' + escapeHtml(member.ign || "") + '" /></label>' +
+          '<label>UID<input data-admin-member="uid" value="' + escapeHtml(member.uid || "") + '" /></label>' +
+          '<label>Power<input type="number" min="0" data-admin-member="power" value="' + escapeHtml(member.power || 0) + '" /></label>' +
+          '<label>Alliance<input data-admin-member="alliance" value="' + escapeHtml(member.alliance || "") + '" /></label>' +
+          '<label>Rank<input data-admin-member="rank" value="' + escapeHtml(member.rank || "") + '" /></label>' +
+          '<label>Role<select data-admin-member="role">' + roleOptions(member.role || "Member") + '</select></label>' +
+          '<label>Timezone<input data-admin-member="timezone" value="' + escapeHtml(member.timezone || "") + '" /></label>' +
+          '<label>Country<input data-admin-member="country" value="' + escapeHtml(member.country || "") + '" /></label>' +
+          '<label class="wide">Officer Notes<textarea data-admin-member="notes">' + escapeHtml(member.notes || "") + '</textarea></label>' +
+        '</div></section>';
       }
 
       function openMemberModal(member) {
@@ -930,7 +965,8 @@ export function kellaDashboardHtml() {
             profileStat("Alliance", member.alliance || "") +
           '</div>' +
           '<div class="profile-note"><strong>Officer Notes</strong><br>' + escapeHtml(member.notes || "No notes yet.") + '</div>' +
-          '<div class="profile-note"><strong>Discord ID</strong><br>' + escapeHtml(member.discordId || "Not synced yet") + '</div>';
+          '<div class="profile-note"><strong>Discord ID</strong><br>' + escapeHtml(member.discordId || "Not synced yet") + '</div>' +
+          adminMemberForm(member);
         memberModal.classList.add("open");
         memberModal.setAttribute("aria-hidden", "false");
         document.body.classList.add("modal-open");
@@ -994,6 +1030,13 @@ export function kellaDashboardHtml() {
         return state.members;
       }
 
+      async function loadProfile(force = false) {
+        if (state.profile && !force) return state.profile;
+        const data = await fetchJson("/api/dashboard/profile");
+        state.profile = data.member;
+        return state.profile;
+      }
+
       async function loadAlerts() {
         const data = await fetchJson("/api/dashboard/alerts");
         state.alerts = data.alerts || [];
@@ -1049,7 +1092,7 @@ export function kellaDashboardHtml() {
           return;
         }
         if (user) {
-          target.textContent = "Discord: " + (user.username || user.discordId) + (state.auth?.isDashboardAdmin ? " (Admin)" : " (No admin)");
+          target.textContent = "Discord: " + (user.username || user.discordId) + (state.auth?.isDashboardAdmin ? " (Admin)" : " (Member)");
           if (loginButton) loginButton.style.display = "none";
           if (logoutButton) logoutButton.style.display = "";
           return;
@@ -1211,6 +1254,40 @@ export function kellaDashboardHtml() {
         return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Excel Power Upload</h3><span class="muted">Upload the Call of Dragons TopN .xlsx export. Kella merges it with synced Discord profiles by UID, IGN, display name, or similar names.</span></div><button class="primary" data-action="upload-member-xlsx">Upload & Update</button></div><div class="form-grid">' +
           '<label class="wide">TopN Excel File<input type="file" data-member-upload accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" /></label>' +
         '</div></section>';
+      }
+
+      async function renderProfile() {
+        skeleton("Loading your profile...");
+        const auth = await loadAuth(true);
+        if (!auth.authenticated) {
+          app.innerHTML = pageHeader("My Profile", "Login with Discord to edit your own Kella profile card.", '<button class="primary" data-action="discord-login">Login with Discord</button>') +
+            '<section class="card">' + empty("Your profile will appear here after Discord login.") + '</section>';
+          return;
+        }
+        try {
+          const profile = await loadProfile(true);
+          const displayName = memberDisplayName(profile);
+          app.innerHTML =
+            pageHeader("My Profile", "Edit only your own IGN, timezone, country, and profile picture.", '<button class="primary" data-action="save-my-profile">Save Profile</button>') +
+            '<section class="two"><div class="card">' +
+              '<div class="member-profile-hero">' +
+                memberAvatar(profile, "profile-avatar") +
+                '<div><span class="profile-kicker">Logged-in Member</span><h3>' + escapeHtml(displayName) + '</h3><div class="profile-subtitle">' + escapeHtml(memberUsername(profile)) + ' · IGN: ' + escapeHtml(profile.ign || displayName) + '</div><div class="power-meter" style="--power-width:' + memberPowerPercent(profile) + '%"><i></i></div></div>' +
+              '</div>' +
+              '<div class="profile-stats">' +
+                profileStat("Power", formatNumber(profile.power)) +
+                profileStat("UID", profile.uid || "") +
+                profileStat("Alliance Role", profile.role || "") +
+              '</div>' +
+            '</div><div class="card"><h3>Edit My Card</h3><div class="form-grid">' +
+              '<label>IGN<input data-profile="ign" value="' + escapeHtml(profile.ign || "") + '" /></label>' +
+              '<label>Timezone<input data-profile="timezone" value="' + escapeHtml(profile.timezone || "") + '" placeholder="UTC+8, EST, etc." /></label>' +
+              '<label>Country<input data-profile="country" value="' + escapeHtml(profile.country || "") + '" /></label>' +
+              '<label class="wide">Profile Photo URL<input data-profile="profilePhotoUrl" value="' + escapeHtml(profile.profilePhotoUrl || "") + '" placeholder="https://..." /></label>' +
+            '</div><p class="muted" style="margin-top:12px">Only admins can change power, UID, rank, role, and officer notes.</p></div></section>';
+        } catch (error) {
+          app.innerHTML = '<div class="error">Could not load your profile. ' + escapeHtml(error.message) + '</div>';
+        }
       }
 
       async function renderMembers() {
@@ -1543,15 +1620,9 @@ export function kellaDashboardHtml() {
           const settings = data.settings || {};
           const locked = !adminToken() && !isDashboardAdmin();
           const lockedAttr = locked ? " disabled" : "";
-          const auth = state.auth || {};
-          const user = auth.user || {};
-          const authCard = auth.authenticated
-            ? '<div class="card"><h3>Discord Login</h3><p>' + escapeHtml(user.username || user.discordId || "Logged in") + '<br><span class="muted">' + (auth.isDashboardAdmin ? "Admin access active" : "Logged in, but not an admin") + '</span></p><button class="secondary" data-action="discord-logout">Logout</button></div>'
-            : '<div class="card"><h3>Discord Login</h3><p>Login with Discord to unlock admin actions by user or role.</p><button class="primary" data-action="discord-login">Login with Discord</button></div>';
           app.innerHTML = pageHeader("Settings", "Saved admin preferences for Kella channels, officer roles, and enabled modules.", '<button class="primary" data-action="save-settings"' + lockedAttr + '>Save Settings</button>') +
             '<div class="locked-note" data-settings-locked-note' + (locked ? "" : ' style="display:none"') + '>Login with an approved Discord admin account or enter the fallback Password first.</div>' +
             '<section class="grid" data-settings-panel>' +
-              authCard +
               '<div class="card"><h3>Password</h3><p>Used only in this browser for admin actions.</p><input type="password" data-setting="adminKey" value="' + escapeHtml(adminToken()) + '" placeholder="Password" /></div>' +
               '<div class="card"><h3>Alliance Name</h3><p>Name shown at the top of the dashboard.</p><input data-setting="allianceName" data-admin-required value="' + escapeHtml(alliance.name || "") + '"' + lockedAttr + ' /></div>' +
               '<div class="card"><h3>Alliance Tag</h3><p>Short tag shown in the round badge.</p><input data-setting="allianceTag" data-admin-required value="' + escapeHtml(alliance.tag || "") + '"' + lockedAttr + ' /></div>' +
@@ -1678,6 +1749,44 @@ export function kellaDashboardHtml() {
         };
       }
 
+      function readProfileForm() {
+        const value = function(name) {
+          return (document.querySelector('[data-profile="' + name + '"]')?.value || "").trim();
+        };
+        return {
+          ign: value("ign"),
+          timezone: value("timezone"),
+          country: value("country"),
+          profilePhotoUrl: value("profilePhotoUrl")
+        };
+      }
+
+      function readAdminMemberForm() {
+        const root = document.querySelector("[data-admin-member-form]");
+        if (!root) throw new Error("Member edit form is missing.");
+        const value = function(name) {
+          return (root.querySelector('[data-admin-member="' + name + '"]')?.value || "").trim();
+        };
+        const payload = {
+          profilePhotoUrl: value("profilePhotoUrl"),
+          discordAvatarUrl: value("discordAvatarUrl"),
+          rank: value("rank"),
+          role: value("role") || "Member",
+          timezone: value("timezone"),
+          country: value("country"),
+          notes: value("notes")
+        };
+        const ign = value("ign");
+        const uid = value("uid");
+        const alliance = value("alliance");
+        const power = value("power");
+        if (ign) payload.ign = ign;
+        if (uid) payload.uid = uid;
+        if (alliance) payload.alliance = alliance;
+        if (power !== "") payload.power = Number(power);
+        return payload;
+      }
+
       async function route() {
         setActiveNav();
         if (!state.auth) loadAuth().catch(function() { updateAuthStatus(); });
@@ -1685,6 +1794,7 @@ export function kellaDashboardHtml() {
         const path = location.pathname;
         state.currentReport = null;
         if (path === "/") return renderDashboard();
+        if (path === "/profile") return renderProfile();
         if (path === "/members") return renderMembers();
         if (path === "/roots-registration") return renderRootsRegistration();
         if (path === "/roots-reports") return renderRootsReports();
@@ -1751,6 +1861,7 @@ export function kellaDashboardHtml() {
           state.auth = { authenticated: false, isDashboardAdmin: false };
           state.channels = null;
           state.templates = null;
+          state.profile = null;
           updateAuthStatus();
           await route();
         }, "Logged out.");
@@ -1788,6 +1899,26 @@ export function kellaDashboardHtml() {
           await renderMembers();
           return "Imported " + sync.total + " Excel members (" + sync.created + " new, " + sync.updated + " updated, " + (sync.merged || 0) + " merged with Discord, " + sync.skipped + " skipped).";
         }, "Excel members imported.");
+        if (kind === "save-my-profile") withFeedback(action, async function() {
+          const data = await sendJson("PATCH", "/api/dashboard/profile", readProfileForm(), false);
+          state.profile = data.member;
+          state.members = [];
+          await renderProfile();
+          return "Profile saved.";
+        }, "Profile saved.");
+        if (kind === "save-member-admin") withFeedback(action, async function() {
+          const id = action.getAttribute("data-member-id") || "";
+          if (!id) throw new Error("Member id missing.");
+          const data = await sendJson("PATCH", "/api/dashboard/members/" + encodeURIComponent(id), readAdminMemberForm(), true);
+          const updated = data.member;
+          state.members = (state.members || []).map(function(member) {
+            return String(member.id) === String(updated.id) ? updated : member;
+          });
+          const current = app.querySelector(".table-wrap, .empty");
+          if (location.pathname === "/members" && current) current.outerHTML = renderMembersTable(state.members);
+          openMemberModal(updated);
+          return "Player card updated.";
+        }, "Player card updated.");
         if (kind === "refresh-current") withFeedback(action, async function() {
           state.summary = null;
           state.alerts = [];

@@ -4,10 +4,12 @@ import { env } from "../config/env.js";
 import { AllianceModel } from "../models/alliance.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
+import { UserModel } from "../models/user.model.js";
 import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendRootsRegistration } from "../services/discord.service.js";
 import { parseTopnWorkbook } from "../services/xlsx.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
+import type { AuthenticatedRequest } from "../middleware/auth.js";
 
 const rootsSlots = ["14UTC", "20UTC"] as const;
 const rootsStatuses = ["Available", "Absent", "Not Sure"] as const;
@@ -32,10 +34,13 @@ type DashboardMember = {
   discordUsername?: string;
   discordDisplayName?: string;
   discordAvatarUrl?: string;
+  profilePhotoUrl?: string;
   ign?: string;
   uid?: string;
   rank?: string;
   role?: string;
+  timezone?: string;
+  country?: string;
   attendanceScore?: number;
   notes?: string;
   alliance?: string;
@@ -106,6 +111,27 @@ const complaintReplySchema = z.object({
 const memberXlsxImportSchema = z.object({
   filename: z.string().max(180).optional(),
   fileBase64: z.string().min(1, "Excel file is required")
+});
+
+const profileUpdateSchema = z.object({
+  ign: z.string().min(1).max(80).optional(),
+  timezone: z.string().max(80).optional(),
+  country: z.string().max(80).optional(),
+  profilePhotoUrl: z.string().max(500).optional()
+});
+
+const dashboardMemberUpdateSchema = z.object({
+  ign: z.string().min(1).max(80).optional(),
+  uid: z.string().min(1).max(80).optional(),
+  power: z.coerce.number().min(0).optional(),
+  alliance: z.string().min(1).max(80).optional(),
+  rank: z.string().max(80).optional(),
+  role: z.enum(["Owner", "Leader", "R4 Officer", "War Marshal", "Recruiter", "Event Manager", "Member"]).optional(),
+  timezone: z.string().max(80).optional(),
+  country: z.string().max(80).optional(),
+  profilePhotoUrl: z.string().max(500).optional(),
+  discordAvatarUrl: z.string().max(500).optional(),
+  notes: z.string().max(2000).optional()
 });
 
 type MergeCandidate = Pick<DashboardMember, "_id" | "ign" | "discordId" | "discordUsername" | "discordDisplayName" | "uid">;
@@ -285,6 +311,35 @@ async function runWithConcurrency<T>(items: T[], limit: number, worker: (item: T
   await Promise.all(workers);
 }
 
+function discordUserAvatarUrl(discordId?: string, avatar?: string) {
+  if (!discordId || !avatar) return "";
+  if (avatar.startsWith("http")) return avatar;
+  const ext = avatar.startsWith("a_") ? "gif" : "png";
+  return `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.${ext}?size=128`;
+}
+
+function dashboardMemberDto(member: any) {
+  return {
+    id: member._id.toString(),
+    discordId: member.discordId,
+    discordName: member.discordDisplayName || member.ign || member.discordId,
+    discordUsername: member.discordUsername || member.discordId,
+    discordDisplayName: member.discordDisplayName || member.ign || member.discordUsername || member.discordId,
+    discordAvatarUrl: member.discordAvatarUrl || "",
+    profilePhotoUrl: member.profilePhotoUrl || "",
+    ign: member.ign,
+    uid: member.uid,
+    rank: member.rank,
+    role: member.role,
+    attendance: member.attendanceScore,
+    notes: member.notes,
+    alliance: member.alliance,
+    power: member.power,
+    timezone: member.timezone,
+    country: member.country
+  };
+}
+
 async function findMemberForGameRow(allianceId: string, uid: string, ign: string) {
   const exact = ((await MemberModel.findOne({ allianceId, uid }).select("_id ign discordId discordUsername discordDisplayName uid").lean()) ??
     (await MemberModel.findOne({ allianceId, ign }).select("_id ign discordId discordUsername discordDisplayName uid").lean())) as MergeCandidate | null;
@@ -455,27 +510,88 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
   const members = (await MemberModel.find(filter)
     .sort({ power: -1, attendanceScore: -1, ign: 1 })
     .limit(500)
-    .select("discordId discordUsername discordDisplayName discordAvatarUrl ign uid rank role attendanceScore notes alliance power")
+    .select("discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role timezone country attendanceScore notes alliance power")
     .lean()) as DashboardMember[];
 
   res.json({
-    members: members.map((member: any) => ({
-      id: member._id.toString(),
-      discordId: member.discordId,
-      discordName: member.discordDisplayName || member.ign || member.discordId,
-      discordUsername: member.discordUsername || member.discordId,
-      discordDisplayName: member.discordDisplayName || member.ign || member.discordUsername || member.discordId,
-      discordAvatarUrl: member.discordAvatarUrl || "",
-      ign: member.ign,
-      uid: member.uid,
-      rank: member.rank,
-      role: member.role,
-      attendance: member.attendanceScore,
-      notes: member.notes,
-      alliance: member.alliance,
-      power: member.power
-    }))
+    members: members.map(dashboardMemberDto)
   });
+});
+
+async function findOrCreateProfileMember(user: { id: string; discordId: string; allianceId: string }) {
+  const dbUser = (await UserModel.findById(user.id).lean()) as any;
+  const alliance = await AllianceModel.findById(user.allianceId).lean() as any;
+  const displayName = dbUser?.username || user.discordId;
+  const existing =
+    ((await MemberModel.findOne({ allianceId: user.allianceId, discordId: user.discordId }).lean()) as any) ||
+    ((await findMemberForDiscordProfile(user.allianceId, user.discordId, displayName, displayName)) as any);
+
+  if (existing) {
+    await UserModel.updateOne({ _id: user.id }, { $set: { memberId: existing._id } });
+    return MemberModel.findByIdAndUpdate(
+      existing._id,
+      {
+        $set: {
+          discordId: user.discordId,
+          discordDisplayName: existing.discordDisplayName || displayName,
+          discordUsername: existing.discordUsername || displayName,
+          discordAvatarUrl: existing.discordAvatarUrl || discordUserAvatarUrl(user.discordId, dbUser?.avatar)
+        }
+      },
+      { new: true }
+    ).lean();
+  }
+
+  const created = await MemberModel.create({
+    allianceId: user.allianceId,
+    discordId: user.discordId,
+    discordUsername: displayName,
+    discordDisplayName: displayName,
+    discordAvatarUrl: discordUserAvatarUrl(user.discordId, dbUser?.avatar),
+    ign: displayName,
+    uid: `discord-${user.discordId}`,
+    power: 0,
+    alliance: alliance?.tag || alliance?.name || "Kella",
+    rank: "R1",
+    role: "Member",
+    timezone: alliance?.timezone || "UTC",
+    country: "Unknown",
+    notes: ""
+  });
+  await UserModel.updateOne({ _id: user.id }, { $set: { memberId: created._id } });
+  return created.toObject();
+}
+
+export const dashboardProfile = asyncHandler(async (req, res) => {
+  const user = (req as AuthenticatedRequest).user;
+  const member = await findOrCreateProfileMember(user);
+  res.json({ member: dashboardMemberDto(member) });
+});
+
+export const dashboardProfileUpdate = asyncHandler(async (req, res) => {
+  const user = (req as AuthenticatedRequest).user;
+  const body = profileUpdateSchema.parse(req.body);
+  const member = await findOrCreateProfileMember(user);
+  const updated = await MemberModel.findOneAndUpdate(
+    { _id: member._id, allianceId: user.allianceId, discordId: user.discordId },
+    { $set: body },
+    { new: true, runValidators: true }
+  ).lean();
+  if (!updated) throw new HttpError(404, "Profile not found");
+  res.json({ member: dashboardMemberDto(updated) });
+});
+
+export const dashboardMemberUpdate = asyncHandler(async (req, res) => {
+  const body = dashboardMemberUpdateSchema.parse(req.body);
+  if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid member id");
+  const allianceId = await resolveAllianceId();
+  const updated = await MemberModel.findOneAndUpdate(
+    { _id: req.params.id, ...allianceFilter(allianceId) },
+    { $set: body },
+    { new: true, runValidators: true }
+  ).lean();
+  if (!updated) throw new HttpError(404, "Member not found");
+  res.json({ member: dashboardMemberDto(updated) });
 });
 
 export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {

@@ -30,6 +30,25 @@ async function showComplaintModal(interaction: ChatInputCommandInteraction) {
   await interaction.showModal(modal);
 }
 
+async function submitComplaintFromCommand(interaction: ChatInputCommandInteraction, kind: "Complaint" | "Suggestion") {
+  const message = interaction.options.getString("message")?.trim();
+  if (!message) {
+    await showComplaintModal(interaction);
+    return;
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+  await api.complaint({
+    discordId: interaction.user.id,
+    displayName: displayName(interaction),
+    kind,
+    message
+  });
+  await interaction.editReply({
+    content: `${botName} submitted your ${kind.toLowerCase()}. R4s will review it in the dashboard. Try not to refresh the drama every six minutes.`
+  });
+}
+
 async function replyError(interaction: Interaction, error: unknown) {
   const message = error instanceof Error ? error.message : "Kella could not complete that action.";
   if (interaction.isRepliable()) {
@@ -49,7 +68,13 @@ export async function handleInteraction(interaction: Interaction) {
   try {
     if (interaction.isChatInputCommand()) {
       if (interaction.commandName === "complain") {
-        await showComplaintModal(interaction);
+        const kind = interaction.options.getString("type") === "Suggestion" ? "Suggestion" : "Complaint";
+        await submitComplaintFromCommand(interaction, kind);
+        return;
+      }
+
+      if (interaction.commandName === "suggest") {
+        await submitComplaintFromCommand(interaction, "Suggestion");
         return;
       }
 
@@ -128,7 +153,7 @@ export async function handleInteraction(interaction: Interaction) {
         kind,
         message: interaction.fields.getTextInputValue("message")
       });
-      await interaction.editReply({ content: `${botName} sent your ${kind.toLowerCase()} to the admins.` });
+      await interaction.editReply({ content: `${botName} submitted your ${kind.toLowerCase()}. R4s will review it in the dashboard.` });
     }
   } catch (error) {
     console.error(`${botName} interaction failed`, error);

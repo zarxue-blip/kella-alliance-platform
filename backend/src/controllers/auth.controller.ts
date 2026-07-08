@@ -10,6 +10,21 @@ import { isDashboardAdminUser, signSessionToken, type AuthenticatedRequest } fro
 
 const oauthStates = new Set<string>();
 
+function csvSet(value?: string) {
+  return new Set(
+    (value || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  );
+}
+
+function hasAnyRole(userRoleIds: string[], allowedRoleIds?: string) {
+  const allowed = csvSet(allowedRoleIds);
+  if (!allowed.size) return true;
+  return userRoleIds.some((roleId) => allowed.has(roleId));
+}
+
 export const startDiscordLogin = asyncHandler(async (_req: Request, res: Response) => {
   const state = randomBytes(24).toString("hex");
   oauthStates.add(state);
@@ -50,6 +65,9 @@ export const discordCallback = asyncHandler(async (req: Request, res: Response) 
     role: existingUser?.role,
     discordRoleIds
   });
+  if (env.DISCORD_GUILD_ID && !hasConfiguredAdminAccess && userCount > 0 && !hasAnyRole(discordRoleIds, env.DASHBOARD_MEMBER_ROLE_IDS)) {
+    throw new HttpError(403, "This Discord account does not have the Kella member role");
+  }
   const nextRole =
     !existingUser || (existingUser.role === "Member" && hasConfiguredAdminAccess)
       ? userCount === 0

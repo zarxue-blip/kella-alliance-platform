@@ -2,8 +2,11 @@ import { Router } from "express";
 import {
   dashboardAlerts,
   dashboardMembers,
+  dashboardMemberUpdate,
   dashboardMemberXlsxImport,
   dashboardDiscordMemberSync,
+  dashboardProfile,
+  dashboardProfileUpdate,
   dashboardDmAlertSend,
   dashboardSettings,
   dashboardSettingsUpdate,
@@ -21,12 +24,15 @@ import {
   rootsReportList,
   rootsReportSend
 } from "../controllers/dashboard.controller.js";
-import { authenticateDashboardAdmin } from "../middleware/auth.js";
+import { authenticate, authenticateDashboardAdmin } from "../middleware/auth.js";
 
 export const dashboardRouter = Router();
 
 dashboardRouter.get("/summary", dashboardSummary);
 dashboardRouter.get("/members", dashboardMembers);
+dashboardRouter.patch("/members/:id", authenticateDashboardAdmin, dashboardMemberUpdate);
+dashboardRouter.get("/profile", authenticate, dashboardProfile);
+dashboardRouter.patch("/profile", authenticate, dashboardProfileUpdate);
 dashboardRouter.post("/members/import-xlsx", authenticateDashboardAdmin, dashboardMemberXlsxImport);
 dashboardRouter.post("/sync-discord-members", authenticateDashboardAdmin, dashboardDiscordMemberSync);
 dashboardRouter.get("/alerts", dashboardAlerts);

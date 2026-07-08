@@ -48,7 +48,15 @@ function answerMention(question: string) {
   const text = question.toLowerCase();
 
   if (!text) {
-    return "You rang? Ask me about roots, shields, attacks, members, or the dashboard. Use words. They are free.";
+    return "You rang? Ask me about roots, shields, attacks, members, rules, events, complaints, or the dashboard. Use words. They remain undefeated.";
+  }
+
+  if (hasAny(text, ["hi", "hello", "hey", "morning", "evening"])) {
+    return "Hello commander. I am awake, caffeinated, and judging the attendance list with professional restraint.";
+  }
+
+  if (hasAny(text, ["thanks", "thank you", "ty"])) {
+    return "You are welcome. I will add this rare moment of manners to the alliance archive.";
   }
 
   if (hasAny(text, ["help", "command", "what can you do", "how do i use"])) return helpText();
@@ -70,7 +78,7 @@ function answerMention(question: string) {
   }
 
   if (hasAny(text, ["member", "roster", "sync", "power", "topn", "game tools"])) {
-    return "Use Dashboard > Members. Sync Discord for names and avatars, then Sync Game Tools for UID, power, and TopN rank. Yes, two buttons. No, that is not a tragedy.";
+    return "Use Dashboard > Members. Sync Discord for names and avatars, then upload the TopN Excel file for UID and power. Manual, yes. Chaos-free, allegedly.";
   }
 
   if (hasAny(text, ["apply", "recruit", "application"])) {
@@ -82,11 +90,23 @@ function answerMention(question: string) {
   }
 
   if (hasAny(text, ["complain", "complaint", "suggestion", "feedback"])) {
-    return "/complain opens a private complaint or suggestion form. Admins review it on the Complaints page and mark it Pending or Resolved. Finally, organized drama.";
+    return "/complain message: your complaint sends it privately to R4 review. /suggest message: your idea works too. Finally, organized drama.";
   }
 
   if (hasAny(text, ["summit"])) {
     return "/summit creates a Summit registration panel. Members pick Attending, Absent, or Not Sure. Revolutionary technology: clicking one button.";
+  }
+
+  if (hasAny(text, ["time", "utc", "server time"])) {
+    return "Call of Dragons server time is 24-hour UTC. If your clock says 7 PM and the event says 19:00 UTC, congratulations, numbers still work.";
+  }
+
+  if (hasAny(text, ["rule", "rules", "nap", "alliance rule"])) {
+    return "Follow alliance rules, respect NAPs, shield when needed, and read announcements before asking what the announcement says. Ambitious, I know.";
+  }
+
+  if (hasAny(text, ["who is best", "best player", "strongest", "carry"])) {
+    return "The best player is the one online at event time, shielded, registered, and not explaining why their cat pressed the wrong march button.";
   }
 
   if (hasAny(text, ["who are you", "what are you", "kella"])) {
@@ -94,10 +114,10 @@ function answerMention(question: string) {
   }
 
   if (hasAny(text, ["roast", "mean", "unhinged"])) {
-    return "I can be sharp, not stupid. I roast bad planning, missed shields, and mystery absences. I do not do hate speech. Aim higher.";
+    return "I can be sharp, not stupid. I roast missed shields, mystery absences, and planning held together by vibes. I do not do hate speech. Standards, tragically.";
   }
 
-  return "I heard my name, but that question arrived without a map. Ask about roots, shield, attack, members, sync, apply, checkin, summit, or dashboard.";
+  return "im busy counting my coins ask Chat gpt instead";
 }
 
 export async function handleMessageMention(message: Message) {

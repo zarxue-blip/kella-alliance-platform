@@ -8,6 +8,7 @@ const memberSchema = new Schema(
     discordUsername: { type: String, default: "", trim: true },
     discordDisplayName: { type: String, default: "", trim: true },
     discordAvatarUrl: { type: String, default: "", trim: true },
+    profilePhotoUrl: { type: String, default: "", trim: true },
     ign: { type: String, required: true, trim: true, index: "text" },
     uid: { type: String, required: true, trim: true, index: true },
     power: { type: Number, default: 0, min: 0, index: true },

@@ -47,6 +47,7 @@ export function createApp() {
   app.get(
     [
       "/",
+      "/profile",
       "/members",
       "/roots-registration",
       "/roots-reports",
