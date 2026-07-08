@@ -233,6 +233,20 @@ export function kellaDashboardHtml() {
         font-size: 13px;
       }
       .top-actions { display: flex; align-items: center; gap: 8px; }
+      .auth-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid rgba(255, 214, 90, 0.42);
+        border-radius: 999px;
+        background: rgba(54, 35, 17, 0.54);
+        color: #fff4cf;
+        font-size: 12px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
       .icon-button {
         width: 34px;
         height: 34px;
@@ -244,6 +258,7 @@ export function kellaDashboardHtml() {
         border: 1px solid rgba(109, 69, 25, 0.30);
         padding: 0;
       }
+      [data-auth-login], [data-auth-logout] { width: auto; padding: 0 10px; }
       .icon-button:hover { border-color: rgba(255, 214, 90, 0.92); color: #5c3106; box-shadow: 0 0 16px rgba(255, 214, 90, 0.28); }
       .content { padding: 24px 20px 28px; }
       .guild { display: flex; align-items: center; gap: 14px; }
@@ -699,6 +714,9 @@ export function kellaDashboardHtml() {
           </div>
           <input class="command-search" data-command-search placeholder="Search command tools..." />
           <div class="top-actions" aria-label="Quick actions">
+            <span class="auth-pill" data-auth-status>Checking login...</span>
+            <button class="icon-button" type="button" data-action="discord-login" data-auth-login title="Discord Login">Login</button>
+            <button class="icon-button" type="button" data-action="discord-logout" data-auth-logout title="Logout" style="display:none">Logout</button>
             <button class="icon-button" type="button" data-link-button="/embed-sender" title="Embed Sender">+</button>
             <button class="icon-button" type="button" data-link-button="/alerts" title="Alerts">!</button>
             <button class="icon-button" type="button" data-action="refresh-current" title="Refresh">↻</button>
@@ -722,7 +740,7 @@ export function kellaDashboardHtml() {
       const toasts = document.getElementById("toasts");
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
-      const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], settings: null, channels: null, templates: null, currentReport: null };
+      const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], settings: null, channels: null, templates: null, currentReport: null, auth: null };
       const dashboardModules = ${JSON.stringify(modules)};
       dashboardModules.splice(Math.max(0, dashboardModules.length - 2), 0, {
         id: "complaints",
@@ -777,6 +795,10 @@ export function kellaDashboardHtml() {
         return localStorage.getItem("kellaAdminKey") || "";
       }
 
+      function isDashboardAdmin() {
+        return Boolean(state.auth?.isDashboardAdmin);
+      }
+
       function requestHeaders(json) {
         const headers = { accept: "application/json" };
         if (json) headers["content-type"] = "application/json";
@@ -799,12 +821,12 @@ export function kellaDashboardHtml() {
       }
 
       async function fetchJson(url, admin = false) {
-        const response = await fetch(url, { headers: admin ? requestHeaders(false) : { accept: "application/json" } });
+        const response = await fetch(url, { credentials: "same-origin", headers: admin ? requestHeaders(false) : { accept: "application/json" } });
         return parseResponse(response);
       }
 
       async function sendJson(method, url, body, admin = false) {
-        const response = await fetch(url, { method, headers: admin ? requestHeaders(true) : { accept: "application/json", "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+        const response = await fetch(url, { method, credentials: "same-origin", headers: admin ? requestHeaders(true) : { accept: "application/json", "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
         return parseResponse(response);
       }
 
@@ -1012,6 +1034,44 @@ export function kellaDashboardHtml() {
           state.templates = data.templates || [];
         }
         return state.templates;
+      }
+
+      function updateAuthStatus() {
+        const target = document.querySelector("[data-auth-status]");
+        const loginButton = document.querySelector("[data-auth-login]");
+        const logoutButton = document.querySelector("[data-auth-logout]");
+        const user = state.auth?.user;
+        if (!target) return;
+        if (state.auth?.authenticated === false) {
+          target.textContent = "Discord: not logged in";
+          if (loginButton) loginButton.style.display = "";
+          if (logoutButton) logoutButton.style.display = "none";
+          return;
+        }
+        if (user) {
+          target.textContent = "Discord: " + (user.username || user.discordId) + (state.auth?.isDashboardAdmin ? " (Admin)" : " (No admin)");
+          if (loginButton) loginButton.style.display = "none";
+          if (logoutButton) logoutButton.style.display = "";
+          return;
+        }
+        target.textContent = "Checking login...";
+      }
+
+      async function loadAuth(force = false) {
+        if (state.auth && !force) return state.auth;
+        try {
+          const response = await fetch("/api/auth/me", { credentials: "same-origin", headers: { accept: "application/json" } });
+          if (response.status === 401) {
+            state.auth = { authenticated: false, isDashboardAdmin: false };
+          } else {
+            state.auth = await parseResponse(response);
+            state.auth.authenticated = true;
+          }
+        } catch {
+          state.auth = { authenticated: false, isDashboardAdmin: false };
+        }
+        updateAuthStatus();
+        return state.auth;
       }
 
       async function saveSettings(payload) {
@@ -1477,14 +1537,21 @@ export function kellaDashboardHtml() {
       async function renderSettings() {
         skeleton("Loading settings...");
         try {
+          await loadAuth(true);
           const data = await loadSettings();
           const alliance = data.alliance || {};
           const settings = data.settings || {};
-          const locked = !adminToken();
+          const locked = !adminToken() && !isDashboardAdmin();
           const lockedAttr = locked ? " disabled" : "";
+          const auth = state.auth || {};
+          const user = auth.user || {};
+          const authCard = auth.authenticated
+            ? '<div class="card"><h3>Discord Login</h3><p>' + escapeHtml(user.username || user.discordId || "Logged in") + '<br><span class="muted">' + (auth.isDashboardAdmin ? "Admin access active" : "Logged in, but not an admin") + '</span></p><button class="secondary" data-action="discord-logout">Logout</button></div>'
+            : '<div class="card"><h3>Discord Login</h3><p>Login with Discord to unlock admin actions by user or role.</p><button class="primary" data-action="discord-login">Login with Discord</button></div>';
           app.innerHTML = pageHeader("Settings", "Saved admin preferences for Kella channels, officer roles, and enabled modules.", '<button class="primary" data-action="save-settings"' + lockedAttr + '>Save Settings</button>') +
-            '<div class="locked-note" data-settings-locked-note' + (locked ? "" : ' style="display:none"') + '>Enter the admin password first. Only admins with the correct password can edit and save settings.</div>' +
+            '<div class="locked-note" data-settings-locked-note' + (locked ? "" : ' style="display:none"') + '>Login with an approved Discord admin account or enter the fallback Password first.</div>' +
             '<section class="grid" data-settings-panel>' +
+              authCard +
               '<div class="card"><h3>Password</h3><p>Used only in this browser for admin actions.</p><input type="password" data-setting="adminKey" value="' + escapeHtml(adminToken()) + '" placeholder="Password" /></div>' +
               '<div class="card"><h3>Alliance Name</h3><p>Name shown at the top of the dashboard.</p><input data-setting="allianceName" data-admin-required value="' + escapeHtml(alliance.name || "") + '"' + lockedAttr + ' /></div>' +
               '<div class="card"><h3>Alliance Tag</h3><p>Short tag shown in the round badge.</p><input data-setting="allianceTag" data-admin-required value="' + escapeHtml(alliance.tag || "") + '"' + lockedAttr + ' /></div>' +
@@ -1503,7 +1570,7 @@ export function kellaDashboardHtml() {
       function syncSettingsLock() {
         if (location.pathname !== "/settings") return;
         const password = (document.querySelector('[data-setting="adminKey"]')?.value || "").trim();
-        const locked = !password;
+        const locked = !password && !isDashboardAdmin();
         document.querySelectorAll("[data-admin-required]").forEach(function(input) {
           input.disabled = locked;
         });
@@ -1517,8 +1584,8 @@ export function kellaDashboardHtml() {
         const value = function(name) {
           return (document.querySelector('[data-setting="' + name + '"]')?.value || "").trim();
         };
-        if (!value("adminKey")) throw new Error("Password required to save settings.");
-        localStorage.setItem("kellaAdminKey", value("adminKey"));
+        if (!value("adminKey") && !isDashboardAdmin()) throw new Error("Login with Discord admin or enter Password to save settings.");
+        if (value("adminKey")) localStorage.setItem("kellaAdminKey", value("adminKey"));
         state.channels = null;
         state.templates = null;
         return {
@@ -1599,7 +1666,7 @@ export function kellaDashboardHtml() {
       }
 
       async function readMemberUploadForm() {
-        if (!adminToken()) throw new Error("Password required. Open Settings and enter your Password first.");
+        if (!adminToken() && !isDashboardAdmin()) throw new Error("Login with Discord admin or enter your Password first.");
         const input = document.querySelector("[data-member-upload]");
         const file = input?.files?.[0];
         if (!file) throw new Error("Choose an Excel .xlsx file first.");
@@ -1613,6 +1680,7 @@ export function kellaDashboardHtml() {
 
       async function route() {
         setActiveNav();
+        if (!state.auth) loadAuth().catch(function() { updateAuthStatus(); });
         if (!state.settings) loadSettings().catch(function() {});
         const path = location.pathname;
         state.currentReport = null;
@@ -1674,6 +1742,18 @@ export function kellaDashboardHtml() {
         const action = event.target.closest("[data-action]");
         if (!action) return;
         const kind = action.getAttribute("data-action");
+        if (kind === "discord-login") {
+          window.location.href = "/api/auth/discord";
+          return;
+        }
+        if (kind === "discord-logout") withFeedback(action, async function() {
+          await sendJson("POST", "/api/auth/logout", {}, false);
+          state.auth = { authenticated: false, isDashboardAdmin: false };
+          state.channels = null;
+          state.templates = null;
+          updateAuthStatus();
+          await route();
+        }, "Logged out.");
         if (kind === "copy-command") withFeedback(action, function() { return navigator.clipboard.writeText(action.getAttribute("data-value") || ""); }, "Command copied.");
         if (kind === "toggle-module") {
           const moduleId = action.getAttribute("data-module-id");

@@ -20,6 +20,25 @@ export interface TokenPayload extends AuthUser {
   type: "user";
 }
 
+const dashboardAdminRoles: UserRole[] = ["Owner", "Leader", "R4 Officer", "War Marshal", "Recruiter", "Event Manager"];
+
+function csvSet(value?: string) {
+  return new Set(
+    (value || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  );
+}
+
+export function isDashboardAdminUser(user: { discordId?: string; role?: UserRole; discordRoleIds?: string[] }) {
+  if (user.role && dashboardAdminRoles.includes(user.role)) return true;
+  if (user.discordId && csvSet(env.DASHBOARD_ADMIN_DISCORD_IDS).has(user.discordId)) return true;
+  const configuredRoleIds = csvSet(env.DASHBOARD_ADMIN_ROLE_IDS);
+  if (configuredRoleIds.size && (user.discordRoleIds || []).some((roleId) => configuredRoleIds.has(roleId))) return true;
+  return false;
+}
+
 export function signSessionToken(user: AuthUser) {
   return jwt.sign({ ...user, type: "user" satisfies TokenPayload["type"] }, env.JWT_SECRET, { expiresIn: "7d" });
 }
@@ -66,9 +85,40 @@ export function authenticateService(req: Request, _res: Response, next: NextFunc
 export function authenticateDashboardAdmin(req: Request, _res: Response, next: NextFunction) {
   const token = req.header("x-dashboard-admin-token") || req.header("x-service-token");
   const expected = env.DASHBOARD_ADMIN_TOKEN || env.BOT_API_TOKEN;
-  if (!token || token !== expected) {
-    next(new HttpError(401, "Admin key required"));
+  if (token && token === expected) {
+    next();
     return;
   }
-  next();
+
+  const sessionToken = req.cookies?.[env.SESSION_COOKIE_NAME];
+  if (!sessionToken) {
+    next(new HttpError(401, "Discord admin login or Password required"));
+    return;
+  }
+
+  try {
+    const payload = jwt.verify(sessionToken, env.JWT_SECRET) as TokenPayload;
+    UserModel.findById(payload.id)
+      .lean()
+      .then((user: any) => {
+        if (!user || user.disabled) {
+          next(new HttpError(401, "Session is no longer valid"));
+          return;
+        }
+        if (!isDashboardAdminUser(user)) {
+          next(new HttpError(403, "This Discord account does not have Kella admin access"));
+          return;
+        }
+        (req as AuthenticatedRequest).user = {
+          id: user._id.toString(),
+          discordId: user.discordId,
+          role: user.role,
+          allianceId: user.allianceId.toString()
+        };
+        next();
+      })
+      .catch(() => next(new HttpError(401, "Invalid session")));
+  } catch {
+    next(new HttpError(401, "Invalid session"));
+  }
 }

@@ -16,6 +16,11 @@ export interface DiscordIdentity {
   avatar?: string;
 }
 
+export interface DiscordOAuthGuildMember {
+  nick?: string | null;
+  roles: string[];
+}
+
 export function getDiscordAuthorizationUrl(state: string) {
   const params = new URLSearchParams({
     client_id: env.DISCORD_CLIENT_ID,
@@ -60,4 +65,18 @@ export async function exchangeDiscordCode(code: string) {
     token,
     identity: (await identityResponse.json()) as DiscordIdentity
   };
+}
+
+export async function getDiscordOAuthGuildMember(tokenType: string, accessToken: string) {
+  if (!env.DISCORD_GUILD_ID) return undefined;
+  const response = await fetch(`https://discord.com/api/v10/users/@me/guilds/${env.DISCORD_GUILD_ID}/member`, {
+    headers: { authorization: `${tokenType} ${accessToken}` }
+  });
+
+  if (response.status === 404) return undefined;
+  if (!response.ok) {
+    throw new HttpError(401, "Discord server membership lookup failed");
+  }
+
+  return (await response.json()) as DiscordOAuthGuildMember;
 }

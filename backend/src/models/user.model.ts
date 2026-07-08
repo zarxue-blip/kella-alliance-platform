@@ -8,6 +8,8 @@ const userSchema = new Schema(
     discordId: { type: String, required: true, unique: true, index: true },
     username: { type: String, required: true },
     avatar: { type: String },
+    discordRoleIds: [{ type: String }],
+    inConfiguredGuild: { type: Boolean, default: false },
     role: { type: String, enum: roleValues, default: "Member", index: true },
     allianceId: { type: Schema.Types.ObjectId, ref: "Alliance", required: true, index: true },
     memberId: { type: Schema.Types.ObjectId, ref: "Member" },
