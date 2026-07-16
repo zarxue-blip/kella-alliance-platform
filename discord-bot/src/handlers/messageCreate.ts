@@ -142,9 +142,10 @@ function helpText() {
     "- attack: emergency alert",
     "- members: roster and sync",
     "- dashboard: command center link",
+    "- time: live UTC countdown timer",
     "- complain: private complaint or suggestion for admins",
     "",
-    "Useful commands: /roots, /summit, /shield, /attack, /checkin, /absence, /apply, /complain, /dashboard"
+    "Useful commands: /roots, /summit, /time, /shield, /attack, /checkin, /absence, /apply, /complain, /dashboard"
   ].join("\n");
 }
 
@@ -229,8 +230,12 @@ function answerMention(question: string) {
     return "/summit creates a Summit registration panel. Members pick Attending, Absent, or Not Sure. Revolutionary technology: clicking one button.";
   }
 
+  if (hasAny(text, ["timer", "countdown"])) {
+    return "Use /time with a 24-hour UTC server time, like /time utc:13 UTC. Discord will show a live countdown such as \"in 5 minutes\". Finally, timekeeping with fewer arguments.";
+  }
+
   if (hasAny(text, ["time", "utc", "server time"])) {
-    return "Call of Dragons server time is 24-hour UTC. If your clock says 7 PM and the event says 19:00 UTC, congratulations, numbers still work.";
+    return "Call of Dragons server time is 24-hour UTC. Use /time utc:13 UTC to post a live countdown. If your clock says 7 PM and the event says 19:00 UTC, congratulations, numbers still work.";
   }
 
   if (hasAny(text, ["rule", "rules", "nap", "alliance rule"])) {

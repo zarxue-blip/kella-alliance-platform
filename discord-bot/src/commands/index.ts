@@ -44,6 +44,34 @@ async function allianceMention(interaction: ChatInputCommandInteraction) {
   return role ? { content: `<@&${role.id}>`, roles: [role.id] } : { content: "@Alliance", roles: [] };
 }
 
+function parseUtcTimer(input: string, now = new Date()) {
+  const cleaned = input.trim().toLowerCase().replace(/\s+/g, " ");
+  const match = cleaned.match(/^(?:(\d{4})-(\d{1,2})-(\d{1,2})\s+)?(\d{1,2})(?::?(\d{2}))?\s*(?:utc)?$/i);
+  if (!match) return null;
+
+  const year = match[1] ? Number(match[1]) : undefined;
+  const month = match[2] ? Number(match[2]) : undefined;
+  const day = match[3] ? Number(match[3]) : undefined;
+  const hour = Number(match[4]);
+  const minute = match[5] ? Number(match[5]) : 0;
+  if (hour > 23 || minute > 59) return null;
+
+  let target: Date;
+  if (year && month && day) {
+    target = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  } else {
+    target = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), hour, minute, 0));
+    if (target.getTime() <= now.getTime()) target.setUTCDate(target.getUTCDate() + 1);
+  }
+
+  return {
+    hour,
+    minute,
+    unix: Math.floor(target.getTime() / 1000),
+    label: `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")} UTC`
+  };
+}
+
 export const commands: BotCommand[] = [
   {
     data: new SlashCommandBuilder()
@@ -142,6 +170,48 @@ export const commands: BotCommand[] = [
           }
         ],
         components: [summitButtons()]
+      });
+    }
+  },
+  {
+    data: new SlashCommandBuilder()
+      .setName("time")
+      .setDescription("Post a live Discord countdown for a 24-hour UTC server time.")
+      .addStringOption((option) =>
+        option
+          .setName("utc")
+          .setDescription("UTC time, like 13 UTC, 13:30, or 2026-07-16 20:00 UTC")
+          .setRequired(true)
+          .setMaxLength(32)
+      )
+      .addStringOption((option) =>
+        option
+          .setName("note")
+          .setDescription("Optional event label, like Roots, Summit, or buff")
+          .setRequired(false)
+          .setMaxLength(120)
+      ),
+    async execute(interaction) {
+      const timer = parseUtcTimer(interaction.options.getString("utc", true));
+      if (!timer) {
+        await interaction.reply({
+          ephemeral: true,
+          content: "Use 24-hour UTC time, like `/time utc:13 UTC`, `/time utc:13:30`, or `/time utc:2026-07-16 20:00 UTC`."
+        });
+        return;
+      }
+
+      const note = interaction.options.getString("note")?.trim();
+      const title = note ? `Timer: ${note}` : "Server Time Countdown";
+      await interaction.reply({
+        embeds: [
+          {
+            title,
+            description: [`**${timer.label}**`, `Starts <t:${timer.unix}:R>`, `Exact time: <t:${timer.unix}:F>`].join("\n"),
+            color: 0xfacc15,
+            footer: { text: "Call of Dragons server time uses 24-hour UTC" }
+          }
+        ]
       });
     }
   },
