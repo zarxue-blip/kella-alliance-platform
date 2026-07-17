@@ -799,12 +799,7 @@ export const dashboardEventSend = asyncHandler(async (req, res) => {
   const startsAt = new Date(body.startsAt);
   if (Number.isNaN(startsAt.getTime())) throw new HttpError(400, "Event time is invalid");
 
-  const description = [
-    body.description.trim(),
-    "",
-    `Server Time: ${formatUtcDateTime(startsAt)} UTC`,
-    "Click an attendance button below so officers can see who is coming."
-  ].join("\n");
+  const description = body.description.trim();
 
   const action = await KellaActionModel.create({
     allianceId,
