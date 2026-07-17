@@ -1,13 +1,8 @@
 const navItems = [
   { path: "/", icon: "/assets/icons/dashboard.png", label: "Dashboard" },
-  { path: "/profile", icon: "/assets/icons/members.png", label: "My Profile" },
   { path: "/members", icon: "/assets/icons/members.png", label: "Members" },
-  { path: "/roots-registration", icon: "/assets/icons/root-registration.png", label: "Roots Registration" },
-  { path: "/roots-reports", icon: "/assets/icons/roots-report.png", label: "Roots Reports" },
-  { path: "/events", icon: "/assets/icons/events.png", label: "Events" },
-  { path: "/alerts", icon: "/assets/icons/alerts.png", label: "Alerts" },
-  { path: "/shield-alerts", icon: "/assets/icons/shield-alerts.png", label: "Shield Alerts" },
-  { path: "/embed-sender", icon: "/assets/icons/embed-sender.png", label: "Embed Sender" },
+  { path: "/roots-of-war", icon: "/assets/icons/root-registration.png", label: "Roots of War" },
+  { path: "/tools", icon: "/assets/icons/events.png", label: "Tools" },
   { path: "/complaints", icon: "/assets/icons/complaints.png", label: "Complaints" },
   { path: "/settings", icon: "/assets/icons/settings.png", label: "Settings" }
 ];
@@ -271,6 +266,15 @@ export function kellaDashboardHtml() {
       }
       [data-auth-login], [data-auth-logout] { width: auto; padding: 0 10px; }
       .icon-button:hover { border-color: rgba(255, 214, 90, 0.92); color: #5c3106; box-shadow: 0 0 16px rgba(255, 214, 90, 0.28); }
+      .profile-top-button {
+        width: 38px;
+        height: 38px;
+        border: 1px solid rgba(109, 69, 25, 0.30);
+        border-radius: 999px;
+        background: rgba(255, 244, 205, 0.72);
+        padding: 4px;
+      }
+      .profile-top-button img { width: 100%; height: 100%; object-fit: contain; display: block; }
       .content { padding: 24px 20px 28px; }
       .guild { display: flex; align-items: center; gap: 14px; }
       .avatar {
@@ -426,6 +430,27 @@ export function kellaDashboardHtml() {
       .readiness-row span { display: flex; justify-content: space-between; gap: 10px; color: #4d3216; font-size: 12px; font-weight: 850; }
       .bar { height: 7px; background: rgba(76, 47, 18, 0.20); border-radius: 999px; overflow: hidden; }
       .bar i { display: block; height: 100%; background: linear-gradient(90deg, #9b4d1e, var(--gold)); }
+      .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
+      .calendar-day {
+        min-height: 58px;
+        border: 1px solid rgba(92, 55, 18, 0.18);
+        border-radius: 8px;
+        background: rgba(255, 247, 219, 0.42);
+        padding: 7px;
+        display: grid;
+        align-content: space-between;
+      }
+      .calendar-day strong { font-size: 13px; color: #3a220c; }
+      .calendar-day span { font-size: 11px; color: var(--muted); }
+      .calendar-day.hot { background: linear-gradient(180deg, rgba(255, 224, 109, 0.78), rgba(209, 142, 43, 0.50)); border-color: rgba(169, 99, 23, 0.40); }
+      .calendar-day.event { box-shadow: inset 0 -3px 0 rgba(179, 38, 47, 0.48); }
+      .power-list { display: grid; gap: 12px; }
+      .power-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
+      .power-row .bar { grid-column: 1 / -1; }
+      .command-board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+      .command-card { padding: 14px; border: 1px solid rgba(92, 55, 18, 0.18); border-radius: 10px; background: rgba(255, 247, 219, 0.48); }
+      .command-card code { display: inline-block; margin-bottom: 8px; font-weight: 1000; color: #8b3d15; }
+      .tool-picker { display: grid; gap: 14px; max-width: 420px; }
       .card, .preview { padding: 20px; }
       .card-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
       .card p { color: #5f4729; line-height: 1.55; font-weight: 650; }
@@ -685,7 +710,8 @@ export function kellaDashboardHtml() {
         .top-actions { width: 100%; flex-wrap: wrap; }
         .top-actions .server-clock { flex: 1 1 100%; justify-items: start; }
         .top-actions .auth-button { flex: 1; }
-        .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row { grid-template-columns: 1fr; }
+        .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row, .command-board { grid-template-columns: 1fr; }
+        .calendar-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         .member-modal { padding: 10px; align-items: end; }
         .member-modal-panel { width: 100%; max-height: calc(100vh - 24px); border-radius: 14px 14px 0 0; padding: 18px; }
         .member-profile-hero { grid-template-columns: 1fr; text-align: center; padding-right: 0; justify-items: center; }
@@ -727,6 +753,7 @@ export function kellaDashboardHtml() {
               <strong data-server-clock>--:--:-- UTC</strong>
             </div>
             <span class="auth-pill" data-auth-status>Checking login...</span>
+            <button class="profile-top-button" type="button" data-link-button="/profile" data-profile-button title="My Profile" style="display:none"><img src="/assets/icons/members.png" alt="" /></button>
             <button class="auth-button" type="button" data-action="discord-login" data-auth-login title="Discord Login">Login</button>
             <button class="auth-button" type="button" data-action="discord-logout" data-auth-logout title="Logout" style="display:none">Logout</button>
           </div>
@@ -1002,13 +1029,15 @@ export function kellaDashboardHtml() {
       function setActiveNav() {
         document.querySelectorAll("[data-link]").forEach(function(link) {
           const path = link.getAttribute("data-path");
-          const active = path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
+          let active = path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
+          if (path === "/roots-of-war") active = location.pathname.startsWith("/roots");
+          if (path === "/tools") active = ["/tools", "/events", "/alerts", "/shield-alerts", "/embed-sender"].some(function(prefix) { return location.pathname.startsWith(prefix); });
           link.classList.toggle("active", active);
         });
       }
 
       function filterDashboardCards(term) {
-        document.querySelectorAll("[data-module-card], [data-quick-card]").forEach(function(card) {
+        document.querySelectorAll("[data-module-card], [data-quick-card], .command-card, .activity-item").forEach(function(card) {
           card.style.display = card.textContent.toLowerCase().includes(term) ? "" : "none";
         });
       }
@@ -1083,18 +1112,21 @@ export function kellaDashboardHtml() {
         const target = document.querySelector("[data-auth-status]");
         const loginButton = document.querySelector("[data-auth-login]");
         const logoutButton = document.querySelector("[data-auth-logout]");
+        const profileButton = document.querySelector("[data-profile-button]");
         const user = state.auth?.user;
         if (!target) return;
         if (state.auth?.authenticated === false) {
           target.textContent = "Discord: not logged in";
           if (loginButton) loginButton.style.display = "";
           if (logoutButton) logoutButton.style.display = "none";
+          if (profileButton) profileButton.style.display = "none";
           return;
         }
         if (user) {
           target.textContent = "Discord: " + (user.username || user.discordId) + (state.auth?.isDashboardAdmin ? " (Admin)" : " (Member)");
           if (loginButton) loginButton.style.display = "none";
           if (logoutButton) logoutButton.style.display = "";
+          if (profileButton) profileButton.style.display = "";
           return;
         }
         target.textContent = "Checking login...";
@@ -1146,7 +1178,100 @@ export function kellaDashboardHtml() {
         return Math.max(0, Math.min(100, Math.round((Number(value || 0) / Number(total || 1)) * 100)));
       }
 
-      function renderDashboardData(summary) {
+      function currentMonthDays() {
+        const now = new Date();
+        const year = now.getUTCFullYear();
+        const month = now.getUTCMonth();
+        const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+        return Array.from({ length: days }, function(_item, index) {
+          return new Date(Date.UTC(year, month, index + 1));
+        });
+      }
+
+      function monthTitle() {
+        return new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date());
+      }
+
+      function dayKey(value) {
+        if (!value) return "";
+        return new Date(value).toISOString().slice(0, 10);
+      }
+
+      function inCurrentMonth(value) {
+        if (!value) return false;
+        const date = new Date(value);
+        const now = new Date();
+        return date.getUTCFullYear() === now.getUTCFullYear() && date.getUTCMonth() === now.getUTCMonth();
+      }
+
+      function addCount(map, value, amount = 1) {
+        const key = dayKey(value);
+        if (!key) return;
+        map[key] = (map[key] || 0) + amount;
+      }
+
+      function renderActivityCalendar(summary, events) {
+        const counts = {};
+        (summary.recentRegistrations || []).forEach(function(item) { addCount(counts, item.sentAt); });
+        (summary.latestShieldAlerts || []).forEach(function(item) { addCount(counts, item.sentAt); });
+        (summary.recentAdminActions || []).forEach(function(item) { addCount(counts, item.sentAt); });
+        (events || []).forEach(function(item) { addCount(counts, item.sentAt || item.startsAt, item.attendance?.total || 1); });
+        const max = Math.max.apply(null, Object.values(counts).concat([1]));
+        return '<div class="calendar-grid">' + currentMonthDays().map(function(date) {
+          const key = dayKey(date);
+          const count = counts[key] || 0;
+          const hot = count > 0 ? " hot" : "";
+          const opacity = count ? Math.max(0.45, count / max).toFixed(2) : "1";
+          return '<div class="calendar-day' + hot + '" style="opacity:' + opacity + '"><strong>' + date.getUTCDate() + '</strong><span>' + (count ? count + ' actions' : 'quiet') + '</span></div>';
+        }).join("") + '</div>';
+      }
+
+      function renderPowerBoard(members) {
+        const topMembers = (members || []).slice().sort(function(a, b) { return Number(b.power || 0) - Number(a.power || 0); }).slice(0, 8);
+        if (!topMembers.length) return empty("Sync Discord members and upload power data to build the power board.");
+        const topPower = Math.max.apply(null, topMembers.map(function(member) { return Number(member.power || 0); }).concat([1]));
+        return '<div class="power-list">' + topMembers.map(function(member) {
+          const width = percent(member.power || 0, topPower);
+          return '<div class="power-row"><strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + formatNumber(member.power) + '</span><div class="bar"><i style="width:' + width + '%"></i></div></div>';
+        }).join("") + '</div>';
+      }
+
+      function renderEventsCalendar(events) {
+        const eventMap = {};
+        (events || []).filter(function(event) { return inCurrentMonth(event.startsAt); }).forEach(function(event) {
+          const key = dayKey(event.startsAt);
+          if (!eventMap[key]) eventMap[key] = [];
+          eventMap[key].push(event);
+        });
+        return '<div class="calendar-grid">' + currentMonthDays().map(function(date) {
+          const key = dayKey(date);
+          const items = eventMap[key] || [];
+          return '<div class="calendar-day' + (items.length ? " event" : "") + '"><strong>' + date.getUTCDate() + '</strong><span>' + (items.length ? items.length + ' event' + (items.length > 1 ? 's' : '') : 'none') + '</span></div>';
+        }).join("") + '</div>';
+      }
+
+      function renderActiveEvents(events) {
+        const now = Date.now();
+        const active = (events || []).filter(function(event) { return new Date(event.startsAt).getTime() >= now - 24 * 60 * 60 * 1000; }).slice(0, 5);
+        if (!active.length) return empty("No active or upcoming events yet.");
+        return '<div class="activity-list">' + active.map(function(event) {
+          return '<div class="activity-item"><span class="activity-dot">E</span><div><strong>' + escapeHtml(event.title || "Alliance Event") + '</strong><span class="activity-time">' + formatUtcDateTime(event.startsAt) + '</span></div></div>';
+        }).join("") + '</div>';
+      }
+
+      function renderCommandBoard() {
+        const commands = [
+          { command: "/roots", text: "Open Roots attendance." },
+          { command: "/time utc:13 UTC", text: "Post a live countdown." },
+          { command: "/complain message", text: "Send R4 feedback." },
+          { command: "/checkin", text: "Daily activity button." }
+        ];
+        return '<div class="command-board">' + commands.map(function(item) {
+          return '<button class="command-card" data-action="copy-command" data-value="' + escapeHtml(item.command) + '"><code>' + escapeHtml(item.command) + '</code><p>' + escapeHtml(item.text) + '</p></button>';
+        }).join("") + '</div>';
+      }
+
+      function renderDashboardData(summary, members = [], events = []) {
         const roots = summary.upcomingRoots;
         const slots = roots?.slots || [];
         const slot14 = slots.find(function(slot) { return slot.slot === "14UTC"; }) || { label: "14:00 UTC", available: 0, absent: 0, unsure: 0 };
@@ -1196,40 +1321,26 @@ export function kellaDashboardHtml() {
           : empty("No recent alliance activity yet.");
 
         app.innerHTML =
-          pageHeader("Dashboard", "Welcome back, Commander. Kella keeps Roots, alerts, embeds, and officer reports in one fast control room.", '<button class="secondary" data-action="sync-discord-members">Sync Data</button><button class="primary" data-link-button="/embed-sender">Direct Command</button>') +
+          pageHeader("Dashboard", "Clean alliance command center: live activity, member power, active events, and the commands officers use most.", '<button class="secondary" data-action="sync-discord-members">Sync Data</button><button class="primary" data-link-button="/tools">Open Tools</button>') +
           '<section class="dashboard-main">' +
-            '<div class="card overview-panel">' +
-              '<div class="overview-content">' +
-                '<div class="panel-title"><div><span class="command-chip">Alliance Overview</span><h3>Command Board</h3></div><div class="status-row"><span class="badge good">' + escapeHtml(summary.botStatus) + '</span>' + (roots ? '<span class="badge warn">Roots of War</span>' : '<span class="badge bad">No Roots Active</span>') + '</div></div>' +
-                '<p>Kella is tracking live alliance actions from Discord and the dashboard. Use the command tools below when officers need to move fast.</p>' +
-                '<div class="overview-kpis">' +
-                  '<div class="kpi-card"><span>Total Members</span><strong>' + escapeHtml(totalMembers) + '</strong></div>' +
-                  '<div class="kpi-card"><span>Today Check-ins</span><strong>' + escapeHtml(summary.todayCheckIns || 0) + '</strong></div>' +
-                  '<div class="kpi-card"><span>Active Alerts</span><strong>' + escapeHtml(summary.activeAlerts || 0) + '</strong></div>' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-            '<div class="card activity-card"><div class="card-header"><h3>Live Activity</h3><button class="secondary" data-link-button="/alerts">Open</button></div>' + activityHtml + '</div>' +
+            '<div class="card"><div class="card-header"><div><h3>Activity Calendar</h3><span class="muted">' + monthTitle() + ' activity from Discord and dashboard actions.</span></div><span class="badge good">' + escapeHtml(summary.botStatus) + '</span></div>' + renderActivityCalendar(summary, events) + '</div>' +
+            '<div class="card activity-card"><div class="card-header"><h3>Live Activity</h3><button class="secondary" data-link-button="/tools">Tools</button></div>' + activityHtml + '</div>' +
           '</section>' +
-          '<section class="quick-grid">' +
-            '<div class="card quick-card" data-quick-card><div><h3>Upcoming Roots</h3><p>' + (roots ? escapeHtml(rootsLabel) : "No Roots registration has been created yet.") + '</p></div><button class="secondary" data-link-button="' + reportPath + '">' + (roots ? "Quick View" : "Open Setup") + '</button></div>' +
-            '<div class="card quick-card" data-quick-card><div><h3>Roots Availability</h3><p><strong>' + escapeHtml(slot14.label) + '</strong>: ' + slot14.available + ' available<br><strong>' + escapeHtml(slot20.label) + '</strong>: ' + slot20.available + ' available</p></div><button class="secondary" data-link-button="/roots-reports">Reports</button></div>' +
-            '<div class="card quick-card" data-quick-card><div><h3>Troop Readiness</h3><div class="readiness"><div class="readiness-row"><span><b>Daily Activity</b><b>' + checkinPercent + '%</b></span><div class="bar"><i style="width:' + checkinPercent + '%"></i></div></div><div class="readiness-row"><span><b>Roots Responses</b><b>' + rootsResponses + '</b></span><div class="bar"><i style="width:' + Math.min(100, rootsResponses) + '%"></i></div></div></div></div><button class="secondary" data-link-button="/members">Members</button></div>' +
-            '<div class="card quick-card" data-quick-card><div><h3>Officer Signals</h3><p><span class="big">' + (shieldCount + adminCount) + '</span><br>' + shieldCount + ' shield alerts, ' + adminCount + ' admin actions</p></div><button class="secondary" data-link-button="/shield-alerts">Shield Alerts</button></div>' +
+          '<section class="two">' +
+            '<div class="card"><div class="card-header"><div><h3>Member Power</h3><span class="muted">Updates when admins edit member cards or upload power files.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</div>' +
+            '<div class="card"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events.</span></div><button class="secondary" data-link-button="/tools">Create</button></div>' + renderEventsCalendar(events) + '</div>' +
           '</section>' +
-          '<section class="stats">' +
-            stat("Bot Status", summary.botStatus) +
-            stat("Pending Shield Warnings", summary.pendingShieldWarnings || 0) +
-            stat("Pending Applications", summary.pendingApplications || 0) +
-          '</section>' +
-          renderModulesGrid();
+          '<section class="two" style="margin-top:18px">' +
+            '<div class="card"><div class="card-header"><h3>Active Events</h3><button class="secondary" data-link-button="/tools">Open Tools</button></div>' + renderActiveEvents(events) + '</div>' +
+            '<div class="card"><div class="card-header"><h3>Command Board</h3><span class="badge warn">Quick Copy</span></div>' + renderCommandBoard() + '</div>' +
+          '</section>';
       }
 
       async function renderDashboard() {
         skeleton("Loading dashboard...");
         try {
-          const results = await Promise.all([loadSummary(), loadSettings()]);
-          renderDashboardData(results[0]);
+          const results = await Promise.all([loadSummary(), loadSettings(), loadMembers(), loadDashboardEvents()]);
+          renderDashboardData(results[0], results[2], results[3]);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load dashboard data. ' + escapeHtml(error.message) + '</div>';
         }
@@ -1490,6 +1601,95 @@ export function kellaDashboardHtml() {
         }
       }
 
+      function toolPicker(selected) {
+        const tools = [
+          ["events", "Event Maker"],
+          ["alerts", "Attack + DM Alerts"],
+          ["shield", "Shield Alerts"],
+          ["embed", "Embed Sender"]
+        ];
+        return '<section class="card tool-picker"><label>Choose Tool<select data-tool-select>' + tools.map(function(tool) {
+          return '<option value="' + tool[0] + '"' + (tool[0] === selected ? " selected" : "") + '>' + tool[1] + '</option>';
+        }).join("") + '</select></label></section>';
+      }
+
+      async function eventToolContent() {
+        let channelHtml = '<label>Discord Channel<input data-event="channelManual" placeholder="Paste channel ID" /></label>';
+        try {
+          await loadChannels();
+          channelHtml = '<label>Discord Channel<select data-event="channelId">' + channelOptions() + '</select></label>';
+        } catch {
+          channelHtml = '<label>Discord Channel<input data-event="channelManual" placeholder="Paste channel ID or add Password in Settings" /></label>';
+        }
+        const events = await loadDashboardEvents();
+        return '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Create Event Embed</h3><span class="muted">Kella sends Attending, Absent, and Not Sure buttons automatically.</span></div><div class="toolbar"><span class="badge warn">24-hour UTC</span><button class="primary" data-action="send-event-embed">Send Event</button></div></div><div class="form-grid">' +
+            channelHtml +
+            '<label>Role Mention ID<input data-event="roleMentionId" placeholder="Optional role ID" /></label>' +
+            '<label>Event Title<input data-event="title" placeholder="Summit, Roots of War, Fortress..." /></label>' +
+            utcEventTimeControls() +
+            '<label class="wide">Description<textarea data-event="description" placeholder="Tell members what to do, where to go, and what time to be ready."></textarea></label>' +
+          '</div></section>' +
+          '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Recent Sent Events</h3><button class="secondary" data-action="refresh-events">Refresh</button></div>' + renderRecentEvents(events) + '</section>';
+      }
+
+      function alertsToolContent(alerts) {
+        return '<section class="two" style="margin-top:18px">' + renderAttackTool() + renderDmAlertTool() + '</section>' +
+          '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Recent Alerts</h3><button class="secondary" data-action="refresh-alerts">Refresh</button></div>' + renderAlertsTable(alerts) + '</section>';
+      }
+
+      function shieldToolContent(alerts) {
+        return '<section style="margin-top:18px">' + renderShieldTool() + '</section>' +
+          '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Recent Shield Alerts</h3><button class="secondary" data-action="refresh-alerts">Refresh</button></div>' + renderAlertsTable(alerts.filter(function(alert) { return alert.type === "shield_alert"; })) + '</section>';
+      }
+
+      async function embedToolContent() {
+        let channelsError = "";
+        let templatesError = "";
+        try { await loadChannels(); } catch (error) { channelsError = error.message || "Could not load channels."; state.channels = []; }
+        try { await loadTemplates(); } catch (error) { templatesError = error.message || "Could not load templates."; state.templates = []; }
+        const channelField = state.channels.length
+          ? '<label>Discord Channel Select<select data-embed="channelId">' + channelOptions() + '</select></label>'
+          : '<label>Discord Channel ID<input data-embed="channelManual" placeholder="Paste channel ID" /></label>';
+        const templateOptions = '<option value="">Load saved template</option>' + state.templates.map(function(template) {
+          return '<option value="' + escapeHtml(template.id) + '">' + escapeHtml(template.name) + '</option>';
+        }).join("");
+        return (channelsError || templatesError ? '<div class="error" style="margin-top:18px">' + escapeHtml(channelsError || templatesError) + '. Add your Admin Key in Settings if needed.</div>' : '') +
+          '<section class="two" style="margin-top:18px"><div class="card stack"><div class="card-header"><h3>Embed Sender</h3><div class="toolbar"><button class="secondary" data-action="preview-embed">Preview</button><button class="secondary" data-action="save-template">Save Template</button><button class="danger" data-action="delete-template">Delete Template</button><button class="primary" data-action="send-embed">Send Embed</button></div></div><div class="form-grid">' +
+            '<label>Saved Template<select data-template-select>' + templateOptions + '</select></label>' +
+            channelField +
+            '<label>Embed Title<input data-embed="title" value="Roots of War Reminder" /></label>' +
+            '<label>Embed Color<input data-embed="color" value="#facc15" /></label>' +
+            '<label class="wide">Embed Description<textarea data-embed="description">Roots of War registration is now open. Please choose your availability for 14 UTC or 20 UTC.</textarea></label>' +
+            '<label>Image URL<input data-embed="imageUrl" placeholder="Optional image URL" /></label>' +
+            '<label>Thumbnail URL<input data-embed="thumbnailUrl" placeholder="Optional thumbnail URL" /></label>' +
+            '<label>Footer Text<input data-embed="footer" value="Sent by Kella" /></label>' +
+            '<label>Mention Role<input data-embed="roleMentionId" placeholder="Optional role ID" /></label>' +
+          '</div></div>' +
+          '<aside class="preview" data-embed-preview><img class="thumb" data-preview-thumb alt="" /><h3 data-preview-title></h3><p data-preview-description></p><img class="image" data-preview-image alt="" /><footer data-preview-footer></footer></aside></section>';
+      }
+
+      async function renderTools(forcedTool) {
+        skeleton("Loading tools...");
+        const selected = forcedTool || new URLSearchParams(location.search).get("tool") || "events";
+        try {
+          let content = "";
+          if (selected === "events") content = await eventToolContent();
+          if (selected === "alerts") {
+            await Promise.all([loadChannels().catch(function() { state.channels = []; }), loadMembers().catch(function() { state.members = []; })]);
+            content = alertsToolContent(await loadAlerts());
+          }
+          if (selected === "shield") {
+            await loadMembers().catch(function() {});
+            content = shieldToolContent(await loadAlerts());
+          }
+          if (selected === "embed") content = await embedToolContent();
+          app.innerHTML = pageHeader("Tools", "Pick the admin tool you need. Events, alerts, shield warnings, and embeds live here now.", "") + toolPicker(selected) + content;
+          if (selected === "embed") updateEmbedPreview();
+        } catch (error) {
+          app.innerHTML = '<div class="error">Could not load tools. ' + escapeHtml(error.message) + '</div>';
+        }
+      }
+
       async function renderAlerts(type) {
         skeleton("Loading alerts...");
         try {
@@ -1694,16 +1894,24 @@ export function kellaDashboardHtml() {
           } catch {
             channelHtml = '<label>Discord Channel<input data-roots-channel-manual placeholder="Paste channel ID or add Password in Settings" /></label>';
           }
+          const reportRows = reports.length
+            ? reports.map(function(report) {
+                return '<tr><td>' + formatDate(report.date) + '</td><td>' + escapeHtml(report.timeSlot) + '</td><td>' + report.available + '</td><td>' + report.absent + '</td><td>' + report.unsure + '</td><td>' + escapeHtml(report.createdBy) + '</td><td><button class="secondary" data-link-button="/roots-reports/' + report.id + '">View</button></td></tr>';
+              }).join("")
+            : "";
 
           app.innerHTML =
-            pageHeader("Roots Registration", "Create a Roots of War registration panel from the dashboard or use /roots in Discord.", '<button class="secondary" data-action="copy-command" data-value="/roots">Copy /roots</button><button class="primary" data-action="send-roots-registration">Create Roots Panel</button>') +
+            pageHeader("Roots of War", "Registration and reports in one place. Create the Discord panel, then review 14 UTC and 20 UTC attendance below.", '<button class="secondary" data-action="copy-command" data-value="/roots">Copy /roots</button><button class="primary" data-action="send-roots-registration">Create Roots Panel</button>') +
             '<section class="two"><div class="card"><div class="card-header"><div><h3>Create Roots Panel</h3><span class="muted">Kella sends 14 UTC and 20 UTC buttons to Discord, then stores every answer in reports.</span></div><span class="badge warn">24-hour UTC</span></div><div class="form-grid">' +
               channelHtml +
               '<label>Role Mention ID<input data-roots-role placeholder="Optional role ID" /></label>' +
             '</div><p class="muted" style="margin-top:12px">Members can choose Available, Absent, or Not Sure for each slot and update their answer any time.</p></div>' +
-            '<div class="card"><div class="card-header"><h3>Latest Report</h3><button class="secondary" data-link-button="/roots-reports">Reports</button></div>' +
+            '<div class="card"><div class="card-header"><h3>Latest Report</h3><button class="secondary" data-action="refresh-reports">Refresh</button></div>' +
             (latest ? '<p>' + formatDate(latest.date) + ' - ' + latest.timeSlot + '</p><p>' + latest.available + ' Available, ' + latest.absent + ' Absent, ' + latest.unsure + ' Not Sure</p>' : '<p>No Roots reports yet.</p>') +
-            '</div></section>';
+            '</div></section>' +
+            '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Roots Reports</h3><span class="muted">Historical registrations grouped by message and time slot.</span></div></div>' +
+            (reports.length ? '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Time Slot</th><th>Available</th><th>Absent</th><th>Not Sure</th><th>Created By</th><th></th></tr></thead><tbody>' + reportRows + '</tbody></table></div>' : empty("No Roots reports yet. Create a Roots panel first.")) +
+            '</section>';
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load Roots data. ' + escapeHtml(error.message) + '</div>';
         }
@@ -1807,22 +2015,17 @@ export function kellaDashboardHtml() {
         if (path === "/") return renderDashboard();
         if (path === "/profile") return renderProfile();
         if (path === "/members") return renderMembers();
-        if (path === "/roots-registration") return renderRootsRegistration();
-        if (path === "/roots-reports") return renderRootsReports();
+        if (path === "/roots-of-war" || path === "/roots-registration" || path === "/roots-reports") return renderRootsRegistration();
         if (path.startsWith("/roots-reports/")) return renderRootsReportDetails(path.split("/").pop());
-        if (path === "/events") return renderEvents();
+        if (path === "/tools") return renderTools();
+        if (path === "/events") return renderTools("events");
         if (path === "/alerts") {
-          await Promise.all([
-            loadChannels().catch(function() { state.channels = []; }),
-            loadMembers().catch(function() { state.members = []; })
-          ]);
-          return renderAlerts();
+          return renderTools("alerts");
         }
         if (path === "/shield-alerts") {
-          await loadMembers().catch(function() {});
-          return renderAlerts("shield");
+          return renderTools("shield");
         }
-        if (path === "/embed-sender") return renderEmbedSender();
+        if (path === "/embed-sender") return renderTools("embed");
         if (path === "/complaints") return renderComplaints();
         if (path === "/settings") return renderSettings();
         navigate("/");
@@ -1937,15 +2140,27 @@ export function kellaDashboardHtml() {
           await route();
         }, "Page refreshed.");
         if (kind === "refresh-dashboard") withFeedback(action, async function() { state.summary = null; await renderDashboard(); }, "Dashboard refreshed.");
-        if (kind === "refresh-reports") withFeedback(action, async function() { await renderRootsReports(); }, "Reports refreshed.");
-        if (kind === "refresh-alerts") withFeedback(action, async function() { state.alerts = []; await loadAlerts(); await renderAlerts(location.pathname === "/shield-alerts" ? "shield" : undefined); }, "Alerts refreshed.");
-        if (kind === "refresh-events") withFeedback(action, async function() { state.events = []; await renderEvents(); }, "Events refreshed.");
+        if (kind === "refresh-reports") withFeedback(action, async function() {
+          state.reports = [];
+          if (location.pathname.startsWith("/roots-reports/")) {
+            await renderRootsReportDetails(location.pathname.split("/").pop());
+          } else {
+            await renderRootsRegistration();
+          }
+        }, "Reports refreshed.");
+        if (kind === "refresh-alerts") withFeedback(action, async function() {
+          state.alerts = [];
+          await loadAlerts();
+          const selectedTool = location.pathname === "/shield-alerts" || new URLSearchParams(location.search).get("tool") === "shield" ? "shield" : "alerts";
+          await renderTools(selectedTool);
+        }, "Alerts refreshed.");
+        if (kind === "refresh-events") withFeedback(action, async function() { state.events = []; await renderTools("events"); }, "Events refreshed.");
         if (kind === "refresh-complaints") withFeedback(action, async function() { state.complaints = []; await renderComplaints(); }, "Complaints refreshed.");
         if (kind === "send-event-embed") withFeedback(action, async function() {
           await sendJson("POST", "/api/dashboard/events", eventPayload(), true);
           state.summary = null;
           state.events = [];
-          await renderEvents();
+          await renderTools("events");
         }, "Event embed sent.");
         if (kind === "send-roots-registration") withFeedback(action, async function() {
           const channelId = document.querySelector("[data-roots-channel]")?.value || document.querySelector("[data-roots-channel-manual]")?.value || "";
@@ -2012,7 +2227,7 @@ export function kellaDashboardHtml() {
           state.summary = null;
           state.alerts = [];
           await loadAlerts();
-          await renderAlerts("shield");
+          await renderTools("shield");
         }, "Shield warning sent.");
         if (kind === "send-attack-alert") withFeedback(action, async function() {
           await sendJson("POST", "/api/dashboard/tools/attack-alert", {
@@ -2023,7 +2238,7 @@ export function kellaDashboardHtml() {
           state.summary = null;
           state.alerts = [];
           await loadAlerts();
-          await renderAlerts();
+          await renderTools("alerts");
         }, "Attack alert sent.");
         if (kind === "send-dm-alert") withFeedback(action, async function() {
           const title = document.querySelector("[data-dm-alert-title]")?.value || "Kella Alliance Alert";
@@ -2036,7 +2251,7 @@ export function kellaDashboardHtml() {
           state.summary = null;
           state.alerts = [];
           await loadAlerts();
-          await renderAlerts();
+          await renderTools("alerts");
           return "DM alert sent to " + result.sent + " of " + result.total + " members" + (result.failed ? " (" + result.failed + " failed)." : ".");
         }, "DM alert sent.");
         if (kind === "resend-failed-dm-alert") withFeedback(action, async function() {
@@ -2047,7 +2262,7 @@ export function kellaDashboardHtml() {
           state.summary = null;
           state.alerts = [];
           await loadAlerts();
-          await renderAlerts();
+          await renderTools("alerts");
           return "Retried " + result.total + " failed recipients: " + result.sent + " sent" + (result.failed ? ", " + result.failed + " still failed." : ".");
         }, "Failed DM recipients retried.");
         if (kind === "preview-embed") withFeedback(action, async function() { updateEmbedPreview(); }, "Preview updated.");
@@ -2057,14 +2272,14 @@ export function kellaDashboardHtml() {
           if (!name) throw new Error("Template name required");
           await sendJson("POST", "/api/embed/templates", { name, ...embedPayload() }, true);
           state.templates = null;
-          await renderEmbedSender();
+          await renderTools("embed");
         }, "Template saved.");
         if (kind === "delete-template") withFeedback(action, async function() {
           const id = document.querySelector("[data-template-select]")?.value || "";
           if (!id) throw new Error("Choose a template first");
           await sendJson("DELETE", "/api/embed/templates/" + encodeURIComponent(id), undefined, true);
           state.templates = null;
-          await renderEmbedSender();
+          await renderTools("embed");
         }, "Template deleted.");
       });
 
@@ -2082,6 +2297,10 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("change", function(event) {
+        if (event.target.matches("[data-tool-select]")) {
+          navigate("/tools?tool=" + encodeURIComponent(event.target.value || "events"));
+          return;
+        }
         if (event.target.matches("[data-template-select]")) {
           const template = (state.templates || []).find(function(item) { return item.id === event.target.value; });
           if (!template) return;
@@ -2145,7 +2364,7 @@ export function kellaDashboardHtml() {
       setInterval(function() {
         if (document.hidden) return;
         if (document.activeElement && document.activeElement.matches("input, textarea, select")) return;
-        if (location.pathname === "/" || location.pathname.startsWith("/roots") || location.pathname === "/alerts" || location.pathname === "/shield-alerts" || location.pathname === "/events" || location.pathname === "/complaints") {
+        if (location.pathname === "/" || location.pathname.startsWith("/roots") || location.pathname === "/tools" || location.pathname === "/alerts" || location.pathname === "/shield-alerts" || location.pathname === "/events" || location.pathname === "/embed-sender" || location.pathname === "/complaints") {
           state.summary = null;
           state.alerts = [];
           state.events = [];
