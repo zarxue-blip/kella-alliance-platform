@@ -21,6 +21,11 @@ interface SendAttackInput {
   message: string;
 }
 
+interface SendEventAttendanceInput extends SendEmbedInput {
+  eventId: string;
+  startsAt: Date;
+}
+
 interface SendRootsRegistrationInput {
   channelId: string;
   roleMentionId?: string;
@@ -217,6 +222,47 @@ export async function sendAttackAlert(input: SendAttackInput) {
             { type: 2, custom_id: "attack:Defending", label: "🛡 Defending", style: 1 },
             { type: 2, custom_id: "attack:On The Way", label: "⌛ On the way", style: 3 },
             { type: 2, custom_id: "attack:Unavailable", label: "❌ Unavailable", style: 2 }
+          ]
+        }
+      ]
+    })
+  });
+}
+
+export async function sendEventAttendanceEmbed(input: SendEventAttendanceInput) {
+  if (!input.eventId) throw new HttpError(400, "Event id is required");
+  if (!input.channelId) throw new HttpError(400, "Target channel is required");
+  if (!input.description?.trim()) throw new HttpError(400, "Event description is required");
+
+  const unix = Math.floor(input.startsAt.getTime() / 1000);
+  const button = (status: "Attending" | "Absent" | "Unsure", label: string, style: number) => ({
+    type: 2,
+    custom_id: `event:${input.eventId}:${status}`,
+    label,
+    style
+  });
+
+  return discordRequest<any>(`/channels/${input.channelId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({
+      content: input.roleMentionId ? `<@&${input.roleMentionId}>` : undefined,
+      allowed_mentions: input.roleMentionId ? { roles: [input.roleMentionId] } : { parse: [] },
+      embeds: [
+        {
+          ...embedPayload(input),
+          fields: [
+            { name: "Server Time", value: `<t:${unix}:F>\n<t:${unix}:R>`, inline: false },
+            { name: "Attendance", value: "Click a button below. You can update your answer anytime.", inline: false }
+          ]
+        }
+      ],
+      components: [
+        {
+          type: 1,
+          components: [
+            button("Attending", "Attending", 3),
+            button("Absent", "Absent", 4),
+            button("Unsure", "Not Sure", 2)
           ]
         }
       ]

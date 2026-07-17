@@ -9,6 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { botRouter } from "./routes/bot.routes.js";
 import { apiRouter } from "./routes/index.js";
 import { kellaDashboardHtml } from "./views/kellaDashboard.js";
 
@@ -43,6 +44,7 @@ export function createApp() {
   app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
   app.use(rateLimit({ windowMs: 60_000, limit: 240 }));
   app.use("/assets", express.static(publicDir, { maxAge: "7d", immutable: true }));
+  app.use("/bot", botRouter);
 
   app.get(
     [

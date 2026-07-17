@@ -10,6 +10,7 @@ import {
   botComplaint,
   botDailyCheckIn,
   botEventReminder,
+  botEventResponse,
   botProfile,
   botRegister,
   botRootsResponse,
@@ -36,6 +37,7 @@ botRouter.post("/roots-of-war/check-in", botRootsOfWarCheckIn);
 botRouter.post("/shield-alert", botShieldAlert);
 botRouter.post("/attack", botAttackAlert);
 botRouter.post("/attack/response", botAttackResponse);
+botRouter.post("/event/response", botEventResponse);
 botRouter.post("/roots/response", botRootsResponse);
 botRouter.post("/roots/session", botRootsSession);
 botRouter.patch("/roots/session/:id", botRootsSessionUpdate);

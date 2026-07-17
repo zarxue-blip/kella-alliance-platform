@@ -95,6 +95,15 @@ export async function handleInteraction(interaction: Interaction) {
       return;
     }
 
+    if (interaction.isButton() && interaction.customId.startsWith("event:")) {
+      const [, eventId, statusValue] = interaction.customId.split(":");
+      if (!eventId || !statusValue) return;
+      const status = statusValue === "Unsure" ? "Not Sure" : statusValue;
+      await api.eventResponse({ discordId: interaction.user.id, displayName: displayName(interaction), eventId, status });
+      await interaction.reply({ ephemeral: true, content: `${botName} recorded your event attendance as ${status}.` });
+      return;
+    }
+
     if (interaction.isButton() && interaction.customId.startsWith("roots:")) {
       const [, reportId, slot, statusValue] = interaction.customId.split(":");
       if (!reportId || !slot || !statusValue) return;

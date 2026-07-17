@@ -34,6 +34,9 @@ export const api = {
   attackResponse(input: { discordId: string; displayName?: string; status: string }) {
     return request("POST", "/bot/attack/response", { ...allianceContext(), ...input });
   },
+  eventResponse(input: { discordId: string; displayName?: string; eventId: string; status: string }) {
+    return request("POST", "/bot/event/response", { ...allianceContext(), ...input });
+  },
   rootsResponse(input: { discordId: string; displayName?: string; reportId?: string; slot: string; status: string }) {
     return request("POST", "/bot/roots/response", { ...allianceContext(), ...input });
   },

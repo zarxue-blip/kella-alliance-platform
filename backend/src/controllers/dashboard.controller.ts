@@ -5,7 +5,7 @@ import { AllianceModel } from "../models/alliance.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { UserModel } from "../models/user.model.js";
-import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendRootsRegistration } from "../services/discord.service.js";
+import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendEventAttendanceEmbed, sendRootsRegistration } from "../services/discord.service.js";
 import { parseTopnWorkbook } from "../services/xlsx.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
@@ -409,6 +409,22 @@ function summarizeRootsResponses(responses: any[], slot: string) {
   };
 }
 
+function summarizeEventResponses(responses: DashboardAction[]) {
+  const byStatus = (status: string) => responses.filter((response) => response.status === status).map((response) => displayName(response));
+  const attending = byStatus("Attending");
+  const absent = byStatus("Absent");
+  const unsure = byStatus("Not Sure");
+  return {
+    attending,
+    absent,
+    unsure,
+    attendingCount: attending.length,
+    absentCount: absent.length,
+    unsureCount: unsure.length,
+    total: attending.length + absent.length + unsure.length
+  };
+}
+
 export const dashboardSummary = asyncHandler(async (_req, res) => {
   const allianceId = await resolveAllianceId();
   const filter = allianceFilter(allianceId);
@@ -752,19 +768,28 @@ export const dashboardEvents = asyncHandler(async (_req, res) => {
     .sort({ sentAt: -1 })
     .limit(100)
     .lean()) as DashboardAction[];
+  const eventIds = events.map((event) => event._id.toString());
+  const responses = eventIds.length
+    ? ((await KellaActionModel.find({ ...filter, type: "event_response", reportId: { $in: eventIds } }).sort({ actorName: 1 }).lean()) as DashboardAction[])
+    : [];
 
   res.json({
-    events: events.map((event) => ({
-      id: event._id.toString(),
-      title: event.eventType || event.payload?.title || "Alliance Event",
-      description: event.payload?.description || "",
-      startsAt: event.payload?.startsAt,
-      channelId: event.payload?.channelId || event.targetDiscordId || "",
-      messageLink: event.payload?.messageLink,
-      status: event.status || "Sent",
-      createdBy: event.actorName || "Dashboard",
-      sentAt: event.sentAt
-    }))
+    events: events.map((event) => {
+      const id = event._id.toString();
+      const eventResponses = responses.filter((response) => response.reportId === id);
+      return {
+        id,
+        title: event.eventType || event.payload?.title || "Alliance Event",
+        description: event.payload?.description || "",
+        startsAt: event.payload?.startsAt,
+        channelId: event.payload?.channelId || event.targetDiscordId || "",
+        messageLink: event.payload?.messageLink,
+        status: event.status || "Sent",
+        createdBy: event.actorName || "Dashboard",
+        sentAt: event.sentAt,
+        attendance: summarizeEventResponses(eventResponses)
+      };
+    })
   });
 });
 
@@ -778,17 +803,8 @@ export const dashboardEventSend = asyncHandler(async (req, res) => {
     body.description.trim(),
     "",
     `Server Time: ${formatUtcDateTime(startsAt)} UTC`,
-    "All Call of Dragons event times are shown in 24-hour UTC server time."
+    "Click an attendance button below so officers can see who is coming."
   ].join("\n");
-
-  const message = await sendDiscordEmbed({
-    channelId: body.channelId,
-    roleMentionId: body.roleMentionId,
-    title: body.title,
-    description,
-    color: "#facc15",
-    footer: "Call of Dragons Server Time - UTC"
-  });
 
   const action = await KellaActionModel.create({
     allianceId,
@@ -796,19 +812,51 @@ export const dashboardEventSend = asyncHandler(async (req, res) => {
     actorName: "Dashboard",
     targetDiscordId: body.channelId,
     eventType: body.title,
-    status: "Sent",
+    status: "Sending",
     payload: {
       title: body.title,
       description: body.description,
       startsAt: startsAt.toISOString(),
       channelId: body.channelId,
-      roleMentionId: body.roleMentionId,
-      messageId: message?.id,
-      messageLink: discordMessageLink(message)
+      roleMentionId: body.roleMentionId
     }
   });
 
-  res.status(201).json({ event: action, message });
+  try {
+    const message = await sendEventAttendanceEmbed({
+      eventId: action._id.toString(),
+      channelId: body.channelId,
+      roleMentionId: body.roleMentionId,
+      title: body.title,
+      description,
+      color: "#facc15",
+      footer: "Call of Dragons Server Time - UTC",
+      startsAt
+    });
+
+    const updated = await KellaActionModel.findByIdAndUpdate(
+      action._id,
+      {
+        $set: {
+          status: "Sent",
+          "payload.messageId": message?.id,
+          "payload.messageLink": discordMessageLink(message),
+          "payload.discordChannelId": message?.channel_id || body.channelId
+        }
+      },
+      { new: true }
+    ).lean();
+
+    res.status(201).json({ event: updated || action, message });
+  } catch (error) {
+    await KellaActionModel.findByIdAndUpdate(action._id, {
+      $set: {
+        status: "Failed",
+        "payload.error": error instanceof Error ? error.message : String(error)
+      }
+    });
+    throw error;
+  }
 });
 
 export const dashboardComplaints = asyncHandler(async (_req, res) => {

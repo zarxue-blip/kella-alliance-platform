@@ -1442,9 +1442,20 @@ export function kellaDashboardHtml() {
 
       function renderRecentEvents(events) {
         if (!events.length) return empty("No dashboard-created events yet.");
-        return '<div class="table-wrap"><table><thead><tr><th>Event</th><th>Server Time</th><th>Created By</th><th>Status</th><th>Discord</th></tr></thead><tbody>' +
+        function attendanceDetails(event) {
+          const attendance = event.attendance || {};
+          const attending = attendance.attending || [];
+          const absent = attendance.absent || [];
+          const unsure = attendance.unsure || [];
+          const list = function(title, players) {
+            return '<div><strong>' + title + '</strong><br>' + (players.length ? players.map(escapeHtml).join("<br>") : '<span class="muted">None yet</span>') + '</div>';
+          };
+          return '<div class="toolbar"><span class="badge good">' + escapeHtml(attendance.attendingCount || 0) + ' Attending</span><span class="badge bad">' + escapeHtml(attendance.absentCount || 0) + ' Absent</span><span class="badge warn">' + escapeHtml(attendance.unsureCount || 0) + ' Not Sure</span></div>' +
+            '<details style="margin-top:8px"><summary>View players</summary><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px">' + list("Attending", attending) + list("Absent", absent) + list("Not Sure", unsure) + '</div></details>';
+        }
+        return '<div class="table-wrap"><table><thead><tr><th>Event</th><th>Server Time</th><th>Attendance</th><th>Created By</th><th>Status</th><th>Discord</th></tr></thead><tbody>' +
           events.map(function(event) {
-            return '<tr><td><strong>' + escapeHtml(event.title || "Alliance Event") + '</strong><br><span class="muted">' + escapeHtml(event.description || "") + '</span></td><td>' + formatUtcDateTime(event.startsAt) + '</td><td>' + escapeHtml(event.createdBy || "Dashboard") + '</td><td>' + escapeHtml(event.status || "Sent") + '</td><td>' + (event.messageLink ? '<a class="secondary" target="_blank" rel="noreferrer" href="' + escapeHtml(event.messageLink) + '">Open</a>' : '<span class="muted">No link</span>') + '</td></tr>';
+            return '<tr><td><strong>' + escapeHtml(event.title || "Alliance Event") + '</strong><br><span class="muted">' + escapeHtml(event.description || "") + '</span></td><td>' + formatUtcDateTime(event.startsAt) + '</td><td>' + attendanceDetails(event) + '</td><td>' + escapeHtml(event.createdBy || "Dashboard") + '</td><td>' + escapeHtml(event.status || "Sent") + '</td><td>' + (event.messageLink ? '<a class="secondary" target="_blank" rel="noreferrer" href="' + escapeHtml(event.messageLink) + '">Open</a>' : '<span class="muted">No link</span>') + '</td></tr>';
           }).join("") +
           '</tbody></table></div>';
       }
@@ -1462,8 +1473,8 @@ export function kellaDashboardHtml() {
           const events = await loadDashboardEvents();
           const commands = ["/roots", "/summit", "/attack", "/checkin", "/remind", "/absence", "/apply", "/complain"];
           app.innerHTML =
-            pageHeader("Events", "Create event embeds using Call of Dragons 24-hour UTC server time.", '<button class="primary" data-action="send-event-embed">Send Event</button>') +
-            '<section class="card"><div class="card-header"><div><h3>Create Event Embed</h3><span class="muted">Time is saved and sent in UTC server time.</span></div><span class="badge warn">24-hour UTC</span></div><div class="form-grid">' +
+            pageHeader("Events", "Create event embeds with attendance buttons using Call of Dragons 24-hour UTC server time.", '<button class="primary" data-action="send-event-embed">Send Event</button>') +
+            '<section class="card"><div class="card-header"><div><h3>Create Event Embed</h3><span class="muted">Kella sends Attending, Absent, and Not Sure buttons automatically.</span></div><span class="badge warn">24-hour UTC</span></div><div class="form-grid">' +
               channelHtml +
               '<label>Role Mention ID<input data-event="roleMentionId" placeholder="Optional role ID" /></label>' +
               '<label>Event Title<input data-event="title" placeholder="Summit, Roots of War, Fortress..." /></label>' +

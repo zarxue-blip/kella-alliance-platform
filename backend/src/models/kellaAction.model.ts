@@ -18,6 +18,7 @@ const kellaActionSchema = new Schema(
         "application",
         "event_reminder",
         "event_created",
+        "event_response",
         "embed_sent",
         "roots_report_sent",
         "complaint",

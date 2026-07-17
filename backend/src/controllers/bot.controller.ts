@@ -1,4 +1,5 @@
 import { realtimeEvents } from "@cod-amp/shared";
+import { Types } from "mongoose";
 import { z } from "zod";
 import { env } from "../config/env.js";
 import { AllianceModel } from "../models/alliance.model.js";
@@ -166,6 +167,48 @@ export const botAttackResponse = asyncHandler(async (req, res) => {
     status: body.status
   });
   emitAlliance(allianceId, realtimeEvents.callToArmsResponse, response);
+  res.status(201).json({ response });
+});
+
+export const botEventResponse = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema
+    .extend({
+      discordId: z.string(),
+      displayName: z.string().optional(),
+      eventId: z.string(),
+      status: z.enum(["Attending", "Absent", "Not Sure"])
+    })
+    .parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  if (!Types.ObjectId.isValid(body.eventId)) throw new HttpError(400, "Invalid event id");
+
+  const event = (await KellaActionModel.findOne({ allianceId, _id: body.eventId, type: "event_created" }).lean()) as any;
+  if (!event) throw new HttpError(404, "Event not found");
+
+  const response = await KellaActionModel.findOneAndUpdate(
+    {
+      allianceId,
+      type: "event_response",
+      reportId: body.eventId,
+      actorDiscordId: body.discordId
+    },
+    {
+      $setOnInsert: {
+        allianceId,
+        type: "event_response",
+        reportId: body.eventId,
+        actorDiscordId: body.discordId
+      },
+      $set: {
+        actorName: body.displayName,
+        eventType: event.eventType || event.payload?.title || "Alliance Event",
+        status: body.status,
+        sentAt: new Date()
+      }
+    },
+    { upsert: true, new: true }
+  );
+  emitAlliance(allianceId, realtimeEvents.attendanceCheckedIn, response);
   res.status(201).json({ response });
 });
 
