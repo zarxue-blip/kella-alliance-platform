@@ -11,6 +11,7 @@ import {
   dashboardSettings,
   dashboardSettingsUpdate,
   dashboardAttackSend,
+  dashboardChatSend,
   dashboardComplaintReply,
   dashboardComplaintStatusUpdate,
   dashboardComplaints,
@@ -48,6 +49,7 @@ dashboardRouter.post("/roots-reports/:id/send", authenticateDashboardAdmin, root
 dashboardRouter.get("/roots-reports/:id", rootsReportDetails);
 dashboardRouter.post("/tools/shield-alert", authenticateDashboardAdmin, dashboardShieldSend);
 dashboardRouter.post("/tools/attack-alert", authenticateDashboardAdmin, dashboardAttackSend);
+dashboardRouter.post("/tools/chat", authenticateDashboardAdmin, dashboardChatSend);
 dashboardRouter.post("/tools/dm-alert", authenticateDashboardAdmin, dashboardDmAlertSend);
 dashboardRouter.post("/tools/dm-alert/:id/resend-failed", authenticateDashboardAdmin, dashboardDmAlertResendFailed);
 dashboardRouter.post("/tools/roots-registration", authenticateDashboardAdmin, dashboardRootsCreate);

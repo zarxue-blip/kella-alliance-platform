@@ -21,6 +21,12 @@ interface SendAttackInput {
   message: string;
 }
 
+interface SendMessageInput {
+  channelId: string;
+  content: string;
+  roleMentionId?: string;
+}
+
 interface SendEventAttendanceInput extends SendEmbedInput {
   eventId: string;
   startsAt: Date;
@@ -195,6 +201,21 @@ export async function sendDiscordDm(recipientId: string, content: string) {
   return discordRequest<any>(`/channels/${dm.id}/messages`, {
     method: "POST",
     body: JSON.stringify({ content })
+  });
+}
+
+export async function sendDiscordMessage(input: SendMessageInput) {
+  if (!input.channelId) throw new HttpError(400, "Channel ID is required");
+  const content = input.content?.trim();
+  if (!content) throw new HttpError(400, "Message is required");
+
+  const roleMention = input.roleMentionId ? `<@&${input.roleMentionId}>` : "";
+  return discordRequest<any>(`/channels/${input.channelId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({
+      content: [roleMention, content].filter(Boolean).join("\n"),
+      allowed_mentions: input.roleMentionId ? { roles: [input.roleMentionId] } : { parse: [] }
+    })
   });
 }
 

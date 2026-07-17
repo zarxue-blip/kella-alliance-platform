@@ -20,6 +20,7 @@ const kellaActionSchema = new Schema(
         "event_created",
         "event_response",
         "embed_sent",
+        "chat_sent",
         "roots_report_sent",
         "complaint",
         "discord_member_sync",

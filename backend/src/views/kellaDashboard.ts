@@ -1766,6 +1766,7 @@ export function kellaDashboardHtml() {
       function toolPicker(selected) {
         const tools = [
           ["events", "Event Maker"],
+          ["chat", "Kella Chat"],
           ["alerts", "Attack + DM Alerts"],
           ["shield", "Shield Alerts"],
           ["embed", "Embed Sender"]
@@ -1792,6 +1793,21 @@ export function kellaDashboardHtml() {
             '<label class="wide">Description<textarea data-event="description" placeholder="Tell members what to do, where to go, and what time to be ready."></textarea></label>' +
           '</div></section>' +
           '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Recent Sent Events</h3><button class="secondary" data-action="refresh-events">Refresh</button></div>' + renderRecentEvents(events) + '</section>';
+      }
+
+      async function chatToolContent() {
+        let channelHtml = '<label>Discord Channel<input data-chat="channelManual" placeholder="Paste channel ID" /></label>';
+        try {
+          await loadChannels();
+          channelHtml = '<label>Discord Channel<select data-chat="channelId">' + channelOptions() + '</select></label>';
+        } catch {
+          channelHtml = '<label>Discord Channel<input data-chat="channelManual" placeholder="Paste channel ID or add Password in Settings" /></label>';
+        }
+        return '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Kella Chat</h3><span class="muted">Send a normal Discord message as Kella. Admin-only.</span></div><button class="primary" data-action="send-chat">Send as Kella</button></div><div class="form-grid">' +
+          channelHtml +
+          '<label>Role Mention ID<input data-chat="roleMentionId" placeholder="Optional role ID" /></label>' +
+          '<label class="wide">Message<textarea data-chat="message" placeholder="Type the message Kella should send..."></textarea></label>' +
+        '</div><p class="muted" style="margin-top:12px">This posts as the Kella bot account, not as your Discord user. Use it for normal alliance chat, reminders, and officer notes.</p></section>';
       }
 
       function alertsToolContent(alerts) {
@@ -1836,6 +1852,7 @@ export function kellaDashboardHtml() {
         try {
           let content = "";
           if (selected === "events") content = await eventToolContent();
+          if (selected === "chat") content = await chatToolContent();
           if (selected === "alerts") {
             await Promise.all([loadChannels().catch(function() { state.channels = []; }), loadMembers().catch(function() { state.members = []; })]);
             content = alertsToolContent(await loadAlerts());
@@ -1845,7 +1862,7 @@ export function kellaDashboardHtml() {
             content = shieldToolContent(await loadAlerts());
           }
           if (selected === "embed") content = await embedToolContent();
-          app.innerHTML = pageHeader("Tools", "Pick the admin tool you need. Events, alerts, shield warnings, and embeds live here now.", "") + toolPicker(selected) + content;
+          app.innerHTML = pageHeader("Tools", "Pick the admin tool you need. Events, chat, alerts, shield warnings, and embeds live here now.", "") + toolPicker(selected) + content;
           if (selected === "embed") updateEmbedPreview();
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load tools. ' + escapeHtml(error.message) + '</div>';
@@ -1923,6 +1940,18 @@ export function kellaDashboardHtml() {
 
       function embedFormValue(name) {
         return document.querySelector('[data-embed="' + name + '"]')?.value?.trim() || "";
+      }
+
+      function chatFormValue(name) {
+        return document.querySelector('[data-chat="' + name + '"]')?.value?.trim() || "";
+      }
+
+      function chatPayload() {
+        return {
+          channelId: chatFormValue("channelId") || chatFormValue("channelManual"),
+          roleMentionId: chatFormValue("roleMentionId"),
+          message: chatFormValue("message")
+        };
       }
 
       function embedPayload() {
@@ -2408,6 +2437,11 @@ export function kellaDashboardHtml() {
           await loadAlerts();
           await renderTools("alerts");
         }, "Attack alert sent.");
+        if (kind === "send-chat") withFeedback(action, async function() {
+          await sendJson("POST", "/api/dashboard/tools/chat", chatPayload(), true);
+          state.summary = null;
+          await renderTools("chat");
+        }, "Kella chat message sent.");
         if (kind === "send-dm-alert") withFeedback(action, async function() {
           const title = document.querySelector("[data-dm-alert-title]")?.value || "Kella Alliance Alert";
           const message = document.querySelector("[data-dm-alert-message]")?.value || "";

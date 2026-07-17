@@ -5,7 +5,7 @@ import { AllianceModel } from "../models/alliance.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { UserModel } from "../models/user.model.js";
-import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendEventAttendanceEmbed, sendRootsRegistration } from "../services/discord.service.js";
+import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendDiscordMessage, sendEventAttendanceEmbed, sendRootsRegistration } from "../services/discord.service.js";
 import { parseTopnWorkbook } from "../services/xlsx.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
@@ -77,6 +77,12 @@ const attackToolSchema = z.object({
 const dmAlertToolSchema = z.object({
   title: z.string().min(1).max(120).default("Kella Alliance Alert"),
   message: z.string().min(1, "Alert message is required").max(1700)
+});
+
+const chatToolSchema = z.object({
+  channelId: z.string().min(1, "Target channel is required"),
+  message: z.string().min(1, "Message is required").max(1800),
+  roleMentionId: z.string().optional()
 });
 
 const rootsReportSendSchema = z.object({
@@ -451,7 +457,7 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
       KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean(),
       KellaActionModel.find({ ...filter, type: "roots_response" }).sort({ sentAt: -1 }).limit(8).lean(),
       KellaActionModel.find({ ...filter, type: "shield_alert" }).sort({ sentAt: -1 }).limit(5).lean(),
-      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "dm_alert", "event_reminder", "embed_sent", "roots_report_sent", "discord_member_sync", "member_xlsx_import"] } })
+      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "dm_alert", "event_reminder", "embed_sent", "chat_sent", "roots_report_sent", "discord_member_sync", "member_xlsx_import"] } })
         .sort({ sentAt: -1 })
         .limit(8)
         .lean()
@@ -1108,6 +1114,32 @@ export const dashboardAttackSend = asyncHandler(async (req, res) => {
     payload: { roleMentionId: alertInput.roleMentionId, message: alertInput.message, messageId: message?.id, channelId: message?.channel_id }
   });
   res.status(201).json({ alert, message });
+});
+
+export const dashboardChatSend = asyncHandler(async (req, res) => {
+  const body = chatToolSchema.parse(req.body);
+  const allianceId = await resolveAllianceId();
+  const messageInput = {
+    channelId: body.channelId,
+    content: body.message,
+    roleMentionId: body.roleMentionId || ""
+  };
+  const message = await sendDiscordMessage(messageInput);
+  const action = await KellaActionModel.create({
+    allianceId,
+    type: "chat_sent",
+    actorName: "Dashboard",
+    targetDiscordId: messageInput.channelId,
+    status: "Sent",
+    payload: {
+      message: messageInput.content,
+      roleMentionId: messageInput.roleMentionId,
+      messageId: message?.id,
+      channelId: message?.channel_id,
+      messageLink: discordMessageLink(message)
+    }
+  });
+  res.status(201).json({ action, message });
 });
 
 export const dashboardDmAlertSend = asyncHandler(async (req, res) => {
