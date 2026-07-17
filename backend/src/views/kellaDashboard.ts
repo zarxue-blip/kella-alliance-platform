@@ -430,20 +430,62 @@ export function kellaDashboardHtml() {
       .readiness-row span { display: flex; justify-content: space-between; gap: 10px; color: #4d3216; font-size: 12px; font-weight: 850; }
       .bar { height: 7px; background: rgba(76, 47, 18, 0.20); border-radius: 999px; overflow: hidden; }
       .bar i { display: block; height: 100%; background: linear-gradient(90deg, #9b4d1e, var(--gold)); }
-      .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
+      .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
       .calendar-day {
-        min-height: 58px;
+        min-height: 122px;
         border: 1px solid rgba(92, 55, 18, 0.18);
-        border-radius: 8px;
+        border-radius: 10px;
         background: rgba(255, 247, 219, 0.42);
-        padding: 7px;
+        color: var(--text);
+        cursor: pointer;
+        font: inherit;
+        padding: 10px;
         display: grid;
-        align-content: space-between;
+        gap: 8px;
+        align-content: start;
+        text-align: left;
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
       }
-      .calendar-day strong { font-size: 13px; color: #3a220c; }
-      .calendar-day span { font-size: 11px; color: var(--muted); }
-      .calendar-day.hot { background: linear-gradient(180deg, rgba(255, 224, 109, 0.78), rgba(209, 142, 43, 0.50)); border-color: rgba(169, 99, 23, 0.40); }
+      .calendar-day:hover, .calendar-day:focus-visible {
+        transform: translateY(-2px);
+        border-color: rgba(181, 111, 26, 0.56);
+        box-shadow: 0 12px 26px rgba(111, 69, 25, 0.20), 0 0 18px rgba(255, 214, 90, 0.18);
+        outline: none;
+      }
+      .calendar-day-top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+      .calendar-day strong { font-size: 18px; color: #3a220c; }
+      .calendar-day em { color: #7b5b34; font-size: 11px; font-style: normal; font-weight: 950; text-transform: uppercase; letter-spacing: 0.05em; }
+      .calendar-day-list { display: grid; gap: 5px; min-width: 0; }
+      .calendar-entry {
+        display: block;
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.34);
+        border: 1px solid rgba(92, 55, 18, 0.13);
+        color: #3a220c;
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1.28;
+        overflow: hidden;
+        padding: 5px 6px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .calendar-entry small { display: block; color: #6e512d; font-size: 10px; font-weight: 850; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
+      .calendar-empty { color: var(--muted); font-size: 12px; font-weight: 850; }
+      .calendar-more { color: #7c4b08; font-size: 11px; font-weight: 1000; }
+      .calendar-day.hot, .calendar-day.has-items { background: linear-gradient(180deg, rgba(255, 224, 109, 0.78), rgba(209, 142, 43, 0.50)); border-color: rgba(169, 99, 23, 0.40); }
       .calendar-day.event { box-shadow: inset 0 -3px 0 rgba(179, 38, 47, 0.48); }
+      .event-calendar .calendar-day { min-height: 148px; }
+      .calendar-detail-list { display: grid; gap: 12px; margin-top: 16px; }
+      .calendar-detail-card {
+        border: 1px solid rgba(92, 55, 18, 0.16);
+        border-radius: 10px;
+        background: rgba(255, 247, 219, 0.50);
+        padding: 14px;
+      }
+      .calendar-detail-card h3 { font-size: 18px; margin-top: 7px; }
+      .calendar-detail-card p { margin: 8px 0 0; color: #5f4729; }
+      .calendar-detail-card .activity-time { margin-top: 6px; }
       .power-list { display: grid; gap: 12px; }
       .power-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
       .power-row .bar { grid-column: 1 / -1; }
@@ -711,7 +753,7 @@ export function kellaDashboardHtml() {
         .top-actions .server-clock { flex: 1 1 100%; justify-items: start; }
         .top-actions .auth-button { flex: 1; }
         .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row, .command-board { grid-template-columns: 1fr; }
-        .calendar-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .calendar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .member-modal { padding: 10px; align-items: end; }
         .member-modal-panel { width: 100%; max-height: calc(100vh - 24px); border-radius: 14px 14px 0 0; padding: 18px; }
         .member-profile-hero { grid-template-columns: 1fr; text-align: center; padding-right: 0; justify-items: center; }
@@ -1006,6 +1048,52 @@ export function kellaDashboardHtml() {
         document.body.classList.remove("modal-open");
       }
 
+      function calendarDetailCard(item) {
+        return '<article class="calendar-detail-card">' +
+          '<span class="badge warn">' + escapeHtml(item.kind || "Detail") + '</span>' +
+          '<h3>' + escapeHtml(item.title || "Calendar Item") + '</h3>' +
+          '<span class="activity-time">' + escapeHtml(item.meta || "") + '</span>' +
+          '<p>' + escapeHtml(item.description || "") + '</p>' +
+          (item.link ? '<p><a class="secondary" target="_blank" rel="noreferrer" href="' + escapeHtml(item.link) + '">Open Discord Message</a></p>' : '') +
+        '</article>';
+      }
+
+      function powerSnapshot() {
+        const topMembers = (state.members || []).slice().sort(function(a, b) { return Number(b.power || 0) - Number(a.power || 0); }).slice(0, 5);
+        if (!topMembers.length) return "";
+        return '<div class="profile-note"><strong>Current Power Snapshot</strong><div class="calendar-detail-list">' +
+          topMembers.map(function(member) {
+            return '<div class="power-row"><strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + formatNumber(member.power) + '</span><div class="bar"><i style="width:' + memberPowerPercent(member) + '%"></i></div></div>';
+          }).join("") +
+        '</div></div>';
+      }
+
+      function openCalendarDayModal(key, type) {
+        if (!memberModal || !memberModalContent) return;
+        const date = new Date(key + "T00:00:00Z");
+        const title = type === "events" ? "Event Calendar" : "Activity Calendar";
+        const items = type === "events"
+          ? eventsForDay(state.events || [], key).map(eventDetailItem)
+          : calendarActivityItems(state.summary || {}, state.events || [], key);
+        const dateLabel = new Intl.DateTimeFormat("en", {
+          timeZone: "UTC",
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        }).format(date);
+        memberModalContent.innerHTML =
+          '<div class="member-profile-hero">' +
+            '<span class="profile-avatar">' + date.getUTCDate() + '</span>' +
+            '<div><span class="profile-kicker">' + escapeHtml(title) + '</span><h3 id="memberModalTitle">' + escapeHtml(dateLabel) + '</h3><div class="profile-subtitle">Call of Dragons server time - UTC</div></div>' +
+          '</div>' +
+          (items.length ? '<div class="calendar-detail-list">' + items.map(calendarDetailCard).join("") + '</div>' : empty("No event or activity recorded for this day yet.")) +
+          (type === "activity" ? powerSnapshot() : "");
+        memberModal.classList.add("open");
+        memberModal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-open");
+      }
+
       function moduleState(moduleId) {
         const states = state.settings?.settings?.moduleStates || {};
         return states[moduleId] !== false;
@@ -1197,6 +1285,16 @@ export function kellaDashboardHtml() {
         return new Date(value).toISOString().slice(0, 10);
       }
 
+      function formatUtcTime(value) {
+        if (!value) return "";
+        return new Intl.DateTimeFormat("en-GB", {
+          timeZone: "UTC",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false
+        }).format(new Date(value)) + " UTC";
+      }
+
       function inCurrentMonth(value) {
         if (!value) return false;
         const date = new Date(value);
@@ -1210,19 +1308,92 @@ export function kellaDashboardHtml() {
         map[key] = (map[key] || 0) + amount;
       }
 
+      function eventAttendanceLine(event) {
+        const attendance = event.attendance || {};
+        const total = Number(attendance.attendingCount || 0) + Number(attendance.absentCount || 0) + Number(attendance.unsureCount || 0);
+        return total
+          ? attendance.attendingCount + " attending, " + attendance.absentCount + " absent, " + attendance.unsureCount + " unsure"
+          : "No attendance yet";
+      }
+
+      function eventDetailItem(event) {
+        return {
+          kind: "Event",
+          title: event.title || "Alliance Event",
+          meta: formatUtcTime(event.startsAt) + " - " + eventAttendanceLine(event),
+          description: event.description || "No description added.",
+          link: event.messageLink || ""
+        };
+      }
+
+      function eventsForDay(events, key) {
+        return (events || [])
+          .filter(function(event) { return dayKey(event.startsAt) === key; })
+          .sort(function(a, b) { return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(); });
+      }
+
+      function calendarActivityItems(summary, events, key) {
+        const items = eventsForDay(events, key).map(eventDetailItem);
+        if (summary.upcomingRoots && dayKey(summary.upcomingRoots.date) === key) {
+          items.push({
+            kind: "Roots",
+            title: "Roots registration active",
+            meta: "Created by " + (summary.upcomingRoots.createdBy || "Unknown Officer"),
+            description: (summary.upcomingRoots.slots || []).map(function(slot) {
+              return slot.label + ": " + slot.available + " available, " + slot.absent + " absent, " + slot.unsure + " unsure";
+            }).join(" | ")
+          });
+        }
+        (summary.recentRegistrations || []).forEach(function(registration) {
+          if (dayKey(registration.sentAt) !== key) return;
+          items.push({
+            kind: "Roots Vote",
+            title: (registration.player || "Player") + " chose " + (registration.status || "Unknown"),
+            meta: (registration.slot || "Roots") + " - " + formatUtcTime(registration.sentAt),
+            description: "Latest Roots of War attendance response."
+          });
+        });
+        (summary.latestShieldAlerts || []).forEach(function(alert) {
+          if (dayKey(alert.sentAt) !== key) return;
+          items.push({
+            kind: "Shield",
+            title: "Shield warning sent to " + (alert.player || "Unknown Player"),
+            meta: (alert.officer || "Dashboard") + " - " + formatUtcTime(alert.sentAt),
+            description: "Officer shield alert activity."
+          });
+        });
+        (summary.recentAdminActions || []).forEach(function(action) {
+          if (dayKey(action.sentAt) !== key) return;
+          items.push({
+            kind: "Admin",
+            title: (action.type || "Admin action").replaceAll("_", " "),
+            meta: (action.officer || "Dashboard") + " - " + formatUtcTime(action.sentAt),
+            description: action.target ? "Target: " + action.target : "Dashboard action."
+          });
+        });
+        return items;
+      }
+
+      function renderCalendarCell(date, type, items) {
+        const key = dayKey(date);
+        const weekday = new Intl.DateTimeFormat("en", { weekday: "short", timeZone: "UTC" }).format(date);
+        const visible = items.slice(0, 3);
+        const entries = visible.length
+          ? visible.map(function(item) {
+              return '<span class="calendar-entry">' + escapeHtml(item.title) + '<small>' + escapeHtml(item.meta || item.kind || "") + '</small></span>';
+            }).join("")
+          : '<span class="calendar-empty">No event</span>';
+        const more = items.length > visible.length ? '<span class="calendar-more">+' + (items.length - visible.length) + ' more</span>' : "";
+        return '<button class="calendar-day' + (items.length ? " has-items event" : "") + '" type="button" data-calendar-day="' + key + '" data-calendar-type="' + type + '">' +
+          '<span class="calendar-day-top"><strong>' + date.getUTCDate() + '</strong><em>' + weekday + '</em></span>' +
+          '<span class="calendar-day-list">' + entries + more + '</span>' +
+        '</button>';
+      }
+
       function renderActivityCalendar(summary, events) {
-        const counts = {};
-        (summary.recentRegistrations || []).forEach(function(item) { addCount(counts, item.sentAt); });
-        (summary.latestShieldAlerts || []).forEach(function(item) { addCount(counts, item.sentAt); });
-        (summary.recentAdminActions || []).forEach(function(item) { addCount(counts, item.sentAt); });
-        (events || []).forEach(function(item) { addCount(counts, item.sentAt || item.startsAt, item.attendance?.total || 1); });
-        const max = Math.max.apply(null, Object.values(counts).concat([1]));
-        return '<div class="calendar-grid">' + currentMonthDays().map(function(date) {
+        return '<div class="calendar-grid activity-calendar">' + currentMonthDays().map(function(date) {
           const key = dayKey(date);
-          const count = counts[key] || 0;
-          const hot = count > 0 ? " hot" : "";
-          const opacity = count ? Math.max(0.45, count / max).toFixed(2) : "1";
-          return '<div class="calendar-day' + hot + '" style="opacity:' + opacity + '"><strong>' + date.getUTCDate() + '</strong><span>' + (count ? count + ' actions' : 'quiet') + '</span></div>';
+          return renderCalendarCell(date, "activity", calendarActivityItems(summary, events, key));
         }).join("") + '</div>';
       }
 
@@ -1237,16 +1408,9 @@ export function kellaDashboardHtml() {
       }
 
       function renderEventsCalendar(events) {
-        const eventMap = {};
-        (events || []).filter(function(event) { return inCurrentMonth(event.startsAt); }).forEach(function(event) {
-          const key = dayKey(event.startsAt);
-          if (!eventMap[key]) eventMap[key] = [];
-          eventMap[key].push(event);
-        });
-        return '<div class="calendar-grid">' + currentMonthDays().map(function(date) {
+        return '<div class="calendar-grid event-calendar">' + currentMonthDays().map(function(date) {
           const key = dayKey(date);
-          const items = eventMap[key] || [];
-          return '<div class="calendar-day' + (items.length ? " event" : "") + '"><strong>' + date.getUTCDate() + '</strong><span>' + (items.length ? items.length + ' event' + (items.length > 1 ? 's' : '') : 'none') + '</span></div>';
+          return renderCalendarCell(date, "events", eventsForDay(events, key).map(eventDetailItem));
         }).join("") + '</div>';
       }
 
@@ -1326,14 +1490,12 @@ export function kellaDashboardHtml() {
             '<div class="card"><div class="card-header"><div><h3>Activity Calendar</h3><span class="muted">' + monthTitle() + ' activity from Discord and dashboard actions.</span></div><span class="badge good">' + escapeHtml(summary.botStatus) + '</span></div>' + renderActivityCalendar(summary, events) + '</div>' +
             '<div class="card activity-card"><div class="card-header"><h3>Live Activity</h3><button class="secondary" data-link-button="/tools">Tools</button></div>' + activityHtml + '</div>' +
           '</section>' +
+          '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events. Click any day for details.</span></div><button class="secondary" data-link-button="/tools">Create</button></div>' + renderEventsCalendar(events) + '</section>' +
           '<section class="two">' +
             '<div class="card"><div class="card-header"><div><h3>Member Power</h3><span class="muted">Updates when admins edit member cards or upload power files.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</div>' +
-            '<div class="card"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events.</span></div><button class="secondary" data-link-button="/tools">Create</button></div>' + renderEventsCalendar(events) + '</div>' +
-          '</section>' +
-          '<section class="two" style="margin-top:18px">' +
             '<div class="card"><div class="card-header"><h3>Active Events</h3><button class="secondary" data-link-button="/tools">Open Tools</button></div>' + renderActiveEvents(events) + '</div>' +
-            '<div class="card"><div class="card-header"><h3>Command Board</h3><span class="badge warn">Quick Copy</span></div>' + renderCommandBoard() + '</div>' +
-          '</section>';
+          '</section>' +
+          '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Command Board</h3><span class="badge warn">Quick Copy</span></div>' + renderCommandBoard() + '</section>';
       }
 
       async function renderDashboard() {
@@ -2060,6 +2222,12 @@ export function kellaDashboardHtml() {
         if (memberRow) {
           const member = findMemberById(memberRow.getAttribute("data-member-id"));
           if (member) openMemberModal(member);
+          return;
+        }
+
+        const calendarDay = event.target.closest("[data-calendar-day]");
+        if (calendarDay) {
+          openCalendarDayModal(calendarDay.getAttribute("data-calendar-day"), calendarDay.getAttribute("data-calendar-type") || "activity");
           return;
         }
 
