@@ -1479,66 +1479,13 @@ export function kellaDashboardHtml() {
       }
 
       function renderDashboardData(summary, members = [], events = []) {
-        const roots = summary.upcomingRoots;
-        const slots = roots?.slots || [];
-        const slot14 = slots.find(function(slot) { return slot.slot === "14UTC"; }) || { label: "14:00 UTC", available: 0, absent: 0, unsure: 0 };
-        const slot20 = slots.find(function(slot) { return slot.slot === "20UTC"; }) || { label: "20:00 UTC", available: 0, absent: 0, unsure: 0 };
-        const rootsLabel = roots ? formatDate(roots.date) + " by " + roots.createdBy : "None";
-        const reportPath = roots ? "/roots-reports/" + roots.id + "_14UTC" : "/roots-registration";
-        const totalMembers = Number(summary.totalMembers || 0);
-        const checkinPercent = percent(summary.todayCheckIns || 0, totalMembers || 1);
-        const rootsResponses = slot14.available + slot14.absent + slot14.unsure + slot20.available + slot20.absent + slot20.unsure;
-        const shieldCount = (summary.latestShieldAlerts || []).length;
-        const adminCount = (summary.recentAdminActions || []).length;
-        const activityItems = [];
-
-        if (roots) {
-          activityItems.push({
-            icon: "R",
-            title: "Roots registration active for " + formatDate(roots.date),
-            meta: "Created by " + (roots.createdBy || "Unknown Officer")
-          });
-        }
-        (summary.recentRegistrations || []).slice(0, 3).forEach(function(registration) {
-          activityItems.push({
-            icon: "V",
-            title: (registration.player || "Player") + " chose " + (registration.status || "Unknown"),
-            meta: (registration.slot || "Roots") + " - " + formatDateTime(registration.sentAt)
-          });
-        });
-        (summary.latestShieldAlerts || []).slice(0, 2).forEach(function(alert) {
-          activityItems.push({
-            icon: "S",
-            title: "Shield warning sent to " + (alert.player || "Unknown Player"),
-            meta: (alert.officer || "Dashboard") + " - " + formatDateTime(alert.sentAt)
-          });
-        });
-        (summary.recentAdminActions || []).slice(0, 3).forEach(function(action) {
-          activityItems.push({
-            icon: "A",
-            title: (action.type || "Admin action").replaceAll("_", " "),
-            meta: (action.officer || "Dashboard") + " - " + formatDateTime(action.sentAt)
-          });
-        });
-
-        const activityHtml = activityItems.length
-          ? '<div class="activity-list">' + activityItems.slice(0, 7).map(function(item) {
-              return '<div class="activity-item"><span class="activity-dot">' + escapeHtml(item.icon) + '</span><div><strong>' + escapeHtml(item.title) + '</strong><span class="activity-time">' + escapeHtml(item.meta) + '</span></div></div>';
-            }).join("") + '</div>'
-          : empty("No recent alliance activity yet.");
-
         app.innerHTML =
-          pageHeader("Dashboard", "Clean alliance command center: live activity, member power, active events, and the commands officers use most.", '<button class="secondary" data-action="sync-discord-members">Sync Data</button><button class="primary" data-link-button="/tools">Open Tools</button>') +
-          '<section class="dashboard-main">' +
-            '<div class="card"><div class="card-header"><div><h3>Activity Calendar</h3><span class="muted">' + monthTitle() + ' activity from Discord and dashboard actions.</span></div><span class="badge good">' + escapeHtml(summary.botStatus) + '</span></div>' + renderActivityCalendar(summary, events) + '</div>' +
-            '<div class="card activity-card"><div class="card-header"><h3>Live Activity</h3><button class="secondary" data-link-button="/tools">Tools</button></div>' + activityHtml + '</div>' +
-          '</section>' +
-          '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events. Click any day for details.</span></div><button class="secondary" data-link-button="/tools">Create</button></div>' + renderEventsCalendar(events) + '</section>' +
+          pageHeader("Dashboard", "A cleaner command room for events, power, and active fights.", '<button class="secondary" data-action="sync-discord-members">Sync Data</button><button class="primary" data-link-button="/tools">Open Tools</button>') +
+          '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events. Click any day to view event attendance.</span></div><div class="toolbar"><button class="secondary" data-link-button="/attendance">Attendance</button><button class="primary" data-link-button="/tools">Create Event</button></div></div>' + renderEventsCalendar(events) + '</section>' +
           '<section class="two">' +
             '<div class="card"><div class="card-header"><div><h3>Member Power</h3><span class="muted">Updates when admins edit member cards or upload power files.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</div>' +
-            '<div class="card"><div class="card-header"><h3>Active Events</h3><button class="secondary" data-link-button="/tools">Open Tools</button></div>' + renderActiveEvents(events) + '</div>' +
-          '</section>' +
-          '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Command Board</h3><span class="badge warn">Quick Copy</span></div>' + renderCommandBoard() + '</section>';
+            '<div class="card"><div class="card-header"><h3>Active Events</h3><button class="secondary" data-link-button="/attendance">View Attendance</button></div>' + renderActiveEvents(events) + '</div>' +
+          '</section>';
       }
 
       async function renderDashboard() {
