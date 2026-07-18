@@ -44,6 +44,9 @@ export function createApp() {
   app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
   app.use(rateLimit({ windowMs: 60_000, limit: 240 }));
   app.use("/assets", express.static(publicDir, { maxAge: "7d", immutable: true }));
+  app.get(["/favicon.ico", "/apple-touch-icon.png"], (_req, res) => {
+    res.sendFile(join(publicDir, "kellacoin.png"));
+  });
   app.use("/bot", botRouter);
 
   app.get(

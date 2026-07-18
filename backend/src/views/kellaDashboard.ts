@@ -34,6 +34,9 @@ export function kellaDashboardHtml() {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Kella Dashboard</title>
+    <link rel="icon" type="image/png" href="/assets/kellacoin.png?v=4" />
+    <link rel="shortcut icon" type="image/png" href="/assets/kellacoin.png?v=4" />
+    <link rel="apple-touch-icon" href="/assets/kellacoin.png?v=4" />
     <style>
       :root {
         color-scheme: dark;
