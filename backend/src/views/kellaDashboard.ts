@@ -2,10 +2,10 @@ const navItems = [
   { path: "/", icon: "/assets/icons/dashboard.png", label: "Dashboard" },
   { path: "/members", icon: "/assets/icons/members.png", label: "Members" },
   { path: "/attendance", icon: "/assets/icons/events.png", label: "Attendance" },
-  { path: "/roots-of-war", icon: "/assets/icons/root-registration.png", label: "Roots of War" },
-  { path: "/tools", icon: "/assets/icons/events.png", label: "Tools" },
-  { path: "/complaints", icon: "/assets/icons/complaints.png", label: "Complaints" },
-  { path: "/settings", icon: "/assets/icons/settings.png", label: "Settings" }
+  { path: "/roots-of-war", icon: "/assets/icons/root-registration.png", label: "Roots of War", adminOnly: true },
+  { path: "/tools", icon: "/assets/icons/events.png", label: "Tools", adminOnly: true },
+  { path: "/complaints", icon: "/assets/icons/complaints.png", label: "Complaints", adminOnly: true },
+  { path: "/settings", icon: "/assets/icons/settings.png", label: "Settings", adminOnly: true }
 ];
 
 const modules = [
@@ -790,7 +790,7 @@ export function kellaDashboardHtml() {
             <span>Call of Dragons tools</span>
           </div>
         </div>
-        <nav aria-label="Dashboard navigation">${navItems.map(navLink).join("")}</nav>
+        <nav aria-label="Dashboard navigation" data-sidebar-nav>${navItems.filter((item) => !item.adminOnly).map(navLink).join("")}</nav>
         <div class="side-spacer"></div>
         <div class="side-footer">
           <strong>Alliance Ops</strong>
@@ -837,6 +837,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null };
+      const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
       dashboardModules.splice(Math.max(0, dashboardModules.length - 2), 0, {
         id: "complaints",
@@ -893,6 +894,31 @@ export function kellaDashboardHtml() {
 
       function isDashboardAdmin() {
         return Boolean(state.auth?.isDashboardAdmin);
+      }
+
+      function hasAdminAccess() {
+        return isDashboardAdmin() || Boolean(adminToken());
+      }
+
+      function pathRequiresAdmin(path) {
+        return path.startsWith("/roots") ||
+          ["/tools", "/events", "/alerts", "/shield-alerts", "/embed-sender", "/complaints", "/settings"].some(function(prefix) {
+            return path === prefix || path.startsWith(prefix + "/");
+          });
+      }
+
+      function navItemHtml(item) {
+        return '<a href="' + escapeHtml(item.path) + '" data-link data-path="' + escapeHtml(item.path) + '"><img class="nav-icon" src="' + escapeHtml(item.icon) + '" alt="" loading="lazy" /><span>' + escapeHtml(item.label) + '</span></a>';
+      }
+
+      function renderSidebarNav() {
+        const nav = document.querySelector("[data-sidebar-nav]");
+        if (!nav) return;
+        nav.innerHTML = dashboardNavItems
+          .filter(function(item) { return !item.adminOnly || hasAdminAccess(); })
+          .map(navItemHtml)
+          .join("");
+        setActiveNav();
       }
 
       function requestHeaders(json) {
@@ -1244,6 +1270,7 @@ export function kellaDashboardHtml() {
         const logoutButton = document.querySelector("[data-auth-logout]");
         const profileButton = document.querySelector("[data-profile-button]");
         const user = state.auth?.user;
+        renderSidebarNav();
         if (!target) return;
         if (state.auth?.authenticated === false) {
           target.textContent = "Discord: not logged in";
@@ -2221,12 +2248,26 @@ export function kellaDashboardHtml() {
         return payload;
       }
 
+      function renderAdminAccessRequired() {
+        app.innerHTML =
+          pageHeader("Admin Access Required", "This section is only visible to Kella admins and officers with dashboard access.", '<button class="primary" data-action="discord-login">Login as Admin</button>') +
+          '<section class="card">' + empty("Members can use Dashboard, Members, Attendance, and My Profile. Admin tools stay hidden until Kella confirms admin access.") + '</section>';
+      }
+
       async function route() {
-        setActiveNav();
-        if (!state.auth) loadAuth().catch(function() { updateAuthStatus(); });
+        if (!state.auth) {
+          await loadAuth().catch(function() { updateAuthStatus(); });
+        } else {
+          renderSidebarNav();
+        }
         if (!state.settings) loadSettings().catch(function() {});
         const path = location.pathname;
         state.currentReport = null;
+        if (pathRequiresAdmin(path) && !hasAdminAccess()) {
+          setActiveNav();
+          return renderAdminAccessRequired();
+        }
+        setActiveNav();
         if (path === "/") return renderDashboard();
         if (path === "/profile") return renderProfile();
         if (path === "/members") return renderMembers();
