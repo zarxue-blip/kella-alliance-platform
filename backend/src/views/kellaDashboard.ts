@@ -1,6 +1,7 @@
 const navItems = [
   { path: "/", icon: "/assets/icons/dashboard.png", label: "Dashboard" },
   { path: "/members", icon: "/assets/icons/members.png", label: "Members" },
+  { path: "/attendance", icon: "/assets/icons/events.png", label: "Attendance" },
   { path: "/roots-of-war", icon: "/assets/icons/root-registration.png", label: "Roots of War" },
   { path: "/tools", icon: "/assets/icons/events.png", label: "Tools" },
   { path: "/complaints", icon: "/assets/icons/complaints.png", label: "Complaints" },
@@ -610,6 +611,20 @@ export function kellaDashboardHtml() {
       }
       .member-row:focus-visible { box-shadow: inset 3px 0 0 var(--gold); }
       .players { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+      .attendance-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+      .attendance-group {
+        border: 1px solid rgba(98, 62, 24, 0.25);
+        border-radius: 9px;
+        background: rgba(255, 247, 219, 0.38);
+        padding: 12px;
+      }
+      .attendance-group h4 { display: flex; justify-content: space-between; gap: 10px; margin: 0 0 10px; font-size: 14px; }
+      .attendance-group ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+      .attendance-group li { border-bottom: 1px solid rgba(98, 62, 24, 0.14); padding-bottom: 7px; font-weight: 850; }
+      .attendance-group li:last-child { border-bottom: 0; padding-bottom: 0; }
+      .attendance-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+      .attendance-detail-head h3 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 44px); }
+      .attendance-total { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
       .stack { display: grid; gap: 14px; }
       .preview {
         border-left: 5px solid #b96b1c;
@@ -735,7 +750,7 @@ export function kellaDashboardHtml() {
 
       @media (max-width: 1120px) {
         .grid, .stats, .form-grid, .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .two, .players, .dashboard-main { grid-template-columns: 1fr; }
+        .two, .players, .dashboard-main, .attendance-grid { grid-template-columns: 1fr; }
       }
       @media (max-width: 780px) {
         body { background-attachment: scroll; }
@@ -1054,16 +1069,39 @@ export function kellaDashboardHtml() {
           '<h3>' + escapeHtml(item.title || "Calendar Item") + '</h3>' +
           '<span class="activity-time">' + escapeHtml(item.meta || "") + '</span>' +
           '<p>' + escapeHtml(item.description || "") + '</p>' +
-          (item.link ? '<p><a class="secondary" target="_blank" rel="noreferrer" href="' + escapeHtml(item.link) + '">Open Discord Message</a></p>' : '') +
+          (item.eventId ? '<p><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(item.eventId) + '">Open Attendance</button></p>' : '') +
         '</article>';
       }
 
-      function powerSnapshot() {
-        const topMembers = (state.members || []).slice().sort(function(a, b) { return Number(b.power || 0) - Number(a.power || 0); }).slice(0, 5);
-        if (!topMembers.length) return "";
-        return '<div class="profile-note"><strong>Current Power Snapshot</strong><div class="calendar-detail-list">' +
-          topMembers.map(function(member) {
-            return '<div class="power-row"><strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + formatNumber(member.power) + '</span><div class="bar"><i style="width:' + memberPowerPercent(member) + '%"></i></div></div>';
+      function attendanceGroups(event) {
+        const attendance = event?.attendance || {};
+        return {
+          attending: Array.isArray(attendance.attending) ? attendance.attending : [],
+          absent: Array.isArray(attendance.absent) ? attendance.absent : [],
+          unsure: Array.isArray(attendance.unsure) ? attendance.unsure : []
+        };
+      }
+
+      function attendanceGroup(title, players, badgeClass) {
+        return '<div class="attendance-group"><h4><span>' + title + '</span><span class="badge ' + badgeClass + '">' + players.length + '</span></h4>' +
+          (players.length ? '<ul>' + players.map(function(player) { return '<li>' + escapeHtml(player) + '</li>'; }).join("") + '</ul>' : '<span class="muted">None yet</span>') +
+        '</div>';
+      }
+
+      function renderAttendanceGroups(event) {
+        const groups = attendanceGroups(event);
+        return '<div class="attendance-grid">' +
+          attendanceGroup("Attending", groups.attending, "good") +
+          attendanceGroup("Absent", groups.absent, "bad") +
+          attendanceGroup("Not Sure", groups.unsure, "warn") +
+        '</div>';
+      }
+
+      function calendarAttendanceSnapshot(events) {
+        if (!events.length) return "";
+        return '<div class="profile-note"><strong>Attendance Status</strong><div class="calendar-detail-list">' +
+          events.map(function(event) {
+            return '<article class="calendar-detail-card"><div class="card-header"><div><h3>' + escapeHtml(event.title || "Alliance Event") + '</h3><span class="activity-time">' + formatUtcDateTime(event.startsAt) + '</span></div><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(event.id || "") + '">Full View</button></div>' + renderAttendanceGroups(event) + '</article>';
           }).join("") +
         '</div></div>';
       }
@@ -1072,8 +1110,9 @@ export function kellaDashboardHtml() {
         if (!memberModal || !memberModalContent) return;
         const date = new Date(key + "T00:00:00Z");
         const title = type === "events" ? "Event Calendar" : "Activity Calendar";
+        const dayEvents = eventsForDay(state.events || [], key);
         const items = type === "events"
-          ? eventsForDay(state.events || [], key).map(eventDetailItem)
+          ? dayEvents.map(eventDetailItem)
           : calendarActivityItems(state.summary || {}, state.events || [], key);
         const dateLabel = new Intl.DateTimeFormat("en", {
           timeZone: "UTC",
@@ -1088,7 +1127,7 @@ export function kellaDashboardHtml() {
             '<div><span class="profile-kicker">' + escapeHtml(title) + '</span><h3 id="memberModalTitle">' + escapeHtml(dateLabel) + '</h3><div class="profile-subtitle">Call of Dragons server time - UTC</div></div>' +
           '</div>' +
           (items.length ? '<div class="calendar-detail-list">' + items.map(calendarDetailCard).join("") + '</div>' : empty("No event or activity recorded for this day yet.")) +
-          (type === "activity" ? powerSnapshot() : "");
+          calendarAttendanceSnapshot(dayEvents);
         memberModal.classList.add("open");
         memberModal.setAttribute("aria-hidden", "false");
         document.body.classList.add("modal-open");
@@ -1319,6 +1358,7 @@ export function kellaDashboardHtml() {
       function eventDetailItem(event) {
         return {
           kind: "Event",
+          eventId: event.id || "",
           title: event.title || "Alliance Event",
           meta: formatUtcTime(event.startsAt) + " - " + eventAttendanceLine(event),
           description: event.description || "No description added.",
@@ -1716,21 +1756,55 @@ export function kellaDashboardHtml() {
       function renderRecentEvents(events) {
         if (!events.length) return empty("No dashboard-created events yet.");
         function attendanceDetails(event) {
-          const attendance = event.attendance || {};
-          const attending = attendance.attending || [];
-          const absent = attendance.absent || [];
-          const unsure = attendance.unsure || [];
-          const list = function(title, players) {
-            return '<div><strong>' + title + '</strong><br>' + (players.length ? players.map(escapeHtml).join("<br>") : '<span class="muted">None yet</span>') + '</div>';
-          };
-          return '<div class="toolbar"><span class="badge good">' + escapeHtml(attendance.attendingCount || 0) + ' Attending</span><span class="badge bad">' + escapeHtml(attendance.absentCount || 0) + ' Absent</span><span class="badge warn">' + escapeHtml(attendance.unsureCount || 0) + ' Not Sure</span></div>' +
-            '<details style="margin-top:8px"><summary>View players</summary><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px">' + list("Attending", attending) + list("Absent", absent) + list("Not Sure", unsure) + '</div></details>';
+          return attendanceBadges(event) +
+            '<details style="margin-top:8px"><summary>View players</summary><div style="margin-top:10px">' + renderAttendanceGroups(event) + '</div></details>';
         }
-        return '<div class="table-wrap"><table><thead><tr><th>Event</th><th>Server Time</th><th>Attendance</th><th>Created By</th><th>Status</th><th>Discord</th></tr></thead><tbody>' +
+        return '<div class="table-wrap"><table><thead><tr><th>Event</th><th>Server Time</th><th>Attendance</th><th>Created By</th><th>Status</th><th>View</th></tr></thead><tbody>' +
           events.map(function(event) {
-            return '<tr><td><strong>' + escapeHtml(event.title || "Alliance Event") + '</strong><br><span class="muted">' + escapeHtml(event.description || "") + '</span></td><td>' + formatUtcDateTime(event.startsAt) + '</td><td>' + attendanceDetails(event) + '</td><td>' + escapeHtml(event.createdBy || "Dashboard") + '</td><td>' + escapeHtml(event.status || "Sent") + '</td><td>' + (event.messageLink ? '<a class="secondary" target="_blank" rel="noreferrer" href="' + escapeHtml(event.messageLink) + '">Open</a>' : '<span class="muted">No link</span>') + '</td></tr>';
+            return '<tr><td><strong>' + escapeHtml(event.title || "Alliance Event") + '</strong><br><span class="muted">' + escapeHtml(event.description || "") + '</span></td><td>' + formatUtcDateTime(event.startsAt) + '</td><td>' + attendanceDetails(event) + '</td><td>' + escapeHtml(event.createdBy || "Dashboard") + '</td><td>' + escapeHtml(event.status || "Sent") + '</td><td><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(event.id || "") + '">Open</button></td></tr>';
           }).join("") +
           '</tbody></table></div>';
+      }
+
+      function attendanceBadges(event) {
+        const groups = attendanceGroups(event);
+        return '<div class="toolbar"><span class="badge good">' + groups.attending.length + ' Attending</span><span class="badge bad">' + groups.absent.length + ' Absent</span><span class="badge warn">' + groups.unsure.length + ' Not Sure</span></div>';
+      }
+
+      function attendanceEventCard(event) {
+        return '<article class="card"><div class="attendance-detail-head"><div><span class="badge warn">Event Attendance</span><h3>' + escapeHtml(event.title || "Alliance Event") + '</h3><p>' + escapeHtml(event.description || "No description added.") + '</p></div><div class="stack"><button class="primary" type="button" data-link-button="/attendance/' + escapeHtml(event.id || "") + '">View Attendance</button>' + (event.messageLink ? '<a class="secondary" target="_blank" rel="noreferrer" href="' + escapeHtml(event.messageLink) + '">Discord Message</a>' : "") + '</div></div>' +
+          '<div class="attendance-total">' + attendanceBadges(event) + '</div>' +
+          '<div style="margin-top:14px">' + renderAttendanceGroups(event) + '</div>' +
+        '</article>';
+      }
+
+      async function renderAttendance() {
+        skeleton("Loading attendance...");
+        try {
+          const events = await loadDashboardEvents();
+          app.innerHTML =
+            pageHeader("Attendance", "Review event attendance inside Kella. Click an event to see every player response.", '<button class="secondary" data-link-button="/tools">Create Event</button><button class="primary" data-action="refresh-events">Refresh</button>') +
+            '<section class="card"><div class="card-header"><div><h3>Event Attendance</h3><span class="muted">Attending, absent, and not sure responses from Discord buttons.</span></div></div>' + renderRecentEvents(events) + '</section>';
+        } catch (error) {
+          app.innerHTML = '<div class="error">Could not load attendance. ' + escapeHtml(error.message) + '</div>';
+        }
+      }
+
+      async function renderAttendanceDetails(id) {
+        skeleton("Loading attendance report...");
+        try {
+          const events = await loadDashboardEvents();
+          const event = events.find(function(item) { return String(item.id) === String(id); });
+          if (!event) {
+            app.innerHTML = pageHeader("Attendance", "This event could not be found.", '<button class="secondary" data-link-button="/attendance">Back to Attendance</button>') + '<section class="card">' + empty("No attendance report found for this event.") + '</section>';
+            return;
+          }
+          app.innerHTML =
+            pageHeader("Attendance Report", "One clean view for who is coming, absent, or unsure.", '<button class="secondary" data-link-button="/attendance">Back</button><button class="primary" data-action="refresh-events">Refresh</button>') +
+            attendanceEventCard(event);
+        } catch (error) {
+          app.innerHTML = '<div class="error">Could not load attendance report. ' + escapeHtml(error.message) + '</div>';
+        }
       }
 
       async function renderEvents() {
@@ -2206,6 +2280,8 @@ export function kellaDashboardHtml() {
         if (path === "/") return renderDashboard();
         if (path === "/profile") return renderProfile();
         if (path === "/members") return renderMembers();
+        if (path === "/attendance") return renderAttendance();
+        if (path.startsWith("/attendance/")) return renderAttendanceDetails(path.split("/").pop());
         if (path === "/roots-of-war" || path === "/roots-registration" || path === "/roots-reports") return renderRootsRegistration();
         if (path.startsWith("/roots-reports/")) return renderRootsReportDetails(path.split("/").pop());
         if (path === "/tools") return renderTools();
@@ -2243,6 +2319,7 @@ export function kellaDashboardHtml() {
 
         const linkButton = event.target.closest("[data-link-button]");
         if (linkButton) {
+          if (memberModal?.classList.contains("open")) closeMemberModal();
           navigate(linkButton.getAttribute("data-link-button"));
           return;
         }
@@ -2351,7 +2428,16 @@ export function kellaDashboardHtml() {
           const selectedTool = location.pathname === "/shield-alerts" || new URLSearchParams(location.search).get("tool") === "shield" ? "shield" : "alerts";
           await renderTools(selectedTool);
         }, "Alerts refreshed.");
-        if (kind === "refresh-events") withFeedback(action, async function() { state.events = []; await renderTools("events"); }, "Events refreshed.");
+        if (kind === "refresh-events") withFeedback(action, async function() {
+          state.events = [];
+          if (location.pathname === "/attendance") {
+            await renderAttendance();
+          } else if (location.pathname.startsWith("/attendance/")) {
+            await renderAttendanceDetails(location.pathname.split("/").pop());
+          } else {
+            await renderTools("events");
+          }
+        }, "Events refreshed.");
         if (kind === "refresh-complaints") withFeedback(action, async function() { state.complaints = []; await renderComplaints(); }, "Complaints refreshed.");
         if (kind === "send-event-embed") withFeedback(action, async function() {
           await sendJson("POST", "/api/dashboard/events", eventPayload(), true);
@@ -2566,7 +2652,7 @@ export function kellaDashboardHtml() {
       setInterval(function() {
         if (document.hidden) return;
         if (document.activeElement && document.activeElement.matches("input, textarea, select")) return;
-        if (location.pathname === "/" || location.pathname.startsWith("/roots") || location.pathname === "/tools" || location.pathname === "/alerts" || location.pathname === "/shield-alerts" || location.pathname === "/events" || location.pathname === "/embed-sender" || location.pathname === "/complaints") {
+        if (location.pathname === "/" || location.pathname.startsWith("/roots") || location.pathname.startsWith("/attendance") || location.pathname === "/tools" || location.pathname === "/alerts" || location.pathname === "/shield-alerts" || location.pathname === "/events" || location.pathname === "/embed-sender" || location.pathname === "/complaints") {
           state.summary = null;
           state.alerts = [];
           state.events = [];

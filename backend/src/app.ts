@@ -55,6 +55,8 @@ export function createApp() {
       "/roots-registration",
       "/roots-reports",
       "/roots-reports/:id",
+      "/attendance",
+      "/attendance/:id",
       "/tools",
       "/events",
       "/alerts",
