@@ -642,6 +642,26 @@ export function kellaDashboardHtml() {
       .toast { border: 1px solid rgba(100, 62, 22, 0.40); background: #fff0c6; color: #241509; border-radius: 9px; padding: 13px 14px; box-shadow: 0 18px 40px rgba(0,0,0,0.35); font-weight: 750; }
       .toast.success { border-color: rgba(92,255,200,0.35); }
       .toast.error { border-color: rgba(255,79,98,0.5); }
+      .kofi-tip {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        z-index: 40;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid rgba(255,255,255,0.45);
+        border-radius: 999px;
+        padding: 10px 16px 10px 10px;
+        background: linear-gradient(135deg, #00b9fe, #018bd8);
+        color: #fff;
+        font-weight: 1000;
+        text-decoration: none;
+        box-shadow: 0 18px 38px rgba(0, 185, 254, 0.32), 0 0 0 3px rgba(255,255,255,0.12);
+        transition: transform 160ms ease, box-shadow 160ms ease;
+      }
+      .kofi-tip:hover { transform: translateY(-2px); box-shadow: 0 22px 44px rgba(0, 185, 254, 0.42), 0 0 0 4px rgba(255,255,255,0.16); }
+      .kofi-tip img { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.20); }
 
       .member-modal {
         position: fixed;
@@ -777,6 +797,7 @@ export function kellaDashboardHtml() {
         .member-profile-hero { grid-template-columns: 1fr; text-align: center; padding-right: 0; justify-items: center; }
         .profile-stats { grid-template-columns: 1fr; }
         .modal-close { top: 10px; right: 10px; }
+        .kofi-tip { right: 14px; bottom: 14px; padding: 9px 13px 9px 9px; }
       }
     </style>
   </head>
@@ -831,18 +852,7 @@ export function kellaDashboardHtml() {
       </section>
     </div>
     <div id="toasts" class="toast-stack" aria-live="polite"></div>
-    <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
-    <script>
-      window.addEventListener("load", function() {
-        if (!window.kofiWidgetOverlay) return;
-        window.kofiWidgetOverlay.draw("exuz19", {
-          type: "floating-chat",
-          "floating-chat.donateButton.text": "Tip Me",
-          "floating-chat.donateButton.background-color": "#00b9fe",
-          "floating-chat.donateButton.text-color": "#fff"
-        });
-      });
-    </script>
+    <a class="kofi-tip" href="https://ko-fi.com/exuz19" target="_blank" rel="noreferrer"><img src="/assets/kellacoin.png" alt="" />Tip Me</a>
     <script>
       const app = document.getElementById("app");
       const toasts = document.getElementById("toasts");

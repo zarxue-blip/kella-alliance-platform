@@ -24,10 +24,9 @@ export function createApp() {
     helmet({
       contentSecurityPolicy: {
         directives: {
-          "script-src": ["'self'", "'unsafe-inline'", "https://storage.ko-fi.com"],
+          "script-src": ["'self'", "'unsafe-inline'"],
           "style-src": ["'self'", "'unsafe-inline'"],
-          "img-src": ["'self'", "data:", "https:"],
-          "frame-src": ["'self'", "https://ko-fi.com"]
+          "img-src": ["'self'", "data:", "https:"]
         }
       }
     })
