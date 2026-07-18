@@ -831,6 +831,18 @@ export function kellaDashboardHtml() {
       </section>
     </div>
     <div id="toasts" class="toast-stack" aria-live="polite"></div>
+    <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
+    <script>
+      window.addEventListener("load", function() {
+        if (!window.kofiWidgetOverlay) return;
+        window.kofiWidgetOverlay.draw("exuz19", {
+          type: "floating-chat",
+          "floating-chat.donateButton.text": "Tip Me",
+          "floating-chat.donateButton.background-color": "#00b9fe",
+          "floating-chat.donateButton.text-color": "#fff"
+        });
+      });
+    </script>
     <script>
       const app = document.getElementById("app");
       const toasts = document.getElementById("toasts");
