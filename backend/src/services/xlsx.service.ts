@@ -147,6 +147,22 @@ function headerKey(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+const decorativeNameTokenPattern = "[\\u02B0-\\u02FF\\u1D2C-\\u1DBF\\u2070-\\u209F]+";
+
+export function cleanImportedPlayerName(value: unknown) {
+  const original = String(value || "");
+  let cleaned = original.replace(new RegExp(`^\\s*${decorativeNameTokenPattern}\\s+`, "u"), "");
+  const hadDecorativePrefix = cleaned !== original;
+  cleaned = cleaned
+    .replace(new RegExp(`\\s+${decorativeNameTokenPattern}\\s*$`, "u"), "")
+    .replace(/^\s*\[[^\]]{1,16}\]\s+/, "")
+    .replace(/^\s*(?:kog|lwl|mf|aga|row|cod)\s+(?=\S{2,})/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (hadDecorativePrefix) cleaned = cleaned.replace(/^([a-zA-Z])\1(?=[a-zA-Z]{2,})/, "$1");
+  return cleaned;
+}
+
 export function numberFromCell(value: unknown) {
   const parsed = Number(String(value || "").replace(/[^0-9.-]/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
@@ -315,7 +331,7 @@ export function parseTopnWorkbook(buffer: Buffer): ImportedTopnMember[] {
   const members: ImportedTopnMember[] = [];
   for (const row of rows.slice(headerRowIndex + 1)) {
     const uid = String(row[uidIndex] ?? "").trim();
-    const ign = String(row[ignIndex] ?? "").trim();
+    const ign = cleanImportedPlayerName(row[ignIndex] ?? "");
     const stats: Record<string, number> = {};
     for (const column of metricColumns) {
       const value = numberFromCell(row[column.index] ?? "");

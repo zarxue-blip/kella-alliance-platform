@@ -6,7 +6,7 @@ import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { UserModel } from "../models/user.model.js";
 import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendDiscordMessage, sendEventAttendanceEmbed, sendRootsRegistration } from "../services/discord.service.js";
-import { parseTopnWorkbook, type ImportedTopnMember } from "../services/xlsx.service.js";
+import { cleanImportedPlayerName, parseTopnWorkbook, type ImportedTopnMember } from "../services/xlsx.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
 import type { AuthenticatedRequest } from "../middleware/auth.js";
@@ -389,7 +389,7 @@ function collapseRepeatedLetters(value: string) {
 
 function rosterTokens(value: string) {
   const noise = new Set(["ckr", "kog", "cod", "row", "aga", "alliance", "guild"]);
-  return String(value || "")
+  return cleanImportedPlayerName(value)
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
@@ -452,6 +452,44 @@ function isUploadedOnlyMember(member?: MergeCandidate | null) {
 
 function isRealDiscordUserId(value?: string) {
   return /^\d{15,25}$/.test(String(value || ""));
+}
+
+function topnAllianceTag(value?: string) {
+  const raw = String(value || "").trim();
+  const bracketed = raw.match(/\[([^\]]+)\]/)?.[1] || raw;
+  return bracketed.replace(/[^a-z0-9]/gi, "").toLowerCase();
+}
+
+function isAllowedTopnAlliance(value?: string) {
+  return ["kog", "lwl", "mf"].includes(topnAllianceTag(value));
+}
+
+function allowedTopnRows(rows: ImportedTopnMember[]) {
+  const allowed: ImportedTopnMember[] = [];
+  let excluded = 0;
+  for (const row of rows) {
+    if (!isAllowedTopnAlliance(row.alliance)) {
+      excluded += 1;
+      continue;
+    }
+    allowed.push({ ...row, ign: cleanImportedPlayerName(row.ign) });
+  }
+  return { allowed, excluded };
+}
+
+async function removeUploadedMembersOutsideTopnAlliances(allianceId: string) {
+  const uploadedMembers = (await MemberModel.find({
+    allianceId,
+    discordId: /^(xlsx|topn):/
+  })
+    .select("_id alliance")
+    .limit(5000)
+    .lean()) as Array<{ _id: Types.ObjectId; alliance?: string }>;
+
+  const ids = uploadedMembers.filter((member) => !isAllowedTopnAlliance(member.alliance)).map((member) => member._id);
+  if (!ids.length) return 0;
+  const result = await MemberModel.deleteMany({ allianceId, _id: { $in: ids } });
+  return result.deletedCount || 0;
 }
 
 function dmAlertContent(input: z.infer<typeof dmAlertToolSchema>) {
@@ -1080,22 +1118,25 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
   const allianceId = alliance._id.toString();
   const syncedAt = new Date();
   const snapshotDate = resolvePowerSnapshotDate(body.snapshotDate, body.filename);
-  const rows = parseTopnWorkbook(decodeUploadedBase64(body.fileBase64));
+  const parsedRows = parseTopnWorkbook(decodeUploadedBase64(body.fileBase64));
+  const { allowed: rows, excluded } = allowedTopnRows(parsedRows);
+  if (!rows.length) throw new HttpError(400, "No KoG, LWL, or mF members were found in this Excel file.");
   const result = await importGameStatSnapshots(
     alliance,
     [{ rows, snapshotDate, source: "TopN Excel", filename: body.filename || "members.xlsx" }],
     "xlsx"
   );
+  const removedOtherAlliances = await removeUploadedMembersOutsideTopnAlliances(allianceId);
 
   await KellaActionModel.create({
     allianceId,
     type: "member_xlsx_import",
     actorName: "Dashboard",
     status: "Completed",
-    payload: { filename: body.filename || "members.xlsx", snapshotDate, ...result }
+    payload: { filename: body.filename || "members.xlsx", snapshotDate, excluded, removedOtherAlliances, ...result }
   });
 
-  res.json({ ...result, syncedAt, snapshotDate });
+  res.json({ ...result, excluded, removedOtherAlliances, syncedAt, snapshotDate });
 });
 
 export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {

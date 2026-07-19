@@ -1888,19 +1888,26 @@ export function kellaDashboardHtml() {
           .map(function(item, index) { return [String(item.member.id || item.member.uid || item.member.discordId), index + 1]; }));
         const ranked = (members || [])
           .map(function(member) {
-            return { member: member, power: currentPowerValue(member), latest: latestStatPoint(member, metric.key), history: normalizeStatHistory(member, metric.key), delta: statDelta(member, metric.key) };
+            const latest = latestStatPoint(member, metric.key);
+            const rankValue = metric.key === "power" ? currentPowerValue(member) : Number(latest.value || 0);
+            return { member: member, power: currentPowerValue(member), rankValue: rankValue, latest: latest, history: normalizeStatHistory(member, metric.key), delta: statDelta(member, metric.key) };
           })
-          .filter(function(item) { return Number(item.power || 0) > 0 || Number(item.latest.value || 0) > 0 || item.history.length > 0; })
-          .sort(function(a, b) { return Number(b.power || 0) - Number(a.power || 0); })
+          .filter(function(item) { return Number(item.rankValue || 0) > 0 || item.history.length > 0; })
+          .sort(function(a, b) {
+            const byMetric = Number(b.rankValue || 0) - Number(a.rankValue || 0);
+            if (byMetric) return byMetric;
+            return Number(b.power || 0) - Number(a.power || 0);
+          })
           .slice(0, 50);
         if (!ranked.length) return statMetricPicker() + empty("Upload dated Excel files to build the " + metric.label + " graph.");
-        return statMetricPicker() + '<div class="power-list">' + ranked.map(function(item) {
+        return statMetricPicker() + '<div class="power-list">' + ranked.map(function(item, index) {
           const member = item.member;
           const rowId = escapeHtml(member.id || "");
           const powerRank = powerRankMap.get(String(member.id || member.uid || member.discordId));
-          const statValueText = metric.key === "power" ? formatCompactNumber(item.power) : formatCompactNumber(item.latest.value);
+          const statValueText = formatCompactNumber(item.rankValue);
+          const metricRankLabel = "#" + (index + 1) + " " + metric.label.toUpperCase();
           return '<button type="button" class="power-trend-row' + (powerRank ? " top-stat-player" : "") + '" data-member-row data-member-id="' + rowId + '" aria-label="Open ' + escapeHtml(metric.label) + ' history for ' + escapeHtml(memberDisplayName(member)) + '">' +
-            '<span class="power-player">' + (powerRank ? '<em class="stat-rank">#' + powerRank + ' POWER</em>' : "") + '<strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + escapeHtml(metric.label) + ': ' + statValueText + '</span></span>' +
+            '<span class="power-player"><em class="stat-rank">' + escapeHtml(metricRankLabel) + (powerRank ? ' - Power #' + powerRank : '') + '</em><strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + escapeHtml(metric.label) + ': ' + statValueText + '</span></span>' +
             '<span class="power-spark-wrap">' + sparklineSvg(item.history, 82) + '<span class="power-spark-meta">' + escapeHtml(statTrendMeta(item.history)) + '</span></span>' +
             '<span class="trend-pill ' + trendClass(item.delta) + '">' + escapeHtml(formatDelta(item.delta)) + '</span>' +
           '</button>';
@@ -1939,7 +1946,7 @@ export function kellaDashboardHtml() {
         app.innerHTML =
           pageHeader("Dashboard", "A cleaner command room for events, power, and member activity.", '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-link-button="/tools">Open Tools</button>') +
           '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events. Click any day to view event attendance.</span></div><div class="toolbar"><button class="secondary" data-link-button="/attendance">Attendance</button><button class="primary" data-link-button="/tools">Create Event</button></div></div>' + renderEventsCalendar(events) + '</section>' +
-          '<section class="card alliance-stats-card"><div class="card-header"><div><h3>Alliance Stats</h3><span class="muted">Top 50 rows are ranked by current power. Buttons change the graph shown for those players.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</section>';
+          '<section class="card alliance-stats-card"><div class="card-header"><div><h3>Alliance Stats</h3><span class="muted">Top 50 rows follow the stat button you choose. Power uses current Power from the uploaded Excel file.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</section>';
       }
 
       async function renderDashboard() {
@@ -1968,7 +1975,7 @@ export function kellaDashboardHtml() {
       }
 
       function renderMemberUploadCard() {
-        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Excel Stat Upload</h3><span class="muted">Upload a Call of Dragons TopN .xlsx export. Kella uses the current Power column for leaderboard order, imports combat stats, and merges rows with Discord profiles.</span></div><div class="toolbar"><button class="primary" data-action="upload-member-xlsx">Upload Excel</button></div></div><div class="form-grid">' +
+        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Excel Stat Upload</h3><span class="muted">Upload a Call of Dragons TopN .xlsx export. Kella imports only KoG, LWL, and mF rows, cleans decorative mini-tags from names, and uses current Power for the Power board.</span></div><div class="toolbar"><button class="primary" data-action="upload-member-xlsx">Upload Excel</button></div></div><div class="form-grid">' +
           '<label class="wide">TopN Excel File<input type="file" data-member-upload accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" /></label>' +
           '<label>Snapshot Date<input type="date" data-member-upload-date /><span class="muted">Optional. Kella reads dates from filenames like july-19-2026.xlsx.</span></label>' +
         '</div></section>';
@@ -2865,7 +2872,7 @@ export function kellaDashboardHtml() {
           state.summary = null;
           state.members = [];
           await renderMembers();
-          return "Imported " + sync.total + " Excel members (" + sync.created + " new, " + sync.updated + " updated, " + (sync.merged || 0) + " merged with Discord, " + sync.skipped + " skipped).";
+          return "Imported " + sync.total + " allowed Excel members (" + sync.created + " new, " + sync.updated + " updated, " + (sync.merged || 0) + " merged with Discord, " + sync.skipped + " skipped, " + (sync.excluded || 0) + " outside KoG/LWL/mF ignored).";
         }, "Excel members imported.");
         if (kind === "save-my-profile") withFeedback(action, async function() {
           const data = await sendJson("PATCH", "/api/dashboard/profile", readProfileForm(), false);
