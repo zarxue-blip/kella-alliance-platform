@@ -479,6 +479,21 @@ export function kellaDashboardHtml() {
       .calendar-more { color: #7c4b08; font-size: 11px; font-weight: 1000; }
       .calendar-day.hot, .calendar-day.has-items { background: linear-gradient(180deg, rgba(255, 224, 109, 0.78), rgba(209, 142, 43, 0.50)); border-color: rgba(169, 99, 23, 0.40); }
       .calendar-day.event { box-shadow: inset 0 -3px 0 rgba(179, 38, 47, 0.48); }
+      .calendar-day.today {
+        border-color: rgba(34, 159, 92, 0.68);
+        background: linear-gradient(180deg, rgba(178, 255, 194, 0.76), rgba(103, 184, 88, 0.46));
+        box-shadow: inset 0 0 0 2px rgba(34, 159, 92, 0.16), 0 0 18px rgba(34, 159, 92, 0.18);
+      }
+      .calendar-day.today.event { box-shadow: inset 0 0 0 2px rgba(34, 159, 92, 0.18), inset 0 -3px 0 rgba(34, 159, 92, 0.70), 0 0 18px rgba(34, 159, 92, 0.18); }
+      .calendar-day.today .calendar-day-top strong {
+        min-width: 30px;
+        text-align: center;
+        border-radius: 999px;
+        padding: 3px 8px;
+        color: #f9ffe8;
+        background: linear-gradient(180deg, #31b36a, #11633b);
+        box-shadow: 0 0 12px rgba(34, 159, 92, 0.36);
+      }
       .event-calendar .calendar-day { min-height: 148px; }
       .calendar-detail-list { display: grid; gap: 12px; margin-top: 16px; }
       .calendar-detail-card {
@@ -490,20 +505,21 @@ export function kellaDashboardHtml() {
       .calendar-detail-card h3 { font-size: 18px; margin-top: 7px; }
       .calendar-detail-card p { margin: 8px 0 0; color: #5f4729; }
       .calendar-detail-card .activity-time { margin-top: 6px; }
+      .alliance-stats-card { padding: 24px; }
       .metric-picker {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
-        gap: 8px;
-        margin: 0 0 14px;
+        grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+        gap: 7px;
+        margin: 0 0 16px;
       }
       .metric-button {
-        min-height: 48px;
+        min-height: 38px;
         border: 1px solid rgba(106, 63, 20, 0.22);
         border-radius: 8px;
         background: rgba(53, 25, 20, 0.08);
         color: #4d260f;
-        padding: 8px 9px;
-        font-size: 11px;
+        padding: 6px 7px;
+        font-size: 10px;
         font-weight: 1000;
         text-transform: uppercase;
         letter-spacing: 0.04em;
@@ -521,20 +537,25 @@ export function kellaDashboardHtml() {
         color: #201006;
         box-shadow: 0 0 18px rgba(255, 214, 90, 0.36), inset 0 1px 0 rgba(255,255,255,0.55);
       }
-      .power-list { display: grid; gap: 10px; }
+      .power-list { display: grid; gap: 12px; }
       .power-trend-row {
         width: 100%;
         display: grid;
-        grid-template-columns: minmax(150px, 1fr) minmax(160px, 1.25fr) auto;
-        gap: 14px;
+        grid-template-columns: minmax(190px, 1fr) minmax(280px, 1.8fr) auto;
+        gap: 18px;
         align-items: center;
         border: 1px solid rgba(120, 73, 24, 0.20);
         border-radius: 10px;
         background: linear-gradient(180deg, rgba(255, 247, 219, 0.58), rgba(227, 188, 111, 0.24));
-        padding: 12px;
+        padding: 14px 16px;
         color: #311d0a;
         text-align: left;
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.42);
+      }
+      .power-trend-row.top-power-player {
+        border-color: rgba(32, 143, 79, 0.42);
+        background: linear-gradient(180deg, rgba(222, 255, 218, 0.44), rgba(247, 219, 138, 0.40));
+        box-shadow: inset 4px 0 0 rgba(32, 143, 79, 0.70), inset 0 1px 0 rgba(255,255,255,0.48);
       }
       .power-trend-row:hover, .power-trend-row:focus {
         transform: translateY(-1px);
@@ -544,10 +565,24 @@ export function kellaDashboardHtml() {
       }
       .power-player strong { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .power-player span { display: block; margin-top: 4px; color: #76552e; font-size: 12px; font-weight: 900; }
+      .power-rank {
+        display: inline-flex;
+        width: max-content;
+        margin-bottom: 7px;
+        border-radius: 999px;
+        padding: 3px 8px;
+        background: rgba(32, 143, 79, 0.14);
+        color: #11633b;
+        border: 1px solid rgba(32, 143, 79, 0.25);
+        font-size: 10px;
+        font-weight: 1000;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
       .power-spark-wrap { display: grid; gap: 4px; min-width: 0; }
       .power-sparkline {
         width: 100%;
-        height: 52px;
+        height: 72px;
         border-radius: 8px;
         background: linear-gradient(180deg, rgba(255, 246, 208, 0.58), rgba(205, 144, 45, 0.20));
         border: 1px solid rgba(110, 69, 24, 0.14);
@@ -1819,6 +1854,7 @@ export function kellaDashboardHtml() {
       function renderCalendarCell(date, type, items) {
         const key = dayKey(date);
         const weekday = new Intl.DateTimeFormat("en", { weekday: "short", timeZone: "UTC" }).format(date);
+        const isToday = key === dayKey(new Date());
         const visible = items.slice(0, 3);
         const entries = visible.length
           ? visible.map(function(item) {
@@ -1826,7 +1862,7 @@ export function kellaDashboardHtml() {
             }).join("")
           : '<span class="calendar-empty">No event</span>';
         const more = items.length > visible.length ? '<span class="calendar-more">+' + (items.length - visible.length) + ' more</span>' : "";
-        return '<button class="calendar-day' + (items.length ? " has-items event" : "") + '" type="button" data-calendar-day="' + key + '" data-calendar-type="' + type + '">' +
+        return '<button class="calendar-day' + (items.length ? " has-items event" : "") + (isToday ? " today" : "") + '" type="button" data-calendar-day="' + key + '" data-calendar-type="' + type + '">' +
           '<span class="calendar-day-top"><strong>' + date.getUTCDate() + '</strong><em>' + weekday + '</em></span>' +
           '<span class="calendar-day-list">' + entries + more + '</span>' +
         '</button>';
@@ -1841,20 +1877,26 @@ export function kellaDashboardHtml() {
 
       function renderPowerBoard(members) {
         const metric = currentStatMetric();
+        const powerRankMap = new Map((members || [])
+          .filter(function(member) { return Number(member.power || 0) > 0; })
+          .sort(function(a, b) { return Number(b.power || 0) - Number(a.power || 0); })
+          .slice(0, 50)
+          .map(function(member, index) { return [String(member.id || member.uid || member.discordId), index + 1]; }));
         const ranked = (members || [])
           .map(function(member) {
             return { member: member, latest: latestStatPoint(member, metric.key), history: normalizeStatHistory(member, metric.key), delta: statDelta(member, metric.key) };
           })
           .filter(function(item) { return Number(item.latest.value || 0) > 0 || item.history.length > 0; })
           .sort(function(a, b) { return Number(b.latest.value || 0) - Number(a.latest.value || 0); })
-          .slice(0, 10);
+          .slice(0, 50);
         if (!ranked.length) return statMetricPicker() + empty("Sync DragonStats or upload dated Excel files to build the " + metric.label + " graph.");
         return statMetricPicker() + '<div class="power-list">' + ranked.map(function(item) {
           const member = item.member;
           const rowId = escapeHtml(member.id || "");
-          return '<button type="button" class="power-trend-row" data-member-row data-member-id="' + rowId + '" aria-label="Open ' + escapeHtml(metric.label) + ' history for ' + escapeHtml(memberDisplayName(member)) + '">' +
-            '<span class="power-player"><strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + formatCompactNumber(item.latest.value) + '</span></span>' +
-            '<span class="power-spark-wrap">' + sparklineSvg(item.history, 62) + '<span class="power-spark-meta">' + escapeHtml(statTrendMeta(item.history)) + '</span></span>' +
+          const powerRank = powerRankMap.get(String(member.id || member.uid || member.discordId));
+          return '<button type="button" class="power-trend-row' + (powerRank ? " top-power-player" : "") + '" data-member-row data-member-id="' + rowId + '" aria-label="Open ' + escapeHtml(metric.label) + ' history for ' + escapeHtml(memberDisplayName(member)) + '">' +
+            '<span class="power-player">' + (powerRank ? '<em class="power-rank">Top ' + powerRank + ' Power</em>' : "") + '<strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + formatCompactNumber(item.latest.value) + '</span></span>' +
+            '<span class="power-spark-wrap">' + sparklineSvg(item.history, 82) + '<span class="power-spark-meta">' + escapeHtml(statTrendMeta(item.history)) + '</span></span>' +
             '<span class="trend-pill ' + trendClass(item.delta) + '">' + escapeHtml(formatDelta(item.delta)) + '</span>' +
           '</button>';
         }).join("") + '</div>';
@@ -1890,12 +1932,9 @@ export function kellaDashboardHtml() {
 
       function renderDashboardData(summary, members = [], events = []) {
         app.innerHTML =
-          pageHeader("Dashboard", "A cleaner command room for events, power, and active fights.", '<button class="secondary" data-action="sync-discord-members">Sync Data</button><button class="primary" data-link-button="/tools">Open Tools</button>') +
+          pageHeader("Dashboard", "A cleaner command room for events, power, and member activity.", '<button class="secondary" data-action="sync-discord-members">Sync Data</button><button class="primary" data-link-button="/tools">Open Tools</button>') +
           '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events. Click any day to view event attendance.</span></div><div class="toolbar"><button class="secondary" data-link-button="/attendance">Attendance</button><button class="primary" data-link-button="/tools">Create Event</button></div></div>' + renderEventsCalendar(events) + '</section>' +
-          '<section class="two">' +
-            '<div class="card"><div class="card-header"><div><h3>Alliance Stats</h3><span class="muted">Choose a stat to rank players and compare dated uploads.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</div>' +
-            '<div class="card"><div class="card-header"><h3>Active Events</h3><button class="secondary" data-link-button="/attendance">View Attendance</button></div>' + renderActiveEvents(events) + '</div>' +
-          '</section>';
+          '<section class="card alliance-stats-card"><div class="card-header"><div><h3>Alliance Stats</h3><span class="muted">Top 50 players are highlighted by current power. Choose any stat to compare dated uploads.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</section>';
       }
 
       async function renderDashboard() {
@@ -3149,16 +3188,28 @@ export function kellaDashboardHtml() {
       window.addEventListener("popstate", route);
       updateServerClock();
       setInterval(updateServerClock, 1000);
+      let autoRefreshBusy = false;
+      async function refreshDashboardSilently() {
+        if (autoRefreshBusy || location.pathname !== "/") return;
+        autoRefreshBusy = true;
+        try {
+          state.summary = null;
+          state.members = [];
+          state.events = [];
+          const results = await Promise.all([loadSummary(), loadMembers(), loadDashboardEvents()]);
+          if (location.pathname === "/" && !document.hidden) {
+            renderDashboardData(results[0], results[1], results[2]);
+          }
+        } catch (error) {
+          console.warn("Kella dashboard silent refresh failed", error);
+        } finally {
+          autoRefreshBusy = false;
+        }
+      }
       setInterval(function() {
         if (document.hidden) return;
         if (document.activeElement && document.activeElement.matches("input, textarea, select")) return;
-        if (location.pathname === "/" || location.pathname.startsWith("/roots") || location.pathname.startsWith("/attendance") || location.pathname === "/tools" || location.pathname === "/alerts" || location.pathname === "/shield-alerts" || location.pathname === "/events" || location.pathname === "/embed-sender" || location.pathname === "/complaints") {
-          state.summary = null;
-          state.alerts = [];
-          state.events = [];
-          state.complaints = [];
-          route();
-        }
+        refreshDashboardSilently();
       }, 45000);
       route();
     </script>
