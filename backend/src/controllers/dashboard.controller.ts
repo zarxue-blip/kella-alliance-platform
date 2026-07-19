@@ -6,7 +6,8 @@ import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { UserModel } from "../models/user.model.js";
 import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendDiscordMessage, sendEventAttendanceEmbed, sendRootsRegistration } from "../services/discord.service.js";
-import { parseTopnWorkbook } from "../services/xlsx.service.js";
+import { fetchDragonStatsSnapshots } from "../services/dragonstats.service.js";
+import { parseTopnWorkbook, type ImportedTopnMember } from "../services/xlsx.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
 import type { AuthenticatedRequest } from "../middleware/auth.js";
@@ -46,6 +47,7 @@ type DashboardMember = {
   alliance?: string;
   power?: number;
   powerHistory?: Array<{ date?: Date | string; power?: number; source?: string; filename?: string }>;
+  statHistory?: Array<{ date?: Date | string; metrics?: Record<string, unknown>; source?: string; filename?: string }>;
 };
 
 const dashboardSettingsSchema = z.object({
@@ -121,6 +123,11 @@ const memberXlsxImportSchema = z.object({
   fileBase64: z.string().min(1, "Excel file is required")
 });
 
+const memberDragonStatsImportSchema = z.object({
+  serverName: z.string().min(1).max(24).default(env.DRAGONSTATS_SERVER_NAME),
+  maxSnapshots: z.coerce.number().int().min(1).max(30).default(30)
+});
+
 const profileUpdateSchema = z.object({
   ign: z.string().min(1).max(80).optional(),
   timezone: z.string().max(80).optional(),
@@ -142,7 +149,10 @@ const dashboardMemberUpdateSchema = z.object({
   notes: z.string().max(2000).optional()
 });
 
-type MergeCandidate = Pick<DashboardMember, "_id" | "ign" | "discordId" | "discordUsername" | "discordDisplayName" | "uid" | "power" | "powerHistory">;
+type MergeCandidate = Pick<
+  DashboardMember,
+  "_id" | "ign" | "discordId" | "discordUsername" | "discordDisplayName" | "uid" | "power" | "powerHistory" | "statHistory" | "rank" | "alliance"
+>;
 
 async function resolveAlliance(): Promise<any> {
   const alliance =
@@ -312,6 +322,55 @@ function mergePowerHistory(
     .map((entry) => ({ date: entry.date, power: entry.power, source: entry.source, filename: entry.filename }));
 }
 
+function sanitizeMetricMap(value: unknown) {
+  const metrics: Record<string, number> = {};
+  if (!value || typeof value !== "object") return metrics;
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (!/^[a-z][a-zA-Z0-9]*$/.test(key)) continue;
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) metrics[key] = parsed;
+  }
+  return metrics;
+}
+
+function metricCount(metrics: Record<string, number>) {
+  return Object.keys(metrics).length;
+}
+
+function mergeStatHistory(
+  history: Array<{ date?: Date | string; metrics?: Record<string, unknown>; source?: string; filename?: string }> | undefined,
+  snapshotDate: Date,
+  metrics: Record<string, number>,
+  source: string,
+  filename?: string
+) {
+  const cleanMetrics = sanitizeMetricMap(metrics);
+  if (!metricCount(cleanMetrics)) return history || [];
+
+  const day = startOfUtcDay(snapshotDate);
+  const dayKey = day.toISOString().slice(0, 10);
+  let sameDayMetrics: Record<string, number> = {};
+  const merged = (history || [])
+    .map((entry) => ({
+      date: validDate(new Date(entry.date || "")) ? startOfUtcDay(new Date(entry.date || "")) : undefined,
+      metrics: sanitizeMetricMap(entry.metrics),
+      source: entry.source || "TopN Excel",
+      filename: entry.filename || ""
+    }))
+    .filter((entry) => entry.date && metricCount(entry.metrics))
+    .filter((entry) => {
+      const isSameDay = entry.date!.toISOString().slice(0, 10) === dayKey;
+      if (isSameDay) sameDayMetrics = { ...sameDayMetrics, ...entry.metrics };
+      return !isSameDay;
+    });
+
+  merged.push({ date: day, metrics: { ...sameDayMetrics, ...cleanMetrics }, source, filename: filename || "" });
+  return merged
+    .sort((left, right) => left.date!.getTime() - right.date!.getTime())
+    .slice(-90)
+    .map((entry) => ({ date: entry.date, metrics: entry.metrics, source: entry.source, filename: entry.filename }));
+}
+
 function collapseRepeatedLetters(value: string) {
   return value.replace(/([a-z0-9])\1+/g, "$1");
 }
@@ -376,7 +435,7 @@ function memberId(value: MergeCandidate) {
 
 function isUploadedOnlyMember(member?: MergeCandidate | null) {
   const discordId = String(member?.discordId || "");
-  return discordId.startsWith("xlsx:") || discordId.startsWith("topn:");
+  return discordId.startsWith("xlsx:") || discordId.startsWith("topn:") || discordId.startsWith("dragonstats:");
 }
 
 function isRealDiscordUserId(value?: string) {
@@ -407,6 +466,38 @@ function discordUserAvatarUrl(discordId?: string, avatar?: string) {
 }
 
 function dashboardMemberDto(member: any) {
+  const powerHistory = (member.powerHistory || [])
+    .map((entry: any) => ({
+      date: entry.date,
+      power: numeric(entry.power),
+      source: entry.source || "",
+      filename: entry.filename || ""
+    }))
+    .filter((entry: any) => entry.date && entry.power > 0)
+    .sort((left: any, right: any) => new Date(left.date).getTime() - new Date(right.date).getTime());
+  const statHistory = (member.statHistory || [])
+    .map((entry: any) => ({
+      date: entry.date,
+      metrics: sanitizeMetricMap(entry.metrics),
+      source: entry.source || "",
+      filename: entry.filename || ""
+    }))
+    .filter((entry: any) => entry.date && metricCount(entry.metrics))
+    .sort((left: any, right: any) => new Date(left.date).getTime() - new Date(right.date).getTime());
+  const statDays = new Set(statHistory.map((entry: any) => new Date(entry.date).toISOString().slice(0, 10)));
+  for (const entry of powerHistory) {
+    const key = new Date(entry.date).toISOString().slice(0, 10);
+    if (!statDays.has(key)) {
+      statHistory.push({
+        date: entry.date,
+        metrics: { power: entry.power },
+        source: entry.source,
+        filename: entry.filename
+      });
+      statDays.add(key);
+    }
+  }
+
   return {
     id: member._id.toString(),
     discordId: member.discordId,
@@ -423,23 +514,16 @@ function dashboardMemberDto(member: any) {
     notes: member.notes,
     alliance: member.alliance,
     power: member.power,
-    powerHistory: (member.powerHistory || [])
-      .map((entry: any) => ({
-        date: entry.date,
-        power: numeric(entry.power),
-        source: entry.source || "",
-        filename: entry.filename || ""
-      }))
-      .filter((entry: any) => entry.date && entry.power > 0)
-      .sort((left: any, right: any) => new Date(left.date).getTime() - new Date(right.date).getTime()),
+    powerHistory,
+    statHistory: statHistory.sort((left: any, right: any) => new Date(left.date).getTime() - new Date(right.date).getTime()),
     timezone: member.timezone,
     country: member.country
   };
 }
 
 async function findMemberForGameRow(allianceId: string, uid: string, ign: string) {
-  const exact = ((await MemberModel.findOne({ allianceId, uid }).select("_id ign discordId discordUsername discordDisplayName uid power powerHistory").lean()) ??
-    (await MemberModel.findOne({ allianceId, ign }).select("_id ign discordId discordUsername discordDisplayName uid power powerHistory").lean())) as MergeCandidate | null;
+  const exact = ((await MemberModel.findOne({ allianceId, uid }).select("_id ign discordId discordUsername discordDisplayName uid power powerHistory statHistory").lean()) ??
+    (await MemberModel.findOne({ allianceId, ign }).select("_id ign discordId discordUsername discordDisplayName uid power powerHistory statHistory").lean())) as MergeCandidate | null;
 
   const candidates = (await MemberModel.find({
     allianceId,
@@ -450,7 +534,7 @@ async function findMemberForGameRow(allianceId: string, uid: string, ign: string
       { discordId: { $not: /^(xlsx|topn):/ } }
     ]
   })
-    .select("_id ign discordId discordUsername discordDisplayName uid power powerHistory")
+    .select("_id ign discordId discordUsername discordDisplayName uid power powerHistory statHistory")
     .limit(1200)
     .lean()) as MergeCandidate[];
 
@@ -464,18 +548,199 @@ async function findMemberForGameRow(allianceId: string, uid: string, ign: string
 }
 
 async function findMemberForDiscordProfile(allianceId: string, discordId: string, displayName: string, username: string) {
-  const exact = (await MemberModel.findOne({ allianceId, discordId }).select("_id ign discordId discordUsername discordDisplayName uid power powerHistory").lean()) as MergeCandidate | null;
+  const exact = (await MemberModel.findOne({ allianceId, discordId }).select("_id ign discordId discordUsername discordDisplayName uid power powerHistory statHistory").lean()) as MergeCandidate | null;
   if (exact) return exact;
 
   const candidates = (await MemberModel.find({
     allianceId,
     discordId: /^(xlsx|topn):/
   })
-    .select("_id ign discordId discordUsername discordDisplayName uid power powerHistory")
+    .select("_id ign discordId discordUsername discordDisplayName uid power powerHistory statHistory")
     .limit(1200)
     .lean()) as MergeCandidate[];
 
   return candidates.find((candidate) => discordMemberMatchesRoster(candidate, displayName, username)) ?? null;
+}
+
+type GameStatSnapshot = {
+  rows: ImportedTopnMember[];
+  snapshotDate: Date;
+  source: string;
+  filename?: string;
+};
+
+function importRank(source: string, rank?: string) {
+  const cleanRank = String(rank || "").trim();
+  if (cleanRank) return `${source} #${cleanRank}`;
+  return source;
+}
+
+function memberSearchNames(member: MergeCandidate) {
+  return [member.ign, member.discordDisplayName, member.discordUsername].filter(Boolean).map(String);
+}
+
+function preferProfileCandidate(current: MergeCandidate | undefined, next: MergeCandidate) {
+  if (!current) return next;
+  if (isUploadedOnlyMember(current) && !isUploadedOnlyMember(next)) return next;
+  return current;
+}
+
+async function bulkWriteMemberOps(ops: any[]) {
+  for (let index = 0; index < ops.length; index += 400) {
+    const chunk = ops.slice(index, index + 400);
+    if (chunk.length) await MemberModel.bulkWrite(chunk, { ordered: false });
+  }
+}
+
+async function importGameStatSnapshots(
+  alliance: any,
+  snapshots: GameStatSnapshot[],
+  fallbackDiscordPrefix: "xlsx" | "topn" | "dragonstats"
+) {
+  const allianceId = alliance._id.toString();
+  const now = new Date();
+  const existingMembers = (await MemberModel.find({ allianceId })
+    .select("_id ign discordId discordUsername discordDisplayName uid power powerHistory statHistory rank alliance")
+    .limit(5000)
+    .lean()) as MergeCandidate[];
+
+  const byUid = new Map<string, MergeCandidate>();
+  const byIgn = new Map<string, MergeCandidate>();
+  const byVariant = new Map<string, MergeCandidate>();
+  const deletedIds = new Set<string>();
+  const changed = new Map<string, MergeCandidate>();
+  const createdIds = new Set<string>();
+  const updatedIds = new Set<string>();
+  const mergedIds = new Set<string>();
+
+  const isLive = (member?: MergeCandidate | null) => Boolean(member && !deletedIds.has(memberId(member)));
+
+  const indexCandidate = (member: MergeCandidate) => {
+    if (!isLive(member)) return;
+    if (member.uid) byUid.set(String(member.uid), member);
+    if (member.ign) byIgn.set(String(member.ign).trim().toLowerCase(), member);
+    for (const name of memberSearchNames(member)) {
+      for (const variant of rosterVariants(name)) {
+        byVariant.set(variant, preferProfileCandidate(byVariant.get(variant), member));
+      }
+    }
+  };
+
+  const findCandidate = (uid: string, ign: string) => {
+    const exact = [byUid.get(uid), byIgn.get(ign.trim().toLowerCase())].find(isLive) ?? null;
+    let profileMatch: MergeCandidate | null = null;
+    for (const variant of rosterVariants(ign)) {
+      const candidate = byVariant.get(variant);
+      if (isLive(candidate)) {
+        profileMatch = candidate;
+        break;
+      }
+    }
+
+    if (profileMatch && exact && memberId(profileMatch) !== memberId(exact) && isUploadedOnlyMember(exact)) {
+      deletedIds.add(memberId(exact));
+      return profileMatch;
+    }
+
+    return exact ?? profileMatch;
+  };
+
+  existingMembers.forEach(indexCandidate);
+
+  let total = 0;
+  let skipped = 0;
+  for (const snapshot of snapshots) {
+    const source = snapshot.source;
+    const filename = snapshot.filename;
+    const snapshotDate = resolvePowerSnapshotDate(snapshot.snapshotDate, filename);
+    for (const row of snapshot.rows) {
+      total += 1;
+      const uid = String(row.uid || "").trim();
+      const ign = String(row.ign || "").trim();
+      const power = numeric(row.power);
+      if (!uid || !ign || !power) {
+        skipped += 1;
+        continue;
+      }
+
+      let candidate = findCandidate(uid, ign);
+      const stats = sanitizeMetricMap({ ...row.stats, power });
+      if (!candidate) {
+        candidate = {
+          _id: new Types.ObjectId(),
+          discordId: `${fallbackDiscordPrefix}:${uid}`,
+          ign,
+          uid,
+          power: 0,
+          powerHistory: [],
+          statHistory: [],
+          alliance: row.alliance || alliance.tag || alliance.name || "Imported",
+          rank: importRank(source, row.rank)
+        };
+        createdIds.add(memberId(candidate));
+        indexCandidate(candidate);
+      } else {
+        updatedIds.add(memberId(candidate));
+        if (!isUploadedOnlyMember(candidate)) mergedIds.add(memberId(candidate));
+      }
+
+      candidate.uid = uid;
+      candidate.ign = ign;
+      candidate.power = power;
+      candidate.alliance = row.alliance || candidate.alliance || alliance.tag || alliance.name || "Imported";
+      candidate.rank = importRank(source, row.rank);
+      candidate.powerHistory = mergePowerHistory(candidate.powerHistory, snapshotDate, power, source, filename);
+      candidate.statHistory = mergeStatHistory(candidate.statHistory, snapshotDate, stats, source, filename);
+      changed.set(memberId(candidate), candidate);
+      indexCandidate(candidate);
+    }
+  }
+
+  const ops: any[] = Array.from(deletedIds).map((id) => ({ deleteOne: { filter: { _id: id, allianceId } } }));
+  for (const member of changed.values()) {
+    if (deletedIds.has(memberId(member))) continue;
+    ops.push({
+      updateOne: {
+        filter: { _id: member._id, allianceId },
+        update: {
+          $set: {
+            uid: member.uid,
+            ign: member.ign,
+            power: numeric(member.power),
+            powerHistory: member.powerHistory || [],
+            statHistory: member.statHistory || [],
+            alliance: member.alliance || alliance.tag || alliance.name || "Imported",
+            rank: member.rank || "Imported",
+            lastActivity: now
+          },
+          $setOnInsert: {
+            allianceId,
+            discordId: member.discordId || `${fallbackDiscordPrefix}:${member.uid}`,
+            role: "Member",
+            timezone: alliance.timezone || "UTC",
+            country: "Unknown",
+            joinDate: now,
+            attendanceScore: 0,
+            warScore: 0,
+            contributionScore: 0,
+            notes: ""
+          }
+        },
+        upsert: true
+      }
+    });
+  }
+
+  await bulkWriteMemberOps(ops);
+
+  return {
+    total,
+    created: createdIds.size,
+    updated: updatedIds.size,
+    merged: mergedIds.size,
+    skipped,
+    deletedDuplicates: deletedIds.size
+  };
 }
 
 function publicSettings(alliance: any) {
@@ -548,7 +813,7 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
       KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean(),
       KellaActionModel.find({ ...filter, type: "roots_response" }).sort({ sentAt: -1 }).limit(8).lean(),
       KellaActionModel.find({ ...filter, type: "shield_alert" }).sort({ sentAt: -1 }).limit(5).lean(),
-      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "dm_alert", "event_reminder", "embed_sent", "chat_sent", "roots_report_sent", "discord_member_sync", "member_xlsx_import"] } })
+      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "dm_alert", "event_reminder", "embed_sent", "chat_sent", "roots_report_sent", "discord_member_sync", "member_xlsx_import", "member_dragonstats_import"] } })
         .sort({ sentAt: -1 })
         .limit(8)
         .lean()
@@ -623,7 +888,7 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
   const members = (await MemberModel.find(filter)
     .sort({ power: -1, attendanceScore: -1, ign: 1 })
     .limit(500)
-    .select("discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role timezone country attendanceScore notes alliance power powerHistory")
+    .select("discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role timezone country attendanceScore notes alliance power powerHistory statHistory")
     .lean()) as DashboardMember[];
 
   res.json({
@@ -701,9 +966,10 @@ export const dashboardMemberUpdate = asyncHandler(async (req, res) => {
   const updateBody: Record<string, unknown> = { ...body };
   if (body.power !== undefined) {
     const existing = (await MemberModel.findOne({ _id: req.params.id, ...allianceFilter(allianceId) })
-      .select("powerHistory")
+      .select("powerHistory statHistory")
       .lean()) as DashboardMember | null;
     updateBody.powerHistory = mergePowerHistory(existing?.powerHistory, new Date(), numeric(body.power), "Dashboard Edit");
+    updateBody.statHistory = mergeStatHistory(existing?.statHistory, new Date(), { power: numeric(body.power) }, "Dashboard Edit");
   }
   const updated = await MemberModel.findOneAndUpdate(
     { _id: req.params.id, ...allianceFilter(allianceId) },
@@ -721,65 +987,62 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
   const syncedAt = new Date();
   const snapshotDate = resolvePowerSnapshotDate(body.snapshotDate, body.filename);
   const rows = parseTopnWorkbook(decodeUploadedBase64(body.fileBase64));
-  let created = 0;
-  let updated = 0;
-  let skipped = 0;
-  let merged = 0;
-
-  for (const row of rows) {
-    const uid = String(row.uid || "").trim();
-    const ign = String(row.ign || "").trim();
-    if (!uid || !ign) {
-      skipped += 1;
-      continue;
-    }
-
-    const existing = (await findMemberForGameRow(allianceId, uid, ign)) as any;
-    const power = numeric(row.power);
-
-    const update = {
-      $set: {
-        uid,
-        ign,
-        power,
-        powerHistory: mergePowerHistory(existing?.powerHistory, snapshotDate, power, "TopN Excel", body.filename),
-        alliance: row.alliance || alliance.tag || alliance.name || "Imported",
-        rank: row.rank ? `TopN #${row.rank}` : "TopN",
-        lastActivity: syncedAt
-      },
-      $setOnInsert: {
-        discordId: `xlsx:${uid}`,
-        role: "Member",
-        timezone: alliance.timezone || "UTC",
-        country: "Unknown",
-        joinDate: syncedAt,
-        attendanceScore: 0,
-        warScore: 0,
-        contributionScore: 0,
-        notes: ""
-      }
-    };
-
-    const result = existing
-      ? await MemberModel.updateOne({ _id: existing._id, allianceId }, update)
-      : await MemberModel.updateOne({ allianceId, uid }, update, { upsert: true });
-
-    if (result.upsertedCount) created += result.upsertedCount;
-    else if (result.modifiedCount || result.matchedCount) {
-      updated += 1;
-      if (existing?.discordId && !String(existing.discordId).startsWith("xlsx:")) merged += 1;
-    }
-  }
+  const result = await importGameStatSnapshots(
+    alliance,
+    [{ rows, snapshotDate, source: "TopN Excel", filename: body.filename || "members.xlsx" }],
+    "xlsx"
+  );
 
   await KellaActionModel.create({
     allianceId,
     type: "member_xlsx_import",
     actorName: "Dashboard",
     status: "Completed",
-    payload: { filename: body.filename || "members.xlsx", snapshotDate, total: rows.length, created, updated, merged, skipped }
+    payload: { filename: body.filename || "members.xlsx", snapshotDate, ...result }
   });
 
-  res.json({ total: rows.length, created, updated, merged, skipped, syncedAt, snapshotDate });
+  res.json({ ...result, syncedAt, snapshotDate });
+});
+
+export const dashboardMemberDragonStatsImport = asyncHandler(async (req, res) => {
+  const body = memberDragonStatsImportSchema.parse(req.body || {});
+  const alliance = await resolveAlliance();
+  const allianceId = alliance._id.toString();
+  const syncedAt = new Date();
+  const snapshots = await fetchDragonStatsSnapshots(body.serverName, body.maxSnapshots);
+  if (!snapshots.length) throw new HttpError(404, `No public DragonStats scans found for ${body.serverName}.`);
+
+  const result = await importGameStatSnapshots(
+    alliance,
+    snapshots.map((snapshot) => ({
+      rows: snapshot.rows,
+      snapshotDate: snapshot.snapshotDate,
+      source: "DragonStats",
+      filename: snapshot.sourceUrl
+    })),
+    "dragonstats"
+  );
+
+  await KellaActionModel.create({
+    allianceId,
+    type: "member_dragonstats_import",
+    actorName: "Dashboard",
+    status: "Completed",
+    payload: {
+      serverName: body.serverName,
+      snapshots: snapshots.length,
+      latestSnapshot: snapshots[snapshots.length - 1]?.snapshotDate,
+      ...result
+    }
+  });
+
+  res.json({
+    ...result,
+    syncedAt,
+    serverName: body.serverName,
+    snapshots: snapshots.length,
+    latestSnapshot: snapshots[snapshots.length - 1]?.snapshotDate
+  });
 });
 
 export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
@@ -829,7 +1092,7 @@ export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
     if (result.upsertedCount) created += result.upsertedCount;
     else if (result.modifiedCount || result.matchedCount) {
       updated += 1;
-      if (existing?.discordId && String(existing.discordId).startsWith("xlsx:")) merged += 1;
+      if (isUploadedOnlyMember(existing)) merged += 1;
     }
   }
 

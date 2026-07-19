@@ -490,6 +490,37 @@ export function kellaDashboardHtml() {
       .calendar-detail-card h3 { font-size: 18px; margin-top: 7px; }
       .calendar-detail-card p { margin: 8px 0 0; color: #5f4729; }
       .calendar-detail-card .activity-time { margin-top: 6px; }
+      .metric-picker {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+        gap: 8px;
+        margin: 0 0 14px;
+      }
+      .metric-button {
+        min-height: 48px;
+        border: 1px solid rgba(106, 63, 20, 0.22);
+        border-radius: 8px;
+        background: rgba(53, 25, 20, 0.08);
+        color: #4d260f;
+        padding: 8px 9px;
+        font-size: 11px;
+        font-weight: 1000;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+      }
+      .metric-button:hover, .metric-button:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(210, 138, 30, 0.62);
+        box-shadow: 0 8px 18px rgba(103, 63, 17, 0.12);
+        outline: none;
+      }
+      .metric-button.active {
+        background: linear-gradient(180deg, #ffec83, #c6791a);
+        border-color: rgba(255, 240, 138, 0.94);
+        color: #201006;
+        box-shadow: 0 0 18px rgba(255, 214, 90, 0.36), inset 0 1px 0 rgba(255,255,255,0.55);
+      }
       .power-list { display: grid; gap: 10px; }
       .power-trend-row {
         width: 100%;
@@ -525,6 +556,8 @@ export function kellaDashboardHtml() {
       .power-sparkline .spark-fill { fill: rgba(185, 107, 28, 0.16); }
       .power-sparkline .spark-line { fill: none; stroke: #9b4c0e; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 4px rgba(255, 214, 90, 0.34)); }
       .power-sparkline .spark-dot { fill: #fff2a8; stroke: #8e430c; stroke-width: 2; }
+      .power-sparkline .chart-label { fill: #6e512d; font-size: 10px; font-weight: 900; }
+      .power-sparkline .chart-latest { fill: #3a220c; font-size: 11px; font-weight: 1000; }
       .power-spark-meta { color: #795a35; font-size: 11px; font-weight: 900; }
       .trend-pill {
         justify-self: end;
@@ -925,9 +958,43 @@ export function kellaDashboardHtml() {
       const toasts = document.getElementById("toasts");
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
-      const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null };
+      const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power" };
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
+      const statMetricOptions = [
+        { key: "power", label: "Power" },
+        { key: "topPower", label: "Top Power" },
+        { key: "merits", label: "Merits" },
+        { key: "unitsHealed", label: "Healed" },
+        { key: "unitsDead", label: "Deaths" },
+        { key: "unitsKilled", label: "Killed" },
+        { key: "resourcesGathered", label: "Resources" },
+        { key: "woodGathered", label: "Wood" },
+        { key: "goldGathered", label: "Gold" },
+        { key: "oreGathered", label: "Ore" },
+        { key: "manaGathered", label: "Mana" },
+        { key: "gemsGathered", label: "Gems" },
+        { key: "timesScouted", label: "Scouted" },
+        { key: "helpGiven", label: "Helps" },
+        { key: "t1Kills", label: "T1 Kills" },
+        { key: "t2Kills", label: "T2 Kills" },
+        { key: "t3Kills", label: "T3 Kills" },
+        { key: "t4Kills", label: "T4 Kills" },
+        { key: "t5Kills", label: "T5 Kills" },
+        { key: "kvkJoinCount", label: "KVK Join" },
+        { key: "kvkWinCount", label: "KVK Win" },
+        { key: "troopPower", label: "Troops" },
+        { key: "buildingPower", label: "Building" },
+        { key: "techPower", label: "Tech" },
+        { key: "heroPower", label: "Hero" },
+        { key: "policyPower", label: "Policy" },
+        { key: "honourKills", label: "Honour" },
+        { key: "mpRatio", label: "M/P Ratio" },
+        { key: "buildTime", label: "Build Time" },
+        { key: "destroyTime", label: "Destroy Time" },
+        { key: "serverRank", label: "Server Rank" },
+        { key: "castleLevel", label: "Castle" }
+      ];
       dashboardModules.splice(Math.max(0, dashboardModules.length - 2), 0, {
         id: "complaints",
         name: "Complaints",
@@ -1122,26 +1189,80 @@ export function kellaDashboardHtml() {
         return Math.max(4, Math.min(100, Math.round((Number(member?.power || 0) / topPower) * 100)));
       }
 
-      function normalizePowerHistory(member) {
-        return (Array.isArray(member?.powerHistory) ? member.powerHistory : [])
-          .map(function(point) {
+      function currentStatMetric() {
+        return statMetricOptions.find(function(metric) { return metric.key === state.statsMetric; }) || statMetricOptions[0];
+      }
+
+      function formatCompactNumber(value) {
+        const parsed = Number(value || 0);
+        if (!Number.isFinite(parsed)) return "0";
+        const sign = parsed < 0 ? "-" : "";
+        const abs = Math.abs(parsed);
+        const short = function(number, suffix) {
+          const rounded = number >= 100 ? number.toFixed(0) : number >= 10 ? number.toFixed(1) : number.toFixed(2);
+          return sign + rounded.replace(/\\.0+$|(?<=\\.\\d)0+$/g, "") + suffix;
+        };
+        if (abs >= 1000000000) return short(abs / 1000000000, "B");
+        if (abs >= 1000000) return short(abs / 1000000, "M");
+        if (abs >= 1000) return short(abs / 1000, "K");
+        return sign + abs.toLocaleString("en-US");
+      }
+
+      function normalizeStatHistory(member, metricKey) {
+        const metric = metricKey || currentStatMetric().key;
+        const rows = [];
+        (Array.isArray(member?.statHistory) ? member.statHistory : []).forEach(function(point) {
+          const date = point?.date ? new Date(point.date) : null;
+          const value = Number(point?.metrics?.[metric]);
+          if (!date || !Number.isFinite(date.getTime()) || !Number.isFinite(value)) return;
+          rows.push({ date: date, value: value, source: point?.source || "", filename: point?.filename || "" });
+        });
+        if (metric === "power") {
+          (Array.isArray(member?.powerHistory) ? member.powerHistory : []).forEach(function(point) {
             const date = point?.date ? new Date(point.date) : null;
-            const power = Number(point?.power || 0);
-            return { date: date, power: power, source: point?.source || "", filename: point?.filename || "" };
-          })
-          .filter(function(point) { return point.date && Number.isFinite(point.date.getTime()) && Number.isFinite(point.power) && point.power > 0; })
-          .sort(function(left, right) { return left.date.getTime() - right.date.getTime(); });
+            const value = Number(point?.power || 0);
+            if (!date || !Number.isFinite(date.getTime()) || !Number.isFinite(value)) return;
+            rows.push({ date: date, value: value, source: point?.source || "", filename: point?.filename || "" });
+          });
+          if (!rows.length && Number(member?.power || 0) > 0) {
+            rows.push({ date: new Date(), value: Number(member.power || 0), source: "Current", filename: "" });
+          }
+        }
+        const byDay = new Map();
+        rows
+          .filter(function(point) { return Number.isFinite(point.value); })
+          .sort(function(left, right) { return left.date.getTime() - right.date.getTime(); })
+          .forEach(function(point) { byDay.set(point.date.toISOString().slice(0, 10), point); });
+        return Array.from(byDay.values()).sort(function(left, right) { return left.date.getTime() - right.date.getTime(); });
+      }
+
+      function normalizePowerHistory(member) {
+        return normalizeStatHistory(member, "power").map(function(point) {
+          return { date: point.date, power: point.value, source: point.source, filename: point.filename };
+        });
+      }
+
+      function latestStatPoint(member, metricKey) {
+        const metric = metricKey || currentStatMetric().key;
+        const history = normalizeStatHistory(member, metric);
+        if (history.length) return history[history.length - 1];
+        if (metric === "power") return { date: null, value: Number(member?.power || 0) };
+        return { date: null, value: 0 };
       }
 
       function latestPowerPoint(member) {
-        const history = normalizePowerHistory(member);
-        return history[history.length - 1] || { date: null, power: Number(member?.power || 0) };
+        const latest = latestStatPoint(member, "power");
+        return { date: latest.date, power: latest.value };
+      }
+
+      function statDelta(member, metricKey) {
+        const history = normalizeStatHistory(member, metricKey || currentStatMetric().key);
+        if (history.length < 2) return null;
+        return history[history.length - 1].value - history[history.length - 2].value;
       }
 
       function powerDelta(member) {
-        const history = normalizePowerHistory(member);
-        if (history.length < 2) return null;
-        return history[history.length - 1].power - history[history.length - 2].power;
+        return statDelta(member, "power");
       }
 
       function compactDate(value) {
@@ -1152,7 +1273,7 @@ export function kellaDashboardHtml() {
       function formatDelta(delta) {
         if (delta === null || delta === undefined) return "No previous";
         if (delta === 0) return "No change";
-        return (delta > 0 ? "+" : "") + formatNumber(delta);
+        return (delta > 0 ? "+" : "") + formatCompactNumber(delta);
       }
 
       function trendClass(delta) {
@@ -1160,59 +1281,77 @@ export function kellaDashboardHtml() {
         return delta > 0 ? "up" : "down";
       }
 
+      function statMetricPicker() {
+        return '<div class="metric-picker" role="group" aria-label="Choose stat graph">' + statMetricOptions.map(function(metric) {
+          return '<button class="metric-button ' + (metric.key === currentStatMetric().key ? "active" : "") + '" type="button" data-action="set-stats-metric" data-metric="' + escapeHtml(metric.key) + '">' + escapeHtml(metric.label) + '</button>';
+        }).join("") + '</div>';
+      }
+
       function sparklineSvg(history, height) {
         const h = height || 52;
         const width = 220;
         if (!history.length) {
-          return '<div class="empty" style="padding:12px">No power snapshots yet.</div>';
+          return '<div class="empty" style="padding:12px">No snapshots for this stat yet.</div>';
         }
         if (history.length === 1) {
-          return '<svg class="power-sparkline" viewBox="0 0 ' + width + ' ' + h + '" role="img" aria-label="Single power snapshot"><line class="grid-line" x1="8" y1="' + Math.round(h / 2) + '" x2="' + (width - 8) + '" y2="' + Math.round(h / 2) + '"></line><circle class="spark-dot" cx="' + Math.round(width / 2) + '" cy="' + Math.round(h / 2) + '" r="5"></circle></svg>';
+          return '<svg class="power-sparkline" viewBox="0 0 ' + width + ' ' + h + '" role="img" aria-label="Single stat snapshot"><line class="grid-line" x1="8" y1="' + Math.round(h / 2) + '" x2="' + (width - 8) + '" y2="' + Math.round(h / 2) + '"></line><circle class="spark-dot" cx="' + Math.round(width / 2) + '" cy="' + Math.round(h / 2) + '" r="5"></circle><text class="chart-latest" x="' + (width - 10) + '" y="' + Math.max(16, Math.round(h / 2) - 8) + '" text-anchor="end">' + escapeHtml(formatCompactNumber(history[0].value)) + '</text></svg>';
         }
 
-        const powers = history.map(function(point) { return point.power; });
-        const min = Math.min.apply(null, powers);
-        const max = Math.max.apply(null, powers);
+        const values = history.map(function(point) { return point.value; });
+        const min = Math.min.apply(null, values);
+        const max = Math.max.apply(null, values);
         const range = Math.max(1, max - min);
-        const padX = 10;
-        const padY = 8;
+        const padX = 12;
+        const padY = 18;
+        const mid = min + range / 2;
         const points = history.map(function(point, index) {
           const x = padX + (index / Math.max(1, history.length - 1)) * (width - padX * 2);
-          const y = h - padY - ((point.power - min) / range) * (h - padY * 2);
+          const y = h - padY - ((point.value - min) / range) * (h - padY * 2);
           return { x: x, y: y };
         });
         const pointText = points.map(function(point) { return point.x.toFixed(1) + "," + point.y.toFixed(1); }).join(" ");
         const fillText = padX + "," + (h - padY) + " " + pointText + " " + (width - padX) + "," + (h - padY);
         const first = points[0];
         const last = points[points.length - 1];
-        return '<svg class="power-sparkline" viewBox="0 0 ' + width + ' ' + h + '" role="img" aria-label="Power trend line">' +
+        return '<svg class="power-sparkline" viewBox="0 0 ' + width + ' ' + h + '" role="img" aria-label="Stat trend line">' +
           '<line class="grid-line" x1="8" y1="' + (h - padY) + '" x2="' + (width - 8) + '" y2="' + (h - padY) + '"></line>' +
+          '<line class="grid-line" x1="8" y1="' + (h / 2).toFixed(1) + '" x2="' + (width - 8) + '" y2="' + (h / 2).toFixed(1) + '"></line>' +
           '<line class="grid-line" x1="8" y1="' + padY + '" x2="' + (width - 8) + '" y2="' + padY + '"></line>' +
           '<polygon class="spark-fill" points="' + fillText + '"></polygon>' +
           '<polyline class="spark-line" points="' + pointText + '"></polyline>' +
+          '<text class="chart-label" x="10" y="' + (padY - 5) + '">' + escapeHtml(formatCompactNumber(max)) + '</text>' +
+          '<text class="chart-label" x="10" y="' + ((h / 2) - 4).toFixed(1) + '">' + escapeHtml(formatCompactNumber(mid)) + '</text>' +
+          '<text class="chart-label" x="10" y="' + (h - 4) + '">' + escapeHtml(formatCompactNumber(min)) + '</text>' +
+          '<text class="chart-latest" x="' + (width - 10) + '" y="' + Math.max(16, last.y - 9).toFixed(1) + '" text-anchor="end">' + escapeHtml(formatCompactNumber(history[history.length - 1].value)) + '</text>' +
           '<circle class="spark-dot" cx="' + first.x.toFixed(1) + '" cy="' + first.y.toFixed(1) + '" r="4"></circle>' +
           '<circle class="spark-dot" cx="' + last.x.toFixed(1) + '" cy="' + last.y.toFixed(1) + '" r="5"></circle>' +
         '</svg>';
       }
 
-      function powerTrendMeta(history) {
-        if (!history.length) return "Upload dated TopN files to build this graph.";
-        if (history.length === 1) return compactDate(history[0].date) + " only - upload another date to compare.";
+      function statTrendMeta(history) {
+        if (!history.length) return "Sync DragonStats or upload dated Excel files to build this graph.";
+        if (history.length === 1) return compactDate(history[0].date) + " only - sync another date to compare.";
         return compactDate(history[0].date) + " to " + compactDate(history[history.length - 1].date);
       }
 
+      function powerTrendMeta(history) {
+        return statTrendMeta(history.map(function(point) { return { date: point.date, value: point.power }; }));
+      }
+
       function memberPowerChart(member) {
-        const history = normalizePowerHistory(member);
-        const delta = powerDelta(member);
-        const latest = latestPowerPoint(member);
+        const metric = currentStatMetric();
+        const history = normalizeStatHistory(member, metric.key);
+        const delta = statDelta(member, metric.key);
+        const latest = latestStatPoint(member, metric.key);
         const historyItems = history.slice(-6).reverse().map(function(point) {
-          return '<span>' + escapeHtml(compactDate(point.date)) + '<br>' + formatNumber(point.power) + '</span>';
+          return '<span>' + escapeHtml(compactDate(point.date)) + '<br>' + formatCompactNumber(point.value) + '</span>';
         }).join("");
-        return '<section class="member-power-chart"><div class="member-power-chart-head"><div><h4>Power History</h4><p>' + escapeHtml(powerTrendMeta(history)) + '</p></div><span class="trend-pill ' + trendClass(delta) + '">' + escapeHtml(formatDelta(delta)) + '</span></div>' +
+        return '<section class="member-power-chart"><div class="member-power-chart-head"><div><h4>' + escapeHtml(metric.label) + ' History</h4><p>' + escapeHtml(statTrendMeta(history)) + '</p></div><span class="trend-pill ' + trendClass(delta) + '">' + escapeHtml(formatDelta(delta)) + '</span></div>' +
+          statMetricPicker() +
           sparklineSvg(history, 190) +
           '<div class="power-history-list">' +
-            '<span>Current<br>' + formatNumber(latest.power) + '</span>' +
-            (historyItems || '<span>No dated uploads yet<br>Upload TopN Excel files</span>') +
+            '<span>Current<br>' + formatCompactNumber(latest.value) + '</span>' +
+            (historyItems || '<span>No dated snapshots yet<br>Sync DragonStats or upload Excel</span>') +
           '</div></section>';
       }
 
@@ -1243,6 +1382,7 @@ export function kellaDashboardHtml() {
 
       function openMemberModal(member) {
         if (!member || !memberModal || !memberModalContent) return;
+        memberModalContent.dataset.memberId = member.id || "";
         const displayName = memberDisplayName(member);
         const gameName = member.ign || displayName;
         const username = memberUsername(member);
@@ -1273,6 +1413,7 @@ export function kellaDashboardHtml() {
         if (!memberModal) return;
         memberModal.classList.remove("open");
         memberModal.setAttribute("aria-hidden", "true");
+        if (memberModalContent) delete memberModalContent.dataset.memberId;
         document.body.classList.remove("modal-open");
       }
 
@@ -1652,17 +1793,22 @@ export function kellaDashboardHtml() {
       }
 
       function renderPowerBoard(members) {
-        const topMembers = (members || []).filter(function(member) { return Number(member.power || 0) > 0; }).sort(function(a, b) { return Number(b.power || 0) - Number(a.power || 0); }).slice(0, 8);
-        if (!topMembers.length) return empty("Sync Discord members and upload power data to build the power board.");
-        return '<div class="power-list">' + topMembers.map(function(member) {
-          const history = normalizePowerHistory(member);
-          const latest = latestPowerPoint(member);
-          const delta = powerDelta(member);
+        const metric = currentStatMetric();
+        const ranked = (members || [])
+          .map(function(member) {
+            return { member: member, latest: latestStatPoint(member, metric.key), history: normalizeStatHistory(member, metric.key), delta: statDelta(member, metric.key) };
+          })
+          .filter(function(item) { return Number(item.latest.value || 0) > 0 || item.history.length > 0; })
+          .sort(function(a, b) { return Number(b.latest.value || 0) - Number(a.latest.value || 0); })
+          .slice(0, 10);
+        if (!ranked.length) return statMetricPicker() + empty("Sync DragonStats or upload dated Excel files to build the " + metric.label + " graph.");
+        return statMetricPicker() + '<div class="power-list">' + ranked.map(function(item) {
+          const member = item.member;
           const rowId = escapeHtml(member.id || "");
-          return '<button type="button" class="power-trend-row" data-member-row data-member-id="' + rowId + '" aria-label="Open power history for ' + escapeHtml(memberDisplayName(member)) + '">' +
-            '<span class="power-player"><strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + formatNumber(latest.power) + '</span></span>' +
-            '<span class="power-spark-wrap">' + sparklineSvg(history, 52) + '<span class="power-spark-meta">' + escapeHtml(powerTrendMeta(history)) + '</span></span>' +
-            '<span class="trend-pill ' + trendClass(delta) + '">' + escapeHtml(formatDelta(delta)) + '</span>' +
+          return '<button type="button" class="power-trend-row" data-member-row data-member-id="' + rowId + '" aria-label="Open ' + escapeHtml(metric.label) + ' history for ' + escapeHtml(memberDisplayName(member)) + '">' +
+            '<span class="power-player"><strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + formatCompactNumber(item.latest.value) + '</span></span>' +
+            '<span class="power-spark-wrap">' + sparklineSvg(item.history, 62) + '<span class="power-spark-meta">' + escapeHtml(statTrendMeta(item.history)) + '</span></span>' +
+            '<span class="trend-pill ' + trendClass(item.delta) + '">' + escapeHtml(formatDelta(item.delta)) + '</span>' +
           '</button>';
         }).join("") + '</div>';
       }
@@ -1700,7 +1846,7 @@ export function kellaDashboardHtml() {
           pageHeader("Dashboard", "A cleaner command room for events, power, and active fights.", '<button class="secondary" data-action="sync-discord-members">Sync Data</button><button class="primary" data-link-button="/tools">Open Tools</button>') +
           '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events. Click any day to view event attendance.</span></div><div class="toolbar"><button class="secondary" data-link-button="/attendance">Attendance</button><button class="primary" data-link-button="/tools">Create Event</button></div></div>' + renderEventsCalendar(events) + '</section>' +
           '<section class="two">' +
-            '<div class="card"><div class="card-header"><div><h3>Member Power</h3><span class="muted">Updates when admins edit member cards or upload power files.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</div>' +
+            '<div class="card"><div class="card-header"><div><h3>Alliance Stats</h3><span class="muted">Choose a stat to rank players and compare dated uploads.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</div>' +
             '<div class="card"><div class="card-header"><h3>Active Events</h3><button class="secondary" data-link-button="/attendance">View Attendance</button></div>' + renderActiveEvents(events) + '</div>' +
           '</section>';
       }
@@ -1731,7 +1877,7 @@ export function kellaDashboardHtml() {
       }
 
       function renderMemberUploadCard() {
-        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Excel Power Upload</h3><span class="muted">Upload the Call of Dragons TopN .xlsx export. Kella merges it with synced Discord profiles by UID, IGN, display name, or similar names.</span></div><button class="primary" data-action="upload-member-xlsx">Upload & Update</button></div><div class="form-grid">' +
+        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Stat Sync</h3><span class="muted">Pull public DragonStats snapshots for #881, or upload a Call of Dragons TopN .xlsx export. Kella imports power, kills, merits, healing, deaths, resources, and merges them with Discord profiles.</span></div><div class="toolbar"><button class="secondary" data-action="sync-dragonstats">Sync DragonStats</button><button class="primary" data-action="upload-member-xlsx">Upload Excel</button></div></div><div class="form-grid">' +
           '<label class="wide">TopN Excel File<input type="file" data-member-upload accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" /></label>' +
           '<label>Snapshot Date<input type="date" data-member-upload-date /><span class="muted">Optional. Kella reads dates from filenames like july-19-2026.xlsx.</span></label>' +
         '</div></section>';
@@ -1776,7 +1922,7 @@ export function kellaDashboardHtml() {
         skeleton("Loading members...");
         try {
           const members = await loadMembers();
-          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, UID, power, alliance role, attendance, and notes. Click any player row to open their full stats.", '<input class="search" data-member-search placeholder="Search members" /><button class="secondary" data-action="sync-discord-members">Sync Discord</button>') + renderMemberUploadCard() + renderMembersTable(members);
+          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, UID, power, alliance role, attendance, and notes. Click any player row to open their full stats.", '<input class="search" data-member-search placeholder="Search members" /><button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-action="sync-dragonstats">Sync DragonStats</button>') + renderMemberUploadCard() + renderMembersTable(members);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load members. ' + escapeHtml(error.message) + '</div>';
         }
@@ -2538,6 +2684,19 @@ export function kellaDashboardHtml() {
           await route();
         }, "Logged out.");
         if (kind === "copy-command") withFeedback(action, function() { return navigator.clipboard.writeText(action.getAttribute("data-value") || ""); }, "Command copied.");
+        if (kind === "set-stats-metric") {
+          const nextMetric = action.getAttribute("data-metric") || "power";
+          if (!statMetricOptions.some(function(metric) { return metric.key === nextMetric; })) return;
+          state.statsMetric = nextMetric;
+          const openMemberId = memberModalContent?.dataset?.memberId || "";
+          if (openMemberId && memberModal?.classList.contains("open")) {
+            const member = findMemberById(openMemberId) || (state.profile && String(state.profile.id) === String(openMemberId) ? state.profile : null);
+            if (member) openMemberModal(member);
+          }
+          if (location.pathname === "/") renderDashboardData(state.summary || {}, state.members || [], state.events || []);
+          if (location.pathname === "/profile") renderProfile();
+          return;
+        }
         if (kind === "toggle-module") {
           const moduleId = action.getAttribute("data-module-id");
           const enabled = !action.classList.contains("on");
@@ -2571,6 +2730,17 @@ export function kellaDashboardHtml() {
           await renderMembers();
           return "Imported " + sync.total + " Excel members (" + sync.created + " new, " + sync.updated + " updated, " + (sync.merged || 0) + " merged with Discord, " + sync.skipped + " skipped).";
         }, "Excel members imported.");
+        if (kind === "sync-dragonstats") withFeedback(action, async function() {
+          const sync = await sendJson("POST", "/api/dashboard/members/import-dragonstats", {}, true);
+          state.summary = null;
+          state.members = [];
+          if (location.pathname === "/") {
+            await renderDashboard();
+          } else {
+            await renderMembers();
+          }
+          return "Synced " + sync.snapshots + " DragonStats snapshots for " + sync.serverName + " (" + sync.created + " new, " + sync.updated + " updated, " + (sync.merged || 0) + " merged with Discord).";
+        }, "DragonStats synced.");
         if (kind === "save-my-profile") withFeedback(action, async function() {
           const data = await sendJson("PATCH", "/api/dashboard/profile", readProfileForm(), false);
           state.profile = data.member;

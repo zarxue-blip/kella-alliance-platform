@@ -13,6 +13,7 @@ export type ImportedTopnMember = {
   ign: string;
   power: number;
   alliance?: string;
+  stats: Record<string, number>;
 };
 
 function decodeXml(value: string) {
@@ -146,7 +147,7 @@ function headerKey(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-function numberFromCell(value: string) {
+export function numberFromCell(value: unknown) {
   const parsed = Number(String(value || "").replace(/[^0-9.-]/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
 }
@@ -154,6 +155,133 @@ function numberFromCell(value: string) {
 function findHeaderIndex(headers: string[], candidates: string[]) {
   const normalized = headers.map(headerKey);
   return normalized.findIndex((header) => candidates.includes(header));
+}
+
+const metricHeaderAliases: Record<string, string> = {
+  currentpower: "power",
+  powercurrent: "power",
+  power: "power",
+  might: "power",
+  toppower: "topPower",
+  meritscurrent: "merits",
+  merits: "merits",
+  pvppoint: "merits",
+  topmerits: "topMerits",
+  maxpvppoint: "topMerits",
+  unitshealedcurrent: "unitsHealed",
+  unitshealed: "unitsHealed",
+  healedcurrent: "unitsHealed",
+  numberofheal: "unitsHealed",
+  maxunitshealed: "maxUnitsHealed",
+  maxrsshealcnt: "maxUnitsHealed",
+  unitsdeadcurrent: "unitsDead",
+  unitsdead: "unitsDead",
+  deathscurrent: "unitsDead",
+  numberofdeath: "unitsDead",
+  unitskilledcurrent: "unitsKilled",
+  unitskilled: "unitsKilled",
+  killedcurrent: "unitsKilled",
+  unitkill: "unitsKilled",
+  resourcesgatheredcurrent: "resourcesGathered",
+  resourcesgathered: "resourcesGathered",
+  resourcescurrent: "resourcesGathered",
+  collectedvolume: "resourcesGathered",
+  woodgatheredcurrent: "woodGathered",
+  woodgathered: "woodGathered",
+  woodcurrent: "woodGathered",
+  gatherres2: "woodGathered",
+  goldgatheredcurrent: "goldGathered",
+  goldgathered: "goldGathered",
+  goldcurrent: "goldGathered",
+  gatherres1: "goldGathered",
+  oregatheredcurrent: "oreGathered",
+  oregathered: "oreGathered",
+  orecurrent: "oreGathered",
+  stonegathered: "oreGathered",
+  stonegatheredcurrent: "oreGathered",
+  gatherres3: "oreGathered",
+  managatheredcurrent: "manaGathered",
+  managathered: "manaGathered",
+  manacurrent: "manaGathered",
+  gatherres4: "manaGathered",
+  gemsgatheredcurrent: "gemsGathered",
+  gemsgathered: "gemsGathered",
+  gemscurrent: "gemsGathered",
+  gathergem: "gemsGathered",
+  timesscoutedcurrent: "timesScouted",
+  timesscouted: "timesScouted",
+  scoutedcurrent: "timesScouted",
+  scouttimes: "timesScouted",
+  resourcesgivenamountcurrent: "resourcesGivenAmount",
+  resourcesgivenamount: "resourcesGivenAmount",
+  volumeoftrade: "resourcesGivenAmount",
+  resourcesgiventimescurrent: "resourcesGivenTimes",
+  resourcesgiventimes: "resourcesGivenTimes",
+  countoftrade: "resourcesGivenTimes",
+  helpgivencurrent: "helpGiven",
+  helpgiven: "helpGiven",
+  helpscurrent: "helpGiven",
+  helptimes: "helpGiven",
+  t1killscurrent: "t1Kills",
+  t1kills: "t1Kills",
+  t2killscurrent: "t2Kills",
+  t2kills: "t2Kills",
+  t3killscurrent: "t3Kills",
+  t3kills: "t3Kills",
+  t4killscurrent: "t4Kills",
+  t4kills: "t4Kills",
+  t5killscurrent: "t5Kills",
+  t5kills: "t5Kills",
+  kvkjoincountcurrent: "kvkJoinCount",
+  kvkjoincount: "kvkJoinCount",
+  kvkjoincnt: "kvkJoinCount",
+  kvkwincountcurrent: "kvkWinCount",
+  kvkwincount: "kvkWinCount",
+  kvkwincnt: "kvkWinCount",
+  trooppowercurrent: "troopPower",
+  trooppower: "troopPower",
+  buildingpowercurrent: "buildingPower",
+  buildingpower: "buildingPower",
+  techpowercurrent: "techPower",
+  techpower: "techPower",
+  heropowercurrent: "heroPower",
+  heropower: "heroPower",
+  policypowercurrent: "policyPower",
+  policypower: "policyPower",
+  manausedcurrent: "manaUsed",
+  manaused: "manaUsed",
+  serverrank: "serverRank",
+  honourkillscurrent: "honourKills",
+  honourkills: "honourKills",
+  honourkill: "honourKills",
+  honorkillscurrent: "honourKills",
+  honorkills: "honourKills",
+  honorkill: "honourKills",
+  castlelevelcurrent: "castleLevel",
+  castlelevel: "castleLevel",
+  buildtimecurrent: "buildTime",
+  buildtime: "buildTime",
+  destroytimecurrent: "destroyTime",
+  destroytime: "destroyTime",
+  mpratio: "mpRatio",
+  migrant: "migrant"
+};
+
+export function metricKeyForHeader(header: string) {
+  const key = headerKey(header);
+  if (!key || key.endsWith("previous") || key.endsWith("change")) return undefined;
+  return metricHeaderAliases[key];
+}
+
+export function metricsFromRecord(record: Record<string, unknown>) {
+  const stats: Record<string, number> = {};
+  for (const [header, raw] of Object.entries(record)) {
+    const key = metricKeyForHeader(header);
+    if (!key) continue;
+    const value = numberFromCell(raw);
+    if (Number.isFinite(value)) stats[key] = value;
+  }
+  return stats;
 }
 
 export function parseTopnWorkbook(buffer: Buffer): ImportedTopnMember[] {
@@ -177,6 +305,9 @@ export function parseTopnWorkbook(buffer: Buffer): ImportedTopnMember[] {
   const ignIndex = findHeaderIndex(headers, ["charactername", "ign", "rolename", "playername", "name"]);
   const allianceIndex = findHeaderIndex(headers, ["alliance", "guild"]);
   const powerIndex = findHeaderIndex(headers, ["currentpower", "powercurrent", "power", "might"]);
+  const metricColumns = headers
+    .map((header, index) => ({ index, key: metricKeyForHeader(header) }))
+    .filter((item): item is { index: number; key: string } => Boolean(item.key));
 
   if (uidIndex < 0 || ignIndex < 0 || powerIndex < 0) {
     throw new Error("Excel file is missing Character ID, Character Name, or Current Power.");
@@ -186,12 +317,18 @@ export function parseTopnWorkbook(buffer: Buffer): ImportedTopnMember[] {
   for (const row of rows.slice(headerRowIndex + 1)) {
     const uid = String(row[uidIndex] ?? "").trim();
     const ign = String(row[ignIndex] ?? "").trim();
-    const power = numberFromCell(row[powerIndex] ?? "");
+    const stats: Record<string, number> = {};
+    for (const column of metricColumns) {
+      const value = numberFromCell(row[column.index] ?? "");
+      if (Number.isFinite(value)) stats[column.key] = value;
+    }
+    const power = stats.power || numberFromCell(row[powerIndex] ?? "");
     if (!uid || !ign || !power) continue;
     members.push({
       uid,
       ign,
       power,
+      stats: { ...stats, power },
       alliance: allianceIndex >= 0 ? String(row[allianceIndex] ?? "").trim() : undefined,
       rank: rankIndex >= 0 ? String(row[rankIndex] ?? "").trim() : undefined
     });
