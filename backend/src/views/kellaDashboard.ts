@@ -490,9 +490,75 @@ export function kellaDashboardHtml() {
       .calendar-detail-card h3 { font-size: 18px; margin-top: 7px; }
       .calendar-detail-card p { margin: 8px 0 0; color: #5f4729; }
       .calendar-detail-card .activity-time { margin-top: 6px; }
-      .power-list { display: grid; gap: 12px; }
-      .power-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
-      .power-row .bar { grid-column: 1 / -1; }
+      .power-list { display: grid; gap: 10px; }
+      .power-trend-row {
+        width: 100%;
+        display: grid;
+        grid-template-columns: minmax(150px, 1fr) minmax(160px, 1.25fr) auto;
+        gap: 14px;
+        align-items: center;
+        border: 1px solid rgba(120, 73, 24, 0.20);
+        border-radius: 10px;
+        background: linear-gradient(180deg, rgba(255, 247, 219, 0.58), rgba(227, 188, 111, 0.24));
+        padding: 12px;
+        color: #311d0a;
+        text-align: left;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.42);
+      }
+      .power-trend-row:hover, .power-trend-row:focus {
+        transform: translateY(-1px);
+        border-color: rgba(190, 123, 24, 0.45);
+        box-shadow: 0 12px 24px rgba(103, 63, 17, 0.14), inset 0 1px 0 rgba(255,255,255,0.45);
+        outline: none;
+      }
+      .power-player strong { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .power-player span { display: block; margin-top: 4px; color: #76552e; font-size: 12px; font-weight: 900; }
+      .power-spark-wrap { display: grid; gap: 4px; min-width: 0; }
+      .power-sparkline {
+        width: 100%;
+        height: 52px;
+        border-radius: 8px;
+        background: linear-gradient(180deg, rgba(255, 246, 208, 0.58), rgba(205, 144, 45, 0.20));
+        border: 1px solid rgba(110, 69, 24, 0.14);
+      }
+      .power-sparkline .grid-line { stroke: rgba(110, 69, 24, 0.14); stroke-width: 1; }
+      .power-sparkline .spark-fill { fill: rgba(185, 107, 28, 0.16); }
+      .power-sparkline .spark-line { fill: none; stroke: #9b4c0e; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 4px rgba(255, 214, 90, 0.34)); }
+      .power-sparkline .spark-dot { fill: #fff2a8; stroke: #8e430c; stroke-width: 2; }
+      .power-spark-meta { color: #795a35; font-size: 11px; font-weight: 900; }
+      .trend-pill {
+        justify-self: end;
+        min-width: 94px;
+        border-radius: 999px;
+        padding: 8px 10px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 1000;
+        border: 1px solid rgba(92, 55, 18, 0.16);
+        background: rgba(255, 247, 219, 0.58);
+      }
+      .trend-pill.up { color: #12643d; background: rgba(72, 173, 93, 0.18); }
+      .trend-pill.down { color: #8f1f22; background: rgba(179, 38, 47, 0.14); }
+      .trend-pill.flat { color: #6b502f; }
+      .member-power-chart {
+        margin-top: 14px;
+        border: 1px solid rgba(98, 62, 24, 0.20);
+        border-radius: 10px;
+        background: linear-gradient(180deg, rgba(255, 247, 219, 0.64), rgba(219, 171, 91, 0.28));
+        padding: 14px;
+      }
+      .member-power-chart-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+        margin-bottom: 12px;
+      }
+      .member-power-chart h4 { margin: 0; font-size: 18px; }
+      .member-power-chart p { margin: 4px 0 0; color: #6d512f; font-weight: 850; }
+      .member-power-chart svg { display: block; width: 100%; height: 190px; }
+      .power-history-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+      .power-history-list span { border: 1px solid rgba(98, 62, 24, 0.14); border-radius: 8px; padding: 8px 10px; background: rgba(255,247,219,0.44); font-weight: 900; color: #4d3216; }
       .command-board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
       .command-card { padding: 14px; border: 1px solid rgba(92, 55, 18, 0.18); border-radius: 10px; background: rgba(255, 247, 219, 0.48); }
       .command-card code { display: inline-block; margin-bottom: 8px; font-weight: 1000; color: #8b3d15; }
@@ -790,7 +856,8 @@ export function kellaDashboardHtml() {
         .top-actions { width: 100%; flex-wrap: wrap; }
         .top-actions .server-clock { flex: 1 1 100%; justify-items: start; }
         .top-actions .auth-button { flex: 1; }
-        .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row, .command-board { grid-template-columns: 1fr; }
+        .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row, .command-board, .power-trend-row, .power-history-list { grid-template-columns: 1fr; }
+        .trend-pill { justify-self: stretch; }
         .calendar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .member-modal { padding: 10px; align-items: end; }
         .member-modal-panel { width: 100%; max-height: calc(100vh - 24px); border-radius: 14px 14px 0 0; padding: 18px; }
@@ -1055,6 +1122,100 @@ export function kellaDashboardHtml() {
         return Math.max(4, Math.min(100, Math.round((Number(member?.power || 0) / topPower) * 100)));
       }
 
+      function normalizePowerHistory(member) {
+        return (Array.isArray(member?.powerHistory) ? member.powerHistory : [])
+          .map(function(point) {
+            const date = point?.date ? new Date(point.date) : null;
+            const power = Number(point?.power || 0);
+            return { date: date, power: power, source: point?.source || "", filename: point?.filename || "" };
+          })
+          .filter(function(point) { return point.date && Number.isFinite(point.date.getTime()) && Number.isFinite(point.power) && point.power > 0; })
+          .sort(function(left, right) { return left.date.getTime() - right.date.getTime(); });
+      }
+
+      function latestPowerPoint(member) {
+        const history = normalizePowerHistory(member);
+        return history[history.length - 1] || { date: null, power: Number(member?.power || 0) };
+      }
+
+      function powerDelta(member) {
+        const history = normalizePowerHistory(member);
+        if (history.length < 2) return null;
+        return history[history.length - 1].power - history[history.length - 2].power;
+      }
+
+      function compactDate(value) {
+        if (!value) return "";
+        return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(value);
+      }
+
+      function formatDelta(delta) {
+        if (delta === null || delta === undefined) return "No previous";
+        if (delta === 0) return "No change";
+        return (delta > 0 ? "+" : "") + formatNumber(delta);
+      }
+
+      function trendClass(delta) {
+        if (delta === null || delta === undefined || delta === 0) return "flat";
+        return delta > 0 ? "up" : "down";
+      }
+
+      function sparklineSvg(history, height) {
+        const h = height || 52;
+        const width = 220;
+        if (!history.length) {
+          return '<div class="empty" style="padding:12px">No power snapshots yet.</div>';
+        }
+        if (history.length === 1) {
+          return '<svg class="power-sparkline" viewBox="0 0 ' + width + ' ' + h + '" role="img" aria-label="Single power snapshot"><line class="grid-line" x1="8" y1="' + Math.round(h / 2) + '" x2="' + (width - 8) + '" y2="' + Math.round(h / 2) + '"></line><circle class="spark-dot" cx="' + Math.round(width / 2) + '" cy="' + Math.round(h / 2) + '" r="5"></circle></svg>';
+        }
+
+        const powers = history.map(function(point) { return point.power; });
+        const min = Math.min.apply(null, powers);
+        const max = Math.max.apply(null, powers);
+        const range = Math.max(1, max - min);
+        const padX = 10;
+        const padY = 8;
+        const points = history.map(function(point, index) {
+          const x = padX + (index / Math.max(1, history.length - 1)) * (width - padX * 2);
+          const y = h - padY - ((point.power - min) / range) * (h - padY * 2);
+          return { x: x, y: y };
+        });
+        const pointText = points.map(function(point) { return point.x.toFixed(1) + "," + point.y.toFixed(1); }).join(" ");
+        const fillText = padX + "," + (h - padY) + " " + pointText + " " + (width - padX) + "," + (h - padY);
+        const first = points[0];
+        const last = points[points.length - 1];
+        return '<svg class="power-sparkline" viewBox="0 0 ' + width + ' ' + h + '" role="img" aria-label="Power trend line">' +
+          '<line class="grid-line" x1="8" y1="' + (h - padY) + '" x2="' + (width - 8) + '" y2="' + (h - padY) + '"></line>' +
+          '<line class="grid-line" x1="8" y1="' + padY + '" x2="' + (width - 8) + '" y2="' + padY + '"></line>' +
+          '<polygon class="spark-fill" points="' + fillText + '"></polygon>' +
+          '<polyline class="spark-line" points="' + pointText + '"></polyline>' +
+          '<circle class="spark-dot" cx="' + first.x.toFixed(1) + '" cy="' + first.y.toFixed(1) + '" r="4"></circle>' +
+          '<circle class="spark-dot" cx="' + last.x.toFixed(1) + '" cy="' + last.y.toFixed(1) + '" r="5"></circle>' +
+        '</svg>';
+      }
+
+      function powerTrendMeta(history) {
+        if (!history.length) return "Upload dated TopN files to build this graph.";
+        if (history.length === 1) return compactDate(history[0].date) + " only - upload another date to compare.";
+        return compactDate(history[0].date) + " to " + compactDate(history[history.length - 1].date);
+      }
+
+      function memberPowerChart(member) {
+        const history = normalizePowerHistory(member);
+        const delta = powerDelta(member);
+        const latest = latestPowerPoint(member);
+        const historyItems = history.slice(-6).reverse().map(function(point) {
+          return '<span>' + escapeHtml(compactDate(point.date)) + '<br>' + formatNumber(point.power) + '</span>';
+        }).join("");
+        return '<section class="member-power-chart"><div class="member-power-chart-head"><div><h4>Power History</h4><p>' + escapeHtml(powerTrendMeta(history)) + '</p></div><span class="trend-pill ' + trendClass(delta) + '">' + escapeHtml(formatDelta(delta)) + '</span></div>' +
+          sparklineSvg(history, 190) +
+          '<div class="power-history-list">' +
+            '<span>Current<br>' + formatNumber(latest.power) + '</span>' +
+            (historyItems || '<span>No dated uploads yet<br>Upload TopN Excel files</span>') +
+          '</div></section>';
+      }
+
       function roleOptions(selected) {
         return ["Owner", "Leader", "R4 Officer", "War Marshal", "Recruiter", "Event Manager", "Member"].map(function(role) {
           return '<option value="' + escapeHtml(role) + '"' + (role === selected ? " selected" : "") + '>' + escapeHtml(role) + '</option>';
@@ -1101,6 +1262,7 @@ export function kellaDashboardHtml() {
           '</div>' +
           '<div class="profile-note"><strong>Officer Notes</strong><br>' + escapeHtml(member.notes || "No notes yet.") + '</div>' +
           '<div class="profile-note"><strong>Discord ID</strong><br>' + escapeHtml(member.discordId || "Not synced yet") + '</div>' +
+          memberPowerChart(member) +
           adminMemberForm(member);
         memberModal.classList.add("open");
         memberModal.setAttribute("aria-hidden", "false");
@@ -1490,12 +1652,18 @@ export function kellaDashboardHtml() {
       }
 
       function renderPowerBoard(members) {
-        const topMembers = (members || []).slice().sort(function(a, b) { return Number(b.power || 0) - Number(a.power || 0); }).slice(0, 8);
+        const topMembers = (members || []).filter(function(member) { return Number(member.power || 0) > 0; }).sort(function(a, b) { return Number(b.power || 0) - Number(a.power || 0); }).slice(0, 8);
         if (!topMembers.length) return empty("Sync Discord members and upload power data to build the power board.");
-        const topPower = Math.max.apply(null, topMembers.map(function(member) { return Number(member.power || 0); }).concat([1]));
         return '<div class="power-list">' + topMembers.map(function(member) {
-          const width = percent(member.power || 0, topPower);
-          return '<div class="power-row"><strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + formatNumber(member.power) + '</span><div class="bar"><i style="width:' + width + '%"></i></div></div>';
+          const history = normalizePowerHistory(member);
+          const latest = latestPowerPoint(member);
+          const delta = powerDelta(member);
+          const rowId = escapeHtml(member.id || "");
+          return '<button type="button" class="power-trend-row" data-member-row data-member-id="' + rowId + '" aria-label="Open power history for ' + escapeHtml(memberDisplayName(member)) + '">' +
+            '<span class="power-player"><strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + formatNumber(latest.power) + '</span></span>' +
+            '<span class="power-spark-wrap">' + sparklineSvg(history, 52) + '<span class="power-spark-meta">' + escapeHtml(powerTrendMeta(history)) + '</span></span>' +
+            '<span class="trend-pill ' + trendClass(delta) + '">' + escapeHtml(formatDelta(delta)) + '</span>' +
+          '</button>';
         }).join("") + '</div>';
       }
 
@@ -1565,6 +1733,7 @@ export function kellaDashboardHtml() {
       function renderMemberUploadCard() {
         return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Excel Power Upload</h3><span class="muted">Upload the Call of Dragons TopN .xlsx export. Kella merges it with synced Discord profiles by UID, IGN, display name, or similar names.</span></div><button class="primary" data-action="upload-member-xlsx">Upload & Update</button></div><div class="form-grid">' +
           '<label class="wide">TopN Excel File<input type="file" data-member-upload accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" /></label>' +
+          '<label>Snapshot Date<input type="date" data-member-upload-date /><span class="muted">Optional. Kella reads dates from filenames like july-19-2026.xlsx.</span></label>' +
         '</div></section>';
       }
 
@@ -1591,6 +1760,7 @@ export function kellaDashboardHtml() {
                 profileStat("UID", profile.uid || "") +
                 profileStat("Alliance Role", profile.role || "") +
               '</div>' +
+              memberPowerChart(profile) +
             '</div><div class="card"><h3>Edit My Card</h3><div class="form-grid">' +
               '<label>IGN<input data-profile="ign" value="' + escapeHtml(profile.ign || "") + '" /></label>' +
               '<label>Timezone<input data-profile="timezone" value="' + escapeHtml(profile.timezone || "") + '" placeholder="UTC+8, EST, etc." /></label>' +
@@ -2228,6 +2398,7 @@ export function kellaDashboardHtml() {
         if (file.size > 8 * 1024 * 1024) throw new Error("Excel file is too large. Please upload a file under 8 MB.");
         return {
           filename: file.name,
+          snapshotDate: (document.querySelector("[data-member-upload-date]")?.value || "").trim(),
           fileBase64: arrayBufferToBase64(await file.arrayBuffer())
         };
       }

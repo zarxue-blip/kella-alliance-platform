@@ -12,6 +12,7 @@ export type ImportedTopnMember = {
   uid: string;
   ign: string;
   power: number;
+  alliance?: string;
 };
 
 function decodeXml(value: string) {
@@ -160,9 +161,9 @@ export function parseTopnWorkbook(buffer: Buffer): ImportedTopnMember[] {
   const headerRowIndex = rows.findIndex((row) => {
     const keys = row.map(headerKey);
     return (
-      keys.some((key) => ["characterid", "uid", "roleid", "playerid"].includes(key)) &&
-      keys.some((key) => ["charactername", "ign", "rolename", "playername"].includes(key)) &&
-      keys.some((key) => ["currentpower", "power", "might"].includes(key))
+      keys.some((key) => ["characterid", "uid", "roleid", "playerid", "lordid"].includes(key)) &&
+      keys.some((key) => ["charactername", "ign", "rolename", "playername", "name"].includes(key)) &&
+      keys.some((key) => ["currentpower", "powercurrent", "power", "might"].includes(key))
     );
   });
 
@@ -171,10 +172,11 @@ export function parseTopnWorkbook(buffer: Buffer): ImportedTopnMember[] {
   }
 
   const headers = rows[headerRowIndex] ?? [];
-  const rankIndex = findHeaderIndex(headers, ["rank", "ranking"]);
-  const uidIndex = findHeaderIndex(headers, ["characterid", "uid", "roleid", "playerid"]);
+  const rankIndex = findHeaderIndex(headers, ["rank", "ranking", "index"]);
+  const uidIndex = findHeaderIndex(headers, ["characterid", "uid", "roleid", "playerid", "lordid"]);
   const ignIndex = findHeaderIndex(headers, ["charactername", "ign", "rolename", "playername", "name"]);
-  const powerIndex = findHeaderIndex(headers, ["currentpower", "power", "might"]);
+  const allianceIndex = findHeaderIndex(headers, ["alliance", "guild"]);
+  const powerIndex = findHeaderIndex(headers, ["currentpower", "powercurrent", "power", "might"]);
 
   if (uidIndex < 0 || ignIndex < 0 || powerIndex < 0) {
     throw new Error("Excel file is missing Character ID, Character Name, or Current Power.");
@@ -190,6 +192,7 @@ export function parseTopnWorkbook(buffer: Buffer): ImportedTopnMember[] {
       uid,
       ign,
       power,
+      alliance: allianceIndex >= 0 ? String(row[allianceIndex] ?? "").trim() : undefined,
       rank: rankIndex >= 0 ? String(row[rankIndex] ?? "").trim() : undefined
     });
   }

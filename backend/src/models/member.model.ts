@@ -12,6 +12,14 @@ const memberSchema = new Schema(
     ign: { type: String, required: true, trim: true, index: "text" },
     uid: { type: String, required: true, trim: true, index: true },
     power: { type: Number, default: 0, min: 0, index: true },
+    powerHistory: [
+      {
+        date: { type: Date, required: true },
+        power: { type: Number, required: true, min: 0 },
+        source: { type: String, default: "TopN Excel" },
+        filename: { type: String, default: "" }
+      }
+    ],
     alliance: { type: String, required: true, trim: true, index: true },
     rank: { type: String, default: "R1", trim: true },
     role: { type: String, enum: roleValues, default: "Member", index: true },
@@ -29,6 +37,7 @@ const memberSchema = new Schema(
 
 memberSchema.index({ allianceId: 1, uid: 1 }, { unique: true });
 memberSchema.index({ allianceId: 1, discordId: 1 }, { unique: true });
+memberSchema.index({ allianceId: 1, "powerHistory.date": -1 });
 
 export type MemberDocument = InferSchemaType<typeof memberSchema>;
 export const MemberModel = model<any>("Member", memberSchema);

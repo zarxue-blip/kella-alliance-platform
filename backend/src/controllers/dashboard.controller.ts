@@ -45,6 +45,7 @@ type DashboardMember = {
   notes?: string;
   alliance?: string;
   power?: number;
+  powerHistory?: Array<{ date?: Date | string; power?: number; source?: string; filename?: string }>;
 };
 
 const dashboardSettingsSchema = z.object({
@@ -116,6 +117,7 @@ const complaintReplySchema = z.object({
 
 const memberXlsxImportSchema = z.object({
   filename: z.string().max(180).optional(),
+  snapshotDate: z.preprocess((value) => (value === "" || value === null ? undefined : value), z.coerce.date().optional()),
   fileBase64: z.string().min(1, "Excel file is required")
 });
 
@@ -140,7 +142,7 @@ const dashboardMemberUpdateSchema = z.object({
   notes: z.string().max(2000).optional()
 });
 
-type MergeCandidate = Pick<DashboardMember, "_id" | "ign" | "discordId" | "discordUsername" | "discordDisplayName" | "uid">;
+type MergeCandidate = Pick<DashboardMember, "_id" | "ign" | "discordId" | "discordUsername" | "discordDisplayName" | "uid" | "power" | "powerHistory">;
 
 async function resolveAlliance(): Promise<any> {
   const alliance =
@@ -228,6 +230,86 @@ function decodeUploadedBase64(value: string) {
   if (!buffer.length) throw new HttpError(400, "Uploaded Excel file is empty.");
   if (buffer.length > 8 * 1024 * 1024) throw new HttpError(413, "Excel file is too large. Please upload a file under 8 MB.");
   return buffer;
+}
+
+const monthNames: Record<string, number> = {
+  january: 0,
+  jan: 0,
+  february: 1,
+  feb: 1,
+  march: 2,
+  mar: 2,
+  april: 3,
+  apr: 3,
+  may: 4,
+  june: 5,
+  jun: 5,
+  july: 6,
+  jul: 6,
+  august: 7,
+  aug: 7,
+  september: 8,
+  sep: 8,
+  october: 9,
+  oct: 9,
+  november: 10,
+  nov: 10,
+  december: 11,
+  dec: 11
+};
+
+function startOfUtcDay(value: Date) {
+  return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
+}
+
+function validDate(value?: Date | null) {
+  return value instanceof Date && Number.isFinite(value.getTime());
+}
+
+function dateFromUploadFilename(filename?: string) {
+  const source = String(filename || "").toLowerCase();
+  const iso = source.match(/(20\d{2})[-_ ](\d{1,2})[-_ ](\d{1,2})/);
+  if (iso) {
+    return new Date(Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])));
+  }
+
+  const named = source.match(/\b(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sep|october|oct|november|nov|december|dec)[-_ ]+(\d{1,2})[-_ ,]+(20\d{2})/);
+  if (named) {
+    return new Date(Date.UTC(Number(named[3]), monthNames[named[1]] ?? 0, Number(named[2])));
+  }
+
+  return undefined;
+}
+
+function resolvePowerSnapshotDate(inputDate?: Date, filename?: string) {
+  const candidate = validDate(inputDate) ? inputDate : dateFromUploadFilename(filename);
+  return startOfUtcDay(candidate ?? new Date());
+}
+
+function mergePowerHistory(
+  history: Array<{ date?: Date | string; power?: number; source?: string; filename?: string }> | undefined,
+  snapshotDate: Date,
+  power: number,
+  source: string,
+  filename?: string
+) {
+  const day = startOfUtcDay(snapshotDate);
+  const dayKey = day.toISOString().slice(0, 10);
+  const merged = (history || [])
+    .map((entry) => ({
+      date: validDate(new Date(entry.date || "")) ? startOfUtcDay(new Date(entry.date || "")) : undefined,
+      power: numeric(entry.power),
+      source: entry.source || "TopN Excel",
+      filename: entry.filename || ""
+    }))
+    .filter((entry) => entry.date && entry.power > 0)
+    .filter((entry) => entry.date!.toISOString().slice(0, 10) !== dayKey);
+
+  merged.push({ date: day, power, source, filename: filename || "" });
+  return merged
+    .sort((left, right) => left.date!.getTime() - right.date!.getTime())
+    .slice(-90)
+    .map((entry) => ({ date: entry.date, power: entry.power, source: entry.source, filename: entry.filename }));
 }
 
 function collapseRepeatedLetters(value: string) {
@@ -341,14 +423,23 @@ function dashboardMemberDto(member: any) {
     notes: member.notes,
     alliance: member.alliance,
     power: member.power,
+    powerHistory: (member.powerHistory || [])
+      .map((entry: any) => ({
+        date: entry.date,
+        power: numeric(entry.power),
+        source: entry.source || "",
+        filename: entry.filename || ""
+      }))
+      .filter((entry: any) => entry.date && entry.power > 0)
+      .sort((left: any, right: any) => new Date(left.date).getTime() - new Date(right.date).getTime()),
     timezone: member.timezone,
     country: member.country
   };
 }
 
 async function findMemberForGameRow(allianceId: string, uid: string, ign: string) {
-  const exact = ((await MemberModel.findOne({ allianceId, uid }).select("_id ign discordId discordUsername discordDisplayName uid").lean()) ??
-    (await MemberModel.findOne({ allianceId, ign }).select("_id ign discordId discordUsername discordDisplayName uid").lean())) as MergeCandidate | null;
+  const exact = ((await MemberModel.findOne({ allianceId, uid }).select("_id ign discordId discordUsername discordDisplayName uid power powerHistory").lean()) ??
+    (await MemberModel.findOne({ allianceId, ign }).select("_id ign discordId discordUsername discordDisplayName uid power powerHistory").lean())) as MergeCandidate | null;
 
   const candidates = (await MemberModel.find({
     allianceId,
@@ -359,7 +450,7 @@ async function findMemberForGameRow(allianceId: string, uid: string, ign: string
       { discordId: { $not: /^(xlsx|topn):/ } }
     ]
   })
-    .select("_id ign discordId discordUsername discordDisplayName uid")
+    .select("_id ign discordId discordUsername discordDisplayName uid power powerHistory")
     .limit(1200)
     .lean()) as MergeCandidate[];
 
@@ -373,14 +464,14 @@ async function findMemberForGameRow(allianceId: string, uid: string, ign: string
 }
 
 async function findMemberForDiscordProfile(allianceId: string, discordId: string, displayName: string, username: string) {
-  const exact = (await MemberModel.findOne({ allianceId, discordId }).select("_id ign discordId discordUsername discordDisplayName uid").lean()) as MergeCandidate | null;
+  const exact = (await MemberModel.findOne({ allianceId, discordId }).select("_id ign discordId discordUsername discordDisplayName uid power powerHistory").lean()) as MergeCandidate | null;
   if (exact) return exact;
 
   const candidates = (await MemberModel.find({
     allianceId,
     discordId: /^(xlsx|topn):/
   })
-    .select("_id ign discordId discordUsername discordDisplayName uid")
+    .select("_id ign discordId discordUsername discordDisplayName uid power powerHistory")
     .limit(1200)
     .lean()) as MergeCandidate[];
 
@@ -532,7 +623,7 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
   const members = (await MemberModel.find(filter)
     .sort({ power: -1, attendanceScore: -1, ign: 1 })
     .limit(500)
-    .select("discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role timezone country attendanceScore notes alliance power")
+    .select("discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role timezone country attendanceScore notes alliance power powerHistory")
     .lean()) as DashboardMember[];
 
   res.json({
@@ -607,9 +698,16 @@ export const dashboardMemberUpdate = asyncHandler(async (req, res) => {
   const body = dashboardMemberUpdateSchema.parse(req.body);
   if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid member id");
   const allianceId = await resolveAllianceId();
+  const updateBody: Record<string, unknown> = { ...body };
+  if (body.power !== undefined) {
+    const existing = (await MemberModel.findOne({ _id: req.params.id, ...allianceFilter(allianceId) })
+      .select("powerHistory")
+      .lean()) as DashboardMember | null;
+    updateBody.powerHistory = mergePowerHistory(existing?.powerHistory, new Date(), numeric(body.power), "Dashboard Edit");
+  }
   const updated = await MemberModel.findOneAndUpdate(
     { _id: req.params.id, ...allianceFilter(allianceId) },
-    { $set: body },
+    { $set: updateBody },
     { new: true, runValidators: true }
   ).lean();
   if (!updated) throw new HttpError(404, "Member not found");
@@ -621,6 +719,7 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
   const alliance = await resolveAlliance();
   const allianceId = alliance._id.toString();
   const syncedAt = new Date();
+  const snapshotDate = resolvePowerSnapshotDate(body.snapshotDate, body.filename);
   const rows = parseTopnWorkbook(decodeUploadedBase64(body.fileBase64));
   let created = 0;
   let updated = 0;
@@ -636,13 +735,15 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
     }
 
     const existing = (await findMemberForGameRow(allianceId, uid, ign)) as any;
+    const power = numeric(row.power);
 
     const update = {
       $set: {
         uid,
         ign,
-        power: numeric(row.power),
-        alliance: alliance.tag || alliance.name || "Imported",
+        power,
+        powerHistory: mergePowerHistory(existing?.powerHistory, snapshotDate, power, "TopN Excel", body.filename),
+        alliance: row.alliance || alliance.tag || alliance.name || "Imported",
         rank: row.rank ? `TopN #${row.rank}` : "TopN",
         lastActivity: syncedAt
       },
@@ -675,10 +776,10 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
     type: "member_xlsx_import",
     actorName: "Dashboard",
     status: "Completed",
-    payload: { filename: body.filename || "members.xlsx", total: rows.length, created, updated, merged, skipped }
+    payload: { filename: body.filename || "members.xlsx", snapshotDate, total: rows.length, created, updated, merged, skipped }
   });
 
-  res.json({ total: rows.length, created, updated, merged, skipped, syncedAt });
+  res.json({ total: rows.length, created, updated, merged, skipped, syncedAt, snapshotDate });
 });
 
 export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
