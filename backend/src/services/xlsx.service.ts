@@ -162,7 +162,6 @@ const metricHeaderAliases: Record<string, string> = {
   powercurrent: "power",
   power: "power",
   might: "power",
-  toppower: "topPower",
   meritscurrent: "merits",
   merits: "merits",
   pvppoint: "merits",

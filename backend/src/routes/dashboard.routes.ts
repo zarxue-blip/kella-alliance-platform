@@ -5,7 +5,6 @@ import {
   dashboardMemberCreate,
   dashboardMemberDelete,
   dashboardMemberUpdate,
-  dashboardMemberDragonStatsImport,
   dashboardMemberXlsxImport,
   dashboardDiscordMemberSync,
   dashboardProfile,
@@ -41,7 +40,6 @@ dashboardRouter.delete("/members/:id", authenticateDashboardAdmin, dashboardMemb
 dashboardRouter.get("/profile", authenticate, dashboardProfile);
 dashboardRouter.patch("/profile", authenticate, dashboardProfileUpdate);
 dashboardRouter.post("/members/import-xlsx", authenticateDashboardAdmin, dashboardMemberXlsxImport);
-dashboardRouter.post("/members/import-dragonstats", authenticateDashboardAdmin, dashboardMemberDragonStatsImport);
 dashboardRouter.post("/sync-discord-members", authenticateDashboardAdmin, dashboardDiscordMemberSync);
 dashboardRouter.get("/alerts", dashboardAlerts);
 dashboardRouter.get("/events", dashboardEvents);

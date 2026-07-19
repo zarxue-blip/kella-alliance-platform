@@ -193,7 +193,7 @@ export function kellaDashboardHtml() {
       }
       .topbar {
         display: grid;
-        grid-template-columns: 1fr minmax(220px, 360px) auto;
+        grid-template-columns: 1fr auto;
         align-items: center;
         gap: 14px;
         min-height: 58px;
@@ -202,14 +202,6 @@ export function kellaDashboardHtml() {
           linear-gradient(180deg, rgba(255, 242, 197, 0.90), rgba(224, 189, 124, 0.64)),
           var(--paper-soft);
         padding: 10px 20px;
-      }
-      .command-search {
-        height: 34px;
-        border-radius: 999px;
-        padding: 0 14px;
-        background: rgba(255, 248, 222, 0.68);
-        border-color: rgba(109, 69, 25, 0.28);
-        font-size: 12px;
       }
       .server-clock {
         display: grid;
@@ -271,14 +263,24 @@ export function kellaDashboardHtml() {
       [data-auth-login], [data-auth-logout] { width: auto; padding: 0 10px; }
       .icon-button:hover { border-color: rgba(255, 214, 90, 0.92); color: #5c3106; box-shadow: 0 0 16px rgba(255, 214, 90, 0.28); }
       .profile-top-button {
-        width: 38px;
-        height: 38px;
+        min-height: 46px;
+        min-width: 174px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
         border: 1px solid rgba(109, 69, 25, 0.30);
-        border-radius: 999px;
+        border-radius: 14px;
         background: rgba(255, 244, 205, 0.72);
-        padding: 4px;
+        color: #3b220c;
+        padding: 5px 12px 5px 7px;
+        font-weight: 1000;
+        text-align: left;
       }
-      .profile-top-button img { width: 100%; height: 100%; object-fit: contain; display: block; }
+      .profile-top-button:hover { border-color: rgba(255, 214, 90, 0.88); box-shadow: 0 0 18px rgba(255, 214, 90, 0.28); }
+      .profile-top-button img { width: 34px; height: 34px; object-fit: contain; display: block; flex: 0 0 auto; }
+      .profile-top-button span { display: grid; gap: 1px; line-height: 1.1; }
+      .profile-top-button strong { font-size: 13px; }
+      .profile-top-button em { color: #725736; font-size: 11px; font-style: normal; font-weight: 850; white-space: nowrap; }
       .content { padding: 24px 20px 28px; }
       .guild { display: flex; align-items: center; gap: 14px; }
       .avatar {
@@ -920,10 +922,10 @@ export function kellaDashboardHtml() {
         .content { padding: 20px 14px 26px; }
         .hero, .topbar { grid-template-columns: 1fr; display: grid; align-items: start; }
         .topbar { padding: 14px; gap: 12px; }
-        .command-search { max-width: none; height: 42px; }
         .top-actions { width: 100%; flex-wrap: wrap; }
         .top-actions .server-clock { flex: 1 1 100%; justify-items: start; }
         .top-actions .auth-button { flex: 1; }
+        .profile-top-button { flex: 1 1 100%; min-width: 0; }
         .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row, .command-board, .power-trend-row, .power-history-list { grid-template-columns: 1fr; }
         .trend-pill { justify-self: stretch; }
         .calendar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -962,14 +964,13 @@ export function kellaDashboardHtml() {
               <span class="muted" id="guildTagline">Command Center</span>
             </div>
           </div>
-          <input class="command-search" data-command-search placeholder="Search command tools..." />
           <div class="top-actions" aria-label="Quick actions">
             <div class="server-clock" title="Call of Dragons server time">
               <span>Server Time</span>
               <strong data-server-clock>--:--:-- UTC</strong>
             </div>
             <span class="auth-pill" data-auth-status>Checking login...</span>
-            <button class="profile-top-button" type="button" data-link-button="/profile" data-profile-button title="My Profile" style="display:none"><img src="/assets/icons/members.png" alt="" /></button>
+            <button class="profile-top-button" type="button" data-link-button="/profile" data-profile-button title="My Profile" style="display:none"><img src="/assets/icons/members.png" alt="" /><span><strong>My Profile</strong><em>Edit your player card</em></span></button>
             <button class="auth-button" type="button" data-action="discord-login" data-auth-login title="Discord Login">Login</button>
             <button class="auth-button" type="button" data-action="discord-logout" data-auth-logout title="Logout" style="display:none">Logout</button>
           </div>
@@ -998,7 +999,6 @@ export function kellaDashboardHtml() {
       const dashboardModules = ${JSON.stringify(modules)};
       const statMetricOptions = [
         { key: "power", label: "Power" },
-        { key: "topPower", label: "Top Power" },
         { key: "merits", label: "Merits" },
         { key: "unitsHealed", label: "Healed" },
         { key: "unitsDead", label: "Deaths" },
@@ -1220,8 +1220,8 @@ export function kellaDashboardHtml() {
       }
 
       function memberPowerPercent(member) {
-        const topPower = Math.max.apply(null, (state.members || []).map(function(item) { return Number(item.power || 0); }).concat([Number(member?.power || 0), 1]));
-        return Math.max(4, Math.min(100, Math.round((Number(member?.power || 0) / topPower) * 100)));
+        const strongestPower = Math.max.apply(null, (state.members || []).map(function(item) { return Number(item.power || 0); }).concat([Number(member?.power || 0), 1]));
+        return Math.max(4, Math.min(100, Math.round((Number(member?.power || 0) / strongestPower) * 100)));
       }
 
       function currentStatMetric() {
@@ -1371,8 +1371,8 @@ export function kellaDashboardHtml() {
       }
 
       function statTrendMeta(history) {
-        if (!history.length) return "Sync DragonStats or upload dated Excel files to build this graph.";
-        if (history.length === 1) return compactDate(history[0].date) + " only - sync another date to compare.";
+        if (!history.length) return "Upload dated Excel files to build this graph.";
+        if (history.length === 1) return compactDate(history[0].date) + " only - upload another date to compare.";
         return compactDate(history[0].date) + " to " + compactDate(history[history.length - 1].date);
       }
 
@@ -1393,7 +1393,7 @@ export function kellaDashboardHtml() {
           sparklineSvg(history, 190) +
           '<div class="power-history-list">' +
             '<span>Current<br>' + formatCompactNumber(latest.value) + '</span>' +
-            (historyItems || '<span>No dated snapshots yet<br>Sync DragonStats or upload Excel</span>') +
+            (historyItems || '<span>No dated snapshots yet<br>Upload Excel</span>') +
           '</div></section>';
       }
 
@@ -1603,12 +1603,6 @@ export function kellaDashboardHtml() {
           if (path === "/roots-of-war") active = location.pathname.startsWith("/roots");
           if (path === "/tools") active = ["/tools", "/events", "/alerts", "/shield-alerts", "/embed-sender"].some(function(prefix) { return location.pathname.startsWith(prefix); });
           link.classList.toggle("active", active);
-        });
-      }
-
-      function filterDashboardCards(term) {
-        document.querySelectorAll("[data-module-card], [data-quick-card], .command-card, .activity-item").forEach(function(card) {
-          card.style.display = card.textContent.toLowerCase().includes(term) ? "" : "none";
         });
       }
 
@@ -1899,7 +1893,7 @@ export function kellaDashboardHtml() {
           .filter(function(item) { return Number(item.power || 0) > 0 || Number(item.latest.value || 0) > 0 || item.history.length > 0; })
           .sort(function(a, b) { return Number(b.power || 0) - Number(a.power || 0); })
           .slice(0, 50);
-        if (!ranked.length) return statMetricPicker() + empty("Sync DragonStats or upload dated Excel files to build the " + metric.label + " graph.");
+        if (!ranked.length) return statMetricPicker() + empty("Upload dated Excel files to build the " + metric.label + " graph.");
         return statMetricPicker() + '<div class="power-list">' + ranked.map(function(item) {
           const member = item.member;
           const rowId = escapeHtml(member.id || "");
@@ -1943,7 +1937,7 @@ export function kellaDashboardHtml() {
 
       function renderDashboardData(summary, members = [], events = []) {
         app.innerHTML =
-          pageHeader("Dashboard", "A cleaner command room for events, power, and member activity.", '<button class="secondary" data-action="sync-all-data">Sync Data</button><button class="primary" data-link-button="/tools">Open Tools</button>') +
+          pageHeader("Dashboard", "A cleaner command room for events, power, and member activity.", '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-link-button="/tools">Open Tools</button>') +
           '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events. Click any day to view event attendance.</span></div><div class="toolbar"><button class="secondary" data-link-button="/attendance">Attendance</button><button class="primary" data-link-button="/tools">Create Event</button></div></div>' + renderEventsCalendar(events) + '</section>' +
           '<section class="card alliance-stats-card"><div class="card-header"><div><h3>Alliance Stats</h3><span class="muted">Top 50 rows are ranked by current power. Buttons change the graph shown for those players.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</section>';
       }
@@ -1974,7 +1968,7 @@ export function kellaDashboardHtml() {
       }
 
       function renderMemberUploadCard() {
-        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Stat Sync</h3><span class="muted">Pull public DragonStats snapshots for #881, or upload a Call of Dragons TopN .xlsx export. Kella imports power, kills, merits, healing, deaths, resources, and merges them with Discord profiles.</span></div><div class="toolbar"><button class="secondary" data-action="sync-dragonstats">Sync DragonStats</button><button class="primary" data-action="upload-member-xlsx">Upload Excel</button></div></div><div class="form-grid">' +
+        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Excel Stat Upload</h3><span class="muted">Upload a Call of Dragons TopN .xlsx export. Kella uses the current Power column for leaderboard order, imports combat stats, and merges rows with Discord profiles.</span></div><div class="toolbar"><button class="primary" data-action="upload-member-xlsx">Upload Excel</button></div></div><div class="form-grid">' +
           '<label class="wide">TopN Excel File<input type="file" data-member-upload accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" /></label>' +
           '<label>Snapshot Date<input type="date" data-member-upload-date /><span class="muted">Optional. Kella reads dates from filenames like july-19-2026.xlsx.</span></label>' +
         '</div></section>';
@@ -2020,7 +2014,7 @@ export function kellaDashboardHtml() {
         try {
           const members = await loadMembers();
           const adminActions = hasAdminAccess()
-            ? '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="secondary" data-action="sync-dragonstats">Sync DragonStats</button><button class="primary" data-action="open-add-member">Add Member</button>'
+            ? '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-action="open-add-member">Add Member</button>'
             : "";
           app.innerHTML = pageHeader("Members", "Search members and review Discord profile, UID, power, alliance role, attendance, and notes. Click any player row to open their full stats.", '<input class="search" data-member-search placeholder="Search members" />' + adminActions) + (hasAdminAccess() ? renderMemberUploadCard() : "") + renderMembersTable(members);
         } catch (error) {
@@ -2854,32 +2848,6 @@ export function kellaDashboardHtml() {
           toast((action.getAttribute("data-module") || "Module") + " settings opened.");
           navigate("/settings");
         }
-        if (kind === "sync-all-data") withFeedback(action, async function() {
-          const results = [];
-          const failures = [];
-          try {
-            const discordSync = await sendJson("POST", "/api/dashboard/sync-discord-members", {}, true);
-            results.push("Discord " + discordSync.total + " members");
-          } catch (error) {
-            failures.push("Discord: " + error.message);
-          }
-          try {
-            const statSync = await sendJson("POST", "/api/dashboard/members/import-dragonstats", {}, true);
-            results.push("DragonStats " + statSync.total + " rows");
-          } catch (error) {
-            failures.push("Stats: " + error.message);
-          }
-          state.summary = null;
-          state.members = [];
-          state.alerts = [];
-          await renderDashboard();
-          if (!results.length) throw new Error(failures.join(" | ") || "Sync failed.");
-          if (failures.length) {
-            toast(failures.join(" | "), "error");
-            return "Partial sync complete: " + results.join(", ") + ".";
-          }
-          return "Synced " + results.join(" and ") + ".";
-        }, "Data sync complete.");
         if (kind === "sync-discord-members") withFeedback(action, async function() {
           const sync = await sendJson("POST", "/api/dashboard/sync-discord-members", {}, true);
           state.summary = null;
@@ -2899,17 +2867,6 @@ export function kellaDashboardHtml() {
           await renderMembers();
           return "Imported " + sync.total + " Excel members (" + sync.created + " new, " + sync.updated + " updated, " + (sync.merged || 0) + " merged with Discord, " + sync.skipped + " skipped).";
         }, "Excel members imported.");
-        if (kind === "sync-dragonstats") withFeedback(action, async function() {
-          const sync = await sendJson("POST", "/api/dashboard/members/import-dragonstats", {}, true);
-          state.summary = null;
-          state.members = [];
-          if (location.pathname === "/") {
-            await renderDashboard();
-          } else {
-            await renderMembers();
-          }
-          return "Synced " + sync.snapshots + " DragonStats snapshots for " + sync.serverName + " (" + sync.created + " new, " + sync.updated + " updated, " + (sync.merged || 0) + " merged with Discord).";
-        }, "DragonStats synced.");
         if (kind === "save-my-profile") withFeedback(action, async function() {
           const data = await sendJson("PATCH", "/api/dashboard/profile", readProfileForm(), false);
           state.profile = data.member;
@@ -3186,15 +3143,6 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("input", async function(event) {
-        if (event.target.matches("[data-command-search]")) {
-          const term = event.target.value.toLowerCase();
-          if (location.pathname !== "/" && term) {
-            navigate("/");
-            setTimeout(function() { filterDashboardCards(term); }, 100);
-          } else {
-            filterDashboardCards(term);
-          }
-        }
         if (event.target.matches("[data-module-search]")) {
           const term = event.target.value.toLowerCase();
           document.querySelectorAll("[data-module-card]").forEach(function(card) {

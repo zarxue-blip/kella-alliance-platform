@@ -6,7 +6,6 @@ import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { UserModel } from "../models/user.model.js";
 import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendDiscordMessage, sendEventAttendanceEmbed, sendRootsRegistration } from "../services/discord.service.js";
-import { fetchDragonStatsSnapshots } from "../services/dragonstats.service.js";
 import { parseTopnWorkbook, type ImportedTopnMember } from "../services/xlsx.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
@@ -121,11 +120,6 @@ const memberXlsxImportSchema = z.object({
   filename: z.string().max(180).optional(),
   snapshotDate: z.preprocess((value) => (value === "" || value === null ? undefined : value), z.coerce.date().optional()),
   fileBase64: z.string().min(1, "Excel file is required")
-});
-
-const memberDragonStatsImportSchema = z.object({
-  serverName: z.string().min(1).max(24).default(env.DRAGONSTATS_SERVER_NAME),
-  maxSnapshots: z.coerce.number().int().min(1).max(30).default(30)
 });
 
 const profileUpdateSchema = z.object({
@@ -453,7 +447,7 @@ function memberId(value: MergeCandidate) {
 
 function isUploadedOnlyMember(member?: MergeCandidate | null) {
   const discordId = String(member?.discordId || "");
-  return discordId.startsWith("xlsx:") || discordId.startsWith("topn:") || discordId.startsWith("dragonstats:");
+  return discordId.startsWith("xlsx:") || discordId.startsWith("topn:");
 }
 
 function isRealDiscordUserId(value?: string) {
@@ -613,7 +607,7 @@ async function bulkWriteMemberOps(ops: any[]) {
 async function importGameStatSnapshots(
   alliance: any,
   snapshots: GameStatSnapshot[],
-  fallbackDiscordPrefix: "xlsx" | "topn" | "dragonstats"
+  fallbackDiscordPrefix: "xlsx" | "topn"
 ) {
   const allianceId = alliance._id.toString();
   const now = new Date();
@@ -831,7 +825,7 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
       KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean(),
       KellaActionModel.find({ ...filter, type: "roots_response" }).sort({ sentAt: -1 }).limit(8).lean(),
       KellaActionModel.find({ ...filter, type: "shield_alert" }).sort({ sentAt: -1 }).limit(5).lean(),
-      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "dm_alert", "event_reminder", "embed_sent", "chat_sent", "roots_report_sent", "discord_member_sync", "member_xlsx_import", "member_dragonstats_import", "member_manual_add", "member_deleted", "event_deleted"] } })
+      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "dm_alert", "event_reminder", "embed_sent", "chat_sent", "roots_report_sent", "discord_member_sync", "member_xlsx_import", "member_manual_add", "member_deleted", "event_deleted"] } })
         .sort({ sentAt: -1 })
         .limit(8)
         .lean()
@@ -1102,47 +1096,6 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
   });
 
   res.json({ ...result, syncedAt, snapshotDate });
-});
-
-export const dashboardMemberDragonStatsImport = asyncHandler(async (req, res) => {
-  const body = memberDragonStatsImportSchema.parse(req.body || {});
-  const alliance = await resolveAlliance();
-  const allianceId = alliance._id.toString();
-  const syncedAt = new Date();
-  const snapshots = await fetchDragonStatsSnapshots(body.serverName, body.maxSnapshots);
-  if (!snapshots.length) throw new HttpError(404, `No public DragonStats scans found for ${body.serverName}.`);
-
-  const result = await importGameStatSnapshots(
-    alliance,
-    snapshots.map((snapshot) => ({
-      rows: snapshot.rows,
-      snapshotDate: snapshot.snapshotDate,
-      source: "DragonStats",
-      filename: snapshot.sourceUrl
-    })),
-    "dragonstats"
-  );
-
-  await KellaActionModel.create({
-    allianceId,
-    type: "member_dragonstats_import",
-    actorName: "Dashboard",
-    status: "Completed",
-    payload: {
-      serverName: body.serverName,
-      snapshots: snapshots.length,
-      latestSnapshot: snapshots[snapshots.length - 1]?.snapshotDate,
-      ...result
-    }
-  });
-
-  res.json({
-    ...result,
-    syncedAt,
-    serverName: body.serverName,
-    snapshots: snapshots.length,
-    latestSnapshot: snapshots[snapshots.length - 1]?.snapshotDate
-  });
 });
 
 export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
