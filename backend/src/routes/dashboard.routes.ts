@@ -6,6 +6,9 @@ import {
   dashboardMemberDelete,
   dashboardMemberUpdate,
   dashboardMemberXlsxImport,
+  dashboardRosterUploadDelete,
+  dashboardRosterUploads,
+  dashboardRosterUploadUpdate,
   dashboardDiscordMemberSync,
   dashboardProfile,
   dashboardProfileUpdate,
@@ -40,6 +43,9 @@ dashboardRouter.delete("/members/:id", authenticateDashboardAdmin, dashboardMemb
 dashboardRouter.get("/profile", authenticate, dashboardProfile);
 dashboardRouter.patch("/profile", authenticate, dashboardProfileUpdate);
 dashboardRouter.post("/members/import-xlsx", authenticateDashboardAdmin, dashboardMemberXlsxImport);
+dashboardRouter.get("/uploads", authenticateDashboardAdmin, dashboardRosterUploads);
+dashboardRouter.patch("/uploads/:id", authenticateDashboardAdmin, dashboardRosterUploadUpdate);
+dashboardRouter.delete("/uploads/:id", authenticateDashboardAdmin, dashboardRosterUploadDelete);
 dashboardRouter.post("/sync-discord-members", authenticateDashboardAdmin, dashboardDiscordMemberSync);
 dashboardRouter.get("/alerts", dashboardAlerts);
 dashboardRouter.get("/events", dashboardEvents);

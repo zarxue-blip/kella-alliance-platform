@@ -6,7 +6,7 @@ import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { UserModel } from "../models/user.model.js";
 import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendDiscordMessage, sendEventAttendanceEmbed, sendRootsRegistration } from "../services/discord.service.js";
-import { cleanImportedPlayerName, parseTopnWorkbook, type ImportedTopnMember } from "../services/xlsx.service.js";
+import { cleanImportedPlayerName, parseTopnCsv, parseTopnJson, parseTopnWorkbook, type ImportedTopnMember } from "../services/xlsx.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
 import type { AuthenticatedRequest } from "../middleware/auth.js";
@@ -116,10 +116,15 @@ const complaintReplySchema = z.object({
   resolve: z.boolean().optional()
 });
 
-const memberXlsxImportSchema = z.object({
+const memberRosterImportSchema = z.object({
   filename: z.string().max(180).optional(),
   snapshotDate: z.preprocess((value) => (value === "" || value === null ? undefined : value), z.coerce.date().optional()),
-  fileBase64: z.string().min(1, "Excel file is required")
+  fileBase64: z.string().min(1, "Roster file is required")
+});
+
+const rosterUploadUpdateSchema = z.object({
+  filename: z.string().min(1).max(180).optional(),
+  snapshotDate: z.preprocess((value) => (value === "" || value === null ? undefined : value), z.coerce.date().optional())
 });
 
 const profileUpdateSchema = z.object({
@@ -249,8 +254,8 @@ function numeric(value: unknown) {
 function decodeUploadedBase64(value: string) {
   const base64 = value.includes(",") ? value.split(",").pop() || "" : value;
   const buffer = Buffer.from(base64, "base64");
-  if (!buffer.length) throw new HttpError(400, "Uploaded Excel file is empty.");
-  if (buffer.length > 8 * 1024 * 1024) throw new HttpError(413, "Excel file is too large. Please upload a file under 8 MB.");
+  if (!buffer.length) throw new HttpError(400, "Uploaded roster file is empty.");
+  if (buffer.length > 12 * 1024 * 1024) throw new HttpError(413, "Roster file is too large. Please upload a file under 12 MB.");
   return buffer;
 }
 
@@ -308,6 +313,23 @@ function resolvePowerSnapshotDate(inputDate?: Date, filename?: string) {
   return startOfUtcDay(candidate ?? new Date());
 }
 
+function previousUtcDay(value: Date) {
+  return new Date(startOfUtcDay(value).getTime() - 24 * 60 * 60 * 1000);
+}
+
+function uploadFileType(filename?: string) {
+  const lower = String(filename || "").toLowerCase();
+  if (lower.endsWith(".json")) return "json";
+  if (lower.endsWith(".csv")) return "csv";
+  return "xlsx";
+}
+
+function uploadSourceForType(fileType: string) {
+  if (fileType === "json") return "TopN JSON";
+  if (fileType === "csv") return "TopN CSV";
+  return "TopN Excel";
+}
+
 function mergePowerHistory(
   history: Array<{ date?: Date | string; power?: number; source?: string; filename?: string }> | undefined,
   snapshotDate: Date,
@@ -347,6 +369,22 @@ function sanitizeMetricMap(value: unknown) {
 
 function metricCount(metrics: Record<string, number>) {
   return Object.keys(metrics).length;
+}
+
+function isUploadedRosterSource(source?: string) {
+  return /^(TopN Excel|TopN JSON|TopN CSV|DragonStats)$/i.test(String(source || ""));
+}
+
+function latestPowerFromHistory(history: Array<{ date?: Date | string; power?: number }> | undefined) {
+  const latest = (history || [])
+    .map((entry) => ({
+      date: validDate(new Date(entry.date || "")) ? startOfUtcDay(new Date(entry.date || "")) : undefined,
+      power: numeric(entry.power)
+    }))
+    .filter((entry) => entry.date && entry.power > 0)
+    .sort((left, right) => left.date!.getTime() - right.date!.getTime())
+    .pop();
+  return latest?.power || 0;
 }
 
 function mergeStatHistory(
@@ -640,6 +678,42 @@ async function bulkWriteMemberOps(ops: any[]) {
     const chunk = ops.slice(index, index + 400);
     if (chunk.length) await MemberModel.bulkWrite(chunk, { ordered: false });
   }
+}
+
+async function resetUploadedRosterData(allianceId: string) {
+  const deletedUploadedOnly = await MemberModel.deleteMany({ allianceId, discordId: /^(xlsx|topn):/ });
+  const members = (await MemberModel.find({ allianceId })
+    .select("_id powerHistory statHistory rank")
+    .limit(5000)
+    .lean()) as Array<{
+      _id: Types.ObjectId;
+      rank?: string;
+      powerHistory?: Array<{ date?: Date | string; power?: number; source?: string; filename?: string }>;
+      statHistory?: Array<{ date?: Date | string; metrics?: Record<string, unknown>; source?: string; filename?: string }>;
+    }>;
+
+  const ops = members.map((member) => {
+    const powerHistory = (member.powerHistory || []).filter((entry) => !isUploadedRosterSource(entry.source));
+    const statHistory = (member.statHistory || []).filter((entry) => !isUploadedRosterSource(entry.source));
+    const update: Record<string, unknown> = {
+      powerHistory,
+      statHistory,
+      power: latestPowerFromHistory(powerHistory)
+    };
+    if (/^(TopN Excel|TopN JSON|TopN CSV|DragonStats)/i.test(String(member.rank || ""))) update.rank = "Discord";
+    return {
+      updateOne: {
+        filter: { _id: member._id, allianceId },
+        update: { $set: update }
+      }
+    };
+  });
+
+  await bulkWriteMemberOps(ops);
+  return {
+    removedUploadedOnly: deletedUploadedOnly.deletedCount || 0,
+    resetProfiles: ops.length
+  };
 }
 
 async function importGameStatSnapshots(
@@ -1113,18 +1187,41 @@ export const dashboardMemberDelete = asyncHandler(async (req, res) => {
 });
 
 export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
-  const body = memberXlsxImportSchema.parse(req.body);
+  const body = memberRosterImportSchema.parse(req.body);
   const alliance = await resolveAlliance();
   const allianceId = alliance._id.toString();
   const syncedAt = new Date();
   const snapshotDate = resolvePowerSnapshotDate(body.snapshotDate, body.filename);
-  const parsedRows = parseTopnWorkbook(decodeUploadedBase64(body.fileBase64));
-  const { allowed: rows, excluded } = allowedTopnRows(parsedRows);
-  if (!rows.length) throw new HttpError(400, "No KoG, LWL, or mF members were found in this Excel file.");
+  const filename = body.filename || "members.xlsx";
+  const fileType = uploadFileType(filename);
+  const source = uploadSourceForType(fileType);
+  const buffer = decodeUploadedBase64(body.fileBase64);
+  const snapshots: GameStatSnapshot[] = [];
+  let excluded = 0;
+
+  if (fileType === "json") {
+    const parsed = parseTopnJson(buffer);
+    const current = allowedTopnRows(parsed.current);
+    const previous = allowedTopnRows(parsed.previous || []);
+    excluded = current.excluded;
+    if (!current.allowed.length) throw new HttpError(400, "No KoG, LWL, or mF members were found in this JSON file.");
+    if (previous.allowed.length) {
+      snapshots.push({ rows: previous.allowed, snapshotDate: previousUtcDay(snapshotDate), source, filename });
+    }
+    snapshots.push({ rows: current.allowed, snapshotDate, source, filename });
+  } else {
+    const parsedRows = fileType === "csv" ? parseTopnCsv(buffer) : parseTopnWorkbook(buffer);
+    const allowed = allowedTopnRows(parsedRows);
+    excluded = allowed.excluded;
+    if (!allowed.allowed.length) throw new HttpError(400, `No KoG, LWL, or mF members were found in this ${fileType === "csv" ? "CSV" : "Excel"} file.`);
+    snapshots.push({ rows: allowed.allowed, snapshotDate, source, filename });
+  }
+
+  const reset = await resetUploadedRosterData(allianceId);
   const result = await importGameStatSnapshots(
     alliance,
-    [{ rows, snapshotDate, source: "TopN Excel", filename: body.filename || "members.xlsx" }],
-    "xlsx"
+    snapshots,
+    fileType === "xlsx" ? "xlsx" : "topn"
   );
   const removedOtherAlliances = await removeUploadedMembersOutsideTopnAlliances(allianceId);
 
@@ -1133,10 +1230,20 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
     type: "member_xlsx_import",
     actorName: "Dashboard",
     status: "Completed",
-    payload: { filename: body.filename || "members.xlsx", snapshotDate, excluded, removedOtherAlliances, ...result }
+    payload: {
+      filename,
+      fileType,
+      source,
+      snapshotDate,
+      previousSnapshotDate: fileType === "json" && snapshots.length > 1 ? snapshots[0]?.snapshotDate : undefined,
+      excluded,
+      removedOtherAlliances,
+      ...reset,
+      ...result
+    }
   });
 
-  res.json({ ...result, excluded, removedOtherAlliances, syncedAt, snapshotDate });
+  res.json({ ...result, ...reset, excluded, removedOtherAlliances, syncedAt, snapshotDate, fileType });
 });
 
 export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
@@ -1557,6 +1664,168 @@ export const dashboardSettingsUpdate = asyncHandler(async (req, res) => {
   const updated = await AllianceModel.findByIdAndUpdate(alliance._id, { $set: update }, { new: true, runValidators: true });
   if (!updated) throw new HttpError(404, "Dashboard settings not found");
   res.json(publicSettings(updated));
+});
+
+function rosterUploadFilename(action: DashboardAction) {
+  return String(action.payload?.filename || "Uploaded roster");
+}
+
+function rosterUploadSource(action: DashboardAction) {
+  return String(action.payload?.source || uploadSourceForType(String(action.payload?.fileType || uploadFileType(rosterUploadFilename(action)))));
+}
+
+function rosterUploadDto(action: DashboardAction) {
+  return {
+    id: action._id.toString(),
+    filename: rosterUploadFilename(action),
+    fileType: action.payload?.fileType || uploadFileType(rosterUploadFilename(action)),
+    source: rosterUploadSource(action),
+    snapshotDate: action.payload?.snapshotDate || action.sentAt,
+    previousSnapshotDate: action.payload?.previousSnapshotDate || "",
+    total: numeric(action.payload?.total),
+    created: numeric(action.payload?.created),
+    updated: numeric(action.payload?.updated),
+    merged: numeric(action.payload?.merged),
+    skipped: numeric(action.payload?.skipped),
+    excluded: numeric(action.payload?.excluded),
+    removedUploadedOnly: numeric(action.payload?.removedUploadedOnly),
+    status: action.status || "Completed",
+    sentAt: action.sentAt
+  };
+}
+
+function uploadEntryMatches(entry: { source?: string; filename?: string }, source: string, filename: string) {
+  return String(entry.source || "") === source && String(entry.filename || "") === filename;
+}
+
+async function removeRosterUploadSnapshots(allianceId: string, action: DashboardAction) {
+  const filename = rosterUploadFilename(action);
+  const source = rosterUploadSource(action);
+  const members = (await MemberModel.find({
+    allianceId,
+    $or: [{ "powerHistory.filename": filename }, { "statHistory.filename": filename }, { discordId: /^(xlsx|topn):/ }]
+  })
+    .select("_id discordId powerHistory statHistory")
+    .limit(5000)
+    .lean()) as Array<{
+    _id: Types.ObjectId;
+    discordId?: string;
+    powerHistory?: Array<{ date?: Date | string; power?: number; source?: string; filename?: string }>;
+    statHistory?: Array<{ date?: Date | string; metrics?: Record<string, unknown>; source?: string; filename?: string }>;
+  }>;
+
+  const ops: any[] = [];
+  let deletedMembers = 0;
+  let updatedMembers = 0;
+  for (const member of members) {
+    const powerHistory = (member.powerHistory || []).filter((entry) => !uploadEntryMatches(entry, source, filename));
+    const statHistory = (member.statHistory || []).filter((entry) => !uploadEntryMatches(entry, source, filename));
+    if (isUploadedOnlyMember(member as MergeCandidate) && !powerHistory.length && !statHistory.length) {
+      deletedMembers += 1;
+      ops.push({ deleteOne: { filter: { _id: member._id, allianceId } } });
+      continue;
+    }
+    updatedMembers += 1;
+    ops.push({
+      updateOne: {
+        filter: { _id: member._id, allianceId },
+        update: {
+          $set: {
+            powerHistory,
+            statHistory,
+            power: latestPowerFromHistory(powerHistory)
+          }
+        }
+      }
+    });
+  }
+
+  await bulkWriteMemberOps(ops);
+  return { deletedMembers, updatedMembers };
+}
+
+async function editRosterUploadSnapshots(
+  allianceId: string,
+  action: DashboardAction,
+  body: z.infer<typeof rosterUploadUpdateSchema>
+) {
+  const oldFilename = rosterUploadFilename(action);
+  const source = rosterUploadSource(action);
+  const newFilename = body.filename?.trim() || oldFilename;
+  const oldDate = resolvePowerSnapshotDate(new Date(action.payload?.snapshotDate || action.sentAt), oldFilename);
+  const oldDateKey = oldDate.toISOString().slice(0, 10);
+  const newDate = body.snapshotDate ? startOfUtcDay(body.snapshotDate) : undefined;
+  const members = (await MemberModel.find({
+    allianceId,
+    $or: [{ "powerHistory.filename": oldFilename }, { "statHistory.filename": oldFilename }]
+  })
+    .select("_id powerHistory statHistory")
+    .limit(5000)
+    .lean()) as Array<{
+    _id: Types.ObjectId;
+    powerHistory?: Array<{ date?: Date | string; power?: number; source?: string; filename?: string }>;
+    statHistory?: Array<{ date?: Date | string; metrics?: Record<string, unknown>; source?: string; filename?: string }>;
+  }>;
+
+  const retagEntry = <T extends { date?: Date | string; source?: string; filename?: string }>(entry: T): T => {
+    if (!uploadEntryMatches(entry, source, oldFilename)) return entry;
+    const currentDate = validDate(new Date(entry.date || "")) ? startOfUtcDay(new Date(entry.date || "")) : undefined;
+    return {
+      ...entry,
+      filename: newFilename,
+      date: newDate && currentDate?.toISOString().slice(0, 10) === oldDateKey ? newDate : entry.date
+    };
+  };
+
+  const ops = members.map((member) => ({
+    updateOne: {
+      filter: { _id: member._id, allianceId },
+      update: {
+        $set: {
+          powerHistory: (member.powerHistory || []).map(retagEntry),
+          statHistory: (member.statHistory || []).map(retagEntry)
+        }
+      }
+    }
+  }));
+
+  await bulkWriteMemberOps(ops);
+  const payloadUpdate: Record<string, unknown> = { "payload.filename": newFilename };
+  if (newDate) payloadUpdate["payload.snapshotDate"] = newDate;
+  const updated = (await KellaActionModel.findOneAndUpdate(
+    { _id: action._id, allianceId, type: "member_xlsx_import" },
+    { $set: payloadUpdate },
+    { new: true }
+  ).lean()) as DashboardAction | null;
+  return { upload: updated ? rosterUploadDto(updated) : rosterUploadDto(action), updatedMembers: ops.length };
+}
+
+export const dashboardRosterUploads = asyncHandler(async (_req, res) => {
+  const allianceId = await resolveAllianceId();
+  const uploads = (await KellaActionModel.find({ ...allianceFilter(allianceId), type: "member_xlsx_import" })
+    .sort({ sentAt: -1 })
+    .limit(100)
+    .lean()) as DashboardAction[];
+  res.json({ uploads: uploads.map(rosterUploadDto) });
+});
+
+export const dashboardRosterUploadUpdate = asyncHandler(async (req, res) => {
+  const body = rosterUploadUpdateSchema.parse(req.body);
+  if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid upload id");
+  const allianceId = await resolveAllianceId();
+  const action = (await KellaActionModel.findOne({ ...allianceFilter(allianceId), _id: req.params.id, type: "member_xlsx_import" }).lean()) as DashboardAction | null;
+  if (!action) throw new HttpError(404, "Upload not found");
+  res.json(await editRosterUploadSnapshots(allianceId || "", action, body));
+});
+
+export const dashboardRosterUploadDelete = asyncHandler(async (req, res) => {
+  if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid upload id");
+  const allianceId = await resolveAllianceId();
+  const action = (await KellaActionModel.findOne({ ...allianceFilter(allianceId), _id: req.params.id, type: "member_xlsx_import" }).lean()) as DashboardAction | null;
+  if (!action) throw new HttpError(404, "Upload not found");
+  const result = await removeRosterUploadSnapshots(allianceId || "", action);
+  await KellaActionModel.deleteOne({ _id: action._id, allianceId, type: "member_xlsx_import" });
+  res.json({ ok: true, upload: rosterUploadDto(action), ...result });
 });
 
 export const dashboardShieldSend = asyncHandler(async (req, res) => {

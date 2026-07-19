@@ -994,7 +994,7 @@ export function kellaDashboardHtml() {
       const toasts = document.getElementById("toasts");
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
-      const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power" };
+      const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power" };
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
       const statMetricOptions = [
@@ -1665,6 +1665,13 @@ export function kellaDashboardHtml() {
         return state.complaints;
       }
 
+      async function loadRosterUploads(force = false) {
+        if (state.uploads && !force) return state.uploads;
+        const data = await fetchJson("/api/dashboard/uploads", true);
+        state.uploads = data.uploads || [];
+        return state.uploads;
+      }
+
       async function loadSettings() {
         if (!state.settings) {
           state.settings = await fetchJson("/api/dashboard/settings");
@@ -1993,9 +2000,9 @@ export function kellaDashboardHtml() {
       }
 
       function renderMemberUploadCard() {
-        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Excel Stat Upload</h3><span class="muted">Upload a Call of Dragons TopN .xlsx export. Kella imports only KoG, LWL, and mF rows, cleans decorative mini-tags from names, and uses current Power for the Power board.</span></div><div class="toolbar"><button class="primary" data-action="upload-member-xlsx">Upload Excel</button></div></div><div class="form-grid">' +
-          '<label class="wide">TopN Excel File<input type="file" data-member-upload accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" /></label>' +
-          '<label>Snapshot Date<input type="date" data-member-upload-date /><span class="muted">Optional. Kella reads dates from filenames like july-19-2026.xlsx.</span></label>' +
+        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Roster Stat Upload</h3><span class="muted">Upload a DragonStats JSON, CSV, or Call of Dragons TopN Excel file. New uploads replace old uploaded roster data, import only KoG, LWL, and mF, and use current Power for ranking.</span></div><div class="toolbar"><button class="primary" data-action="upload-member-xlsx">Upload File</button></div></div><div class="form-grid">' +
+          '<label class="wide">Roster File<input type="file" data-member-upload accept=".xlsx,.csv,.json,text/csv,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" /></label>' +
+          '<label>Snapshot Date<input type="date" data-member-upload-date /><span class="muted">Optional. Kella reads dates from filenames like july-19-2026.xlsx. JSON also imports its previous values for the graph.</span></label>' +
         '</div></section>';
       }
 
@@ -2522,6 +2529,21 @@ export function kellaDashboardHtml() {
         updateEmbedPreview();
       }
 
+      function renderRosterUploadManager(uploads, locked) {
+        const lockedMessage = '<div class="empty">Admin access is required to view and manage uploaded roster files.</div>';
+        const body = locked
+          ? lockedMessage
+          : uploads.length
+            ? '<div class="table-wrap"><table><thead><tr><th>File</th><th>Type</th><th>Snapshot</th><th>Imported</th><th>Ignored</th><th>Uploaded</th><th>Actions</th></tr></thead><tbody>' +
+              uploads.map(function(upload) {
+                const snapshotDate = upload.snapshotDate ? String(upload.snapshotDate).slice(0, 10) : "";
+                return '<tr><td><strong>' + escapeHtml(upload.filename || "Roster upload") + '</strong><br><span class="muted">' + escapeHtml(upload.source || "") + '</span></td><td>' + escapeHtml(String(upload.fileType || "").toUpperCase()) + '</td><td>' + escapeHtml(snapshotDate || "Unknown") + '</td><td>' + formatNumber(upload.total || 0) + '</td><td>' + formatNumber(upload.excluded || 0) + '</td><td>' + formatDateTime(upload.sentAt) + '</td><td><div class="toolbar"><button class="secondary" data-action="edit-roster-upload" data-upload-id="' + escapeHtml(upload.id) + '" data-upload-filename="' + escapeHtml(upload.filename || "") + '" data-upload-date="' + escapeHtml(snapshotDate) + '">Edit</button><button class="danger" data-action="delete-roster-upload" data-upload-id="' + escapeHtml(upload.id) + '" data-upload-filename="' + escapeHtml(upload.filename || "") + '">Delete</button></div></td></tr>';
+              }).join("") +
+              '</tbody></table></div>'
+            : empty("No roster files have been uploaded yet.");
+        return '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Uploaded Roster Files</h3><span class="muted">Delete old JSON, CSV, or spreadsheet imports so they stop affecting member stats. Re-upload the latest file on Members when you want a clean roster.</span></div><button class="secondary" data-action="refresh-roster-uploads"' + (locked ? " disabled" : "") + '>Refresh</button></div>' + body + '</section>';
+      }
+
       async function renderSettings() {
         skeleton("Loading settings...");
         try {
@@ -2531,6 +2553,7 @@ export function kellaDashboardHtml() {
           const settings = data.settings || {};
           const locked = !adminToken() && !isDashboardAdmin();
           const lockedAttr = locked ? " disabled" : "";
+          const uploads = locked ? [] : await loadRosterUploads(true);
           app.innerHTML = pageHeader("Settings", "Saved admin preferences for Kella channels, officer roles, and enabled modules.", '<button class="primary" data-action="save-settings"' + lockedAttr + '>Save Settings</button>') +
             '<div class="locked-note" data-settings-locked-note' + (locked ? "" : ' style="display:none"') + '>Login with an approved Discord admin account or enter the fallback Password first.</div>' +
             '<section class="grid" data-settings-panel>' +
@@ -2542,7 +2565,8 @@ export function kellaDashboardHtml() {
               '<div class="card"><h3>Alert Channel</h3><p>Where attack and shield alert logs should be reviewed.</p><input data-setting="alertChannel" data-admin-required placeholder="Channel name or ID" value="' + escapeHtml(settings.alertChannel || "") + '"' + lockedAttr + ' /></div>' +
               '<div class="card"><h3>Officer Roles</h3><p>Comma-separated Discord roles that can operate Kella.</p><input data-setting="officerRoles" data-admin-required value="' + escapeHtml((settings.officerRoles || []).join(", ")) + '"' + lockedAttr + ' /></div>' +
               '<div class="card"><h3>Enabled Modules</h3><p>' + dashboardModules.filter(function(module) { return moduleState(module.id); }).length + ' of ' + dashboardModules.length + ' modules enabled.</p><button class="secondary" data-link-button="/">Back to Modules</button></div>' +
-            '</section>';
+            '</section>' +
+            renderRosterUploadManager(uploads, locked);
           syncSettingsLock();
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load settings. ' + escapeHtml(error.message) + '</div>';
@@ -2659,9 +2683,10 @@ export function kellaDashboardHtml() {
         if (!adminToken() && !isDashboardAdmin()) throw new Error("Login with Discord admin or enter your Password first.");
         const input = document.querySelector("[data-member-upload]");
         const file = input?.files?.[0];
-        if (!file) throw new Error("Choose an Excel .xlsx file first.");
-        if (!file.name.toLowerCase().endsWith(".xlsx")) throw new Error("Please upload a .xlsx Excel file.");
-        if (file.size > 8 * 1024 * 1024) throw new Error("Excel file is too large. Please upload a file under 8 MB.");
+        if (!file) throw new Error("Choose a roster .json, .csv, or .xlsx file first.");
+        const lower = file.name.toLowerCase();
+        if (!lower.endsWith(".xlsx") && !lower.endsWith(".json") && !lower.endsWith(".csv")) throw new Error("Please upload a .json, .csv, or .xlsx roster file.");
+        if (file.size > 12 * 1024 * 1024) throw new Error("Roster file is too large. Please upload a file under 12 MB.");
         return {
           filename: file.name,
           snapshotDate: (document.querySelector("[data-member-upload-date]")?.value || "").trim(),
@@ -2889,9 +2914,10 @@ export function kellaDashboardHtml() {
           const sync = await sendJson("POST", "/api/dashboard/members/import-xlsx", await readMemberUploadForm(), true);
           state.summary = null;
           state.members = [];
+          state.uploads = null;
           await renderMembers();
-          return "Imported " + sync.total + " allowed Excel members (" + sync.created + " new, " + sync.updated + " updated, " + (sync.merged || 0) + " merged with Discord, " + sync.skipped + " skipped, " + (sync.excluded || 0) + " outside KoG/LWL/mF ignored).";
-        }, "Excel members imported.");
+          return "Imported " + sync.total + " allowed roster members (" + sync.created + " new, " + sync.updated + " updated, " + (sync.merged || 0) + " merged with Discord, " + sync.skipped + " skipped, " + (sync.excluded || 0) + " outside KoG/LWL/mF ignored, " + (sync.removedUploadedOnly || 0) + " old upload-only rows cleared).";
+        }, "Roster members imported.");
         if (kind === "save-my-profile") withFeedback(action, async function() {
           const data = await sendJson("PATCH", "/api/dashboard/profile", readProfileForm(), false);
           state.profile = data.member;
@@ -3045,6 +3071,40 @@ export function kellaDashboardHtml() {
           await renderComplaints();
         }, "Reply sent.");
         if (kind === "save-settings") withFeedback(action, async function() { await saveSettings(readSettingsForm()); }, "Settings saved.");
+        if (kind === "refresh-roster-uploads") withFeedback(action, async function() {
+          await loadRosterUploads(true);
+          await renderSettings();
+        }, "Roster uploads refreshed.");
+        if (kind === "edit-roster-upload") withFeedback(action, async function() {
+          const id = action.getAttribute("data-upload-id") || "";
+          const currentName = action.getAttribute("data-upload-filename") || "";
+          const currentDate = action.getAttribute("data-upload-date") || "";
+          if (!id) throw new Error("Upload id missing.");
+          const filename = window.prompt("Roster file label:", currentName);
+          if (filename === null) return "Edit cancelled.";
+          const snapshotDate = window.prompt("Snapshot date (YYYY-MM-DD):", currentDate);
+          if (snapshotDate === null) return "Edit cancelled.";
+          await sendJson("PATCH", "/api/dashboard/uploads/" + encodeURIComponent(id), { filename: filename.trim(), snapshotDate: snapshotDate.trim() }, true);
+          state.uploads = null;
+          state.members = [];
+          state.summary = null;
+          await renderSettings();
+          return "Roster upload updated.";
+        }, "Roster upload updated.");
+        if (kind === "delete-roster-upload") withFeedback(action, async function() {
+          const id = action.getAttribute("data-upload-id") || "";
+          const filename = action.getAttribute("data-upload-filename") || "this roster upload";
+          if (!id) throw new Error("Upload id missing.");
+          if (!window.confirm("Delete " + filename + " from Kella? This removes the stats imported from that upload.")) {
+            return "Delete cancelled.";
+          }
+          const result = await sendJson("DELETE", "/api/dashboard/uploads/" + encodeURIComponent(id), undefined, true);
+          state.uploads = null;
+          state.members = [];
+          state.summary = null;
+          await renderSettings();
+          return "Roster upload deleted. " + (result.deletedMembers || 0) + " upload-only members removed and " + (result.updatedMembers || 0) + " profiles recalculated.";
+        }, "Roster upload deleted.");
         if (kind === "copy-report") withFeedback(action, function() { return navigator.clipboard.writeText(reportText(state.currentReport)); }, "Report copied.");
         if (kind === "export-json") withFeedback(action, async function() { downloadBlob(new Blob([JSON.stringify(state.currentReport, null, 2)], { type: "application/json" }), "roots-report.json"); }, "JSON exported.");
         if (kind === "export-csv") withFeedback(action, async function() {

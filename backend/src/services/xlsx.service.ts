@@ -296,8 +296,88 @@ export function metricsFromRecord(record: Record<string, unknown>) {
   return stats;
 }
 
-export function parseTopnWorkbook(buffer: Buffer): ImportedTopnMember[] {
-  const rows = readFirstWorksheetRows(buffer).filter((row) => row.some(Boolean));
+function topnJsonMetricValue(value: unknown, mode: "current" | "previous") {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    if (record[mode] !== undefined) return numberFromCell(record[mode]);
+    if (mode === "current" && record.value !== undefined) return numberFromCell(record.value);
+    return undefined;
+  }
+
+  if (mode === "current") return numberFromCell(value);
+  return undefined;
+}
+
+function metricsFromTopnJsonRecord(record: Record<string, unknown>, mode: "current" | "previous") {
+  const stats: Record<string, number> = {};
+  for (const [header, raw] of Object.entries(record)) {
+    const key = metricKeyForHeader(header);
+    if (!key) continue;
+    const value = topnJsonMetricValue(raw, mode);
+    if (value === undefined || !Number.isFinite(value)) continue;
+    stats[key] = value;
+  }
+  return stats;
+}
+
+function jsonField(record: Record<string, unknown>, candidates: string[]) {
+  const normalized = new Map(Object.entries(record).map(([key, value]) => [headerKey(key), value]));
+  for (const candidate of candidates) {
+    const value = normalized.get(headerKey(candidate));
+    if (value !== undefined && value !== null) return value;
+  }
+  return undefined;
+}
+
+function topnJsonRows(records: Array<Record<string, unknown>>, mode: "current" | "previous") {
+  const members: ImportedTopnMember[] = [];
+  for (const record of records) {
+    const uid = String(jsonField(record, ["Lord ID", "Character ID", "UID", "Role ID", "Player ID"]) ?? "").trim();
+    const ign = cleanImportedPlayerName(jsonField(record, ["Name", "Character Name", "IGN", "Role Name", "Player Name"]));
+    const stats = metricsFromTopnJsonRecord(record, mode);
+    const power = stats.power || topnJsonMetricValue(jsonField(record, ["Power", "Current Power", "Might"]), mode) || 0;
+    if (!uid || !ign || !power) continue;
+    members.push({
+      uid,
+      ign,
+      power,
+      stats: { ...stats, power },
+      alliance: String(jsonField(record, ["Alliance", "Guild"]) ?? "").trim() || undefined,
+      rank: String(jsonField(record, ["# index", "Rank", "Ranking", "Index"]) ?? "").trim() || undefined
+    });
+  }
+  return members;
+}
+
+export function parseTopnJson(buffer: Buffer) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(buffer.toString("utf8"));
+  } catch {
+    throw new Error("Invalid JSON file.");
+  }
+
+  let records: unknown[] = [];
+  if (Array.isArray(parsed)) {
+    records = parsed;
+  } else if (parsed && typeof parsed === "object") {
+    const record = parsed as Record<string, unknown>;
+    if (Array.isArray(record.players)) records = record.players;
+    if (Array.isArray(record.data)) records = record.data;
+  }
+
+  const cleanRecords = records.filter((record): record is Record<string, unknown> => Boolean(record && typeof record === "object" && !Array.isArray(record)));
+  if (!cleanRecords.length) throw new Error("No member rows were found in the JSON file.");
+
+  const current = topnJsonRows(cleanRecords, "current");
+  if (!current.length) throw new Error("No current member rows were found in the JSON file.");
+  return {
+    current,
+    previous: topnJsonRows(cleanRecords, "previous")
+  };
+}
+
+function parseTopnRows(rows: string[][], sourceLabel: string) {
   const headerRowIndex = rows.findIndex((row) => {
     const keys = row.map(headerKey);
     return (
@@ -308,7 +388,7 @@ export function parseTopnWorkbook(buffer: Buffer): ImportedTopnMember[] {
   });
 
   if (headerRowIndex < 0) {
-    throw new Error("Could not find Rank, Character ID, Character Name, and Current Power columns.");
+    throw new Error(`Could not find Rank, Character ID, Character Name, and Current Power columns in this ${sourceLabel} file.`);
   }
 
   const headers = rows[headerRowIndex] ?? [];
@@ -346,6 +426,53 @@ export function parseTopnWorkbook(buffer: Buffer): ImportedTopnMember[] {
     });
   }
 
-  if (!members.length) throw new Error("No member rows were found in the Excel file.");
+  if (!members.length) throw new Error(`No member rows were found in the ${sourceLabel} file.`);
   return members;
+}
+
+function parseCsvRows(text: string) {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (char === '"') {
+      if (quoted && next === '"') {
+        cell += '"';
+        index += 1;
+      } else {
+        quoted = !quoted;
+      }
+      continue;
+    }
+    if (char === "," && !quoted) {
+      row.push(cell.trim());
+      cell = "";
+      continue;
+    }
+    if ((char === "\n" || char === "\r") && !quoted) {
+      if (char === "\r" && next === "\n") index += 1;
+      row.push(cell.trim());
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+      cell = "";
+      continue;
+    }
+    cell += char;
+  }
+
+  row.push(cell.trim());
+  if (row.some(Boolean)) rows.push(row);
+  return rows;
+}
+
+export function parseTopnCsv(buffer: Buffer): ImportedTopnMember[] {
+  return parseTopnRows(parseCsvRows(buffer.toString("utf8")).filter((row) => row.some(Boolean)), "CSV");
+}
+
+export function parseTopnWorkbook(buffer: Buffer): ImportedTopnMember[] {
+  return parseTopnRows(readFirstWorksheetRows(buffer).filter((row) => row.some(Boolean)), "Excel");
 }
