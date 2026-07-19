@@ -552,7 +552,7 @@ export function kellaDashboardHtml() {
         text-align: left;
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.42);
       }
-      .power-trend-row.top-power-player {
+      .power-trend-row.top-stat-player {
         border-color: rgba(32, 143, 79, 0.42);
         background: linear-gradient(180deg, rgba(222, 255, 218, 0.44), rgba(247, 219, 138, 0.40));
         box-shadow: inset 4px 0 0 rgba(32, 143, 79, 0.70), inset 0 1px 0 rgba(255,255,255,0.48);
@@ -565,7 +565,7 @@ export function kellaDashboardHtml() {
       }
       .power-player strong { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .power-player span { display: block; margin-top: 4px; color: #76552e; font-size: 12px; font-weight: 900; }
-      .power-rank {
+      .stat-rank {
         display: inline-flex;
         width: max-content;
         margin-bottom: 7px;
@@ -1877,11 +1877,14 @@ export function kellaDashboardHtml() {
 
       function renderPowerBoard(members) {
         const metric = currentStatMetric();
-        const powerRankMap = new Map((members || [])
-          .filter(function(member) { return Number(member.power || 0) > 0; })
-          .sort(function(a, b) { return Number(b.power || 0) - Number(a.power || 0); })
+        const metricRankMap = new Map((members || [])
+          .map(function(member) {
+            return { member: member, value: Number(latestStatPoint(member, metric.key).value || 0) };
+          })
+          .filter(function(item) { return item.value > 0; })
+          .sort(function(a, b) { return Number(b.value || 0) - Number(a.value || 0); })
           .slice(0, 50)
-          .map(function(member, index) { return [String(member.id || member.uid || member.discordId), index + 1]; }));
+          .map(function(item, index) { return [String(item.member.id || item.member.uid || item.member.discordId), index + 1]; }));
         const ranked = (members || [])
           .map(function(member) {
             return { member: member, latest: latestStatPoint(member, metric.key), history: normalizeStatHistory(member, metric.key), delta: statDelta(member, metric.key) };
@@ -1893,9 +1896,9 @@ export function kellaDashboardHtml() {
         return statMetricPicker() + '<div class="power-list">' + ranked.map(function(item) {
           const member = item.member;
           const rowId = escapeHtml(member.id || "");
-          const powerRank = powerRankMap.get(String(member.id || member.uid || member.discordId));
-          return '<button type="button" class="power-trend-row' + (powerRank ? " top-power-player" : "") + '" data-member-row data-member-id="' + rowId + '" aria-label="Open ' + escapeHtml(metric.label) + ' history for ' + escapeHtml(memberDisplayName(member)) + '">' +
-            '<span class="power-player">' + (powerRank ? '<em class="power-rank">Top ' + powerRank + ' Power</em>' : "") + '<strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + formatCompactNumber(item.latest.value) + '</span></span>' +
+          const metricRank = metricRankMap.get(String(member.id || member.uid || member.discordId));
+          return '<button type="button" class="power-trend-row' + (metricRank ? " top-stat-player" : "") + '" data-member-row data-member-id="' + rowId + '" aria-label="Open ' + escapeHtml(metric.label) + ' history for ' + escapeHtml(memberDisplayName(member)) + '">' +
+            '<span class="power-player">' + (metricRank ? '<em class="stat-rank">#' + metricRank + ' ' + escapeHtml(metric.label) + '</em>' : "") + '<strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + formatCompactNumber(item.latest.value) + '</span></span>' +
             '<span class="power-spark-wrap">' + sparklineSvg(item.history, 82) + '<span class="power-spark-meta">' + escapeHtml(statTrendMeta(item.history)) + '</span></span>' +
             '<span class="trend-pill ' + trendClass(item.delta) + '">' + escapeHtml(formatDelta(item.delta)) + '</span>' +
           '</button>';
@@ -1934,7 +1937,7 @@ export function kellaDashboardHtml() {
         app.innerHTML =
           pageHeader("Dashboard", "A cleaner command room for events, power, and member activity.", '<button class="secondary" data-action="sync-discord-members">Sync Data</button><button class="primary" data-link-button="/tools">Open Tools</button>') +
           '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events. Click any day to view event attendance.</span></div><div class="toolbar"><button class="secondary" data-link-button="/attendance">Attendance</button><button class="primary" data-link-button="/tools">Create Event</button></div></div>' + renderEventsCalendar(events) + '</section>' +
-          '<section class="card alliance-stats-card"><div class="card-header"><div><h3>Alliance Stats</h3><span class="muted">Top 50 players are highlighted by current power. Choose any stat to compare dated uploads.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</section>';
+          '<section class="card alliance-stats-card"><div class="card-header"><div><h3>Alliance Stats</h3><span class="muted">Top 50 rows follow the selected stat, with rank badges that match the active button.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</section>';
       }
 
       async function renderDashboard() {
