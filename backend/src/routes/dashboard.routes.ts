@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   dashboardAlerts,
   dashboardMembers,
+  dashboardMemberCreate,
+  dashboardMemberDelete,
   dashboardMemberUpdate,
   dashboardMemberDragonStatsImport,
   dashboardMemberXlsxImport,
@@ -16,6 +18,7 @@ import {
   dashboardComplaintReply,
   dashboardComplaintStatusUpdate,
   dashboardComplaints,
+  dashboardEventDelete,
   dashboardEventSend,
   dashboardEvents,
   dashboardRootsCreate,
@@ -32,7 +35,9 @@ export const dashboardRouter = Router();
 
 dashboardRouter.get("/summary", dashboardSummary);
 dashboardRouter.get("/members", dashboardMembers);
+dashboardRouter.post("/members", authenticateDashboardAdmin, dashboardMemberCreate);
 dashboardRouter.patch("/members/:id", authenticateDashboardAdmin, dashboardMemberUpdate);
+dashboardRouter.delete("/members/:id", authenticateDashboardAdmin, dashboardMemberDelete);
 dashboardRouter.get("/profile", authenticate, dashboardProfile);
 dashboardRouter.patch("/profile", authenticate, dashboardProfileUpdate);
 dashboardRouter.post("/members/import-xlsx", authenticateDashboardAdmin, dashboardMemberXlsxImport);
@@ -41,6 +46,7 @@ dashboardRouter.post("/sync-discord-members", authenticateDashboardAdmin, dashbo
 dashboardRouter.get("/alerts", dashboardAlerts);
 dashboardRouter.get("/events", dashboardEvents);
 dashboardRouter.post("/events", authenticateDashboardAdmin, dashboardEventSend);
+dashboardRouter.delete("/events/:id", authenticateDashboardAdmin, dashboardEventDelete);
 dashboardRouter.get("/complaints", authenticateDashboardAdmin, dashboardComplaints);
 dashboardRouter.patch("/complaints/:id/status", authenticateDashboardAdmin, dashboardComplaintStatusUpdate);
 dashboardRouter.post("/complaints/:id/reply", authenticateDashboardAdmin, dashboardComplaintReply);

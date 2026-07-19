@@ -149,6 +149,24 @@ const dashboardMemberUpdateSchema = z.object({
   notes: z.string().max(2000).optional()
 });
 
+const dashboardMemberCreateSchema = z.object({
+  ign: z.string().min(1, "IGN is required").max(80),
+  uid: z.string().min(1, "UID is required").max(80),
+  discordId: z.string().max(80).optional(),
+  discordUsername: z.string().max(80).optional(),
+  discordDisplayName: z.string().max(80).optional(),
+  discordAvatarUrl: z.string().max(500).optional(),
+  profilePhotoUrl: z.string().max(500).optional(),
+  power: z.coerce.number().min(0).default(0),
+  alliance: z.string().min(1).max(80).optional(),
+  rank: z.string().max(80).optional(),
+  role: z.enum(["Owner", "Leader", "R4 Officer", "War Marshal", "Recruiter", "Event Manager", "Member"]).default("Member"),
+  timezone: z.string().max(80).optional(),
+  country: z.string().max(80).optional(),
+  notes: z.string().max(2000).optional(),
+  stats: z.record(z.coerce.number().min(0)).optional()
+});
+
 type MergeCandidate = Pick<
   DashboardMember,
   "_id" | "ign" | "discordId" | "discordUsername" | "discordDisplayName" | "uid" | "power" | "powerHistory" | "statHistory" | "rank" | "alliance"
@@ -813,7 +831,7 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
       KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean(),
       KellaActionModel.find({ ...filter, type: "roots_response" }).sort({ sentAt: -1 }).limit(8).lean(),
       KellaActionModel.find({ ...filter, type: "shield_alert" }).sort({ sentAt: -1 }).limit(5).lean(),
-      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "dm_alert", "event_reminder", "embed_sent", "chat_sent", "roots_report_sent", "discord_member_sync", "member_xlsx_import", "member_dragonstats_import"] } })
+      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "dm_alert", "event_reminder", "embed_sent", "chat_sent", "roots_report_sent", "discord_member_sync", "member_xlsx_import", "member_dragonstats_import", "member_manual_add", "member_deleted", "event_deleted"] } })
         .sort({ sentAt: -1 })
         .limit(8)
         .lean()
@@ -959,6 +977,68 @@ export const dashboardProfileUpdate = asyncHandler(async (req, res) => {
   res.json({ member: dashboardMemberDto(updated) });
 });
 
+export const dashboardMemberCreate = asyncHandler(async (req, res) => {
+  const body = dashboardMemberCreateSchema.parse(req.body);
+  const alliance = await resolveAlliance();
+  const allianceId = alliance._id.toString();
+  const now = new Date();
+  const metrics = sanitizeMetricMap({ ...(body.stats || {}), power: body.power });
+  const uid = body.uid.trim();
+  const ign = body.ign.trim();
+
+  const existing = (await MemberModel.findOne({ allianceId, uid })
+    .select("discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl powerHistory statHistory")
+    .lean()) as DashboardMember | null;
+  const discordId = body.discordId?.trim() || existing?.discordId || `manual:${uid}`;
+
+  const updateBody = {
+    discordId,
+    discordUsername: body.discordUsername?.trim() || existing?.discordUsername || "",
+    discordDisplayName: body.discordDisplayName?.trim() || existing?.discordDisplayName || ign,
+    discordAvatarUrl: body.discordAvatarUrl?.trim() || existing?.discordAvatarUrl || "",
+    profilePhotoUrl: body.profilePhotoUrl?.trim() || existing?.profilePhotoUrl || "",
+    ign,
+    uid,
+    power: numeric(body.power),
+    alliance: body.alliance?.trim() || alliance.tag || alliance.name || "Manual",
+    rank: body.rank?.trim() || "Manual",
+    role: body.role || "Member",
+    timezone: body.timezone?.trim() || alliance.timezone || "UTC",
+    country: body.country?.trim() || "Unknown",
+    lastActivity: now,
+    notes: body.notes?.trim() || "",
+    powerHistory: body.power > 0 ? mergePowerHistory(existing?.powerHistory, now, numeric(body.power), "Dashboard Manual Add") : existing?.powerHistory || [],
+    statHistory: metricCount(metrics) ? mergeStatHistory(existing?.statHistory, now, metrics, "Dashboard Manual Add") : existing?.statHistory || []
+  };
+
+  const member = await MemberModel.findOneAndUpdate(
+    { allianceId, uid },
+    {
+      $set: updateBody,
+      $setOnInsert: {
+        allianceId,
+        joinDate: now,
+        attendanceScore: 0,
+        warScore: 0,
+        contributionScore: 0
+      }
+    },
+    { new: true, upsert: true, runValidators: true }
+  ).lean();
+
+  await KellaActionModel.create({
+    allianceId,
+    type: "member_manual_add",
+    actorName: "Dashboard",
+    targetDiscordId: discordId,
+    targetName: ign,
+    status: existing ? "Updated" : "Created",
+    payload: { uid, power: numeric(body.power), metrics }
+  });
+
+  res.status(existing ? 200 : 201).json({ member: dashboardMemberDto(member), created: !existing });
+});
+
 export const dashboardMemberUpdate = asyncHandler(async (req, res) => {
   const body = dashboardMemberUpdateSchema.parse(req.body);
   if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid member id");
@@ -978,6 +1058,26 @@ export const dashboardMemberUpdate = asyncHandler(async (req, res) => {
   ).lean();
   if (!updated) throw new HttpError(404, "Member not found");
   res.json({ member: dashboardMemberDto(updated) });
+});
+
+export const dashboardMemberDelete = asyncHandler(async (req, res) => {
+  if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid member id");
+  const allianceId = await resolveAllianceId();
+  const deleted = (await MemberModel.findOneAndDelete({ _id: req.params.id, ...allianceFilter(allianceId) }).lean()) as DashboardMember | null;
+  if (!deleted) throw new HttpError(404, "Member not found");
+
+  await UserModel.updateMany({ memberId: deleted._id }, { $unset: { memberId: "" } });
+  await KellaActionModel.create({
+    allianceId,
+    type: "member_deleted",
+    actorName: "Dashboard",
+    targetDiscordId: deleted.discordId,
+    targetName: deleted.ign || deleted.discordDisplayName || deleted.discordUsername || "Deleted member",
+    status: "Completed",
+    payload: { uid: deleted.uid, power: numeric(deleted.power) }
+  });
+
+  res.json({ ok: true, deletedMember: { id: deleted._id.toString(), ign: deleted.ign || "" } });
 });
 
 export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
@@ -1222,6 +1322,36 @@ export const dashboardEventSend = asyncHandler(async (req, res) => {
     });
     throw error;
   }
+});
+
+export const dashboardEventDelete = asyncHandler(async (req, res) => {
+  if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid event id");
+  const allianceId = await resolveAllianceId();
+  const filter = allianceFilter(allianceId);
+  const deleted = (await KellaActionModel.findOneAndDelete({
+    _id: req.params.id,
+    ...filter,
+    type: "event_created"
+  }).lean()) as DashboardAction | null;
+  if (!deleted) throw new HttpError(404, "Event not found");
+
+  await KellaActionModel.deleteMany({ ...filter, type: "event_response", reportId: req.params.id });
+  await KellaActionModel.create({
+    allianceId,
+    type: "event_deleted",
+    actorName: "Dashboard",
+    targetDiscordId: deleted.targetDiscordId,
+    targetName: deleted.eventType || deleted.payload?.title || "Alliance Event",
+    status: "Completed",
+    payload: {
+      deletedEventId: deleted._id.toString(),
+      title: deleted.eventType || deleted.payload?.title || "Alliance Event",
+      startsAt: deleted.payload?.startsAt || "",
+      messageLink: deleted.payload?.messageLink || ""
+    }
+  });
+
+  res.json({ ok: true, deletedEvent: { id: deleted._id.toString(), title: deleted.eventType || deleted.payload?.title || "Alliance Event" } });
 });
 
 export const dashboardComplaints = asyncHandler(async (_req, res) => {

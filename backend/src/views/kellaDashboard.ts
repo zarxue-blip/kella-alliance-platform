@@ -1365,7 +1365,7 @@ export function kellaDashboardHtml() {
         if (!isDashboardAdmin() && !adminToken()) {
           return '<div class="profile-note"><strong>Admin Edit</strong><br>Login as an admin or enter the Password in Settings to edit player data.</div>';
         }
-        return '<section class="profile-note"><div class="card-header"><div><strong>Admin Edit</strong><br><span class="muted">Update this player card directly.</span></div><button class="primary" data-action="save-member-admin" data-member-id="' + escapeHtml(member.id || "") + '">Save Player</button></div><div class="form-grid" data-admin-member-form>' +
+        return '<section class="profile-note"><div class="card-header"><div><strong>Admin Edit</strong><br><span class="muted">Update or remove this player card directly.</span></div><div class="toolbar"><button class="danger" data-action="delete-member" data-member-id="' + escapeHtml(member.id || "") + '">Delete Player</button><button class="primary" data-action="save-member-admin" data-member-id="' + escapeHtml(member.id || "") + '">Save Player</button></div></div><div class="form-grid" data-admin-member-form>' +
           '<label>Profile Photo URL<input data-admin-member="profilePhotoUrl" value="' + escapeHtml(member.profilePhotoUrl || "") + '" placeholder="https://..." /></label>' +
           '<label>Discord Avatar URL<input data-admin-member="discordAvatarUrl" value="' + escapeHtml(member.discordAvatarUrl || "") + '" placeholder="https://..." /></label>' +
           '<label>IGN<input data-admin-member="ign" value="' + escapeHtml(member.ign || "") + '" /></label>' +
@@ -1378,6 +1378,50 @@ export function kellaDashboardHtml() {
           '<label>Country<input data-admin-member="country" value="' + escapeHtml(member.country || "") + '" /></label>' +
           '<label class="wide">Officer Notes<textarea data-admin-member="notes">' + escapeHtml(member.notes || "") + '</textarea></label>' +
         '</div></section>';
+      }
+
+      function manualMemberForm() {
+        const statFields = [
+          ["merits", "Merits"],
+          ["unitsKilled", "Units Killed"],
+          ["unitsHealed", "Units Healed"],
+          ["unitsDead", "Units Dead"],
+          ["resourcesGathered", "Resources Gathered"],
+          ["castleLevel", "Castle Level"]
+        ];
+        return '<section class="profile-note"><div class="card-header"><div><strong>Manual Player Card</strong><br><span class="muted">Create a member, add core stats, then save it into Kella.</span></div><button class="primary" data-action="save-manual-member">Save Member</button></div><div class="form-grid" data-manual-member-form>' +
+          '<label>IGN<input data-manual-member="ign" placeholder="Player name" /></label>' +
+          '<label>UID<input data-manual-member="uid" placeholder="Game UID" /></label>' +
+          '<label>Power<input type="number" min="0" data-manual-member="power" placeholder="0" /></label>' +
+          '<label>Alliance<input data-manual-member="alliance" placeholder="KOGS" /></label>' +
+          '<label>Game Rank<input data-manual-member="rank" placeholder="R4, R3, R2..." /></label>' +
+          '<label>Role<select data-manual-member="role">' + roleOptions("Member") + '</select></label>' +
+          '<label>Profile Photo URL<input data-manual-member="profilePhotoUrl" placeholder="https://..." /></label>' +
+          '<label>Discord ID<input data-manual-member="discordId" placeholder="Optional if not synced yet" /></label>' +
+          '<label>Discord Username<input data-manual-member="discordUsername" placeholder="Optional" /></label>' +
+          '<label>Country<input data-manual-member="country" placeholder="Unknown" /></label>' +
+          '<label>Timezone<input data-manual-member="timezone" placeholder="UTC" /></label>' +
+          '<label class="wide">Officer Notes<textarea data-manual-member="notes" placeholder="Private officer notes"></textarea></label>' +
+          '<div class="wide"><h3 style="margin-bottom:10px">Stats</h3><div class="form-grid">' +
+            statFields.map(function(field) {
+              return '<label>' + escapeHtml(field[1]) + '<input type="number" min="0" data-manual-stat="' + escapeHtml(field[0]) + '" placeholder="0" /></label>';
+            }).join("") +
+          '</div></div>' +
+        '</div></section>';
+      }
+
+      function openAddMemberModal() {
+        if (!memberModal || !memberModalContent) return;
+        memberModalContent.dataset.memberId = "";
+        memberModalContent.innerHTML =
+          '<div class="member-profile-hero">' +
+            '<span class="profile-avatar">+</span>' +
+            '<div><span class="profile-kicker">Add Member</span><h3 id="memberModalTitle">Create Player Profile</h3><div class="profile-subtitle">Manual profile and stats entry for officers.</div></div>' +
+          '</div>' +
+          manualMemberForm();
+        memberModal.classList.add("open");
+        memberModal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-open");
       }
 
       function openMemberModal(member) {
@@ -1418,12 +1462,15 @@ export function kellaDashboardHtml() {
       }
 
       function calendarDetailCard(item) {
+        const eventActions = item.eventId
+          ? '<p><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(item.eventId) + '">Open Attendance</button>' + (hasAdminAccess() ? '<button class="danger" type="button" data-action="delete-event" data-event-id="' + escapeHtml(item.eventId) + '" style="margin-left:8px">Delete Event</button>' : '') + '</p>'
+          : '';
         return '<article class="calendar-detail-card">' +
           '<span class="badge warn">' + escapeHtml(item.kind || "Detail") + '</span>' +
           '<h3>' + escapeHtml(item.title || "Calendar Item") + '</h3>' +
           '<span class="activity-time">' + escapeHtml(item.meta || "") + '</span>' +
           '<p>' + escapeHtml(item.description || "") + '</p>' +
-          (item.eventId ? '<p><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(item.eventId) + '">Open Attendance</button></p>' : '') +
+          eventActions +
         '</article>';
       }
 
@@ -1455,7 +1502,7 @@ export function kellaDashboardHtml() {
         if (!events.length) return "";
         return '<div class="profile-note"><strong>Attendance Status</strong><div class="calendar-detail-list">' +
           events.map(function(event) {
-            return '<article class="calendar-detail-card"><div class="card-header"><div><h3>' + escapeHtml(event.title || "Alliance Event") + '</h3><span class="activity-time">' + formatUtcDateTime(event.startsAt) + '</span></div><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(event.id || "") + '">Full View</button></div>' + renderAttendanceGroups(event) + '</article>';
+            return '<article class="calendar-detail-card"><div class="card-header"><div><h3>' + escapeHtml(event.title || "Alliance Event") + '</h3><span class="activity-time">' + formatUtcDateTime(event.startsAt) + '</span></div><div class="toolbar"><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(event.id || "") + '">Full View</button>' + (hasAdminAccess() ? '<button class="danger" type="button" data-action="delete-event" data-event-id="' + escapeHtml(event.id || "") + '">Delete</button>' : '') + '</div></div>' + renderAttendanceGroups(event) + '</article>';
           }).join("") +
         '</div></div>';
       }
@@ -1922,7 +1969,10 @@ export function kellaDashboardHtml() {
         skeleton("Loading members...");
         try {
           const members = await loadMembers();
-          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, UID, power, alliance role, attendance, and notes. Click any player row to open their full stats.", '<input class="search" data-member-search placeholder="Search members" /><button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-action="sync-dragonstats">Sync DragonStats</button>') + renderMemberUploadCard() + renderMembersTable(members);
+          const adminActions = hasAdminAccess()
+            ? '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="secondary" data-action="sync-dragonstats">Sync DragonStats</button><button class="primary" data-action="open-add-member">Add Member</button>'
+            : "";
+          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, UID, power, alliance role, attendance, and notes. Click any player row to open their full stats.", '<input class="search" data-member-search placeholder="Search members" />' + adminActions) + (hasAdminAccess() ? renderMemberUploadCard() : "") + renderMembersTable(members);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load members. ' + escapeHtml(error.message) + '</div>';
         }
@@ -2074,9 +2124,10 @@ export function kellaDashboardHtml() {
           return attendanceBadges(event) +
             '<details style="margin-top:8px"><summary>View players</summary><div style="margin-top:10px">' + renderAttendanceGroups(event) + '</div></details>';
         }
-        return '<div class="table-wrap"><table><thead><tr><th>Event</th><th>Server Time</th><th>Attendance</th><th>Created By</th><th>Status</th><th>View</th></tr></thead><tbody>' +
+        return '<div class="table-wrap"><table><thead><tr><th>Event</th><th>Server Time</th><th>Attendance</th><th>Created By</th><th>Status</th><th>Actions</th></tr></thead><tbody>' +
           events.map(function(event) {
-            return '<tr><td><strong>' + escapeHtml(event.title || "Alliance Event") + '</strong><br><span class="muted">' + escapeHtml(event.description || "") + '</span></td><td>' + formatUtcDateTime(event.startsAt) + '</td><td>' + attendanceDetails(event) + '</td><td>' + escapeHtml(event.createdBy || "Dashboard") + '</td><td>' + escapeHtml(event.status || "Sent") + '</td><td><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(event.id || "") + '">Open</button></td></tr>';
+            const actions = '<div class="toolbar"><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(event.id || "") + '">Open</button>' + (hasAdminAccess() ? '<button class="danger" type="button" data-action="delete-event" data-event-id="' + escapeHtml(event.id || "") + '">Delete</button>' : '') + '</div>';
+            return '<tr><td><strong>' + escapeHtml(event.title || "Alliance Event") + '</strong><br><span class="muted">' + escapeHtml(event.description || "") + '</span></td><td>' + formatUtcDateTime(event.startsAt) + '</td><td>' + attendanceDetails(event) + '</td><td>' + escapeHtml(event.createdBy || "Dashboard") + '</td><td>' + escapeHtml(event.status || "Sent") + '</td><td>' + actions + '</td></tr>';
           }).join("") +
           '</tbody></table></div>';
       }
@@ -2087,7 +2138,7 @@ export function kellaDashboardHtml() {
       }
 
       function attendanceEventCard(event) {
-        return '<article class="card"><div class="attendance-detail-head"><div><span class="badge warn">Event Attendance</span><h3>' + escapeHtml(event.title || "Alliance Event") + '</h3><p>' + escapeHtml(event.description || "No description added.") + '</p></div><div class="stack"><button class="primary" type="button" data-link-button="/attendance/' + escapeHtml(event.id || "") + '">View Attendance</button>' + (event.messageLink ? '<a class="secondary" target="_blank" rel="noreferrer" href="' + escapeHtml(event.messageLink) + '">Discord Message</a>' : "") + '</div></div>' +
+        return '<article class="card"><div class="attendance-detail-head"><div><span class="badge warn">Event Attendance</span><h3>' + escapeHtml(event.title || "Alliance Event") + '</h3><p>' + escapeHtml(event.description || "No description added.") + '</p></div><div class="stack"><button class="primary" type="button" data-link-button="/attendance/' + escapeHtml(event.id || "") + '">View Attendance</button>' + (event.messageLink ? '<a class="secondary" target="_blank" rel="noreferrer" href="' + escapeHtml(event.messageLink) + '">Discord Message</a>' : "") + (hasAdminAccess() ? '<button class="danger" type="button" data-action="delete-event" data-event-id="' + escapeHtml(event.id || "") + '">Delete Event</button>' : "") + '</div></div>' +
           '<div class="attendance-total">' + attendanceBadges(event) + '</div>' +
           '<div style="margin-top:14px">' + renderAttendanceGroups(event) + '</div>' +
         '</article>';
@@ -2587,6 +2638,40 @@ export function kellaDashboardHtml() {
         return payload;
       }
 
+      function readManualMemberForm() {
+        const root = document.querySelector("[data-manual-member-form]");
+        if (!root) throw new Error("Manual member form is missing.");
+        const value = function(name) {
+          return (root.querySelector('[data-manual-member="' + name + '"]')?.value || "").trim();
+        };
+        const ign = value("ign");
+        const uid = value("uid");
+        if (!ign) throw new Error("IGN is required.");
+        if (!uid) throw new Error("UID is required.");
+        const stats = {};
+        root.querySelectorAll("[data-manual-stat]").forEach(function(input) {
+          const key = input.getAttribute("data-manual-stat");
+          const amount = Number(input.value || 0);
+          if (key && Number.isFinite(amount) && amount > 0) stats[key] = amount;
+        });
+        return {
+          ign,
+          uid,
+          discordId: value("discordId"),
+          discordUsername: value("discordUsername"),
+          discordDisplayName: value("ign"),
+          profilePhotoUrl: value("profilePhotoUrl"),
+          power: Number(value("power") || 0),
+          alliance: value("alliance"),
+          rank: value("rank"),
+          role: value("role") || "Member",
+          timezone: value("timezone"),
+          country: value("country"),
+          notes: value("notes"),
+          stats
+        };
+      }
+
       function renderAdminAccessRequired() {
         app.innerHTML =
           pageHeader("Admin Access Required", "This section is only visible to Kella admins and officers with dashboard access.", '<button class="primary" data-action="discord-login">Login as Admin</button>') +
@@ -2684,6 +2769,14 @@ export function kellaDashboardHtml() {
           await route();
         }, "Logged out.");
         if (kind === "copy-command") withFeedback(action, function() { return navigator.clipboard.writeText(action.getAttribute("data-value") || ""); }, "Command copied.");
+        if (kind === "open-add-member") {
+          if (!hasAdminAccess()) {
+            toast("Admin access is required to add members.", "error");
+            return;
+          }
+          openAddMemberModal();
+          return;
+        }
         if (kind === "set-stats-metric") {
           const nextMetric = action.getAttribute("data-metric") || "power";
           if (!statMetricOptions.some(function(metric) { return metric.key === nextMetric; })) return;
@@ -2761,6 +2854,37 @@ export function kellaDashboardHtml() {
           openMemberModal(updated);
           return "Player card updated.";
         }, "Player card updated.");
+        if (kind === "save-manual-member") withFeedback(action, async function() {
+          const data = await sendJson("POST", "/api/dashboard/members", readManualMemberForm(), true);
+          state.summary = null;
+          state.members = [];
+          await loadMembers();
+          if (location.pathname === "/members") {
+            await renderMembers();
+          } else if (location.pathname === "/") {
+            await renderDashboard();
+          }
+          openMemberModal(findMemberById(data.member?.id) || data.member);
+          return data.created ? "Member added." : "Member updated.";
+        }, "Member saved.");
+        if (kind === "delete-member") withFeedback(action, async function() {
+          const id = action.getAttribute("data-member-id") || "";
+          const member = findMemberById(id);
+          if (!id) throw new Error("Member id missing.");
+          if (!window.confirm("Delete " + (memberDisplayName(member) || "this member") + " from Kella? This removes their member data from the dashboard.")) {
+            return "Delete cancelled.";
+          }
+          await sendJson("DELETE", "/api/dashboard/members/" + encodeURIComponent(id), undefined, true);
+          state.summary = null;
+          state.members = (state.members || []).filter(function(item) { return String(item.id) !== String(id); });
+          closeMemberModal();
+          if (location.pathname === "/members") {
+            await renderMembers();
+          } else if (location.pathname === "/") {
+            await renderDashboard();
+          }
+          return "Member deleted.";
+        }, "Member deleted.");
         if (kind === "refresh-current") withFeedback(action, async function() {
           state.summary = null;
           state.alerts = [];
@@ -2792,6 +2916,28 @@ export function kellaDashboardHtml() {
             await renderTools("events");
           }
         }, "Events refreshed.");
+        if (kind === "delete-event") withFeedback(action, async function() {
+          const id = action.getAttribute("data-event-id") || "";
+          const eventItem = (state.events || []).find(function(item) { return String(item.id) === String(id); });
+          if (!id) throw new Error("Event id missing.");
+          if (!window.confirm("Delete " + ((eventItem && eventItem.title) || "this event") + " from the calendar and attendance reports?")) {
+            return "Delete cancelled.";
+          }
+          await sendJson("DELETE", "/api/dashboard/events/" + encodeURIComponent(id), undefined, true);
+          state.summary = null;
+          state.events = [];
+          if (memberModal?.classList.contains("open")) closeMemberModal();
+          if (location.pathname === "/") {
+            await renderDashboard();
+          } else if (location.pathname === "/attendance") {
+            await renderAttendance();
+          } else if (location.pathname.startsWith("/attendance/")) {
+            navigate("/attendance");
+          } else {
+            await renderTools("events");
+          }
+          return "Event deleted.";
+        }, "Event deleted.");
         if (kind === "refresh-complaints") withFeedback(action, async function() { state.complaints = []; await renderComplaints(); }, "Complaints refreshed.");
         if (kind === "send-event-embed") withFeedback(action, async function() {
           await sendJson("POST", "/api/dashboard/events", eventPayload(), true);

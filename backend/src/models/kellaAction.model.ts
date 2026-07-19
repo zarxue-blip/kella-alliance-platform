@@ -24,7 +24,11 @@ const kellaActionSchema = new Schema(
         "roots_report_sent",
         "complaint",
         "discord_member_sync",
-        "member_xlsx_import"
+        "member_xlsx_import",
+        "member_dragonstats_import",
+        "member_manual_add",
+        "member_deleted",
+        "event_deleted"
       ],
       required: true,
       index: true
