@@ -1290,6 +1290,13 @@ export function kellaDashboardHtml() {
         return { date: latest.date, power: latest.value };
       }
 
+      function currentPowerValue(member) {
+        const latest = latestPowerPoint(member);
+        const latestPower = Number(latest.power || 0);
+        const directPower = Number(member?.power || 0);
+        return latestPower > 0 ? latestPower : directPower;
+      }
+
       function statDelta(member, metricKey) {
         const history = normalizeStatHistory(member, metricKey || currentStatMetric().key);
         if (history.length < 2) return null;
@@ -1877,9 +1884,9 @@ export function kellaDashboardHtml() {
 
       function renderPowerBoard(members) {
         const metric = currentStatMetric();
-        const metricRankMap = new Map((members || [])
+        const powerRankMap = new Map((members || [])
           .map(function(member) {
-            return { member: member, value: Number(latestStatPoint(member, metric.key).value || 0) };
+            return { member: member, value: currentPowerValue(member) };
           })
           .filter(function(item) { return item.value > 0; })
           .sort(function(a, b) { return Number(b.value || 0) - Number(a.value || 0); })
@@ -1887,18 +1894,19 @@ export function kellaDashboardHtml() {
           .map(function(item, index) { return [String(item.member.id || item.member.uid || item.member.discordId), index + 1]; }));
         const ranked = (members || [])
           .map(function(member) {
-            return { member: member, latest: latestStatPoint(member, metric.key), history: normalizeStatHistory(member, metric.key), delta: statDelta(member, metric.key) };
+            return { member: member, power: currentPowerValue(member), latest: latestStatPoint(member, metric.key), history: normalizeStatHistory(member, metric.key), delta: statDelta(member, metric.key) };
           })
-          .filter(function(item) { return Number(item.latest.value || 0) > 0 || item.history.length > 0; })
-          .sort(function(a, b) { return Number(b.latest.value || 0) - Number(a.latest.value || 0); })
+          .filter(function(item) { return Number(item.power || 0) > 0 || Number(item.latest.value || 0) > 0 || item.history.length > 0; })
+          .sort(function(a, b) { return Number(b.power || 0) - Number(a.power || 0); })
           .slice(0, 50);
         if (!ranked.length) return statMetricPicker() + empty("Sync DragonStats or upload dated Excel files to build the " + metric.label + " graph.");
         return statMetricPicker() + '<div class="power-list">' + ranked.map(function(item) {
           const member = item.member;
           const rowId = escapeHtml(member.id || "");
-          const metricRank = metricRankMap.get(String(member.id || member.uid || member.discordId));
-          return '<button type="button" class="power-trend-row' + (metricRank ? " top-stat-player" : "") + '" data-member-row data-member-id="' + rowId + '" aria-label="Open ' + escapeHtml(metric.label) + ' history for ' + escapeHtml(memberDisplayName(member)) + '">' +
-            '<span class="power-player">' + (metricRank ? '<em class="stat-rank">#' + metricRank + ' ' + escapeHtml(metric.label) + '</em>' : "") + '<strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + formatCompactNumber(item.latest.value) + '</span></span>' +
+          const powerRank = powerRankMap.get(String(member.id || member.uid || member.discordId));
+          const statValueText = metric.key === "power" ? formatCompactNumber(item.power) : formatCompactNumber(item.latest.value);
+          return '<button type="button" class="power-trend-row' + (powerRank ? " top-stat-player" : "") + '" data-member-row data-member-id="' + rowId + '" aria-label="Open ' + escapeHtml(metric.label) + ' history for ' + escapeHtml(memberDisplayName(member)) + '">' +
+            '<span class="power-player">' + (powerRank ? '<em class="stat-rank">#' + powerRank + ' POWER</em>' : "") + '<strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + escapeHtml(metric.label) + ': ' + statValueText + '</span></span>' +
             '<span class="power-spark-wrap">' + sparklineSvg(item.history, 82) + '<span class="power-spark-meta">' + escapeHtml(statTrendMeta(item.history)) + '</span></span>' +
             '<span class="trend-pill ' + trendClass(item.delta) + '">' + escapeHtml(formatDelta(item.delta)) + '</span>' +
           '</button>';
@@ -1935,9 +1943,9 @@ export function kellaDashboardHtml() {
 
       function renderDashboardData(summary, members = [], events = []) {
         app.innerHTML =
-          pageHeader("Dashboard", "A cleaner command room for events, power, and member activity.", '<button class="secondary" data-action="sync-discord-members">Sync Data</button><button class="primary" data-link-button="/tools">Open Tools</button>') +
+          pageHeader("Dashboard", "A cleaner command room for events, power, and member activity.", '<button class="secondary" data-action="sync-all-data">Sync Data</button><button class="primary" data-link-button="/tools">Open Tools</button>') +
           '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events. Click any day to view event attendance.</span></div><div class="toolbar"><button class="secondary" data-link-button="/attendance">Attendance</button><button class="primary" data-link-button="/tools">Create Event</button></div></div>' + renderEventsCalendar(events) + '</section>' +
-          '<section class="card alliance-stats-card"><div class="card-header"><div><h3>Alliance Stats</h3><span class="muted">Top 50 rows follow the selected stat, with rank badges that match the active button.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</section>';
+          '<section class="card alliance-stats-card"><div class="card-header"><div><h3>Alliance Stats</h3><span class="muted">Top 50 rows are ranked by current power. Buttons change the graph shown for those players.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</section>';
       }
 
       async function renderDashboard() {
@@ -2846,6 +2854,32 @@ export function kellaDashboardHtml() {
           toast((action.getAttribute("data-module") || "Module") + " settings opened.");
           navigate("/settings");
         }
+        if (kind === "sync-all-data") withFeedback(action, async function() {
+          const results = [];
+          const failures = [];
+          try {
+            const discordSync = await sendJson("POST", "/api/dashboard/sync-discord-members", {}, true);
+            results.push("Discord " + discordSync.total + " members");
+          } catch (error) {
+            failures.push("Discord: " + error.message);
+          }
+          try {
+            const statSync = await sendJson("POST", "/api/dashboard/members/import-dragonstats", {}, true);
+            results.push("DragonStats " + statSync.total + " rows");
+          } catch (error) {
+            failures.push("Stats: " + error.message);
+          }
+          state.summary = null;
+          state.members = [];
+          state.alerts = [];
+          await renderDashboard();
+          if (!results.length) throw new Error(failures.join(" | ") || "Sync failed.");
+          if (failures.length) {
+            toast(failures.join(" | "), "error");
+            return "Partial sync complete: " + results.join(", ") + ".";
+          }
+          return "Synced " + results.join(" and ") + ".";
+        }, "Data sync complete.");
         if (kind === "sync-discord-members") withFeedback(action, async function() {
           const sync = await sendJson("POST", "/api/dashboard/sync-discord-members", {}, true);
           state.summary = null;
