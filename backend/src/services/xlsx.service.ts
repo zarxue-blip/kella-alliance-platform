@@ -151,16 +151,13 @@ const decorativeNameTokenPattern = "[\\u02B0-\\u02FF\\u1D2C-\\u1DBF\\u2070-\\u20
 
 export function cleanImportedPlayerName(value: unknown) {
   const original = String(value || "");
-  let cleaned = original.replace(new RegExp(`^\\s*${decorativeNameTokenPattern}\\s+`, "u"), "");
-  const hadDecorativePrefix = cleaned !== original;
-  cleaned = cleaned
+  return original
+    .replace(new RegExp(`^\\s*${decorativeNameTokenPattern}\\s+`, "u"), "")
     .replace(new RegExp(`\\s+${decorativeNameTokenPattern}\\s*$`, "u"), "")
     .replace(/^\s*\[[^\]]{1,16}\]\s+/, "")
     .replace(/^\s*(?:kog|lwl|mf|aga|row|cod)\s+(?=\S{2,})/i, "")
     .replace(/\s+/g, " ")
     .trim();
-  if (hadDecorativePrefix) cleaned = cleaned.replace(/^([a-zA-Z])\1(?=[a-zA-Z]{2,})/, "$1");
-  return cleaned;
 }
 
 export function numberFromCell(value: unknown) {

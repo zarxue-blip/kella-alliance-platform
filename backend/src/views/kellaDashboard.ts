@@ -1224,6 +1224,16 @@ export function kellaDashboardHtml() {
         return Math.max(4, Math.min(100, Math.round((Number(member?.power || 0) / strongestPower) * 100)));
       }
 
+      function dashboardAllianceTag(value) {
+        const raw = String(value || "").trim();
+        const bracketed = (raw.match(/\\[([^\\]]+)\\]/) || [])[1] || raw;
+        return bracketed.replace(/[^a-z0-9]/gi, "").toLowerCase();
+      }
+
+      function isAllowedStatsAlliance(member) {
+        return ["kog", "lwl", "mf"].includes(dashboardAllianceTag(member?.alliance));
+      }
+
       function currentStatMetric() {
         return statMetricOptions.find(function(metric) { return metric.key === state.statsMetric; }) || statMetricOptions[0];
       }
@@ -1280,8 +1290,14 @@ export function kellaDashboardHtml() {
       function latestStatPoint(member, metricKey) {
         const metric = metricKey || currentStatMetric().key;
         const history = normalizeStatHistory(member, metric);
+        if (metric === "power") {
+          const directPower = Number(member?.power || 0);
+          if (Number.isFinite(directPower) && directPower > 0) {
+            return { date: history.length ? history[history.length - 1].date : null, value: directPower };
+          }
+        }
         if (history.length) return history[history.length - 1];
-        if (metric === "power") return { date: null, value: Number(member?.power || 0) };
+        if (metric === "power") return { date: null, value: 0 };
         return { date: null, value: 0 };
       }
 
@@ -1291,10 +1307,11 @@ export function kellaDashboardHtml() {
       }
 
       function currentPowerValue(member) {
+        const directPower = Number(member?.power || 0);
+        if (Number.isFinite(directPower) && directPower > 0) return directPower;
         const latest = latestPowerPoint(member);
         const latestPower = Number(latest.power || 0);
-        const directPower = Number(member?.power || 0);
-        return latestPower > 0 ? latestPower : directPower;
+        return latestPower > 0 ? latestPower : 0;
       }
 
       function statDelta(member, metricKey) {
@@ -1878,7 +1895,8 @@ export function kellaDashboardHtml() {
 
       function renderPowerBoard(members) {
         const metric = currentStatMetric();
-        const powerRankMap = new Map((members || [])
+        const allowedMembers = (members || []).filter(isAllowedStatsAlliance);
+        const powerRankMap = new Map(allowedMembers
           .map(function(member) {
             return { member: member, value: currentPowerValue(member) };
           })
@@ -1886,7 +1904,7 @@ export function kellaDashboardHtml() {
           .sort(function(a, b) { return Number(b.value || 0) - Number(a.value || 0); })
           .slice(0, 50)
           .map(function(item, index) { return [String(item.member.id || item.member.uid || item.member.discordId), index + 1]; }));
-        const ranked = (members || [])
+        const ranked = allowedMembers
           .map(function(member) {
             const latest = latestStatPoint(member, metric.key);
             const rankValue = metric.key === "power" ? currentPowerValue(member) : Number(latest.value || 0);
@@ -1899,7 +1917,7 @@ export function kellaDashboardHtml() {
             return Number(b.power || 0) - Number(a.power || 0);
           })
           .slice(0, 50);
-        if (!ranked.length) return statMetricPicker() + empty("Upload dated Excel files to build the " + metric.label + " graph.");
+        if (!ranked.length) return statMetricPicker() + empty("Upload a KoG, LWL, or mF Excel file to build the " + metric.label + " ranking.");
         return statMetricPicker() + '<div class="power-list">' + ranked.map(function(item, index) {
           const member = item.member;
           const rowId = escapeHtml(member.id || "");
