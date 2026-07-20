@@ -419,6 +419,17 @@ function latestPowerFromHistory(history: Array<{ date?: Date | string; power?: n
   return latest?.power || 0;
 }
 
+function latestPowerHistoryDate(history: Array<{ date?: Date | string; power?: number }> | undefined) {
+  return (history || [])
+    .map((entry) => ({
+      date: validDate(new Date(entry.date || "")) ? startOfUtcDay(new Date(entry.date || "")) : undefined,
+      power: numeric(entry.power)
+    }))
+    .filter((entry) => entry.date && entry.power > 0)
+    .sort((left, right) => left.date!.getTime() - right.date!.getTime())
+    .pop()?.date;
+}
+
 function mergeStatHistory(
   history: Array<{ date?: Date | string; metrics?: Record<string, unknown>; source?: string; filename?: string }> | undefined,
   snapshotDate: Date,
@@ -881,13 +892,17 @@ async function importGameStatSnapshots(
         if (!isUploadedOnlyMember(candidate)) mergedIds.add(memberId(candidate));
       }
 
+      const previousLatestDate = latestPowerHistoryDate(candidate.powerHistory);
+      const isCurrentSnapshot = !previousLatestDate || snapshotDate.getTime() >= previousLatestDate.getTime();
       candidate.uid = uid;
       candidate.ign = ign;
-      candidate.power = power;
-      candidate.alliance = row.alliance || candidate.alliance || alliance.tag || alliance.name || "Imported";
-      candidate.rank = importRank(source, row.rank);
       candidate.powerHistory = mergePowerHistory(candidate.powerHistory, snapshotDate, power, source, filename);
       candidate.statHistory = mergeStatHistory(candidate.statHistory, snapshotDate, stats, source, filename);
+      candidate.power = latestPowerFromHistory(candidate.powerHistory);
+      if (isCurrentSnapshot) {
+        candidate.alliance = row.alliance || candidate.alliance || alliance.tag || alliance.name || "Imported";
+        candidate.rank = importRank(source, row.rank);
+      }
       changed.set(memberId(candidate), candidate);
       indexCandidate(candidate);
     }
@@ -1290,7 +1305,6 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
     snapshots.push({ rows: allowed.allowed, snapshotDate, source, filename });
   }
 
-  const reset = await resetUploadedRosterData(allianceId);
   const result = await importGameStatSnapshots(
     alliance,
     snapshots,
@@ -1311,12 +1325,11 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
       previousSnapshotDate: fileType === "json" && snapshots.length > 1 ? snapshots[0]?.snapshotDate : undefined,
       excluded,
       removedOtherAlliances,
-      ...reset,
       ...result
     }
   });
 
-  res.json({ ...result, ...reset, excluded, removedOtherAlliances, syncedAt, snapshotDate, fileType });
+  res.json({ ...result, excluded, removedOtherAlliances, syncedAt, snapshotDate, fileType });
 });
 
 export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {

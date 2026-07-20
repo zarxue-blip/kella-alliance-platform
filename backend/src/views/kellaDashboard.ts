@@ -565,6 +565,9 @@ export function kellaDashboardHtml() {
         box-shadow: 0 12px 24px rgba(103, 63, 17, 0.14), inset 0 1px 0 rgba(255,255,255,0.45);
         outline: none;
       }
+      .power-player { display: flex; align-items: center; gap: 12px; min-width: 0; }
+      .power-player .member-avatar { width: 48px; height: 48px; box-shadow: 0 0 18px rgba(170, 103, 18, 0.14); }
+      .power-player-info { min-width: 0; }
       .power-player strong { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .power-player span { display: block; margin-top: 4px; color: #76552e; font-size: 12px; font-weight: 900; }
       .stat-rank {
@@ -1932,7 +1935,7 @@ export function kellaDashboardHtml() {
           const statValueText = formatCompactNumber(item.rankValue);
           const metricRankLabel = "#" + (index + 1) + " " + metric.label.toUpperCase();
           return '<button type="button" class="power-trend-row' + (powerRank ? " top-stat-player" : "") + '" data-member-row data-member-id="' + rowId + '" aria-label="Open ' + escapeHtml(metric.label) + ' history for ' + escapeHtml(memberDisplayName(member)) + '">' +
-            '<span class="power-player"><em class="stat-rank">' + escapeHtml(metricRankLabel) + (powerRank ? ' - Power #' + powerRank : '') + '</em><strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + escapeHtml(metric.label) + ': ' + statValueText + '</span></span>' +
+            '<span class="power-player">' + memberAvatar(member, "member-avatar") + '<span class="power-player-info"><em class="stat-rank">' + escapeHtml(metricRankLabel) + (powerRank ? ' - Power #' + powerRank : '') + '</em><strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + escapeHtml(metric.label) + ': ' + statValueText + '</span></span></span>' +
             '<span class="power-spark-wrap">' + sparklineSvg(item.history, 82) + '<span class="power-spark-meta">' + escapeHtml(statTrendMeta(item.history)) + '</span></span>' +
             '<span class="trend-pill ' + trendClass(item.delta) + '">' + escapeHtml(formatDelta(item.delta)) + '</span>' +
           '</button>';
@@ -2000,7 +2003,7 @@ export function kellaDashboardHtml() {
       }
 
       function renderMemberUploadCard() {
-        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Roster Stat Upload</h3><span class="muted">Upload a DragonStats JSON, CSV, or Call of Dragons TopN Excel file. New uploads replace old uploaded roster data, import only KoG, LWL, and mF, and use current Power for ranking.</span></div><div class="toolbar"><button class="primary" data-action="upload-member-xlsx">Upload File</button></div></div><div class="form-grid">' +
+        return '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Roster Stat Upload</h3><span class="muted">Upload DragonStats JSON/CSV or Call of Dragons TopN Excel files for different dates. Kella keeps each dated snapshot for comparison graphs, imports only KoG, LWL, and mF, and uses the newest Power for ranking.</span></div><div class="toolbar"><button class="primary" data-action="upload-member-xlsx">Upload File</button></div></div><div class="form-grid">' +
           '<label class="wide">Roster File<input type="file" data-member-upload accept=".xlsx,.csv,.json,text/csv,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" /></label>' +
           '<label>Snapshot Date<input type="date" data-member-upload-date /><span class="muted">Optional. Kella reads dates from filenames like july-19-2026.xlsx. JSON also imports its previous values for the graph.</span></label>' +
         '</div></section>';
@@ -2916,7 +2919,7 @@ export function kellaDashboardHtml() {
           state.members = [];
           state.uploads = null;
           await renderMembers();
-          return "Imported " + sync.total + " allowed roster members (" + sync.created + " new, " + sync.updated + " updated, " + (sync.merged || 0) + " merged with Discord, " + sync.skipped + " skipped, " + (sync.excluded || 0) + " outside KoG/LWL/mF ignored, " + (sync.removedUploadedOnly || 0) + " old upload-only rows cleared).";
+          return "Imported " + sync.total + " allowed roster members (" + sync.created + " new, " + sync.updated + " updated, " + (sync.merged || 0) + " merged with Discord, " + sync.skipped + " skipped, " + (sync.excluded || 0) + " outside KoG/LWL/mF ignored). Dated snapshots are kept for graphs.";
         }, "Roster members imported.");
         if (kind === "save-my-profile") withFeedback(action, async function() {
           const data = await sendJson("PATCH", "/api/dashboard/profile", readProfileForm(), false);
