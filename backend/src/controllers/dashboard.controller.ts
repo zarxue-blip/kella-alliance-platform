@@ -373,9 +373,14 @@ function metricCount(metrics: Record<string, number>) {
 
 const uploadedRosterSourcePattern = /^(TopN Excel|TopN JSON|TopN CSV|DragonStats)$/i;
 const uploadedRosterRankPattern = /^(TopN Excel|TopN JSON|TopN CSV|DragonStats)(?:\s+#.*)?$/i;
+const rosterResetSourcePattern = /^(TopN Excel|TopN JSON|TopN CSV|DragonStats|Dashboard Edit)$/i;
 
 function isUploadedRosterSource(source?: string) {
   return uploadedRosterSourcePattern.test(String(source || ""));
+}
+
+function isRosterResetSource(source?: string) {
+  return rosterResetSourcePattern.test(String(source || ""));
 }
 
 function isUploadedRosterRank(rank?: string) {
@@ -389,6 +394,16 @@ function hasUploadedRosterHistory(member: {
   return (
     (member.powerHistory || []).some((entry) => isUploadedRosterSource(entry.source)) ||
     (member.statHistory || []).some((entry) => isUploadedRosterSource(entry.source))
+  );
+}
+
+function hasResettableRosterHistory(member: {
+  powerHistory?: Array<{ source?: string }>;
+  statHistory?: Array<{ source?: string }>;
+}) {
+  return (
+    (member.powerHistory || []).some((entry) => isRosterResetSource(entry.source)) ||
+    (member.statHistory || []).some((entry) => isRosterResetSource(entry.source))
   );
 }
 
@@ -732,8 +747,9 @@ async function resetUploadedRosterData(allianceId: string) {
 
   for (const member of members) {
     const hadUploadedData = hasUploadedRosterHistory(member) || isUploadedRosterRank(member.rank);
-    const powerHistory = (member.powerHistory || []).filter((entry) => !isUploadedRosterSource(entry.source));
-    const statHistory = (member.statHistory || []).filter((entry) => !isUploadedRosterSource(entry.source));
+    const hadResettableData = hasResettableRosterHistory(member) || isUploadedRosterRank(member.rank);
+    const powerHistory = (member.powerHistory || []).filter((entry) => !isRosterResetSource(entry.source));
+    const statHistory = (member.statHistory || []).filter((entry) => !isRosterResetSource(entry.source));
     const preservedPower = latestPowerFromHistory(powerHistory);
     const looksLikeStaleImportedDiscordPower =
       isRealDiscordUserId(member.discordId) &&
@@ -748,7 +764,7 @@ async function resetUploadedRosterData(allianceId: string) {
       continue;
     }
 
-    if (!hadUploadedData && !looksLikeStaleImportedDiscordPower) continue;
+    if (!hadUploadedData && !hadResettableData && !looksLikeStaleImportedDiscordPower) continue;
 
     const update: Record<string, unknown> = {
       powerHistory,
