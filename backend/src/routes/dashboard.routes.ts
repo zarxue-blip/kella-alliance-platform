@@ -7,6 +7,7 @@ import {
   dashboardMemberUpdate,
   dashboardMemberXlsxImport,
   dashboardRosterUploadDelete,
+  dashboardRosterUploadsClear,
   dashboardRosterUploads,
   dashboardRosterUploadUpdate,
   dashboardDiscordMemberSync,
@@ -45,6 +46,7 @@ dashboardRouter.patch("/profile", authenticate, dashboardProfileUpdate);
 dashboardRouter.post("/members/import-xlsx", authenticateDashboardAdmin, dashboardMemberXlsxImport);
 dashboardRouter.get("/uploads", authenticateDashboardAdmin, dashboardRosterUploads);
 dashboardRouter.patch("/uploads/:id", authenticateDashboardAdmin, dashboardRosterUploadUpdate);
+dashboardRouter.delete("/uploads", authenticateDashboardAdmin, dashboardRosterUploadsClear);
 dashboardRouter.delete("/uploads/:id", authenticateDashboardAdmin, dashboardRosterUploadDelete);
 dashboardRouter.post("/sync-discord-members", authenticateDashboardAdmin, dashboardDiscordMemberSync);
 dashboardRouter.get("/alerts", dashboardAlerts);

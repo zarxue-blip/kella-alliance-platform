@@ -2540,8 +2540,8 @@ export function kellaDashboardHtml() {
                 return '<tr><td><strong>' + escapeHtml(upload.filename || "Roster upload") + '</strong><br><span class="muted">' + escapeHtml(upload.source || "") + '</span></td><td>' + escapeHtml(String(upload.fileType || "").toUpperCase()) + '</td><td>' + escapeHtml(snapshotDate || "Unknown") + '</td><td>' + formatNumber(upload.total || 0) + '</td><td>' + formatNumber(upload.excluded || 0) + '</td><td>' + formatDateTime(upload.sentAt) + '</td><td><div class="toolbar"><button class="secondary" data-action="edit-roster-upload" data-upload-id="' + escapeHtml(upload.id) + '" data-upload-filename="' + escapeHtml(upload.filename || "") + '" data-upload-date="' + escapeHtml(snapshotDate) + '">Edit</button><button class="danger" data-action="delete-roster-upload" data-upload-id="' + escapeHtml(upload.id) + '" data-upload-filename="' + escapeHtml(upload.filename || "") + '">Delete</button></div></td></tr>';
               }).join("") +
               '</tbody></table></div>'
-            : empty("No roster files have been uploaded yet.");
-        return '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Uploaded Roster Files</h3><span class="muted">Delete old JSON, CSV, or spreadsheet imports so they stop affecting member stats. Re-upload the latest file on Members when you want a clean roster.</span></div><button class="secondary" data-action="refresh-roster-uploads"' + (locked ? " disabled" : "") + '>Refresh</button></div>' + body + '</section>';
+            : empty("No roster files are listed. If old player stats are still showing, use Clear Imported Data, then upload the latest JSON again.");
+        return '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Uploaded Roster Files</h3><span class="muted">Delete old JSON, CSV, or spreadsheet imports so they stop affecting member stats. Re-upload the latest file on Members when you want a clean roster.</span></div><div class="toolbar"><button class="secondary" data-action="refresh-roster-uploads"' + (locked ? " disabled" : "") + '>Refresh</button><button class="danger" data-action="clear-roster-imports"' + (locked ? " disabled" : "") + '>Clear Imported Data</button></div></div>' + body + '</section>';
       }
 
       async function renderSettings() {
@@ -3105,6 +3105,17 @@ export function kellaDashboardHtml() {
           await renderSettings();
           return "Roster upload deleted. " + (result.deletedMembers || 0) + " upload-only members removed and " + (result.updatedMembers || 0) + " profiles recalculated.";
         }, "Roster upload deleted.");
+        if (kind === "clear-roster-imports") withFeedback(action, async function() {
+          if (!window.confirm("Clear all imported roster stats from Kella? Discord profiles and manually added members stay, but uploaded power/stat values are removed.")) {
+            return "Clear cancelled.";
+          }
+          const result = await sendJson("DELETE", "/api/dashboard/uploads", undefined, true);
+          state.uploads = null;
+          state.members = [];
+          state.summary = null;
+          await renderSettings();
+          return "Imported roster data cleared. " + (result.deletedUploads || 0) + " upload records removed, " + (result.deletedMembers || 0) + " upload-only members deleted, and " + (result.updatedMembers || 0) + " Discord profiles recalculated.";
+        }, "Imported roster data cleared.");
         if (kind === "copy-report") withFeedback(action, function() { return navigator.clipboard.writeText(reportText(state.currentReport)); }, "Report copied.");
         if (kind === "export-json") withFeedback(action, async function() { downloadBlob(new Blob([JSON.stringify(state.currentReport, null, 2)], { type: "application/json" }), "roots-report.json"); }, "JSON exported.");
         if (kind === "export-csv") withFeedback(action, async function() {

@@ -371,8 +371,25 @@ function metricCount(metrics: Record<string, number>) {
   return Object.keys(metrics).length;
 }
 
+const uploadedRosterSourcePattern = /^(TopN Excel|TopN JSON|TopN CSV|DragonStats)$/i;
+const uploadedRosterRankPattern = /^(TopN Excel|TopN JSON|TopN CSV|DragonStats)(?:\s+#.*)?$/i;
+
 function isUploadedRosterSource(source?: string) {
-  return /^(TopN Excel|TopN JSON|TopN CSV|DragonStats)$/i.test(String(source || ""));
+  return uploadedRosterSourcePattern.test(String(source || ""));
+}
+
+function isUploadedRosterRank(rank?: string) {
+  return uploadedRosterRankPattern.test(String(rank || ""));
+}
+
+function hasUploadedRosterHistory(member: {
+  powerHistory?: Array<{ source?: string }>;
+  statHistory?: Array<{ source?: string }>;
+}) {
+  return (
+    (member.powerHistory || []).some((entry) => isUploadedRosterSource(entry.source)) ||
+    (member.statHistory || []).some((entry) => isUploadedRosterSource(entry.source))
+  );
 }
 
 function latestPowerFromHistory(history: Array<{ date?: Date | string; power?: number }> | undefined) {
@@ -490,6 +507,17 @@ function isUploadedOnlyMember(member?: MergeCandidate | null) {
 
 function isRealDiscordUserId(value?: string) {
   return /^\d{15,25}$/.test(String(value || ""));
+}
+
+function shouldDeleteImportedRosterMember(member: {
+  discordId?: string;
+  rank?: string;
+  powerHistory?: Array<{ source?: string }>;
+  statHistory?: Array<{ source?: string }>;
+}) {
+  if (isUploadedOnlyMember(member as MergeCandidate)) return true;
+  if (isRealDiscordUserId(member.discordId)) return false;
+  return isUploadedRosterRank(member.rank) || hasUploadedRosterHistory(member);
 }
 
 function topnAllianceTag(value?: string) {
@@ -681,38 +709,53 @@ async function bulkWriteMemberOps(ops: any[]) {
 }
 
 async function resetUploadedRosterData(allianceId: string) {
-  const deletedUploadedOnly = await MemberModel.deleteMany({ allianceId, discordId: /^(xlsx|topn):/ });
   const members = (await MemberModel.find({ allianceId })
-    .select("_id powerHistory statHistory rank")
+    .select("_id discordId powerHistory statHistory rank")
     .limit(5000)
     .lean()) as Array<{
       _id: Types.ObjectId;
+      discordId?: string;
       rank?: string;
       powerHistory?: Array<{ date?: Date | string; power?: number; source?: string; filename?: string }>;
       statHistory?: Array<{ date?: Date | string; metrics?: Record<string, unknown>; source?: string; filename?: string }>;
     }>;
 
-  const ops = members.map((member) => {
+  const ops: any[] = [];
+  let deletedUploadedOnly = 0;
+  let resetProfiles = 0;
+
+  for (const member of members) {
+    const hadUploadedData = hasUploadedRosterHistory(member) || isUploadedRosterRank(member.rank);
     const powerHistory = (member.powerHistory || []).filter((entry) => !isUploadedRosterSource(entry.source));
     const statHistory = (member.statHistory || []).filter((entry) => !isUploadedRosterSource(entry.source));
+
+    if (shouldDeleteImportedRosterMember(member)) {
+      deletedUploadedOnly += 1;
+      ops.push({ deleteOne: { filter: { _id: member._id, allianceId } } });
+      continue;
+    }
+
+    if (!hadUploadedData) continue;
+
     const update: Record<string, unknown> = {
       powerHistory,
       statHistory,
       power: latestPowerFromHistory(powerHistory)
     };
-    if (/^(TopN Excel|TopN JSON|TopN CSV|DragonStats)/i.test(String(member.rank || ""))) update.rank = "Discord";
-    return {
+    if (isUploadedRosterRank(member.rank)) update.rank = "Discord";
+    resetProfiles += 1;
+    ops.push({
       updateOne: {
         filter: { _id: member._id, allianceId },
         update: { $set: update }
       }
-    };
-  });
+    });
+  }
 
   await bulkWriteMemberOps(ops);
   return {
-    removedUploadedOnly: deletedUploadedOnly.deletedCount || 0,
-    resetProfiles: ops.length
+    removedUploadedOnly: deletedUploadedOnly,
+    resetProfiles
   };
 }
 
@@ -1825,7 +1868,30 @@ export const dashboardRosterUploadDelete = asyncHandler(async (req, res) => {
   if (!action) throw new HttpError(404, "Upload not found");
   const result = await removeRosterUploadSnapshots(allianceId || "", action);
   await KellaActionModel.deleteOne({ _id: action._id, allianceId, type: "member_xlsx_import" });
+  const remainingUploads = await KellaActionModel.countDocuments({ ...allianceFilter(allianceId), type: "member_xlsx_import" });
+  if (!remainingUploads) {
+    const reset = await resetUploadedRosterData(allianceId || "");
+    return res.json({
+      ok: true,
+      upload: rosterUploadDto(action),
+      clearedAll: true,
+      deletedMembers: result.deletedMembers + reset.removedUploadedOnly,
+      updatedMembers: result.updatedMembers + reset.resetProfiles
+    });
+  }
   res.json({ ok: true, upload: rosterUploadDto(action), ...result });
+});
+
+export const dashboardRosterUploadsClear = asyncHandler(async (_req, res) => {
+  const allianceId = await resolveAllianceId();
+  const reset = await resetUploadedRosterData(allianceId || "");
+  const deletedUploads = await KellaActionModel.deleteMany({ ...allianceFilter(allianceId), type: "member_xlsx_import" });
+  res.json({
+    ok: true,
+    deletedUploads: deletedUploads.deletedCount || 0,
+    deletedMembers: reset.removedUploadedOnly,
+    updatedMembers: reset.resetProfiles
+  });
 });
 
 export const dashboardShieldSend = asyncHandler(async (req, res) => {
