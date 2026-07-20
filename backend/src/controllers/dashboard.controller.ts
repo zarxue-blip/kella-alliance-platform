@@ -451,7 +451,7 @@ function rosterTokens(value: string) {
     .replace(/[^a-z0-9]+/g, " ")
     .split(" ")
     .map((token) => token.trim())
-    .filter((token) => token.length >= 3 && !noise.has(token));
+    .filter((token) => token.length >= 3 && !noise.has(token) && !/^\d+$/.test(token));
 }
 
 function rosterVariants(value: string) {
@@ -507,6 +507,10 @@ function isUploadedOnlyMember(member?: MergeCandidate | null) {
 
 function isRealDiscordUserId(value?: string) {
   return /^\d{15,25}$/.test(String(value || ""));
+}
+
+function isGameUid(value?: string) {
+  return /^\d{5,12}$/.test(String(value || ""));
 }
 
 function shouldDeleteImportedRosterMember(member: {
@@ -710,11 +714,13 @@ async function bulkWriteMemberOps(ops: any[]) {
 
 async function resetUploadedRosterData(allianceId: string) {
   const members = (await MemberModel.find({ allianceId })
-    .select("_id discordId powerHistory statHistory rank")
+    .select("_id discordId uid power powerHistory statHistory rank")
     .limit(5000)
     .lean()) as Array<{
       _id: Types.ObjectId;
       discordId?: string;
+      uid?: string;
+      power?: number;
       rank?: string;
       powerHistory?: Array<{ date?: Date | string; power?: number; source?: string; filename?: string }>;
       statHistory?: Array<{ date?: Date | string; metrics?: Record<string, unknown>; source?: string; filename?: string }>;
@@ -728,6 +734,13 @@ async function resetUploadedRosterData(allianceId: string) {
     const hadUploadedData = hasUploadedRosterHistory(member) || isUploadedRosterRank(member.rank);
     const powerHistory = (member.powerHistory || []).filter((entry) => !isUploadedRosterSource(entry.source));
     const statHistory = (member.statHistory || []).filter((entry) => !isUploadedRosterSource(entry.source));
+    const preservedPower = latestPowerFromHistory(powerHistory);
+    const looksLikeStaleImportedDiscordPower =
+      isRealDiscordUserId(member.discordId) &&
+      isGameUid(member.uid) &&
+      numeric(member.power) > 0 &&
+      String(member.rank || "").toLowerCase() === "discord" &&
+      !preservedPower;
 
     if (shouldDeleteImportedRosterMember(member)) {
       deletedUploadedOnly += 1;
@@ -735,12 +748,12 @@ async function resetUploadedRosterData(allianceId: string) {
       continue;
     }
 
-    if (!hadUploadedData) continue;
+    if (!hadUploadedData && !looksLikeStaleImportedDiscordPower) continue;
 
     const update: Record<string, unknown> = {
       powerHistory,
       statHistory,
-      power: latestPowerFromHistory(powerHistory)
+      power: preservedPower
     };
     if (isUploadedRosterRank(member.rank)) update.rank = "Discord";
     resetProfiles += 1;
@@ -786,6 +799,7 @@ async function importGameStatSnapshots(
     if (!isLive(member)) return;
     if (member.uid) byUid.set(String(member.uid), member);
     if (member.ign) byIgn.set(String(member.ign).trim().toLowerCase(), member);
+    if (isUploadedOnlyMember(member)) return;
     for (const name of memberSearchNames(member)) {
       for (const variant of rosterVariants(name)) {
         byVariant.set(variant, preferProfileCandidate(byVariant.get(variant), member));
