@@ -868,6 +868,45 @@ export function kellaDashboardHtml() {
         font-size: 34px;
         font-weight: 1000;
       }
+      .avatar-button {
+        position: relative;
+        width: 92px;
+        height: 92px;
+        border: 0;
+        border-radius: 22px;
+        padding: 0;
+        background: transparent;
+        cursor: pointer;
+      }
+      .avatar-button .profile-avatar {
+        width: 100%;
+        height: 100%;
+      }
+      .avatar-button::after {
+        content: "Upload";
+        position: absolute;
+        inset: auto 8px 8px;
+        border-radius: 999px;
+        padding: 5px 8px;
+        background: rgba(58, 34, 12, 0.84);
+        color: #fff7d6;
+        font-size: 10px;
+        font-weight: 1000;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0;
+        transform: translateY(4px);
+        transition: 0.18s ease;
+      }
+      .avatar-button:hover::after,
+      .avatar-button:focus-visible::after {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .avatar-button:focus-visible {
+        outline: 3px solid rgba(250, 204, 21, 0.7);
+        outline-offset: 4px;
+      }
       .profile-kicker { color: var(--gold-soft); text-transform: uppercase; letter-spacing: 0.11em; font-size: 11px; font-weight: 1000; }
       .member-profile-hero h3 { margin-top: 4px; font-size: 28px; }
       .profile-subtitle { color: #6d512f; font-weight: 800; margin-top: 5px; }
@@ -908,6 +947,79 @@ export function kellaDashboardHtml() {
         width: var(--power-width, 0%);
         background: linear-gradient(90deg, #ff4d75, #ff7438, #facc15);
         box-shadow: 0 0 18px rgba(250, 204, 21, 0.28);
+      }
+      .avatar-cropper {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+      }
+      .avatar-cropper.open { display: flex; }
+      .avatar-cropper-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(20, 12, 6, 0.76);
+        backdrop-filter: blur(8px);
+      }
+      .avatar-cropper-panel {
+        position: relative;
+        z-index: 1;
+        width: min(460px, calc(100vw - 28px));
+        border: 1px solid rgba(111, 69, 25, 0.42);
+        border-radius: 12px;
+        background:
+          radial-gradient(circle at 50% -10%, rgba(255,255,255,0.36), transparent 28%),
+          linear-gradient(180deg, rgba(255, 243, 203, 0.99), rgba(222, 184, 110, 0.99)),
+          var(--paper);
+        box-shadow: 0 35px 110px rgba(0, 0, 0, 0.68);
+        padding: 22px;
+      }
+      .avatar-crop-frame {
+        --avatar-zoom: 1;
+        width: min(340px, calc(100vw - 84px));
+        aspect-ratio: 1 / 1;
+        margin: 18px auto 14px;
+        overflow: hidden;
+        border-radius: 28px;
+        border: 2px solid rgba(250, 204, 21, 0.52);
+        background: radial-gradient(circle, rgba(250, 204, 21, 0.20), rgba(45, 24, 8, 0.84));
+        box-shadow: inset 0 0 32px rgba(0,0,0,0.26), 0 18px 42px rgba(70, 37, 9, 0.22);
+      }
+      .avatar-crop-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scale(var(--avatar-zoom));
+        transform-origin: center;
+        transition: transform 0.12s ease;
+      }
+      .avatar-crop-controls {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: center;
+      }
+      .avatar-crop-controls input[type="range"] {
+        width: 100%;
+        accent-color: #d99a12;
+      }
+      .avatar-crop-actions {
+        margin-top: 16px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .avatar-zoom-readout {
+        color: #6d512f;
+        font-size: 12px;
+        font-weight: 1000;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
       }
 
       @media (max-width: 1120px) {
@@ -990,6 +1102,7 @@ export function kellaDashboardHtml() {
         <div data-member-modal-content></div>
       </section>
     </div>
+    <div id="avatarCropper" class="avatar-cropper" aria-hidden="true"></div>
     <div id="toasts" class="toast-stack" aria-live="polite"></div>
     <a class="kofi-tip" href="https://ko-fi.com/exuz19" target="_blank" rel="noreferrer"><img src="/assets/kellacoin.png" alt="" />Tip Me</a>
     <script>
@@ -997,7 +1110,8 @@ export function kellaDashboardHtml() {
       const toasts = document.getElementById("toasts");
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
-      const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power" };
+      const avatarCropper = document.getElementById("avatarCropper");
+      const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", avatarEditor: null };
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
       const statMetricOptions = [
@@ -1211,6 +1325,137 @@ export function kellaDashboardHtml() {
           return '<img class="' + className + '" src="' + escapeHtml(photoUrl) + '" alt="" loading="lazy" />';
         }
         return '<span class="' + className + '">' + escapeHtml(displayName.slice(0, 1).toUpperCase()) + '</span>';
+      }
+
+      function memberAvatarUploadButton(member, mode) {
+        const memberId = mode === "manual" ? "" : (member?.id || "");
+        const avatarHtml = mode === "manual"
+          ? '<span class="profile-avatar">+</span>'
+          : memberAvatar(member, "profile-avatar");
+        return '<button class="avatar-button" type="button" data-action="open-avatar-upload" data-avatar-mode="' + escapeHtml(mode || "admin") + '" data-member-id="' + escapeHtml(memberId) + '" title="Upload and crop profile photo" aria-label="Upload and crop profile photo">' + avatarHtml + '</button>';
+      }
+
+      function closeAvatarCropper() {
+        state.avatarEditor = null;
+        if (!avatarCropper) return;
+        avatarCropper.classList.remove("open");
+        avatarCropper.setAttribute("aria-hidden", "true");
+        avatarCropper.innerHTML = "";
+      }
+
+      function clampAvatarZoom(value) {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return 1;
+        return Math.max(1, Math.min(3, parsed));
+      }
+
+      function setAvatarZoom(value) {
+        if (!state.avatarEditor) return;
+        state.avatarEditor.zoom = clampAvatarZoom(value);
+        const frame = avatarCropper?.querySelector("[data-avatar-frame]");
+        const slider = avatarCropper?.querySelector("[data-avatar-zoom]");
+        const readout = avatarCropper?.querySelector("[data-avatar-zoom-readout]");
+        if (frame) frame.style.setProperty("--avatar-zoom", String(state.avatarEditor.zoom));
+        if (slider && String(slider.value) !== String(state.avatarEditor.zoom)) slider.value = String(state.avatarEditor.zoom);
+        if (readout) readout.textContent = Math.round(state.avatarEditor.zoom * 100) + "%";
+      }
+
+      function openAvatarCropper(imageSrc, mode, memberId) {
+        if (!avatarCropper) return;
+        state.avatarEditor = { imageSrc, mode: mode || "admin", memberId: memberId || "", zoom: 1 };
+        avatarCropper.innerHTML =
+          '<div class="avatar-cropper-backdrop" data-action="close-avatar-cropper"></div>' +
+          '<section class="avatar-cropper-panel" role="dialog" aria-modal="true" aria-label="Crop player photo">' +
+            '<button class="modal-close" type="button" data-action="close-avatar-cropper" aria-label="Close photo cropper">Ã—</button>' +
+            '<span class="profile-kicker">Player Photo</span><h3>Frame the portrait</h3>' +
+            '<p class="muted">Zoom until the face fits the square, then use the cropped photo before saving the player.</p>' +
+            '<div class="avatar-crop-frame" data-avatar-frame style="--avatar-zoom:1"><img src="' + escapeHtml(imageSrc) + '" alt="" /></div>' +
+            '<div class="avatar-zoom-readout" data-avatar-zoom-readout>100%</div>' +
+            '<div class="avatar-crop-controls">' +
+              '<button class="secondary" type="button" data-action="avatar-zoom-out">-</button>' +
+              '<input type="range" min="1" max="3" step="0.05" value="1" data-avatar-zoom aria-label="Photo zoom" />' +
+              '<button class="secondary" type="button" data-action="avatar-zoom-in">+</button>' +
+            '</div>' +
+            '<div class="avatar-crop-actions"><button class="secondary" type="button" data-action="close-avatar-cropper">Cancel</button><button class="primary" type="button" data-action="apply-avatar-crop">Use Cropped Photo</button></div>' +
+          '</section>';
+        avatarCropper.classList.add("open");
+        avatarCropper.setAttribute("aria-hidden", "false");
+      }
+
+      function openAvatarFilePicker(mode, memberId) {
+        if (!hasAdminAccess()) {
+          toast("Admin access is required to upload profile photos.", "error");
+          return;
+        }
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/png,image/jpeg,image/webp,image/gif";
+        input.addEventListener("change", function() {
+          const file = input.files?.[0];
+          if (!file) return;
+          if (!file.type.startsWith("image/")) {
+            toast("Please choose an image file.", "error");
+            return;
+          }
+          if (file.size > 5 * 1024 * 1024) {
+            toast("Image is too large. Choose one under 5 MB.", "error");
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = function() {
+            if (typeof reader.result === "string") openAvatarCropper(reader.result, mode, memberId);
+          };
+          reader.onerror = function() { toast("Kella could not read that image.", "error"); };
+          reader.readAsDataURL(file);
+        });
+        input.click();
+      }
+
+      function cropAvatarToDataUrl(imageSrc, zoom) {
+        return new Promise(function(resolve, reject) {
+          const image = new Image();
+          image.onload = function() {
+            const size = 360;
+            const canvas = document.createElement("canvas");
+            canvas.width = size;
+            canvas.height = size;
+            const context = canvas.getContext("2d");
+            if (!context) {
+              reject(new Error("Image editor is not available in this browser."));
+              return;
+            }
+            context.fillStyle = "#2d1808";
+            context.fillRect(0, 0, size, size);
+            const coverScale = Math.max(size / image.naturalWidth, size / image.naturalHeight) * clampAvatarZoom(zoom);
+            const drawWidth = image.naturalWidth * coverScale;
+            const drawHeight = image.naturalHeight * coverScale;
+            context.drawImage(image, (size - drawWidth) / 2, (size - drawHeight) / 2, drawWidth, drawHeight);
+            resolve(canvas.toDataURL("image/jpeg", 0.86));
+          };
+          image.onerror = function() { reject(new Error("Kella could not prepare that image.")); };
+          image.src = imageSrc;
+        });
+      }
+
+      function setAvatarFormPhoto(dataUrl, mode, memberId) {
+        const fieldSelector = mode === "manual" ? '[data-manual-member="profilePhotoUrl"]' : '[data-admin-member="profilePhotoUrl"]';
+        const field = memberModalContent?.querySelector(fieldSelector);
+        if (field) field.value = dataUrl;
+        const buttonSelector = mode === "manual"
+          ? '[data-avatar-mode="manual"]'
+          : '[data-avatar-mode="admin"][data-member-id="' + CSS.escape(String(memberId || "")) + '"]';
+        const button = memberModalContent?.querySelector(buttonSelector);
+        if (button) button.innerHTML = '<img class="profile-avatar" src="' + escapeHtml(dataUrl) + '" alt="" loading="lazy" />';
+      }
+
+      async function applyAvatarCrop() {
+        const editor = state.avatarEditor;
+        if (!editor) throw new Error("Choose a photo first.");
+        const dataUrl = await cropAvatarToDataUrl(editor.imageSrc, editor.zoom);
+        setAvatarFormPhoto(dataUrl, editor.mode, editor.memberId);
+        const message = editor.mode === "manual" ? "Photo ready. Click Save Member." : "Photo ready. Click Save Player.";
+        closeAvatarCropper();
+        return message;
       }
 
       function findMemberById(id) {
@@ -1427,8 +1672,8 @@ export function kellaDashboardHtml() {
         if (!isDashboardAdmin() && !adminToken()) {
           return '<div class="profile-note"><strong>Admin Edit</strong><br>Login as an admin or enter the Password in Settings to edit player data.</div>';
         }
-        return '<section class="profile-note"><div class="card-header"><div><strong>Admin Edit</strong><br><span class="muted">Update or remove this player card directly.</span></div><div class="toolbar"><button class="danger" data-action="delete-member" data-member-id="' + escapeHtml(member.id || "") + '">Delete Player</button><button class="primary" data-action="save-member-admin" data-member-id="' + escapeHtml(member.id || "") + '">Save Player</button></div></div><div class="form-grid" data-admin-member-form>' +
-          '<label>Profile Photo URL<input data-admin-member="profilePhotoUrl" value="' + escapeHtml(member.profilePhotoUrl || "") + '" placeholder="https://..." /></label>' +
+        return '<section class="profile-note"><div class="card-header"><div><strong>Admin Edit</strong><br><span class="muted">Click the player portrait above to upload and crop a custom photo.</span></div><div class="toolbar"><button class="danger" data-action="delete-member" data-member-id="' + escapeHtml(member.id || "") + '">Delete Player</button><button class="primary" data-action="save-member-admin" data-member-id="' + escapeHtml(member.id || "") + '">Save Player</button></div></div><div class="form-grid" data-admin-member-form>' +
+          '<input type="hidden" data-admin-member="profilePhotoUrl" value="' + escapeHtml(member.profilePhotoUrl || "") + '" />' +
           '<label>Discord Avatar URL<input data-admin-member="discordAvatarUrl" value="' + escapeHtml(member.discordAvatarUrl || "") + '" placeholder="https://..." /></label>' +
           '<label>IGN<input data-admin-member="ign" value="' + escapeHtml(member.ign || "") + '" /></label>' +
           '<label>UID<input data-admin-member="uid" value="' + escapeHtml(member.uid || "") + '" /></label>' +
@@ -1458,7 +1703,7 @@ export function kellaDashboardHtml() {
           '<label>Alliance<input data-manual-member="alliance" placeholder="KOGS" /></label>' +
           '<label>Game Rank<input data-manual-member="rank" placeholder="R4, R3, R2..." /></label>' +
           '<label>Role<select data-manual-member="role">' + roleOptions("Member") + '</select></label>' +
-          '<label>Profile Photo URL<input data-manual-member="profilePhotoUrl" placeholder="https://..." /></label>' +
+          '<input type="hidden" data-manual-member="profilePhotoUrl" />' +
           '<label>Discord ID<input data-manual-member="discordId" placeholder="Optional if not synced yet" /></label>' +
           '<label>Discord Username<input data-manual-member="discordUsername" placeholder="Optional" /></label>' +
           '<label>Country<input data-manual-member="country" placeholder="Unknown" /></label>' +
@@ -1477,7 +1722,7 @@ export function kellaDashboardHtml() {
         memberModalContent.dataset.memberId = "";
         memberModalContent.innerHTML =
           '<div class="member-profile-hero">' +
-            '<span class="profile-avatar">+</span>' +
+            memberAvatarUploadButton(null, "manual") +
             '<div><span class="profile-kicker">Add Member</span><h3 id="memberModalTitle">Create Player Profile</h3><div class="profile-subtitle">Manual profile and stats entry for officers.</div></div>' +
           '</div>' +
           manualMemberForm();
@@ -1495,7 +1740,7 @@ export function kellaDashboardHtml() {
         const power = formatNumber(member.power);
         memberModalContent.innerHTML =
           '<div class="member-profile-hero">' +
-            memberAvatar(member, "profile-avatar") +
+            (hasAdminAccess() ? memberAvatarUploadButton(member, "admin") : memberAvatar(member, "profile-avatar")) +
             '<div><span class="profile-kicker">Player Stats</span><h3 id="memberModalTitle">' + escapeHtml(displayName) + '</h3><div class="profile-subtitle">' + escapeHtml(username) + ' · IGN: ' + escapeHtml(gameName) + '</div><div class="power-meter" style="--power-width:' + memberPowerPercent(member) + '%"><i></i></div></div>' +
           '</div>' +
           '<div class="profile-stats">' +
@@ -1517,6 +1762,7 @@ export function kellaDashboardHtml() {
 
       function closeMemberModal() {
         if (!memberModal) return;
+        closeAvatarCropper();
         memberModal.classList.remove("open");
         memberModal.setAttribute("aria-hidden", "true");
         if (memberModalContent) delete memberModalContent.dataset.memberId;
@@ -2856,6 +3102,23 @@ export function kellaDashboardHtml() {
           window.location.href = "/api/auth/discord";
           return;
         }
+        if (kind === "open-avatar-upload") {
+          openAvatarFilePicker(action.getAttribute("data-avatar-mode") || "admin", action.getAttribute("data-member-id") || "");
+          return;
+        }
+        if (kind === "close-avatar-cropper") {
+          closeAvatarCropper();
+          return;
+        }
+        if (kind === "avatar-zoom-out") {
+          setAvatarZoom((state.avatarEditor?.zoom || 1) - 0.1);
+          return;
+        }
+        if (kind === "avatar-zoom-in") {
+          setAvatarZoom((state.avatarEditor?.zoom || 1) + 0.1);
+          return;
+        }
+        if (kind === "apply-avatar-crop") withFeedback(action, applyAvatarCrop, "Photo ready.");
         if (kind === "discord-logout") withFeedback(action, async function() {
           await sendJson("POST", "/api/auth/logout", {}, false);
           state.auth = { authenticated: false, isDashboardAdmin: false };
@@ -3204,6 +3467,10 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("keydown", function(event) {
+        if (event.key === "Escape" && avatarCropper?.classList.contains("open")) {
+          closeAvatarCropper();
+          return;
+        }
         if (event.key === "Escape" && memberModal?.classList.contains("open")) {
           closeMemberModal();
           return;
@@ -3256,6 +3523,7 @@ export function kellaDashboardHtml() {
         }
         if (event.target.matches('[data-setting="adminKey"]')) syncSettingsLock();
         if (event.target.matches("[data-embed]")) updateEmbedPreview();
+        if (event.target.matches("[data-avatar-zoom]")) setAvatarZoom(event.target.value);
       });
 
       function downloadBlob(blob, filename) {

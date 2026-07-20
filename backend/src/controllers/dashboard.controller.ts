@@ -127,11 +127,13 @@ const rosterUploadUpdateSchema = z.object({
   snapshotDate: z.preprocess((value) => (value === "" || value === null ? undefined : value), z.coerce.date().optional())
 });
 
+const profilePhotoSchema = z.string().max(1_200_000).optional();
+
 const profileUpdateSchema = z.object({
   ign: z.string().min(1).max(80).optional(),
   timezone: z.string().max(80).optional(),
   country: z.string().max(80).optional(),
-  profilePhotoUrl: z.string().max(500).optional()
+  profilePhotoUrl: profilePhotoSchema
 });
 
 const dashboardMemberUpdateSchema = z.object({
@@ -143,7 +145,7 @@ const dashboardMemberUpdateSchema = z.object({
   role: z.enum(["Owner", "Leader", "R4 Officer", "War Marshal", "Recruiter", "Event Manager", "Member"]).optional(),
   timezone: z.string().max(80).optional(),
   country: z.string().max(80).optional(),
-  profilePhotoUrl: z.string().max(500).optional(),
+  profilePhotoUrl: profilePhotoSchema,
   discordAvatarUrl: z.string().max(500).optional(),
   notes: z.string().max(2000).optional()
 });
@@ -155,7 +157,7 @@ const dashboardMemberCreateSchema = z.object({
   discordUsername: z.string().max(80).optional(),
   discordDisplayName: z.string().max(80).optional(),
   discordAvatarUrl: z.string().max(500).optional(),
-  profilePhotoUrl: z.string().max(500).optional(),
+  profilePhotoUrl: profilePhotoSchema,
   power: z.coerce.number().min(0).default(0),
   alliance: z.string().min(1).max(80).optional(),
   rank: z.string().max(80).optional(),
