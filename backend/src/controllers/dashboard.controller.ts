@@ -128,6 +128,14 @@ const rosterUploadUpdateSchema = z.object({
 });
 
 const profilePhotoSchema = z.string().max(1_200_000).optional();
+const discordUserIdSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  },
+  z.string().regex(/^\d{15,25}$/, "Discord User ID must be the numeric Discord user ID.").optional()
+);
 
 const profileUpdateSchema = z.object({
   ign: z.string().min(1).max(80).optional(),
@@ -139,6 +147,7 @@ const profileUpdateSchema = z.object({
 const dashboardMemberUpdateSchema = z.object({
   ign: z.string().min(1).max(80).optional(),
   uid: z.string().min(1).max(80).optional(),
+  discordId: discordUserIdSchema,
   power: z.coerce.number().min(0).optional(),
   alliance: z.string().min(1).max(80).optional(),
   rank: z.string().max(80).optional(),
@@ -152,8 +161,8 @@ const dashboardMemberUpdateSchema = z.object({
 
 const dashboardMemberCreateSchema = z.object({
   ign: z.string().min(1, "IGN is required").max(80),
-  uid: z.string().min(1, "UID is required").max(80),
-  discordId: z.string().max(80).optional(),
+  uid: z.string().min(1, "Lord ID is required").max(80),
+  discordId: discordUserIdSchema,
   discordUsername: z.string().max(80).optional(),
   discordDisplayName: z.string().max(80).optional(),
   discordAvatarUrl: z.string().max(500).optional(),
@@ -539,6 +548,37 @@ function isRealDiscordUserId(value?: string) {
 
 function isGameUid(value?: string) {
   return /^\d{5,12}$/.test(String(value || ""));
+}
+
+function isDiscordOnlyProfile(member?: DashboardMember | null) {
+  if (!member) return false;
+  const discordId = String(member.discordId || "");
+  const uid = String(member.uid || "");
+  const hasStatHistory = Boolean((member.powerHistory || []).length || (member.statHistory || []).length);
+  return uid === discordId || uid === `discord-${discordId}` || (!isGameUid(uid) && numeric(member.power) === 0 && !hasStatHistory);
+}
+
+async function absorbDiscordProfileIntoMember(
+  allianceId: string,
+  target: DashboardMember,
+  duplicate: DashboardMember,
+  updateBody: Record<string, unknown>
+) {
+  if (memberId(target as MergeCandidate) === memberId(duplicate as MergeCandidate)) return;
+  if (!isDiscordOnlyProfile(duplicate)) {
+    throw new HttpError(
+      409,
+      "That Discord User ID is already linked to another player with game stats. Remove it from the other profile first."
+    );
+  }
+
+  if (!updateBody.discordUsername && duplicate.discordUsername) updateBody.discordUsername = duplicate.discordUsername;
+  if (!updateBody.discordDisplayName && duplicate.discordDisplayName) updateBody.discordDisplayName = duplicate.discordDisplayName;
+  if (!updateBody.discordAvatarUrl && duplicate.discordAvatarUrl) updateBody.discordAvatarUrl = duplicate.discordAvatarUrl;
+  if (!updateBody.profilePhotoUrl && !target.profilePhotoUrl && duplicate.profilePhotoUrl) updateBody.profilePhotoUrl = duplicate.profilePhotoUrl;
+
+  await UserModel.updateMany({ memberId: duplicate._id }, { $set: { memberId: target._id } });
+  await MemberModel.deleteOne({ _id: duplicate._id, allianceId });
 }
 
 function shouldDeleteImportedRosterMember(member: {
@@ -1182,10 +1222,42 @@ export const dashboardMemberCreate = asyncHandler(async (req, res) => {
   const uid = body.uid.trim();
   const ign = body.ign.trim();
 
-  const existing = (await MemberModel.findOne({ allianceId, uid })
-    .select("discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl powerHistory statHistory")
+  let existing = (await MemberModel.findOne({ allianceId, uid })
+    .select("_id discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl uid power powerHistory statHistory")
     .lean()) as DashboardMember | null;
-  const discordId = body.discordId?.trim() || existing?.discordId || `manual:${uid}`;
+  const requestedDiscordId = body.discordId?.trim();
+  const duplicateDiscordProfile = requestedDiscordId
+    ? ((await MemberModel.findOne({
+        allianceId,
+        discordId: requestedDiscordId,
+        ...(existing ? { _id: { $ne: existing._id } } : {})
+      })
+        .select("_id discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl uid power powerHistory statHistory")
+        .lean()) as DashboardMember | null)
+    : null;
+
+  if (duplicateDiscordProfile) {
+    if (existing) {
+      await absorbDiscordProfileIntoMember(allianceId, existing, duplicateDiscordProfile, {});
+      existing = {
+        ...existing,
+        discordUsername: existing.discordUsername || duplicateDiscordProfile.discordUsername,
+        discordDisplayName: existing.discordDisplayName || duplicateDiscordProfile.discordDisplayName,
+        discordAvatarUrl: existing.discordAvatarUrl || duplicateDiscordProfile.discordAvatarUrl,
+        profilePhotoUrl: existing.profilePhotoUrl || duplicateDiscordProfile.profilePhotoUrl
+      };
+    } else {
+      if (!isDiscordOnlyProfile(duplicateDiscordProfile)) {
+        throw new HttpError(
+          409,
+          "That Discord User ID is already linked to another player with game stats. Remove it from the other profile first."
+        );
+      }
+      existing = duplicateDiscordProfile;
+    }
+  }
+
+  const discordId = requestedDiscordId || existing?.discordId || `manual:${uid}`;
 
   const updateBody = {
     discordId,
@@ -1208,7 +1280,7 @@ export const dashboardMemberCreate = asyncHandler(async (req, res) => {
   };
 
   const member = await MemberModel.findOneAndUpdate(
-    { allianceId, uid },
+    existing ? { _id: existing._id, allianceId } : { allianceId, uid },
     {
       $set: updateBody,
       $setOnInsert: {
@@ -1239,11 +1311,31 @@ export const dashboardMemberUpdate = asyncHandler(async (req, res) => {
   const body = dashboardMemberUpdateSchema.parse(req.body);
   if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid member id");
   const allianceId = await resolveAllianceId();
-  const updateBody: Record<string, unknown> = { ...body };
-  if (body.power !== undefined) {
-    const existing = (await MemberModel.findOne({ _id: req.params.id, ...allianceFilter(allianceId) })
-      .select("powerHistory statHistory")
+  const existing = (await MemberModel.findOne({ _id: req.params.id, ...allianceFilter(allianceId) })
+    .select("_id discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl uid power powerHistory statHistory")
+    .lean()) as DashboardMember | null;
+  if (!existing) throw new HttpError(404, "Member not found");
+
+  const updateBody: Record<string, unknown> = {};
+  for (const key of ["ign", "uid", "power", "alliance", "rank", "role", "timezone", "country", "profilePhotoUrl", "discordAvatarUrl", "notes"] as const) {
+    if (body[key] !== undefined) updateBody[key] = body[key];
+  }
+
+  if (body.discordId) {
+    const duplicateDiscordProfile = (await MemberModel.findOne({
+      allianceId,
+      discordId: body.discordId,
+      _id: { $ne: existing._id }
+    })
+      .select("_id discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl uid power powerHistory statHistory")
       .lean()) as DashboardMember | null;
+    if (duplicateDiscordProfile) {
+      await absorbDiscordProfileIntoMember(allianceId || "", existing, duplicateDiscordProfile, updateBody);
+    }
+    updateBody.discordId = body.discordId;
+  }
+
+  if (body.power !== undefined) {
     updateBody.powerHistory = mergePowerHistory(existing?.powerHistory, new Date(), numeric(body.power), "Dashboard Edit");
     updateBody.statHistory = mergeStatHistory(existing?.statHistory, new Date(), { power: numeric(body.power) }, "Dashboard Edit");
   }
@@ -1350,7 +1442,7 @@ export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
       member.discordDisplayName,
       member.discordUsername
     )) as any;
-    const update = {
+    const update: any = {
       $set: {
         discordId: member.discordId,
         discordUsername: member.discordUsername,
@@ -1360,7 +1452,7 @@ export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
       },
       $setOnInsert: {
         ign: member.discordDisplayName || member.discordUsername || member.discordId,
-        uid: member.discordId,
+        uid: `discord-${member.discordId}`,
         power: 0,
         alliance: alliance.tag || alliance.name || "Discord",
         rank: "Discord",
@@ -1374,6 +1466,9 @@ export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
         notes: ""
       }
     };
+    if (existing && String(existing.uid || "") === member.discordId && isDiscordOnlyProfile(existing)) {
+      update.$set.uid = `discord-${member.discordId}`;
+    }
     const result = existing
       ? await MemberModel.updateOne({ _id: existing._id, allianceId }, update)
       : await MemberModel.updateOne({ allianceId, discordId: member.discordId }, update, { upsert: true });

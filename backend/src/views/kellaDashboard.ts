@@ -19,7 +19,7 @@ const modules = [
   { id: "absence", name: "Absence Notices", badge: "Modal", command: "/absence", description: "Members submit reason, start date, and end date. Officers see who is away." },
   { id: "applications", name: "Applications", badge: "Recruiting", command: "/apply", description: "Simple application modal for IGN, power, timezone, and main legion." },
   { id: "reminders", name: "Event Reminders", badge: "Auto", command: "/remind", description: "Queue reminders for Summit, Roots, Fortress, Stronghold, Pass Defense, or Behemoth." },
-  { id: "members", name: "Members", badge: "Roster", command: "Dashboard", description: "Search members, see Discord ID, IGN, alliance role, attendance, and notes." },
+  { id: "members", name: "Members", badge: "Roster", command: "Dashboard", description: "Search members, see Discord User ID, Lord ID, alliance role, attendance, and notes." },
   { id: "settings", name: "Settings", badge: "Setup", command: "Dashboard", description: "Admin key, channels, alliance label, and module switches." }
 ];
 
@@ -1310,12 +1310,24 @@ export function kellaDashboardHtml() {
       }
 
       function memberUsername(member) {
-        const username = member?.discordUsername || member?.discordId || "";
+        const username = member?.discordUsername || memberDiscordUserId(member) || "";
         return username ? "@" + String(username).replace(/^@/, "") : "No Discord username";
       }
 
+      function memberDiscordUserId(member) {
+        const discordId = String(member?.discordId || "");
+        return /^\\d{15,25}$/.test(discordId) ? discordId : "";
+      }
+
+      function memberLordId(member) {
+        const uid = String(member?.uid || "");
+        if (uid.startsWith("discord-")) return "";
+        if (/^\\d{15,25}$/.test(uid)) return "";
+        return uid;
+      }
+
       function isDmCapableMember(member) {
-        return /^\\d{15,25}$/.test(String(member?.discordId || ""));
+        return Boolean(memberDiscordUserId(member));
       }
 
       function memberAvatar(member, className) {
@@ -1674,9 +1686,10 @@ export function kellaDashboardHtml() {
         }
         return '<section class="profile-note"><div class="card-header"><div><strong>Admin Edit</strong><br><span class="muted">Click the player portrait above to upload and crop a custom photo.</span></div><div class="toolbar"><button class="danger" data-action="delete-member" data-member-id="' + escapeHtml(member.id || "") + '">Delete Player</button><button class="primary" data-action="save-member-admin" data-member-id="' + escapeHtml(member.id || "") + '">Save Player</button></div></div><div class="form-grid" data-admin-member-form>' +
           '<input type="hidden" data-admin-member="profilePhotoUrl" value="' + escapeHtml(member.profilePhotoUrl || "") + '" />' +
+          '<label>Discord User ID<input data-admin-member="discordId" value="' + escapeHtml(memberDiscordUserId(member)) + '" placeholder="Numeric Discord user ID" /><span class="muted">Used for Discord avatar/name sync, login, and DMs. Not the Call of Dragons Lord ID.</span></label>' +
           '<label>Discord Avatar URL<input data-admin-member="discordAvatarUrl" value="' + escapeHtml(member.discordAvatarUrl || "") + '" placeholder="https://..." /></label>' +
           '<label>IGN<input data-admin-member="ign" value="' + escapeHtml(member.ign || "") + '" /></label>' +
-          '<label>UID<input data-admin-member="uid" value="' + escapeHtml(member.uid || "") + '" /></label>' +
+          '<label>Lord ID<input data-admin-member="uid" value="' + escapeHtml(memberLordId(member)) + '" /><span class="muted">Call of Dragons player ID used to sync roster stats.</span></label>' +
           '<label>Power<input type="number" min="0" data-admin-member="power" value="' + escapeHtml(member.power || 0) + '" /></label>' +
           '<label>Alliance<input data-admin-member="alliance" value="' + escapeHtml(member.alliance || "") + '" /></label>' +
           '<label>Rank<input data-admin-member="rank" value="' + escapeHtml(member.rank || "") + '" /></label>' +
@@ -1698,13 +1711,13 @@ export function kellaDashboardHtml() {
         ];
         return '<section class="profile-note"><div class="card-header"><div><strong>Manual Player Card</strong><br><span class="muted">Create a member, add core stats, then save it into Kella.</span></div><button class="primary" data-action="save-manual-member">Save Member</button></div><div class="form-grid" data-manual-member-form>' +
           '<label>IGN<input data-manual-member="ign" placeholder="Player name" /></label>' +
-          '<label>UID<input data-manual-member="uid" placeholder="Game UID" /></label>' +
+          '<label>Lord ID<input data-manual-member="uid" placeholder="Call of Dragons Lord ID" /></label>' +
           '<label>Power<input type="number" min="0" data-manual-member="power" placeholder="0" /></label>' +
           '<label>Alliance<input data-manual-member="alliance" placeholder="KOGS" /></label>' +
           '<label>Game Rank<input data-manual-member="rank" placeholder="R4, R3, R2..." /></label>' +
           '<label>Role<select data-manual-member="role">' + roleOptions("Member") + '</select></label>' +
           '<input type="hidden" data-manual-member="profilePhotoUrl" />' +
-          '<label>Discord ID<input data-manual-member="discordId" placeholder="Optional if not synced yet" /></label>' +
+          '<label>Discord User ID<input data-manual-member="discordId" placeholder="Optional numeric Discord User ID" /></label>' +
           '<label>Discord Username<input data-manual-member="discordUsername" placeholder="Optional" /></label>' +
           '<label>Country<input data-manual-member="country" placeholder="Unknown" /></label>' +
           '<label>Timezone<input data-manual-member="timezone" placeholder="UTC" /></label>' +
@@ -1745,14 +1758,14 @@ export function kellaDashboardHtml() {
           '</div>' +
           '<div class="profile-stats">' +
             profileStat("Power", power) +
-            profileStat("UID", member.uid || "") +
+            profileStat("Lord ID", memberLordId(member) || "Not linked") +
+            profileStat("Discord User ID", memberDiscordUserId(member) || "Not linked") +
             profileStat("Game Rank", member.rank || "") +
             profileStat("Alliance Role", member.role || "") +
             profileStat("Attendance", member.attendance ?? 0) +
             profileStat("Alliance", member.alliance || "") +
           '</div>' +
           '<div class="profile-note"><strong>Officer Notes</strong><br>' + escapeHtml(member.notes || "No notes yet.") + '</div>' +
-          '<div class="profile-note"><strong>Discord ID</strong><br>' + escapeHtml(member.discordId || "Not synced yet") + '</div>' +
           memberPowerChart(member) +
           adminMemberForm(member);
         memberModal.classList.add("open");
@@ -2240,11 +2253,11 @@ export function kellaDashboardHtml() {
           if (byPower) return byPower;
           return String(a.ign || "").localeCompare(String(b.ign || ""));
         });
-        return '<div class="table-wrap"><table><thead><tr><th>Member</th><th>IGN</th><th>UID</th><th>Power ↓</th><th>Game Rank</th><th>Alliance Role</th><th>Attendance</th><th>Officer Notes</th></tr></thead><tbody>' +
+        return '<div class="table-wrap"><table><thead><tr><th>Member</th><th>IGN</th><th>Lord ID</th><th>Power</th><th>Game Rank</th><th>Alliance Role</th><th>Attendance</th><th>Officer Notes</th></tr></thead><tbody>' +
           sorted.map(function(member) {
             const displayName = memberDisplayName(member);
             const rowId = escapeHtml(member.id || "");
-            return '<tr class="member-row" data-member-row data-member-id="' + rowId + '" tabindex="0" role="button" aria-label="View stats for ' + escapeHtml(displayName) + '"><td><div class="member-cell">' + memberAvatar(member, "member-avatar") + '<span><span class="member-name">' + escapeHtml(displayName) + '</span><span class="member-username">' + escapeHtml(memberUsername(member)) + '</span></span></div></td><td>' + escapeHtml(member.ign) + '</td><td>' + escapeHtml(member.uid || "") + '</td><td>' + formatNumber(member.power) + '</td><td>' + escapeHtml(member.rank || "") + '</td><td>' + escapeHtml(member.role) + '</td><td>' + escapeHtml(member.attendance) + '</td><td>' + escapeHtml(member.notes || "") + '</td></tr>';
+            return '<tr class="member-row" data-member-row data-member-id="' + rowId + '" tabindex="0" role="button" aria-label="View stats for ' + escapeHtml(displayName) + '"><td><div class="member-cell">' + memberAvatar(member, "member-avatar") + '<span><span class="member-name">' + escapeHtml(displayName) + '</span><span class="member-username">' + escapeHtml(memberUsername(member)) + '</span></span></div></td><td>' + escapeHtml(member.ign) + '</td><td>' + escapeHtml(memberLordId(member) || "Not linked") + '</td><td>' + formatNumber(member.power) + '</td><td>' + escapeHtml(member.rank || "") + '</td><td>' + escapeHtml(member.role) + '</td><td>' + escapeHtml(member.attendance) + '</td><td>' + escapeHtml(member.notes || "") + '</td></tr>';
           }).join("") + '</tbody></table></div>';
       }
 
@@ -2275,7 +2288,8 @@ export function kellaDashboardHtml() {
               '</div>' +
               '<div class="profile-stats">' +
                 profileStat("Power", formatNumber(profile.power)) +
-                profileStat("UID", profile.uid || "") +
+                profileStat("Lord ID", memberLordId(profile) || "Not linked") +
+                profileStat("Discord User ID", memberDiscordUserId(profile) || "Not linked") +
                 profileStat("Alliance Role", profile.role || "") +
               '</div>' +
               memberPowerChart(profile) +
@@ -2284,7 +2298,7 @@ export function kellaDashboardHtml() {
               '<label>Timezone<input data-profile="timezone" value="' + escapeHtml(profile.timezone || "") + '" placeholder="UTC+8, EST, etc." /></label>' +
               '<label>Country<input data-profile="country" value="' + escapeHtml(profile.country || "") + '" /></label>' +
               '<label class="wide">Profile Photo URL<input data-profile="profilePhotoUrl" value="' + escapeHtml(profile.profilePhotoUrl || "") + '" placeholder="https://..." /></label>' +
-            '</div><p class="muted" style="margin-top:12px">Only admins can change power, UID, rank, role, and officer notes.</p></div></section>';
+            '</div><p class="muted" style="margin-top:12px">Only admins can change power, Lord ID, Discord User ID, rank, role, and officer notes.</p></div></section>';
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load your profile. ' + escapeHtml(error.message) + '</div>';
         }
@@ -2297,7 +2311,7 @@ export function kellaDashboardHtml() {
           const adminActions = hasAdminAccess()
             ? '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-action="open-add-member">Add Member</button>'
             : "";
-          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, UID, power, alliance role, attendance, and notes. Click any player row to open their full stats.", '<input class="search" data-member-search placeholder="Search members" />' + adminActions) + (hasAdminAccess() ? renderMemberUploadCard() : "") + renderMembersTable(members);
+          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, Lord ID, power, alliance role, attendance, and notes. Click any player row to open their full stats.", '<input class="search" data-member-search placeholder="Search members" />' + adminActions) + (hasAdminAccess() ? renderMemberUploadCard() : "") + renderMembersTable(members);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load members. ' + escapeHtml(error.message) + '</div>';
         }
@@ -2972,10 +2986,12 @@ export function kellaDashboardHtml() {
         };
         const ign = value("ign");
         const uid = value("uid");
+        const discordId = value("discordId");
         const alliance = value("alliance");
         const power = value("power");
         if (ign) payload.ign = ign;
         if (uid) payload.uid = uid;
+        if (discordId) payload.discordId = discordId;
         if (alliance) payload.alliance = alliance;
         if (power !== "") payload.power = Number(power);
         return payload;
@@ -2990,7 +3006,7 @@ export function kellaDashboardHtml() {
         const ign = value("ign");
         const uid = value("uid");
         if (!ign) throw new Error("IGN is required.");
-        if (!uid) throw new Error("UID is required.");
+        if (!uid) throw new Error("Lord ID is required.");
         const stats = {};
         root.querySelectorAll("[data-manual-stat]").forEach(function(input) {
           const key = input.getAttribute("data-manual-stat");
