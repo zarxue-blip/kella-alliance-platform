@@ -30,6 +30,7 @@ type DashboardAction = {
 
 type DashboardMember = {
   _id: { toString(): string };
+  mainMemberId?: { toString(): string } | string;
   discordId?: string;
   discordUsername?: string;
   discordDisplayName?: string;
@@ -136,6 +137,10 @@ const discordUserIdSchema = z.preprocess(
   },
   z.string().regex(/^\d{15,25}$/, "Discord User ID must be the numeric Discord user ID.").optional()
 );
+const mainMemberIdSchema = z.preprocess(
+  (value) => (typeof value === "string" ? value.trim() : value),
+  z.union([z.string().max(80), z.null()]).optional()
+);
 
 const profileUpdateSchema = z.object({
   ign: z.string().min(1).max(80).optional(),
@@ -147,6 +152,7 @@ const profileUpdateSchema = z.object({
 const dashboardMemberUpdateSchema = z.object({
   ign: z.string().min(1).max(80).optional(),
   uid: z.string().min(1).max(80).optional(),
+  mainMemberId: mainMemberIdSchema,
   discordId: discordUserIdSchema,
   power: z.coerce.number().min(0).optional(),
   alliance: z.string().min(1).max(80).optional(),
@@ -162,6 +168,7 @@ const dashboardMemberUpdateSchema = z.object({
 const dashboardMemberCreateSchema = z.object({
   ign: z.string().min(1, "IGN is required").max(80),
   uid: z.string().min(1, "Lord ID is required").max(80),
+  mainMemberId: mainMemberIdSchema,
   discordId: discordUserIdSchema,
   discordUsername: z.string().max(80).optional(),
   discordDisplayName: z.string().max(80).optional(),
@@ -688,6 +695,7 @@ function dashboardMemberDto(member: any) {
 
   return {
     id: member._id.toString(),
+    mainMemberId: member.mainMemberId?.toString?.() || member.mainMemberId || "",
     discordId: member.discordId,
     discordName: member.discordDisplayName || member.ign || member.discordId,
     discordUsername: member.discordUsername || member.discordId,
@@ -1142,7 +1150,7 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
   const members = (await MemberModel.find(filter)
     .sort({ power: -1, attendanceScore: -1, ign: 1 })
     .limit(500)
-    .select("discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role timezone country attendanceScore notes alliance power powerHistory statHistory")
+    .select("mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role timezone country attendanceScore notes alliance power powerHistory statHistory")
     .lean()) as DashboardMember[];
 
   res.json({
@@ -1221,6 +1229,7 @@ export const dashboardMemberCreate = asyncHandler(async (req, res) => {
   const metrics = sanitizeMetricMap({ ...(body.stats || {}), power: body.power });
   const uid = body.uid.trim();
   const ign = body.ign.trim();
+  const requestedMainMemberId = typeof body.mainMemberId === "string" ? body.mainMemberId.trim() : "";
 
   let existing = (await MemberModel.findOne({ allianceId, uid })
     .select("_id discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl uid power powerHistory statHistory")
@@ -1258,9 +1267,17 @@ export const dashboardMemberCreate = asyncHandler(async (req, res) => {
   }
 
   const discordId = requestedDiscordId || existing?.discordId || `manual:${uid}`;
+  if (requestedMainMemberId) {
+    if (!Types.ObjectId.isValid(requestedMainMemberId)) throw new HttpError(400, "Invalid main account id");
+    if (existing && String(requestedMainMemberId) === String(existing._id)) throw new HttpError(400, "A player cannot be their own farm account.");
+    const parent = (await MemberModel.findOne({ allianceId, _id: requestedMainMemberId }).select("_id mainMemberId").lean()) as DashboardMember | null;
+    if (!parent) throw new HttpError(404, "Main account not found");
+    if (existing && parent.mainMemberId && String(parent.mainMemberId) === String(existing._id)) throw new HttpError(400, "This would create a farm loop.");
+  }
 
   const updateBody = {
     discordId,
+    ...(requestedMainMemberId ? { mainMemberId: requestedMainMemberId } : {}),
     discordUsername: body.discordUsername?.trim() || existing?.discordUsername || "",
     discordDisplayName: body.discordDisplayName?.trim() || existing?.discordDisplayName || ign,
     discordAvatarUrl: body.discordAvatarUrl?.trim() || existing?.discordAvatarUrl || "",
@@ -1312,13 +1329,30 @@ export const dashboardMemberUpdate = asyncHandler(async (req, res) => {
   if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid member id");
   const allianceId = await resolveAllianceId();
   const existing = (await MemberModel.findOne({ _id: req.params.id, ...allianceFilter(allianceId) })
-    .select("_id discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl uid power powerHistory statHistory")
+    .select("_id mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl uid power powerHistory statHistory")
     .lean()) as DashboardMember | null;
   if (!existing) throw new HttpError(404, "Member not found");
 
   const updateBody: Record<string, unknown> = {};
+  const unsetBody: Record<string, string> = {};
   for (const key of ["ign", "uid", "power", "alliance", "rank", "role", "timezone", "country", "profilePhotoUrl", "discordAvatarUrl", "notes"] as const) {
     if (body[key] !== undefined) updateBody[key] = body[key];
+  }
+
+  if (body.mainMemberId !== undefined) {
+    const requestedMainMemberId = typeof body.mainMemberId === "string" ? body.mainMemberId.trim() : "";
+    if (!requestedMainMemberId) {
+      unsetBody.mainMemberId = "";
+    } else {
+      if (!Types.ObjectId.isValid(requestedMainMemberId)) throw new HttpError(400, "Invalid main account id");
+      if (String(requestedMainMemberId) === String(existing._id)) throw new HttpError(400, "A player cannot be their own farm account.");
+      const parent = (await MemberModel.findOne({ _id: requestedMainMemberId, ...allianceFilter(allianceId) })
+        .select("_id mainMemberId ign")
+        .lean()) as DashboardMember | null;
+      if (!parent) throw new HttpError(404, "Main account not found");
+      if (parent.mainMemberId && String(parent.mainMemberId) === String(existing._id)) throw new HttpError(400, "This would create a farm loop.");
+      updateBody.mainMemberId = requestedMainMemberId;
+    }
   }
 
   if (body.discordId) {
@@ -1339,9 +1373,12 @@ export const dashboardMemberUpdate = asyncHandler(async (req, res) => {
     updateBody.powerHistory = mergePowerHistory(existing?.powerHistory, new Date(), numeric(body.power), "Dashboard Edit");
     updateBody.statHistory = mergeStatHistory(existing?.statHistory, new Date(), { power: numeric(body.power) }, "Dashboard Edit");
   }
+  const updateOperation: Record<string, unknown> = {};
+  if (Object.keys(updateBody).length) updateOperation.$set = updateBody;
+  if (Object.keys(unsetBody).length) updateOperation.$unset = unsetBody;
   const updated = await MemberModel.findOneAndUpdate(
     { _id: req.params.id, ...allianceFilter(allianceId) },
-    { $set: updateBody },
+    updateOperation,
     { new: true, runValidators: true }
   ).lean();
   if (!updated) throw new HttpError(404, "Member not found");
@@ -1355,6 +1392,7 @@ export const dashboardMemberDelete = asyncHandler(async (req, res) => {
   if (!deleted) throw new HttpError(404, "Member not found");
 
   await UserModel.updateMany({ memberId: deleted._id }, { $unset: { memberId: "" } });
+  await MemberModel.updateMany({ mainMemberId: deleted._id, ...allianceFilter(allianceId) }, { $unset: { mainMemberId: "" } });
   await KellaActionModel.create({
     allianceId,
     type: "member_deleted",

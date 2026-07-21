@@ -632,6 +632,111 @@ export function kellaDashboardHtml() {
       .member-power-chart svg { display: block; width: 100%; height: 190px; }
       .power-history-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
       .power-history-list span { border: 1px solid rgba(98, 62, 24, 0.14); border-radius: 8px; padding: 8px 10px; background: rgba(255,247,219,0.44); font-weight: 900; color: #4d3216; }
+      .interactive-chart {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(180px, 0.42fr);
+        gap: 12px;
+        align-items: stretch;
+      }
+      .interactive-chart .power-sparkline { height: 210px; }
+      .chart-point {
+        fill: #fff2a8;
+        stroke: #8e430c;
+        stroke-width: 2.4;
+        cursor: pointer;
+        transition: r 140ms ease, filter 140ms ease, fill 140ms ease;
+      }
+      .chart-point:hover,
+      .chart-point.selected {
+        r: 6;
+        fill: #4ff0aa;
+        filter: drop-shadow(0 0 7px rgba(79, 240, 170, 0.72));
+      }
+      .chart-detail {
+        border: 1px solid rgba(98, 62, 24, 0.18);
+        border-radius: 10px;
+        padding: 13px;
+        background: rgba(255,247,219,0.48);
+        display: grid;
+        align-content: center;
+        gap: 7px;
+        color: #4d3216;
+        font-weight: 900;
+      }
+      .chart-detail span { color: #725736; font-size: 12px; font-weight: 850; }
+      .upload-comparison {
+        margin-top: 12px;
+        display: grid;
+        gap: 8px;
+      }
+      .upload-comparison-row {
+        display: grid;
+        grid-template-columns: minmax(112px, 0.7fr) minmax(90px, 0.6fr) minmax(90px, 0.6fr) minmax(92px, 0.7fr);
+        gap: 10px;
+        align-items: center;
+        border: 1px solid rgba(98, 62, 24, 0.14);
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: rgba(255,247,219,0.42);
+        color: #4d3216;
+        font-size: 12px;
+        font-weight: 900;
+        text-align: left;
+      }
+      .upload-comparison-row:hover,
+      .upload-comparison-row.selected {
+        border-color: rgba(32, 143, 79, 0.32);
+        background: rgba(222, 255, 218, 0.30);
+      }
+      .upload-comparison-row small { display: block; margin-top: 3px; color: #80613a; font-weight: 800; }
+      .upload-comparison-row strong { color: #2d1a08; }
+      .upload-comparison-row strong.up { color: #12643d; }
+      .upload-comparison-row strong.down { color: #8f1f22; }
+      .upload-comparison-row strong.flat { color: #6b502f; }
+      .account-link-note {
+        margin-top: 14px;
+        border: 1px solid rgba(32, 143, 79, 0.25);
+        border-radius: 10px;
+        background: rgba(222, 255, 218, 0.34);
+        padding: 12px 14px;
+        color: #31531e;
+        font-weight: 900;
+      }
+      .farm-grid {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px;
+      }
+      .farm-card {
+        border: 1px solid rgba(98, 62, 24, 0.18);
+        border-radius: 10px;
+        background: rgba(255, 247, 219, 0.50);
+        padding: 12px;
+        color: #3a220c;
+        display: grid;
+        gap: 9px;
+        text-align: left;
+      }
+      .farm-card:hover, .farm-card:focus {
+        border-color: rgba(190, 123, 24, 0.46);
+        box-shadow: 0 10px 20px rgba(103, 63, 17, 0.12);
+        outline: none;
+      }
+      .farm-card-head { display: flex; align-items: center; gap: 10px; }
+      .farm-card-head .member-avatar { width: 42px; height: 42px; }
+      .farm-card h4 { margin: 0; font-size: 15px; }
+      .farm-card small { color: #725736; font-weight: 850; }
+      .farm-stats { display: flex; flex-wrap: wrap; gap: 8px; }
+      .farm-stats span {
+        border-radius: 999px;
+        background: rgba(92, 55, 18, 0.10);
+        border: 1px solid rgba(92, 55, 18, 0.12);
+        padding: 5px 8px;
+        color: #5d350e;
+        font-size: 11px;
+        font-weight: 1000;
+      }
       .command-board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
       .command-card { padding: 14px; border: 1px solid rgba(92, 55, 18, 0.18); border-radius: 10px; background: rgba(255, 247, 219, 0.48); }
       .command-card code { display: inline-block; margin-bottom: 8px; font-weight: 1000; color: #8b3d15; }
@@ -1041,7 +1146,8 @@ export function kellaDashboardHtml() {
         .top-actions .server-clock { flex: 1 1 100%; justify-items: start; }
         .top-actions .auth-button { flex: 1; }
         .profile-top-button { flex: 1 1 100%; min-width: 0; }
-        .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row, .command-board, .power-trend-row, .power-history-list { grid-template-columns: 1fr; }
+        .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row, .command-board, .power-trend-row, .power-history-list, .interactive-chart { grid-template-columns: 1fr; }
+        .upload-comparison-row { grid-template-columns: 1fr 1fr; }
         .trend-pill { justify-self: stretch; }
         .calendar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .member-modal { padding: 10px; align-items: end; }
@@ -1111,7 +1217,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", avatarEditor: null };
+      const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null };
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
       const statMetricOptions = [
@@ -1474,6 +1580,23 @@ export function kellaDashboardHtml() {
         return (state.members || []).find(function(member) { return String(member.id) === String(id); });
       }
 
+      function mainAccountFor(member) {
+        const mainId = String(member?.mainMemberId || "");
+        return mainId ? findMemberById(mainId) : null;
+      }
+
+      function farmAccountsFor(member) {
+        const id = String(member?.id || "");
+        if (!id) return [];
+        return (state.members || [])
+          .filter(function(item) { return String(item.mainMemberId || "") === id; })
+          .sort(function(left, right) {
+            const byPower = currentPowerValue(right) - currentPowerValue(left);
+            if (byPower) return byPower;
+            return memberDisplayName(left).localeCompare(memberDisplayName(right));
+          });
+      }
+
       function profileStat(label, value) {
         const safeValue = value === undefined || value === null || value === "" ? "Unknown" : value;
         return '<div class="profile-stat"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(safeValue) + '</strong></div>';
@@ -1647,6 +1770,82 @@ export function kellaDashboardHtml() {
         '</svg>';
       }
 
+      function chartSelectionKey(member, metricKey) {
+        return String(member?.id || "profile") + ":" + String(metricKey || "power");
+      }
+
+      function selectedChartIndex(member, metricKey, history) {
+        const key = chartSelectionKey(member, metricKey);
+        const selected = Number(state.chartSelections[key]);
+        if (Number.isInteger(selected) && selected >= 0 && selected < history.length) return selected;
+        return Math.max(0, history.length - 1);
+      }
+
+      function uploadSourceLabel(point) {
+        return point?.filename || point?.source || "Dashboard";
+      }
+
+      function uploadComparisonRows(member, metric, history, selectedIndex) {
+        if (!history.length) return "";
+        return '<div class="upload-comparison" aria-label="Upload comparisons">' + history.map(function(point, index) {
+          const previous = index > 0 ? history[index - 1] : null;
+          const delta = previous ? point.value - previous.value : null;
+          return '<button type="button" class="upload-comparison-row' + (index === selectedIndex ? " selected" : "") + '" data-action="select-chart-point" data-member-id="' + escapeHtml(member?.id || "") + '" data-metric="' + escapeHtml(metric.key) + '" data-index="' + index + '">' +
+            '<span><strong>' + escapeHtml(compactDate(point.date)) + '</strong><small>' + escapeHtml(uploadSourceLabel(point)) + '</small></span>' +
+            '<span>' + escapeHtml(metric.label) + '<br><strong>' + escapeHtml(formatCompactNumber(point.value)) + '</strong></span>' +
+            '<span>Vs Previous<br><strong class="' + trendClass(delta) + '">' + escapeHtml(delta === null ? "Baseline" : formatDelta(delta)) + '</strong></span>' +
+            '<span>Upload #' + (index + 1) + '<br><strong>' + escapeHtml(formatDate(point.date)) + '</strong></span>' +
+          '</button>';
+        }).join("") + '</div>';
+      }
+
+      function interactiveStatChart(member, history, metric) {
+        if (!history.length) return empty("No snapshots for this stat yet.");
+        const width = 520;
+        const h = 210;
+        const padX = 34;
+        const padY = 26;
+        const values = history.map(function(point) { return Number(point.value || 0); });
+        const min = Math.min.apply(null, values);
+        const max = Math.max.apply(null, values);
+        const range = Math.max(1, max - min);
+        const flat = max === min;
+        const mid = min + range / 2;
+        const points = history.map(function(point, index) {
+          const x = history.length === 1 ? width / 2 : padX + (index / Math.max(1, history.length - 1)) * (width - padX * 2);
+          const y = flat ? h / 2 : h - padY - ((Number(point.value || 0) - min) / range) * (h - padY * 2);
+          return { x: x, y: y, point: point };
+        });
+        const selectedIndex = selectedChartIndex(member, metric.key, history);
+        const selected = history[selectedIndex] || history[history.length - 1];
+        const previous = selectedIndex > 0 ? history[selectedIndex - 1] : null;
+        const selectedDelta = previous ? selected.value - previous.value : null;
+        const pointText = points.map(function(point) { return point.x.toFixed(1) + "," + point.y.toFixed(1); }).join(" ");
+        const fillText = history.length > 1 ? padX + "," + (h - padY) + " " + pointText + " " + (width - padX) + "," + (h - padY) : "";
+        const lineHtml = history.length > 1
+          ? '<polygon class="spark-fill" points="' + fillText + '"></polygon><polyline class="spark-line" points="' + pointText + '"></polyline>'
+          : '<line class="spark-line" x1="' + padX + '" y1="' + (h / 2).toFixed(1) + '" x2="' + (width - padX) + '" y2="' + (h / 2).toFixed(1) + '"></line>';
+        const circleHtml = points.map(function(point, index) {
+          const selectedClass = index === selectedIndex ? " selected" : "";
+          return '<circle class="chart-point' + selectedClass + '" data-action="select-chart-point" data-member-id="' + escapeHtml(member?.id || "") + '" data-metric="' + escapeHtml(metric.key) + '" data-index="' + index + '" cx="' + point.x.toFixed(1) + '" cy="' + point.y.toFixed(1) + '" r="' + (index === selectedIndex ? 6 : 4.4) + '"><title>' + escapeHtml(compactDate(point.point.date) + ": " + formatCompactNumber(point.point.value)) + '</title></circle>';
+        }).join("");
+        const chart =
+          '<div class="interactive-chart">' +
+            '<svg class="power-sparkline" viewBox="0 0 ' + width + ' ' + h + '" role="img" aria-label="' + escapeHtml(metric.label) + ' upload trend">' +
+              '<line class="grid-line" x1="12" y1="' + (h - padY) + '" x2="' + (width - 12) + '" y2="' + (h - padY) + '"></line>' +
+              '<line class="grid-line" x1="12" y1="' + (h / 2).toFixed(1) + '" x2="' + (width - 12) + '" y2="' + (h / 2).toFixed(1) + '"></line>' +
+              '<line class="grid-line" x1="12" y1="' + padY + '" x2="' + (width - 12) + '" y2="' + padY + '"></line>' +
+              lineHtml +
+              '<text class="chart-label" x="12" y="' + (padY - 8) + '">' + escapeHtml(formatCompactNumber(max)) + '</text>' +
+              '<text class="chart-label" x="12" y="' + ((h / 2) - 6).toFixed(1) + '">' + escapeHtml(formatCompactNumber(mid)) + '</text>' +
+              '<text class="chart-label" x="12" y="' + (h - 7) + '">' + escapeHtml(formatCompactNumber(min)) + '</text>' +
+              circleHtml +
+            '</svg>' +
+            '<aside class="chart-detail"><strong>' + escapeHtml(compactDate(selected.date)) + ' Upload</strong><span>' + escapeHtml(metric.label) + ': ' + escapeHtml(formatCompactNumber(selected.value)) + '</span><span>' + escapeHtml(selectedDelta === null ? "First saved snapshot" : formatDelta(selectedDelta) + " from previous upload") + '</span><span>' + escapeHtml(uploadSourceLabel(selected)) + '</span></aside>' +
+          '</div>';
+        return chart + uploadComparisonRows(member, metric, history, selectedIndex);
+      }
+
       function statTrendMeta(history) {
         if (!history.length) return "Upload dated Excel files to build this graph.";
         if (history.length === 1) return compactDate(history[0].date) + " only - upload another date to compare.";
@@ -1661,23 +1860,49 @@ export function kellaDashboardHtml() {
         const metric = currentStatMetric();
         const history = normalizeStatHistory(member, metric.key);
         const delta = statDelta(member, metric.key);
-        const latest = latestStatPoint(member, metric.key);
-        const historyItems = history.slice(-6).reverse().map(function(point) {
-          return '<span>' + escapeHtml(compactDate(point.date)) + '<br>' + formatCompactNumber(point.value) + '</span>';
-        }).join("");
         return '<section class="member-power-chart"><div class="member-power-chart-head"><div><h4>' + escapeHtml(metric.label) + ' History</h4><p>' + escapeHtml(statTrendMeta(history)) + '</p></div><span class="trend-pill ' + trendClass(delta) + '">' + escapeHtml(formatDelta(delta)) + '</span></div>' +
           statMetricPicker() +
-          sparklineSvg(history, 190) +
-          '<div class="power-history-list">' +
-            '<span>Current<br>' + formatCompactNumber(latest.value) + '</span>' +
-            (historyItems || '<span>No dated snapshots yet<br>Upload Excel</span>') +
-          '</div></section>';
+          interactiveStatChart(member, history, metric) +
+          '</section>';
+      }
+
+      function accountRelationshipSection(member) {
+        const main = mainAccountFor(member);
+        if (!main) return "";
+        return '<div class="account-link-note">Farm account under <button class="secondary" type="button" data-member-row data-member-id="' + escapeHtml(main.id || "") + '">' + escapeHtml(main.ign || memberDisplayName(main)) + '</button></div>';
+      }
+
+      function farmAccountsSection(member) {
+        const farms = farmAccountsFor(member);
+        if (!farms.length) return "";
+        return '<section class="profile-note"><div class="card-header"><div><strong>Farm / Alt Accounts</strong><br><span class="muted">Linked accounts shown under this main profile.</span></div><span class="badge warn">' + farms.length + ' linked</span></div>' +
+          '<div class="farm-grid">' + farms.map(function(farm) {
+            const delta = powerDelta(farm);
+            return '<button type="button" class="farm-card" data-member-row data-member-id="' + escapeHtml(farm.id || "") + '">' +
+              '<span class="farm-card-head">' + memberAvatar(farm, "member-avatar") + '<span><h4>' + escapeHtml(farm.ign || memberDisplayName(farm)) + '</h4><small>' + escapeHtml(memberLordId(farm) || memberUsername(farm)) + '</small></span></span>' +
+              '<span class="farm-stats"><span>Power ' + escapeHtml(formatCompactNumber(currentPowerValue(farm))) + '</span><span>' + escapeHtml(formatDelta(delta)) + '</span><span>' + escapeHtml(farm.alliance || "No alliance") + '</span></span>' +
+              sparklineSvg(normalizeStatHistory(farm, "power"), 58) +
+            '</button>';
+          }).join("") + '</div></section>';
       }
 
       function roleOptions(selected) {
         return ["Owner", "Leader", "R4 Officer", "War Marshal", "Recruiter", "Event Manager", "Member"].map(function(role) {
           return '<option value="' + escapeHtml(role) + '"' + (role === selected ? " selected" : "") + '>' + escapeHtml(role) + '</option>';
         }).join("");
+      }
+
+      function mainAccountOptions(member) {
+        const currentMainId = String(member?.mainMemberId || "");
+        const selfId = String(member?.id || "");
+        const options = (state.members || [])
+          .filter(function(item) { return String(item.id || "") !== selfId; })
+          .sort(function(left, right) { return memberDisplayName(left).localeCompare(memberDisplayName(right)); })
+          .map(function(item) {
+            const label = (item.ign || memberDisplayName(item)) + " - " + formatCompactNumber(currentPowerValue(item)) + " power";
+            return '<option value="' + escapeHtml(item.id || "") + '"' + (String(item.id || "") === currentMainId ? " selected" : "") + '>' + escapeHtml(label) + '</option>';
+          }).join("");
+        return '<option value="">Main account / not a farm</option>' + options;
       }
 
       function adminMemberForm(member) {
@@ -1692,6 +1917,7 @@ export function kellaDashboardHtml() {
           '<label>Lord ID<input data-admin-member="uid" value="' + escapeHtml(memberLordId(member)) + '" /><span class="muted">Call of Dragons player ID used to sync roster stats.</span></label>' +
           '<label>Power<input type="number" min="0" data-admin-member="power" value="' + escapeHtml(member.power || 0) + '" /></label>' +
           '<label>Alliance<input data-admin-member="alliance" value="' + escapeHtml(member.alliance || "") + '" /></label>' +
+          '<label>Farm Of<select data-admin-member="mainMemberId">' + mainAccountOptions(member) + '</select><span class="muted">Use this when the profile is a farm or alt account under another player.</span></label>' +
           '<label>Rank<input data-admin-member="rank" value="' + escapeHtml(member.rank || "") + '" /></label>' +
           '<label>Role<select data-admin-member="role">' + roleOptions(member.role || "Member") + '</select></label>' +
           '<label>Timezone<input data-admin-member="timezone" value="' + escapeHtml(member.timezone || "") + '" /></label>' +
@@ -1766,7 +1992,9 @@ export function kellaDashboardHtml() {
             profileStat("Alliance", member.alliance || "") +
           '</div>' +
           '<div class="profile-note"><strong>Officer Notes</strong><br>' + escapeHtml(member.notes || "No notes yet.") + '</div>' +
+          accountRelationshipSection(member) +
           memberPowerChart(member) +
+          farmAccountsSection(member) +
           adminMemberForm(member);
         memberModal.classList.add("open");
         memberModal.setAttribute("aria-hidden", "false");
@@ -2978,6 +3206,7 @@ export function kellaDashboardHtml() {
         const payload = {
           profilePhotoUrl: value("profilePhotoUrl"),
           discordAvatarUrl: value("discordAvatarUrl"),
+          mainMemberId: value("mainMemberId"),
           rank: value("rank"),
           role: value("role") || "Member",
           timezone: value("timezone"),
@@ -3164,6 +3393,20 @@ export function kellaDashboardHtml() {
           }
           if (location.pathname === "/") renderDashboardData(state.summary || {}, state.members || [], state.events || []);
           if (location.pathname === "/profile") renderProfile();
+          return;
+        }
+        if (kind === "select-chart-point") {
+          const memberId = action.getAttribute("data-member-id") || "";
+          const metricKey = action.getAttribute("data-metric") || state.statsMetric || "power";
+          const index = Number(action.getAttribute("data-index") || 0);
+          const member = findMemberById(memberId) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
+          if (!member || !Number.isInteger(index)) return;
+          state.chartSelections[chartSelectionKey(member, metricKey)] = index;
+          if (memberModal?.classList.contains("open")) {
+            openMemberModal(member);
+          } else if (location.pathname === "/profile") {
+            renderProfile();
+          }
           return;
         }
         if (kind === "toggle-module") {

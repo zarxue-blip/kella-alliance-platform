@@ -4,6 +4,7 @@ import { roleValues } from "./user.model.js";
 const memberSchema = new Schema(
   {
     allianceId: { type: Schema.Types.ObjectId, ref: "Alliance", required: true, index: true },
+    mainMemberId: { type: Schema.Types.ObjectId, ref: "Member", default: undefined, index: true },
     discordId: { type: String, required: true, index: true },
     discordUsername: { type: String, default: "", trim: true },
     discordDisplayName: { type: String, default: "", trim: true },
@@ -45,6 +46,7 @@ const memberSchema = new Schema(
 
 memberSchema.index({ allianceId: 1, uid: 1 }, { unique: true });
 memberSchema.index({ allianceId: 1, discordId: 1 }, { unique: true });
+memberSchema.index({ allianceId: 1, mainMemberId: 1 });
 memberSchema.index({ allianceId: 1, "powerHistory.date": -1 });
 memberSchema.index({ allianceId: 1, "statHistory.date": -1 });
 
