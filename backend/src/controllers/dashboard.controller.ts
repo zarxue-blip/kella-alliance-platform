@@ -606,7 +606,8 @@ function topnAllianceTag(value?: string) {
 }
 
 function isAllowedTopnAlliance(value?: string) {
-  return ["kog", "lwl", "mf"].includes(topnAllianceTag(value));
+  const tag = topnAllianceTag(value);
+  return !tag || ["kog", "lwl", "mf"].includes(tag);
 }
 
 function allowedTopnRows(rows: ImportedTopnMember[]) {
