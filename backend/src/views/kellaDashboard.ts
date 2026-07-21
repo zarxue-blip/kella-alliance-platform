@@ -737,6 +737,58 @@ export function kellaDashboardHtml() {
         font-size: 11px;
         font-weight: 1000;
       }
+      .farm-picker {
+        display: grid;
+        gap: 8px;
+      }
+      .farm-picker-selected {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(32, 143, 79, 0.26);
+        border-radius: 8px;
+        background: rgba(222, 255, 218, 0.30);
+        color: #31531e;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 1000;
+      }
+      .farm-picker-selected button {
+        border: 0;
+        background: transparent;
+        color: #8f1f22;
+        font-weight: 1000;
+        padding: 0;
+      }
+      .farm-search-results {
+        display: grid;
+        gap: 6px;
+        max-height: 220px;
+        overflow: auto;
+        border-radius: 8px;
+      }
+      .farm-search-result {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid rgba(98, 62, 24, 0.16);
+        border-radius: 8px;
+        background: rgba(255, 247, 219, 0.48);
+        color: #3a220c;
+        padding: 8px 10px;
+        text-align: left;
+      }
+      .farm-search-result:hover,
+      .farm-search-result:focus {
+        border-color: rgba(190, 123, 24, 0.46);
+        background: rgba(255, 214, 90, 0.18);
+        outline: none;
+      }
+      .farm-search-result .member-avatar { width: 34px; height: 34px; }
+      .farm-search-result strong { display: block; font-size: 13px; }
+      .farm-search-result span span { display: block; margin-top: 2px; color: #76552e; font-size: 11px; font-weight: 850; }
       .command-board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
       .command-card { padding: 14px; border: 1px solid rgba(92, 55, 18, 0.18); border-radius: 10px; background: rgba(255, 247, 219, 0.48); }
       .command-card code { display: inline-block; margin-bottom: 8px; font-weight: 1000; color: #8b3d15; }
@@ -1912,11 +1964,10 @@ export function kellaDashboardHtml() {
         ].join(" ").toLowerCase();
       }
 
-      function mainAccountOptions(member, term = "", selectedOverride = "") {
-        const currentMainId = String(selectedOverride || member?.mainMemberId || "");
+      function mainAccountMatches(member, term = "", selectedOverride = "") {
         const selfId = String(member?.id || "");
         const searchTerm = String(term || "").trim().toLowerCase();
-        const allOptions = allRosterMembers()
+        const matches = allRosterMembers()
           .filter(function(item) { return String(item.id || "") !== selfId; })
           .filter(function(item) { return !searchTerm || memberSearchText(item).includes(searchTerm); })
           .sort(function(left, right) {
@@ -1924,17 +1975,46 @@ export function kellaDashboardHtml() {
             if (byPower) return byPower;
             return memberDisplayName(left).localeCompare(memberDisplayName(right));
           });
+        const currentMainId = String(selectedOverride || member?.mainMemberId || "");
         const selectedMember = currentMainId ? allRosterMembers().find(function(item) { return String(item.id || "") === currentMainId; }) : null;
-        if (selectedMember && !allOptions.some(function(item) { return String(item.id || "") === currentMainId; })) {
-          allOptions.unshift(selectedMember);
+        if (selectedMember && !matches.some(function(item) { return String(item.id || "") === currentMainId; })) {
+          matches.unshift(selectedMember);
         }
-        const options = allOptions
-          .map(function(item) {
-            const label = (item.ign || memberDisplayName(item)) + " - " + formatCompactNumber(currentPowerValue(item)) + " power";
-            return '<option value="' + escapeHtml(item.id || "") + '"' + (String(item.id || "") === currentMainId ? " selected" : "") + '>' + escapeHtml(label) + '</option>';
-          }).join("");
-        const emptyLabel = searchTerm && !options ? "No players found. Try another name." : "Main account / not a farm";
-        return '<option value="">' + escapeHtml(emptyLabel) + '</option>' + options;
+        return matches;
+      }
+
+      function farmPickerSelected(member) {
+        const main = mainAccountFor(member);
+        if (!main) return '<div class="farm-picker-selected"><span>Main account / not a farm</span></div>';
+        return '<div class="farm-picker-selected"><span>Selected: ' + escapeHtml(main.ign || memberDisplayName(main)) + ' - ' + escapeHtml(formatCompactNumber(currentPowerValue(main))) + ' power</span><button type="button" data-action="clear-main-account">Clear</button></div>';
+      }
+
+      function farmSearchResults(member, term = "") {
+        const searchTerm = String(term || "").trim();
+        if (!searchTerm) return '<div class="muted">Type a player name to show matches below.</div>';
+        const matches = mainAccountMatches(member, searchTerm).slice(0, 12);
+        if (!matches.length) return '<div class="empty" style="padding:12px">No players found. Try another name or Lord ID.</div>';
+        return matches.map(function(item) {
+          const meta = [
+            memberLordId(item) ? "Lord ID " + memberLordId(item) : "",
+            item.alliance || "",
+            formatCompactNumber(currentPowerValue(item)) + " power"
+          ].filter(Boolean).join(" - ");
+          return '<button type="button" class="farm-search-result" data-action="select-main-account" data-main-member-id="' + escapeHtml(item.id || "") + '">' +
+            memberAvatar(item, "member-avatar") +
+            '<span><strong>' + escapeHtml(item.ign || memberDisplayName(item)) + '</strong><span>' + escapeHtml(meta) + '</span></span>' +
+          '</button>';
+        }).join("");
+      }
+
+      function farmPicker(member) {
+        return '<div class="farm-picker">' +
+          '<input type="hidden" data-admin-member="mainMemberId" value="' + escapeHtml(member?.mainMemberId || "") + '" />' +
+          '<input data-admin-member-main-search placeholder="Search player name or Lord ID..." />' +
+          '<div data-main-account-selected>' + farmPickerSelected(member) + '</div>' +
+          '<div class="farm-search-results" data-main-account-results>' + farmSearchResults(member, "") + '</div>' +
+          '<span class="muted">Type, then click the player that should own this farm account.</span>' +
+        '</div>';
       }
 
       function adminMemberForm(member) {
@@ -1949,7 +2029,7 @@ export function kellaDashboardHtml() {
           '<label>Lord ID<input data-admin-member="uid" value="' + escapeHtml(memberLordId(member)) + '" /><span class="muted">Call of Dragons player ID used to sync roster stats.</span></label>' +
           '<label>Power<input type="number" min="0" data-admin-member="power" value="' + escapeHtml(member.power || 0) + '" /></label>' +
           '<label>Alliance<input data-admin-member="alliance" value="' + escapeHtml(member.alliance || "") + '" /></label>' +
-          '<label>Farm Of<input data-admin-member-main-search placeholder="Search all players manually..." /><select data-admin-member="mainMemberId">' + mainAccountOptions(member) + '</select><span class="muted">Search any player name, Lord ID, Discord name, or alliance, then choose the main account.</span></label>' +
+          '<label>Farm Of' + farmPicker(member) + '</label>' +
           '<label>Rank<input data-admin-member="rank" value="' + escapeHtml(member.rank || "") + '" /></label>' +
           '<label>Role<select data-admin-member="role">' + roleOptions(member.role || "Member") + '</select></label>' +
           '<label>Timezone<input data-admin-member="timezone" value="' + escapeHtml(member.timezone || "") + '" /></label>' +
@@ -3447,6 +3527,34 @@ export function kellaDashboardHtml() {
           }
           return;
         }
+        if (kind === "select-main-account") {
+          const root = action.closest("[data-admin-member-form]");
+          const hidden = root?.querySelector('[data-admin-member="mainMemberId"]');
+          const selectedBox = root?.querySelector("[data-main-account-selected]");
+          const mainId = action.getAttribute("data-main-member-id") || "";
+          const memberId = memberModalContent?.dataset?.memberId || "";
+          const member = findMemberById(memberId);
+          const selected = findMemberById(mainId);
+          if (hidden) hidden.value = mainId;
+          if (selectedBox && member) {
+            selectedBox.innerHTML = selected
+              ? '<div class="farm-picker-selected"><span>Selected: ' + escapeHtml(selected.ign || memberDisplayName(selected)) + ' - ' + escapeHtml(formatCompactNumber(currentPowerValue(selected))) + ' power</span><button type="button" data-action="clear-main-account">Clear</button></div>'
+              : farmPickerSelected(member);
+          }
+          toast("Main account selected. Click Save Player to apply.", "success");
+          return;
+        }
+        if (kind === "clear-main-account") {
+          const root = action.closest("[data-admin-member-form]");
+          const hidden = root?.querySelector('[data-admin-member="mainMemberId"]');
+          const selectedBox = root?.querySelector("[data-main-account-selected]");
+          const memberId = memberModalContent?.dataset?.memberId || "";
+          const member = findMemberById(memberId);
+          if (hidden) hidden.value = "";
+          if (selectedBox && member) selectedBox.innerHTML = farmPickerSelected({ ...member, mainMemberId: "" });
+          toast("Farm link cleared. Click Save Player to apply.", "success");
+          return;
+        }
         if (kind === "toggle-module") {
           const moduleId = action.getAttribute("data-module-id");
           const enabled = !action.classList.contains("on");
@@ -3828,13 +3936,10 @@ export function kellaDashboardHtml() {
         }
         if (event.target.matches("[data-admin-member-main-search]")) {
           const root = event.target.closest("[data-admin-member-form]");
-          const select = root?.querySelector('[data-admin-member="mainMemberId"]');
+          const results = root?.querySelector("[data-main-account-results]");
           const memberId = memberModalContent?.dataset?.memberId || "";
           const member = findMemberById(memberId);
-          if (select && member) {
-            const selected = select.value || member.mainMemberId || "";
-            select.innerHTML = mainAccountOptions(member, event.target.value || "", selected);
-          }
+          if (results && member) results.innerHTML = farmSearchResults(member, event.target.value || "");
         }
         if (event.target.matches('[data-setting="adminKey"]')) syncSettingsLock();
         if (event.target.matches("[data-embed]")) updateEmbedPreview();
