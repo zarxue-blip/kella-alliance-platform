@@ -1149,7 +1149,7 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
 
   const members = (await MemberModel.find(filter)
     .sort({ power: -1, attendanceScore: -1, ign: 1 })
-    .limit(500)
+    .limit(2000)
     .select("mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role timezone country attendanceScore notes alliance power powerHistory statHistory")
     .lean()) as DashboardMember[];
 

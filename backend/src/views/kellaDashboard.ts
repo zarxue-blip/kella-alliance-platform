@@ -1217,7 +1217,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, reports: [], members: [], alerts: [], events: [], complaints: [], uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null };
+      const state = { summary: null, reports: [], members: [], allMembers: [], alerts: [], events: [], complaints: [], uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null };
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
       const statMetricOptions = [
@@ -1577,7 +1577,15 @@ export function kellaDashboardHtml() {
       }
 
       function findMemberById(id) {
-        return (state.members || []).find(function(member) { return String(member.id) === String(id); });
+        return allRosterMembers().find(function(member) { return String(member.id) === String(id); });
+      }
+
+      function allRosterMembers() {
+        const byId = new Map();
+        (state.allMembers || []).concat(state.members || []).forEach(function(member) {
+          if (member?.id) byId.set(String(member.id), member);
+        });
+        return Array.from(byId.values());
       }
 
       function mainAccountFor(member) {
@@ -1588,7 +1596,7 @@ export function kellaDashboardHtml() {
       function farmAccountsFor(member) {
         const id = String(member?.id || "");
         if (!id) return [];
-        return (state.members || [])
+        return allRosterMembers()
           .filter(function(item) { return String(item.mainMemberId || "") === id; })
           .sort(function(left, right) {
             const byPower = currentPowerValue(right) - currentPowerValue(left);
@@ -1892,17 +1900,41 @@ export function kellaDashboardHtml() {
         }).join("");
       }
 
-      function mainAccountOptions(member) {
-        const currentMainId = String(member?.mainMemberId || "");
+      function memberSearchText(member) {
+        return [
+          member?.ign,
+          memberDisplayName(member),
+          memberUsername(member),
+          memberLordId(member),
+          memberDiscordUserId(member),
+          member?.alliance,
+          formatCompactNumber(currentPowerValue(member))
+        ].join(" ").toLowerCase();
+      }
+
+      function mainAccountOptions(member, term = "", selectedOverride = "") {
+        const currentMainId = String(selectedOverride || member?.mainMemberId || "");
         const selfId = String(member?.id || "");
-        const options = (state.members || [])
+        const searchTerm = String(term || "").trim().toLowerCase();
+        const allOptions = allRosterMembers()
           .filter(function(item) { return String(item.id || "") !== selfId; })
-          .sort(function(left, right) { return memberDisplayName(left).localeCompare(memberDisplayName(right)); })
+          .filter(function(item) { return !searchTerm || memberSearchText(item).includes(searchTerm); })
+          .sort(function(left, right) {
+            const byPower = currentPowerValue(right) - currentPowerValue(left);
+            if (byPower) return byPower;
+            return memberDisplayName(left).localeCompare(memberDisplayName(right));
+          });
+        const selectedMember = currentMainId ? allRosterMembers().find(function(item) { return String(item.id || "") === currentMainId; }) : null;
+        if (selectedMember && !allOptions.some(function(item) { return String(item.id || "") === currentMainId; })) {
+          allOptions.unshift(selectedMember);
+        }
+        const options = allOptions
           .map(function(item) {
             const label = (item.ign || memberDisplayName(item)) + " - " + formatCompactNumber(currentPowerValue(item)) + " power";
             return '<option value="' + escapeHtml(item.id || "") + '"' + (String(item.id || "") === currentMainId ? " selected" : "") + '>' + escapeHtml(label) + '</option>';
           }).join("");
-        return '<option value="">Main account / not a farm</option>' + options;
+        const emptyLabel = searchTerm && !options ? "No players found. Try another name." : "Main account / not a farm";
+        return '<option value="">' + escapeHtml(emptyLabel) + '</option>' + options;
       }
 
       function adminMemberForm(member) {
@@ -1917,7 +1949,7 @@ export function kellaDashboardHtml() {
           '<label>Lord ID<input data-admin-member="uid" value="' + escapeHtml(memberLordId(member)) + '" /><span class="muted">Call of Dragons player ID used to sync roster stats.</span></label>' +
           '<label>Power<input type="number" min="0" data-admin-member="power" value="' + escapeHtml(member.power || 0) + '" /></label>' +
           '<label>Alliance<input data-admin-member="alliance" value="' + escapeHtml(member.alliance || "") + '" /></label>' +
-          '<label>Farm Of<select data-admin-member="mainMemberId">' + mainAccountOptions(member) + '</select><span class="muted">Use this when the profile is a farm or alt account under another player.</span></label>' +
+          '<label>Farm Of<input data-admin-member-main-search placeholder="Search all players manually..." /><select data-admin-member="mainMemberId">' + mainAccountOptions(member) + '</select><span class="muted">Search any player name, Lord ID, Discord name, or alliance, then choose the main account.</span></label>' +
           '<label>Rank<input data-admin-member="rank" value="' + escapeHtml(member.rank || "") + '" /></label>' +
           '<label>Role<select data-admin-member="role">' + roleOptions(member.role || "Member") + '</select></label>' +
           '<label>Timezone<input data-admin-member="timezone" value="' + escapeHtml(member.timezone || "") + '" /></label>' +
@@ -2127,6 +2159,12 @@ export function kellaDashboardHtml() {
       async function loadMembers(query = "") {
         const data = await fetchJson("/api/dashboard/members" + (query ? "?q=" + encodeURIComponent(query) : ""));
         state.members = data.members || [];
+        if (!query) {
+          state.allMembers = state.members.slice();
+        } else if (!state.allMembers.length) {
+          const allData = await fetchJson("/api/dashboard/members");
+          state.allMembers = allData.members || [];
+        }
         return state.members;
       }
 
@@ -3427,6 +3465,7 @@ export function kellaDashboardHtml() {
           const sync = await sendJson("POST", "/api/dashboard/sync-discord-members", {}, true);
           state.summary = null;
           state.members = [];
+          state.allMembers = [];
           state.alerts = [];
           if (location.pathname === "/members") {
             await renderMembers();
@@ -3439,6 +3478,7 @@ export function kellaDashboardHtml() {
           const sync = await sendJson("POST", "/api/dashboard/members/import-xlsx", await readMemberUploadForm(), true);
           state.summary = null;
           state.members = [];
+          state.allMembers = [];
           state.uploads = null;
           await renderMembers();
           return "Imported " + sync.total + " allowed roster members (" + sync.created + " new, " + sync.updated + " updated, " + (sync.merged || 0) + " merged with Discord, " + sync.skipped + " skipped, " + (sync.excluded || 0) + " outside KoG/LWL/mF ignored). Dated snapshots are kept for graphs.";
@@ -3447,6 +3487,7 @@ export function kellaDashboardHtml() {
           const data = await sendJson("PATCH", "/api/dashboard/profile", readProfileForm(), false);
           state.profile = data.member;
           state.members = [];
+          state.allMembers = [];
           await renderProfile();
           return "Profile saved.";
         }, "Profile saved.");
@@ -3458,6 +3499,9 @@ export function kellaDashboardHtml() {
           state.members = (state.members || []).map(function(member) {
             return String(member.id) === String(updated.id) ? updated : member;
           });
+          state.allMembers = (state.allMembers || []).map(function(member) {
+            return String(member.id) === String(updated.id) ? updated : member;
+          });
           const current = app.querySelector(".table-wrap, .empty");
           if (location.pathname === "/members" && current) current.outerHTML = renderMembersTable(state.members);
           openMemberModal(updated);
@@ -3467,6 +3511,7 @@ export function kellaDashboardHtml() {
           const data = await sendJson("POST", "/api/dashboard/members", readManualMemberForm(), true);
           state.summary = null;
           state.members = [];
+          state.allMembers = [];
           await loadMembers();
           if (location.pathname === "/members") {
             await renderMembers();
@@ -3486,6 +3531,7 @@ export function kellaDashboardHtml() {
           await sendJson("DELETE", "/api/dashboard/members/" + encodeURIComponent(id), undefined, true);
           state.summary = null;
           state.members = (state.members || []).filter(function(item) { return String(item.id) !== String(id); });
+          state.allMembers = (state.allMembers || []).filter(function(item) { return String(item.id) !== String(id); });
           closeMemberModal();
           if (location.pathname === "/members") {
             await renderMembers();
@@ -3779,6 +3825,16 @@ export function kellaDashboardHtml() {
           const table = renderMembersTable(members);
           const current = app.querySelector(".table-wrap, .empty");
           if (current) current.outerHTML = table;
+        }
+        if (event.target.matches("[data-admin-member-main-search]")) {
+          const root = event.target.closest("[data-admin-member-form]");
+          const select = root?.querySelector('[data-admin-member="mainMemberId"]');
+          const memberId = memberModalContent?.dataset?.memberId || "";
+          const member = findMemberById(memberId);
+          if (select && member) {
+            const selected = select.value || member.mainMemberId || "";
+            select.innerHTML = mainAccountOptions(member, event.target.value || "", selected);
+          }
         }
         if (event.target.matches('[data-setting="adminKey"]')) syncSettingsLock();
         if (event.target.matches("[data-embed]")) updateEmbedPreview();
