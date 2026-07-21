@@ -1985,13 +1985,13 @@ export function kellaDashboardHtml() {
 
       function farmPickerSelected(member) {
         const main = mainAccountFor(member);
-        if (!main) return '<div class="farm-picker-selected"><span>Main account / not a farm</span></div>';
+        if (!main) return "";
         return '<div class="farm-picker-selected"><span>Selected: ' + escapeHtml(main.ign || memberDisplayName(main)) + ' - ' + escapeHtml(formatCompactNumber(currentPowerValue(main))) + ' power</span><button type="button" data-action="clear-main-account">Clear</button></div>';
       }
 
       function farmSearchResults(member, term = "") {
         const searchTerm = String(term || "").trim();
-        if (!searchTerm) return '<div class="muted">Type a player name to show matches below.</div>';
+        if (!searchTerm) return "";
         const matches = mainAccountMatches(member, searchTerm).slice(0, 12);
         if (!matches.length) return '<div class="empty" style="padding:12px">No players found. Try another name or Lord ID.</div>';
         return matches.map(function(item) {
@@ -2013,7 +2013,6 @@ export function kellaDashboardHtml() {
           '<input data-admin-member-main-search placeholder="Search player name or Lord ID..." />' +
           '<div data-main-account-selected>' + farmPickerSelected(member) + '</div>' +
           '<div class="farm-search-results" data-main-account-results>' + farmSearchResults(member, "") + '</div>' +
-          '<span class="muted">Type, then click the player that should own this farm account.</span>' +
         '</div>';
       }
 
