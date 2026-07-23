@@ -15,7 +15,7 @@ const modules = [
   { id: "roots", name: "Roots Registration", badge: "Core", command: "/roots", description: "14 UTC and 20 UTC availability buttons for Available, Absent, and Not Sure." },
   { id: "reports", name: "Roots Reports", badge: "Reports", command: "Dashboard", description: "Historical Roots reports with CSV, JSON, report copy, and Discord send." },
   { id: "embed", name: "Embed Sender", badge: "Admin", command: "Dashboard", description: "Build, preview, save, and send Discord embeds from the website." },
-  { id: "wiki", name: "Wiki", badge: "Guides", command: "/wiki-admin", description: "Publish alliance rules, guides, images, and readable member notes." },
+  { id: "wiki", name: "Wiki", badge: "Guides", command: "Dashboard", description: "Publish alliance rules, guides, images, and readable member notes." },
   { id: "summit", name: "Summit Registration", badge: "Fast", command: "/summit", description: "Simple Summit attendance buttons for Attending, Absent, and Not Sure." },
   { id: "checkin", name: "Daily Check-In", badge: "Activity", command: "/checkin", description: "One button daily activity tracking for weekly and inactive member reports." },
   { id: "absence", name: "Absence Notices", badge: "Modal", command: "/absence", description: "Members submit reason, start date, and end date. Officers see who is away." },
@@ -125,6 +125,79 @@ const wikiHeroImages = [
   { src: "/assets/wiki-heroes/Waldyr.webp", label: "Waldyr" },
   { src: "/assets/wiki-heroes/Waldyr-icon.webp", label: "Waldyr Icon" },
   { src: "/assets/wiki-heroes/Zayda.webp", label: "Zayda" }
+];
+
+const wikiMarkerImages = [
+  { src: "/assets/wiki-markers/asseble.png", label: "Assemble" },
+  { src: "/assets/wiki-markers/attack.png", label: "Attack" },
+  { src: "/assets/wiki-markers/attention.png", label: "Attention" },
+  { src: "/assets/wiki-markers/build.png", label: "Build" },
+  { src: "/assets/wiki-markers/clover.png", label: "Clover" },
+  { src: "/assets/wiki-markers/defend.png", label: "Defend" },
+  { src: "/assets/wiki-markers/destroy.png", label: "Destroy" },
+  { src: "/assets/wiki-markers/diamond.png", label: "Diamond" },
+  { src: "/assets/wiki-markers/forbiden.png", label: "Forbidden" },
+  { src: "/assets/wiki-markers/heart.png", label: "Heart" },
+  { src: "/assets/wiki-markers/moon.png", label: "Moon" },
+  { src: "/assets/wiki-markers/pyramid.png", label: "Pyramid" },
+  { src: "/assets/wiki-markers/recover.png", label: "Recover" },
+  { src: "/assets/wiki-markers/shield.png", label: "Shield" },
+  { src: "/assets/wiki-markers/special.png", label: "Special" },
+  { src: "/assets/wiki-markers/star.png", label: "Star" },
+  { src: "/assets/wiki-markers/stope.png", label: "Stop" },
+  { src: "/assets/wiki-markers/sun.png", label: "Sun" },
+  { src: "/assets/wiki-markers/target.png", label: "Target" },
+  { src: "/assets/wiki-markers/tear.png", label: "Tear" }
+];
+
+const wikiArtifactImages = [
+  { src: "/assets/wiki-artifacts/about-call-of-dragons-artifacts-tier-list.jpg", label: "Artifacts Tier List" },
+  { src: "/assets/wiki-artifacts/amulet-of-glory.jpg", label: "Amulet Of Glory" },
+  { src: "/assets/wiki-artifacts/ancient-tree-roots.jpg", label: "Ancient Tree Roots" },
+  { src: "/assets/wiki-artifacts/archery-masters-manual.jpg", label: "Archery Masters Manual" },
+  { src: "/assets/wiki-artifacts/blade-of-reproach.jpg", label: "Blade Of Reproach" },
+  { src: "/assets/wiki-artifacts/bloodblade-banner.jpg", label: "Bloodblade Banner" },
+  { src: "/assets/wiki-artifacts/breath-of-jargentis.jpg", label: "Breath Of Jargentis" },
+  { src: "/assets/wiki-artifacts/breath-of-the-forest.jpg", label: "Breath Of The Forest" },
+  { src: "/assets/wiki-artifacts/butchers-blade.jpg", label: "Butchers Blade" },
+  { src: "/assets/wiki-artifacts/centaur-bow.jpg", label: "Centaur Bow" },
+  { src: "/assets/wiki-artifacts/cloak-of-stealth.jpg", label: "Cloak Of Stealth" },
+  { src: "/assets/wiki-artifacts/codex-of-prophecy.jpg", label: "Codex Of Prophecy" },
+  { src: "/assets/wiki-artifacts/dragonrift.jpg", label: "Dragonrift" },
+  { src: "/assets/wiki-artifacts/dragonscale-armor.jpg", label: "Dragonscale Armor" },
+  { src: "/assets/wiki-artifacts/enchiridion-of-advanced-incantations.jpg", label: "Enchiridion Of Advanced Incantations" },
+  { src: "/assets/wiki-artifacts/fang-of-ashkari.jpg", label: "Fang Of Ashkari" },
+  { src: "/assets/wiki-artifacts/freezing-ring.jpg", label: "Freezing Ring" },
+  { src: "/assets/wiki-artifacts/giants-bone.jpg", label: "Giants Bone" },
+  { src: "/assets/wiki-artifacts/goldcrest.jpg", label: "Goldcrest" },
+  { src: "/assets/wiki-artifacts/greenfinger-sickle.jpg", label: "Greenfinger Sickle" },
+  { src: "/assets/wiki-artifacts/greymars-warhammer.jpg", label: "Greymars Warhammer" },
+  { src: "/assets/wiki-artifacts/heart-of-kamasi.jpg", label: "Heart Of Kamasi" },
+  { src: "/assets/wiki-artifacts/heartpiercer.jpg", label: "Heartpiercer" },
+  { src: "/assets/wiki-artifacts/infernal-flame.jpg", label: "Infernal Flame" },
+  { src: "/assets/wiki-artifacts/kingslayer.jpg", label: "Kingslayer" },
+  { src: "/assets/wiki-artifacts/lucias-horn.jpg", label: "Lucias Horn" },
+  { src: "/assets/wiki-artifacts/magic-bomb.jpg", label: "Magic Bomb" },
+  { src: "/assets/wiki-artifacts/mirage-orb.jpg", label: "Mirage Orb" },
+  { src: "/assets/wiki-artifacts/oath-of-stormpeak.jpg", label: "Oath Of Stormpeak" },
+  { src: "/assets/wiki-artifacts/phoenix-eye.jpg", label: "Phoenix Eye" },
+  { src: "/assets/wiki-artifacts/potion-of-vigor.jpg", label: "Potion Of Vigor" },
+  { src: "/assets/wiki-artifacts/rattle-spear.jpg", label: "Rattle Spear" },
+  { src: "/assets/wiki-artifacts/shadowblades.jpg", label: "Shadowblades" },
+  { src: "/assets/wiki-artifacts/sorlands-blade.jpg", label: "Sorlands Blade" },
+  { src: "/assets/wiki-artifacts/spirit-bangle.jpg", label: "Spirit Bangle" },
+  { src: "/assets/wiki-artifacts/spiritbone-torc.jpg", label: "Spiritbone Torc" },
+  { src: "/assets/wiki-artifacts/springbird-feather.jpg", label: "Springbird Feather" },
+  { src: "/assets/wiki-artifacts/springblades.jpg", label: "Springblades" },
+  { src: "/assets/wiki-artifacts/spring-of-silence.jpg", label: "Spring Of Silence" },
+  { src: "/assets/wiki-artifacts/springs-of-silence.jpg", label: "Springs Of Silence" },
+  { src: "/assets/wiki-artifacts/staff-of-spring.jpg", label: "Staff Of Spring" },
+  { src: "/assets/wiki-artifacts/staff-of-the-prophet.jpg", label: "Staff Of The Prophet" },
+  { src: "/assets/wiki-artifacts/storm-arrows.jpg", label: "Storm Arrows" },
+  { src: "/assets/wiki-artifacts/tear-of-arbon.jpg", label: "Tear Of Arbon" },
+  { src: "/assets/wiki-artifacts/violas-bow.jpg", label: "Violas Bow" },
+  { src: "/assets/wiki-artifacts/visage-of-the-sanctus.jpg", label: "Visage Of The Sanctus" },
+  { src: "/assets/wiki-artifacts/wolf-woman-of-haelor.jpg", label: "Wolf Woman Of Haelor" }
 ];
 
 function navLink(item: (typeof navItems)[number]) {
@@ -585,20 +658,24 @@ export function kellaDashboardHtml() {
       .wiki-resize-se { right: -7px; bottom: -7px; cursor: nwse-resize; }
       .wiki-inspector {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) minmax(210px, 0.75fr) auto;
-        gap: 10px;
+        grid-template-columns: auto minmax(280px, 1fr) minmax(360px, 0.9fr) auto;
+        gap: 8px;
         align-items: end;
         border-radius: 18px;
         border: 1px solid rgba(121, 82, 33, 0.34);
-        padding: 14px 16px;
+        padding: 10px 12px;
         margin: 14px 0 16px;
         background: linear-gradient(180deg, rgba(255, 246, 214, 0.96), rgba(230, 193, 112, 0.82));
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.42);
       }
+      .wiki-inspector--empty {
+        grid-template-columns: auto minmax(340px, 560px);
+        justify-content: start;
+      }
       .wiki-inspector h4 {
         margin: 0;
         font-family: Georgia, "Times New Roman", serif;
-        font-size: 24px;
+        font-size: 22px;
         line-height: 1;
       }
       .wiki-style-head {
@@ -611,8 +688,8 @@ export function kellaDashboardHtml() {
       }
       .wiki-style-controls {
         display: grid;
-        grid-template-columns: repeat(4, minmax(82px, 1fr));
-        gap: 8px;
+        grid-template-columns: repeat(4, minmax(76px, 1fr));
+        gap: 6px;
         align-items: end;
       }
       .wiki-style-controls--picture {
@@ -631,7 +708,7 @@ export function kellaDashboardHtml() {
       }
       .wiki-inspector label {
         display: grid;
-        gap: 6px;
+        gap: 4px;
         margin-bottom: 0;
         font-size: 12px;
         font-weight: 900;
@@ -639,18 +716,22 @@ export function kellaDashboardHtml() {
       }
       .wiki-inspector input,
       .wiki-inspector select {
-        min-height: 36px;
+        min-height: 34px;
       }
       .wiki-image-tools {
         display: grid;
-        gap: 7px;
+        gap: 6px;
         margin-top: 0;
       }
-      .wiki-image-tool-row,
+      .wiki-image-tool-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(74px, 1fr));
+        gap: 6px;
+      }
       .wiki-add-block-row {
         display: grid;
         grid-template-columns: repeat(2, minmax(82px, 1fr));
-        gap: 7px;
+        gap: 6px;
       }
       .wiki-add-block-row .secondary {
         width: 100%;
@@ -696,6 +777,34 @@ export function kellaDashboardHtml() {
       }
       .wiki-misc-panel[hidden] {
         display: none;
+      }
+      .wiki-misc-panel--artifact {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 8px);
+        z-index: 20;
+        width: min(470px, calc(100vw - 36px));
+        max-height: min(520px, 72vh);
+        grid-template-columns: repeat(3, minmax(120px, 1fr));
+        margin-top: 0;
+        padding: 12px;
+        background:
+          linear-gradient(180deg, rgba(255, 250, 226, 0.98), rgba(238, 207, 137, 0.96)),
+          radial-gradient(circle at 50% 0%, rgba(255, 215, 87, 0.32), transparent 55%);
+        box-shadow: 0 22px 46px rgba(64, 37, 11, 0.28);
+      }
+      .wiki-misc-panel--marker {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 8px);
+        z-index: 20;
+        width: min(350px, calc(100vw - 36px));
+        max-height: min(440px, 66vh);
+        grid-template-columns: repeat(4, minmax(62px, 1fr));
+        margin-top: 0;
+        background:
+          linear-gradient(180deg, rgba(255, 250, 226, 0.98), rgba(238, 207, 137, 0.94));
+        box-shadow: 0 18px 38px rgba(64, 37, 11, 0.24);
       }
       .wiki-misc-tile {
         display: grid;
@@ -746,6 +855,30 @@ export function kellaDashboardHtml() {
         overflow: visible;
         text-align: center;
         text-overflow: clip;
+      }
+      .wiki-misc-tile--artifact {
+        min-height: 128px;
+        padding: 9px;
+        align-content: start;
+      }
+      .wiki-misc-tile--artifact img {
+        height: 82px;
+      }
+      .wiki-misc-tile--artifact span {
+        white-space: normal;
+        overflow: visible;
+        text-align: center;
+        text-overflow: clip;
+      }
+      .wiki-misc-tile--marker {
+        min-height: 76px;
+        padding: 6px;
+      }
+      .wiki-misc-tile--marker img {
+        height: 38px;
+      }
+      .wiki-misc-tile--marker span {
+        font-size: 10px;
       }
       .wiki-reader {
         display: grid;
@@ -1976,6 +2109,8 @@ export function kellaDashboardHtml() {
       const dashboardModules = ${JSON.stringify(modules)};
       const wikiMiscImages = ${JSON.stringify(wikiMiscImages)};
       const wikiHeroImages = ${JSON.stringify(wikiHeroImages)};
+      const wikiMarkerImages = ${JSON.stringify(wikiMarkerImages)};
+      const wikiArtifactImages = ${JSON.stringify(wikiArtifactImages)};
       const statMetricOptions = [
         { key: "power", label: "Power" },
         { key: "merits", label: "Merits" },
@@ -2913,7 +3048,7 @@ export function kellaDashboardHtml() {
           '<div class="module-top"><div><h3>' + escapeHtml(module.name) + '</h3><div class="meta"><span>' + escapeHtml(module.command) + '</span><strong>' + escapeHtml(module.badge) + '</strong></div></div>' +
           '<button class="switch ' + (enabled ? "on" : "") + '" type="button" data-action="toggle-module" data-module-id="' + escapeHtml(module.id) + '" data-module="' + escapeHtml(module.name) + '" aria-label="Toggle ' + escapeHtml(module.name) + '"><i></i></button></div>' +
           '<p>' + escapeHtml(module.description) + '</p>' +
-          '<div class="module-actions"><button type="button" data-action="copy-command" data-value="' + escapeHtml(module.command) + '">Copy</button><button type="button" data-action="module-settings" data-module="' + escapeHtml(module.name) + '">Settings</button></div>' +
+          '<div class="module-actions"><button type="button" data-action="module-settings" data-module="' + escapeHtml(module.name) + '">Settings</button></div>' +
           '</article>';
       }
 
@@ -3286,7 +3421,7 @@ export function kellaDashboardHtml() {
           { command: "/checkin", text: "Daily activity button." }
         ];
         return '<div class="command-board">' + commands.map(function(item) {
-          return '<button class="command-card" data-action="copy-command" data-value="' + escapeHtml(item.command) + '"><code>' + escapeHtml(item.command) + '</code><p>' + escapeHtml(item.text) + '</p></button>';
+          return '<article class="command-card"><code>' + escapeHtml(item.command) + '</code><p>' + escapeHtml(item.text) + '</p></article>';
         }).join("") + '</div>';
       }
 
@@ -3478,10 +3613,10 @@ export function kellaDashboardHtml() {
         return value === selected ? " selected" : "";
       }
 
-      function renderWikiAssetPickerHtml(label, images) {
-        const isHeroPicker = label === "Hero";
-        const panelClass = isHeroPicker ? "wiki-misc-panel wiki-misc-panel--hero" : "wiki-misc-panel";
-        const tileClass = isHeroPicker ? "wiki-misc-tile wiki-misc-tile--hero" : "wiki-misc-tile";
+      function renderWikiAssetPickerHtml(label, images, kind) {
+        const safeKind = kind || "misc";
+        const panelClass = "wiki-misc-panel wiki-misc-panel--" + safeKind;
+        const tileClass = "wiki-misc-tile wiki-misc-tile--" + safeKind;
         const tiles = images.map(function(image) {
           return '<button class="' + tileClass + '" type="button" draggable="true" data-action="add-wiki-asset-image" data-wiki-asset-image="' + escapeHtml(image.src) + '" title="Drag or click to add ' + escapeHtml(image.label) + '">' +
             '<img src="' + escapeHtml(image.src) + '" alt="" loading="lazy" />' +
@@ -3494,8 +3629,10 @@ export function kellaDashboardHtml() {
       function renderWikiAssetToolsHtml() {
         return '<div class="wiki-image-tools">' +
           '<div class="wiki-image-tool-row">' +
-            renderWikiAssetPickerHtml("Hero", wikiHeroImages) +
-            renderWikiAssetPickerHtml("Misc Images", wikiMiscImages) +
+            renderWikiAssetPickerHtml("Hero", wikiHeroImages, "hero") +
+            renderWikiAssetPickerHtml("Artifacts", wikiArtifactImages, "artifact") +
+            renderWikiAssetPickerHtml("Marker", wikiMarkerImages, "marker") +
+            renderWikiAssetPickerHtml("Misc Images", wikiMiscImages, "misc") +
           '</div>' +
           '<div class="wiki-add-block-row">' +
             '<button class="secondary" type="button" data-action="add-wiki-text">Add Text</button>' +
@@ -3507,9 +3644,8 @@ export function kellaDashboardHtml() {
       function renderWikiInspectorHtml() {
         const block = selectedWikiBlock();
         if (!block) {
-          return '<section class="wiki-inspector" data-wiki-inspector>' +
+          return '<section class="wiki-inspector wiki-inspector--empty" data-wiki-inspector>' +
             '<div class="wiki-style-head"><h4>Style</h4></div>' +
-            '<div class="wiki-style-controls"></div>' +
             '<div class="wiki-style-actions">' + renderWikiAssetToolsHtml() + '</div>' +
           '</section>';
         }
@@ -3668,7 +3804,7 @@ export function kellaDashboardHtml() {
         skeleton("Loading wiki...");
         try {
           const pages = await loadWiki();
-          const actions = '<button class="secondary" data-action="copy-command" data-value="/wiki-admin">Copy /wiki-admin</button>' + (hasAdminAccess() ? '<button class="primary" data-action="clear-wiki-form">Create Wiki</button>' : '<button class="primary" data-action="discord-login">Login to edit</button>');
+          const actions = hasAdminAccess() ? '<button class="primary" data-action="clear-wiki-form">Create Wiki</button>' : "";
           app.innerHTML =
             pageHeader("Kella Wiki", "Member-readable alliance rules, event guides, and officer notes in one clean library.", actions) +
             (hasAdminAccess() ? renderWikiEditor() : '<section class="card"><div class="card-header"><div><h3>Read Alliance Wiki</h3><span class="muted">Members can read published pages here. Admins can log in to create or edit wiki pages.</span></div></div></section>') +
@@ -3779,7 +3915,7 @@ export function kellaDashboardHtml() {
             channelHtml = '<label>Discord Channel<input data-roots-channel-manual placeholder="Paste channel ID or add Password in Settings" /></label>';
           }
           app.innerHTML =
-            pageHeader("Roots Registration", "Use /roots in Discord. Members click one button for 14 UTC or 20 UTC, and Kella saves one current answer per player per slot.", '<button class="primary" data-action="copy-command" data-value="/roots">Copy /roots</button>') +
+            pageHeader("Roots Registration", "Members click one button for 14 UTC or 20 UTC, and Kella saves one current answer per player per slot.", '<button class="primary" data-action="send-roots-registration">Create Roots Panel</button>') +
             '<section class="two"><div class="card"><h3>Buttons Included</h3><p>14 UTC: ⚔ Available, ❌ Absent, ❔ Not Sure</p><p>20 UTC: ⚔ Available, ❌ Absent, ❔ Not Sure</p><p>Members can click again to update their answer.</p></div>' +
             '<div class="card"><div class="card-header"><h3>Latest Report</h3><button class="secondary" data-link-button="/roots-reports">Reports</button></div>' +
             (latest ? '<p>' + formatDate(latest.date) + ' - ' + latest.timeSlot + '</p><p>' + latest.available + ' Available, ' + latest.absent + ' Absent, ' + latest.unsure + ' Not Sure</p>' : '<p>No Roots reports yet.</p>') +
@@ -4031,7 +4167,7 @@ export function kellaDashboardHtml() {
             '</div></section>' +
             '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Recent Sent Events</h3><button class="secondary" data-action="refresh-events">Refresh</button></div>' + renderRecentEvents(events) + '</section>' +
             '<section class="grid" style="margin-top:18px">' + commands.map(function(command) {
-              return '<div class="card"><div class="card-header"><h3>' + command + '</h3><button class="secondary" data-action="copy-command" data-value="' + command + '">Copy Command</button></div><p>Use this in Discord to create the matching Kella workflow.</p></div>';
+              return '<div class="card"><div class="card-header"><h3>' + command + '</h3></div><p>Use this in Discord to create the matching Kella workflow.</p></div>';
             }).join("") + '</section>';
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load events. ' + escapeHtml(error.message) + '</div>';
@@ -4183,7 +4319,7 @@ export function kellaDashboardHtml() {
           const complaints = await loadComplaints();
           app.innerHTML =
             pageHeader("Complaints", "Private complaints and suggestions submitted with /complain.", '<button class="secondary" data-action="refresh-complaints">Refresh</button>') +
-            '<section class="card"><div class="card-header"><div><h3>Admin Inbox</h3><span class="muted">Use Pending while reviewing, then Resolve when handled.</span></div><button class="secondary" data-action="copy-command" data-value="/complain">Copy /complain</button></div>' +
+            '<section class="card"><div class="card-header"><div><h3>Admin Inbox</h3><span class="muted">Use Pending while reviewing, then Resolve when handled.</span></div></div>' +
             renderComplaintsTable(complaints) +
             '</section>';
         } catch (error) {
@@ -4443,7 +4579,7 @@ export function kellaDashboardHtml() {
             : "";
 
           app.innerHTML =
-            pageHeader("Roots of War", "Registration and reports in one place. Create the Discord panel, then review 14 UTC and 20 UTC attendance below.", '<button class="secondary" data-action="copy-command" data-value="/roots">Copy /roots</button><button class="primary" data-action="send-roots-registration">Create Roots Panel</button>') +
+            pageHeader("Roots of War", "Registration and reports in one place. Create the Discord panel, then review 14 UTC and 20 UTC attendance below.", '<button class="primary" data-action="send-roots-registration">Create Roots Panel</button>') +
             '<section class="two"><div class="card"><div class="card-header"><div><h3>Create Roots Panel</h3><span class="muted">Kella sends 14 UTC and 20 UTC buttons to Discord, then stores every answer in reports.</span></div><span class="badge warn">24-hour UTC</span></div><div class="form-grid">' +
               channelHtml +
               '<label>Role Mention ID<input data-roots-role placeholder="Optional role ID" /></label>' +
@@ -5298,7 +5434,9 @@ export function kellaDashboardHtml() {
         const canvas = event.target.closest?.("[data-wiki-canvas]");
         if (!canvas || !event.dataTransfer) return;
         const src = event.dataTransfer.getData("application/x-kella-wiki-image") || event.dataTransfer.getData("text/plain");
-        const isWikiAsset = src.startsWith("/assets/wiki-misc/") || src.startsWith("/assets/wiki-heroes/");
+        const isWikiAsset = ["/assets/wiki-misc/", "/assets/wiki-heroes/", "/assets/wiki-markers/", "/assets/wiki-artifacts/"].some(function(prefix) {
+          return src.startsWith(prefix);
+        });
         if (!src || !isWikiAsset) return;
         event.preventDefault();
         const rect = canvas.getBoundingClientRect();
