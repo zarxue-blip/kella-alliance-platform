@@ -137,8 +137,10 @@ const wikiImageSchema = z
     const trimmed = value.trim();
     return trimmed || undefined;
   }, z.string().max(4_200_000, "Wiki image is too large. Please use a smaller picture.").refine((value) => {
-    return /^data:image\/(png|jpe?g|webp);base64,/i.test(value) || /^\/assets\/wiki-misc\/[a-z0-9._/-]+\.(png|jpe?g|webp)$/i.test(value);
-  }, "Wiki image must be PNG, JPG, WEBP, or a Kella misc image.").optional())
+    const isUploadedImage = /^data:image\/(png|jpe?g|webp);base64,/i.test(value);
+    const isKellaAsset = /^\/assets\/wiki-(misc|heroes)\/[a-z0-9._/-]+\.(png|jpe?g|webp)$/i.test(value);
+    return isUploadedImage || isKellaAsset;
+  }, "Wiki image must be PNG, JPG, WEBP, or a Kella wiki asset.").optional())
   .optional();
 
 const wikiBlockSchema = z.object({

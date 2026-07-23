@@ -62,6 +62,71 @@ const wikiMiscImages = [
   { src: "/assets/wiki-misc/uwu.webp", label: "Uwu" }
 ];
 
+const wikiHeroImages = [
+  { src: "/assets/wiki-heroes/Alistair.webp", label: "Alistair" },
+  { src: "/assets/wiki-heroes/Alistair-icon.webp", label: "Alistair Icon" },
+  { src: "/assets/wiki-heroes/Alwyn.webp", label: "Alwyn" },
+  { src: "/assets/wiki-heroes/Atheus.webp", label: "Atheus" },
+  { src: "/assets/wiki-heroes/Bahorn.webp", label: "Bahorn" },
+  { src: "/assets/wiki-heroes/Bakhar.webp", label: "Bakhar" },
+  { src: "/assets/wiki-heroes/Bakshi.webp", label: "Bakshi" },
+  { src: "/assets/wiki-heroes/Bertrand.webp", label: "Bertrand" },
+  { src: "/assets/wiki-heroes/Chakcha.webp", label: "Chakcha" },
+  { src: "/assets/wiki-heroes/Danfel.webp", label: "Danfel" },
+  { src: "/assets/wiki-heroes/Eliana.webp", label: "Eliana" },
+  { src: "/assets/wiki-heroes/Eliana-Icon.webp", label: "Eliana Icon" },
+  { src: "/assets/wiki-heroes/Emrys.webp", label: "Emrys" },
+  { src: "/assets/wiki-heroes/Emrys-icon.webp", label: "Emrys Icon" },
+  { src: "/assets/wiki-heroes/Falgrim.webp", label: "Falgrim" },
+  { src: "/assets/wiki-heroes/Ffraegar.webp", label: "Ffraegar" },
+  { src: "/assets/wiki-heroes/Forondil.webp", label: "Forondil" },
+  { src: "/assets/wiki-heroes/Garwood.png", label: "Garwood" },
+  { src: "/assets/wiki-heroes/Goresh.webp", label: "Goresh" },
+  { src: "/assets/wiki-heroes/Gwanwyn.webp", label: "Gwanwyn" },
+  { src: "/assets/wiki-heroes/Gwanwyn-icon.webp", label: "Gwanwyn Icon" },
+  { src: "/assets/wiki-heroes/Hosk.png", label: "Hosk" },
+  { src: "/assets/wiki-heroes/Hosk-icon.webp", label: "Hosk Icon" },
+  { src: "/assets/wiki-heroes/Indis.webp", label: "Indis" },
+  { src: "/assets/wiki-heroes/Indis-icon.webp", label: "Indis Icon" },
+  { src: "/assets/wiki-heroes/Kella.webp", label: "Kella" },
+  { src: "/assets/wiki-heroes/Kinnara.webp", label: "Kinnara" },
+  { src: "/assets/wiki-heroes/Kregg.webp", label: "Kregg" },
+  { src: "/assets/wiki-heroes/Kregg-icon.webp", label: "Kregg Icon" },
+  { src: "/assets/wiki-heroes/Kuma.webp", label: "Kuma" },
+  { src: "/assets/wiki-heroes/Lei-Kuan.webp", label: "Lei Kuan" },
+  { src: "/assets/wiki-heroes/Lieh-Shan-Yen.webp", label: "Lieh Shan Yen" },
+  { src: "/assets/wiki-heroes/Liliya.webp", label: "Liliya" },
+  { src: "/assets/wiki-heroes/Liliya-icon.webp", label: "Liliya Icon" },
+  { src: "/assets/wiki-heroes/Madeline.webp", label: "Madeline" },
+  { src: "/assets/wiki-heroes/Madeline-icon.webp", label: "Madeline Icon" },
+  { src: "/assets/wiki-heroes/Maggrat.webp", label: "Maggrat" },
+  { src: "/assets/wiki-heroes/Mardok.webp", label: "Mardok" },
+  { src: "/assets/wiki-heroes/Mogro.webp", label: "Mogro" },
+  { src: "/assets/wiki-heroes/Mu-Hsiang.webp", label: "Mu Hsiang" },
+  { src: "/assets/wiki-heroes/Naernin.webp", label: "Naernin" },
+  { src: "/assets/wiki-heroes/Neya.webp", label: "Neya" },
+  { src: "/assets/wiki-heroes/Nico.webp", label: "Nico" },
+  { src: "/assets/wiki-heroes/Nika.webp", label: "Nika" },
+  { src: "/assets/wiki-heroes/Nika-icon.webp", label: "Nika Icon" },
+  { src: "/assets/wiki-heroes/Ordo.webp", label: "Ordo" },
+  { src: "/assets/wiki-heroes/Pan.webp", label: "Pan" },
+  { src: "/assets/wiki-heroes/Sibyl.webp", label: "Sibyl" },
+  { src: "/assets/wiki-heroes/Skogul.webp", label: "Skogul" },
+  { src: "/assets/wiki-heroes/Syndrion.webp", label: "Syndrion" },
+  { src: "/assets/wiki-heroes/Tarra.webp", label: "Tarra" },
+  { src: "/assets/wiki-heroes/Thaleia.webp", label: "Thaleia" },
+  { src: "/assets/wiki-heroes/Theia.webp", label: "Theia" },
+  { src: "/assets/wiki-heroes/Theodore.webp", label: "Theodore" },
+  { src: "/assets/wiki-heroes/Thundelyn.webp", label: "Thundelyn" },
+  { src: "/assets/wiki-heroes/Tobin.webp", label: "Tobin" },
+  { src: "/assets/wiki-heroes/Tohar.webp", label: "Tohar" },
+  { src: "/assets/wiki-heroes/Urag.webp", label: "Urag" },
+  { src: "/assets/wiki-heroes/Velyn.webp", label: "Velyn" },
+  { src: "/assets/wiki-heroes/Waldyr.webp", label: "Waldyr" },
+  { src: "/assets/wiki-heroes/Waldyr-icon.webp", label: "Waldyr Icon" },
+  { src: "/assets/wiki-heroes/Zayda.webp", label: "Zayda" }
+];
+
 function navLink(item: (typeof navItems)[number]) {
   return `<a href="${item.path}" data-link data-path="${item.path}"><img class="nav-icon" src="${item.icon}" alt="" loading="lazy" /><span>${item.label}</span></a>`;
 }
@@ -538,8 +603,27 @@ export function kellaDashboardHtml() {
       .wiki-inspector select {
         min-height: 38px;
       }
-      .wiki-misc-picker {
+      .wiki-image-tools {
+        display: grid;
+        gap: 10px;
         margin-top: 10px;
+      }
+      .wiki-image-tool-row,
+      .wiki-add-block-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .wiki-add-block-row .secondary {
+        width: 100%;
+      }
+      .wiki-misc-picker {
+        min-width: 0;
+        margin-top: 0;
+        position: relative;
+      }
+      .wiki-misc-picker > button {
+        width: 100%;
       }
       .wiki-misc-panel {
         display: grid;
@@ -1811,6 +1895,7 @@ export function kellaDashboardHtml() {
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
       const wikiMiscImages = ${JSON.stringify(wikiMiscImages)};
+      const wikiHeroImages = ${JSON.stringify(wikiHeroImages)};
       const statMetricOptions = [
         { key: "power", label: "Power" },
         { key: "merits", label: "Merits" },
@@ -3307,20 +3392,33 @@ export function kellaDashboardHtml() {
         return value === selected ? " selected" : "";
       }
 
-      function renderWikiMiscPickerHtml() {
-        const tiles = wikiMiscImages.map(function(image) {
-          return '<button class="wiki-misc-tile" type="button" draggable="true" data-action="add-wiki-misc-image" data-wiki-misc-image="' + escapeHtml(image.src) + '" title="Drag or click to add ' + escapeHtml(image.label) + '">' +
+      function renderWikiAssetPickerHtml(label, images) {
+        const tiles = images.map(function(image) {
+          return '<button class="wiki-misc-tile" type="button" draggable="true" data-action="add-wiki-asset-image" data-wiki-asset-image="' + escapeHtml(image.src) + '" title="Drag or click to add ' + escapeHtml(image.label) + '">' +
             '<img src="' + escapeHtml(image.src) + '" alt="" loading="lazy" />' +
             '<span>' + escapeHtml(image.label) + '</span>' +
           '</button>';
         }).join("");
-        return '<div class="wiki-misc-picker"><button class="secondary" type="button" data-action="toggle-wiki-misc">Misc Images</button><div class="wiki-misc-panel" data-wiki-misc-panel hidden>' + tiles + '</div></div>';
+        return '<div class="wiki-misc-picker"><button class="secondary" type="button" data-action="toggle-wiki-asset-panel">' + escapeHtml(label) + '</button><div class="wiki-misc-panel" data-wiki-asset-panel hidden>' + tiles + '</div></div>';
+      }
+
+      function renderWikiAssetToolsHtml() {
+        return '<div class="wiki-image-tools">' +
+          '<div class="wiki-image-tool-row">' +
+            renderWikiAssetPickerHtml("Hero", wikiHeroImages) +
+            renderWikiAssetPickerHtml("Misc Images", wikiMiscImages) +
+          '</div>' +
+          '<div class="wiki-add-block-row">' +
+            '<button class="secondary" type="button" data-action="add-wiki-text">Add Text</button>' +
+            '<button class="secondary" type="button" data-action="add-wiki-image">Add Picture</button>' +
+          '</div>' +
+        '</div>';
       }
 
       function renderWikiInspectorHtml() {
         const block = selectedWikiBlock();
         if (!block) {
-          return '<aside class="wiki-inspector" data-wiki-inspector><h4>Style</h4><p class="muted">Add a text or picture block to start designing the page.</p></aside>';
+          return '<aside class="wiki-inspector" data-wiki-inspector><h4>Style</h4><p class="muted">Add a text or picture block to start designing the page.</p>' + renderWikiAssetToolsHtml() + '</aside>';
         }
         const textControls = block.type === "text"
           ? '<label>Font<select data-wiki-block-style="fontFamily"><option value="serif"' + optionSelected("serif", block.fontFamily) + '>Old paper serif</option><option value="sans"' + optionSelected("sans", block.fontFamily) + '>Clean readable</option><option value="display"' + optionSelected("display", block.fontFamily) + '>Alliance title</option><option value="script"' + optionSelected("script", block.fontFamily) + '>Royal script</option><option value="cod"' + optionSelected("cod", block.fontFamily) + '>Dragon title</option><option value="mono"' + optionSelected("mono", block.fontFamily) + '>Tactical mono</option></select></label>' +
@@ -3331,7 +3429,7 @@ export function kellaDashboardHtml() {
         return '<aside class="wiki-inspector" data-wiki-inspector>' +
           '<h4>Style</h4><p class="muted">' + (block.type === "image" ? "Picture block selected." : "Text block selected.") + '</p>' +
           textControls +
-          renderWikiMiscPickerHtml() +
+          renderWikiAssetToolsHtml() +
           '<p class="muted">Use the small top handle to move blocks. Resize from any corner. Long text grows the box automatically.</p>' +
           '<div class="toolbar"><button class="danger" type="button" data-action="delete-wiki-block">Delete Block</button></div>' +
         '</aside>';
@@ -3350,7 +3448,6 @@ export function kellaDashboardHtml() {
             '<label>Title<input data-wiki="title" maxlength="120" placeholder="Roots of War Guide" value="' + escapeHtml(editing.title || "") + '" /></label>' +
             '<label>Status<select data-wiki="status"><option value="Published"' + optionSelected("Published", editing.status || "Published") + '>Published</option><option value="Draft"' + optionSelected("Draft", editing.status || "Published") + '>Draft</option></select></label>' +
           '</div>' +
-          '<div class="wiki-builder-toolbar"><button class="secondary" type="button" data-action="add-wiki-text">Add Text</button><button class="secondary" type="button" data-action="add-wiki-image">Add Picture</button><span class="muted">Use the small top handle to move blocks. Resize from any corner.</span></div>' +
           '<div class="wiki-builder">' +
             '<div class="wiki-canvas-wrap"><div class="wiki-page-canvas" data-wiki-canvas>' + renderWikiCanvasBlocks(true) + '</div></div>' +
             renderWikiInspectorHtml() +
@@ -4636,13 +4733,13 @@ export function kellaDashboardHtml() {
           document.querySelector("[data-wiki-block-image]")?.click();
           return;
         }
-        if (kind === "toggle-wiki-misc") {
-          const panel = action.closest(".wiki-misc-picker")?.querySelector("[data-wiki-misc-panel]");
+        if (kind === "toggle-wiki-asset-panel") {
+          const panel = action.closest(".wiki-misc-picker")?.querySelector("[data-wiki-asset-panel]");
           if (panel) panel.hidden = !panel.hidden;
           return;
         }
-        if (kind === "add-wiki-misc-image") {
-          insertWikiImageBlock(action.getAttribute("data-wiki-misc-image") || "");
+        if (kind === "add-wiki-asset-image") {
+          insertWikiImageBlock(action.getAttribute("data-wiki-asset-image") || "");
           toast("Image added to the wiki page.", "success");
           return;
         }
@@ -5088,9 +5185,9 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("dragstart", function(event) {
-        const tile = event.target.closest?.("[data-wiki-misc-image]");
+        const tile = event.target.closest?.("[data-wiki-asset-image]");
         if (!tile || !event.dataTransfer) return;
-        const src = tile.getAttribute("data-wiki-misc-image") || "";
+        const src = tile.getAttribute("data-wiki-asset-image") || "";
         if (!src) return;
         event.dataTransfer.effectAllowed = "copy";
         event.dataTransfer.setData("application/x-kella-wiki-image", src);
@@ -5109,7 +5206,8 @@ export function kellaDashboardHtml() {
         const canvas = event.target.closest?.("[data-wiki-canvas]");
         if (!canvas || !event.dataTransfer) return;
         const src = event.dataTransfer.getData("application/x-kella-wiki-image") || event.dataTransfer.getData("text/plain");
-        if (!src || !src.startsWith("/assets/wiki-misc/")) return;
+        const isWikiAsset = src.startsWith("/assets/wiki-misc/") || src.startsWith("/assets/wiki-heroes/");
+        if (!src || !isWikiAsset) return;
         event.preventDefault();
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.offsetWidth ? 760 / canvas.offsetWidth : 1;
