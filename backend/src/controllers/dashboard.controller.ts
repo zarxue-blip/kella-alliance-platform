@@ -394,6 +394,7 @@ function wikiBlocksDto(page: any) {
 
 function wikiPageDto(page: any) {
   const blocks = wikiBlocksDto(page);
+
   return {
     id: page._id.toString(),
     title: page.title || "Untitled Wiki",
@@ -839,7 +840,13 @@ function limitedHistory<T>(items: T[], limit?: number) {
   return items.slice(-limit);
 }
 
-function dashboardMemberDto(member: any, options: { historyLimit?: number; compact?: boolean } = {}) {
+function metricSubset(metrics: Record<string, number>, metricKey?: string) {
+  if (!metricKey) return metrics;
+  const value = metrics[metricKey];
+  return Number.isFinite(value) ? { [metricKey]: value } : {};
+}
+
+function dashboardMemberDto(member: any, options: { historyLimit?: number; compact?: boolean; metricKey?: string } = {}) {
   const powerHistory = (member.powerHistory || [])
     .map((entry: any) => ({
       date: entry.date,
@@ -852,7 +859,7 @@ function dashboardMemberDto(member: any, options: { historyLimit?: number; compa
   const statHistory = (member.statHistory || [])
     .map((entry: any) => ({
       date: entry.date,
-      metrics: sanitizeMetricMap(entry.metrics),
+      metrics: metricSubset(sanitizeMetricMap(entry.metrics), options.compact ? options.metricKey : undefined),
       source: entry.source || "",
       filename: entry.filename || ""
     }))
@@ -872,6 +879,11 @@ function dashboardMemberDto(member: any, options: { historyLimit?: number; compa
     }
   }
 
+  const responsePowerHistory = limitedHistory(powerHistory, options.historyLimit);
+  const responseStatHistory = options.compact && options.metricKey === "power"
+    ? []
+    : limitedHistory(statHistory.sort((left: any, right: any) => new Date(left.date).getTime() - new Date(right.date).getTime()), options.historyLimit);
+
   return {
     id: member._id.toString(),
     mainMemberId: member.mainMemberId?.toString?.() || member.mainMemberId || "",
@@ -889,8 +901,8 @@ function dashboardMemberDto(member: any, options: { historyLimit?: number; compa
     notes: options.compact ? "" : member.notes,
     alliance: member.alliance,
     power: member.power,
-    powerHistory: limitedHistory(powerHistory, options.historyLimit),
-    statHistory: limitedHistory(statHistory.sort((left: any, right: any) => new Date(left.date).getTime() - new Date(right.date).getTime()), options.historyLimit),
+    powerHistory: responsePowerHistory,
+    statHistory: responseStatHistory,
     timezone: options.compact ? "" : member.timezone,
     country: options.compact ? "" : member.country
   };
@@ -1334,6 +1346,7 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
   const allianceId = await resolveAllianceId();
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const dashboardView = req.query.view === "dashboard" || req.query.compact === "1";
+  const metricKey = typeof req.query.metric === "string" && /^[a-z][a-zA-Z0-9]*$/.test(req.query.metric) ? req.query.metric : "power";
   const requestedLimit = Number(req.query.limit || 0);
   const limit = dashboardView
     ? Math.max(50, Math.min(Number.isFinite(requestedLimit) && requestedLimit > 0 ? requestedLimit : 500, 500))
@@ -1369,7 +1382,7 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
   const members = (await memberQuery.lean()) as DashboardMember[];
 
   res.json({
-    members: members.map((member) => dashboardMemberDto(member, dashboardView ? { historyLimit: 10, compact: true } : {}))
+    members: members.map((member) => dashboardMemberDto(member, dashboardView ? { historyLimit: 10, compact: true, metricKey } : {}))
   });
 });
 

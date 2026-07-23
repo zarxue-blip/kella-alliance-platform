@@ -2279,7 +2279,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, reports: [], members: [], dashboardMembers: [], allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null };
+      const state = { summary: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null };
       const WIKI_CUSTOM_IMAGE_KEY = "kellaWikiCustomImages";
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
@@ -3277,9 +3277,11 @@ export function kellaDashboardHtml() {
       }
 
       async function loadDashboardMembers(force = false) {
-        if (state.dashboardMembers.length && !force) return state.dashboardMembers;
-        const data = await fetchJson("/api/dashboard/members?view=dashboard&limit=500");
+        const metric = state.statsMetric || "power";
+        if (state.dashboardMembers.length && state.dashboardMembersMetric === metric && !force) return state.dashboardMembers;
+        const data = await fetchJson("/api/dashboard/members?view=dashboard&limit=500&metric=" + encodeURIComponent(metric));
         state.dashboardMembers = data.members || [];
+        state.dashboardMembersMetric = metric;
         return state.dashboardMembers;
       }
 
@@ -5592,11 +5594,25 @@ export function kellaDashboardHtml() {
           if (!statMetricOptions.some(function(metric) { return metric.key === nextMetric; })) return;
           state.statsMetric = nextMetric;
           const openMemberId = memberModalContent?.dataset?.memberId || "";
+          if (location.pathname === "/") {
+            setLoading(action, true);
+            Promise.resolve()
+              .then(async function() {
+                const members = await loadDashboardMembers(true);
+                renderDashboardData(state.summary || {}, members, state.events || []);
+                if (openMemberId && memberModal?.classList.contains("open")) {
+                  const refreshed = findMemberById(openMemberId);
+                  if (refreshed) openMemberModal(refreshed);
+                }
+              })
+              .catch(function(error) { toast(error.message || "Could not load that stat.", "error"); })
+              .finally(function() { setLoading(action, false); });
+            return;
+          }
           if (openMemberId && memberModal?.classList.contains("open")) {
             const member = findMemberById(openMemberId) || (state.profile && String(state.profile.id) === String(openMemberId) ? state.profile : null);
             if (member) openMemberModal(member);
           }
-          if (location.pathname === "/") renderDashboardData(state.summary || {}, state.dashboardMembers || [], state.events || []);
           if (location.pathname === "/profile") renderProfile();
           return;
         }
