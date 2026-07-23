@@ -392,13 +392,15 @@ export function kellaDashboardHtml() {
         padding: 12px 14px;
         line-height: 1.35;
         white-space: pre-wrap;
-        overflow: hidden;
+        overflow: visible;
+        min-height: 48px;
       }
       .wiki-text-content {
         width: 100%;
-        height: 100%;
+        min-height: 100%;
         outline: none;
-        overflow: auto;
+        overflow: visible;
+        overflow-wrap: anywhere;
       }
       .wiki-image-block {
         padding: 8px;
@@ -434,13 +436,14 @@ export function kellaDashboardHtml() {
         font-weight: 1000;
       }
       .wiki-resize-handle {
-        right: -7px;
-        bottom: -7px;
         width: 18px;
         height: 18px;
         border-radius: 6px;
-        cursor: nwse-resize;
       }
+      .wiki-resize-nw { left: -7px; top: -7px; cursor: nwse-resize; }
+      .wiki-resize-ne { right: -7px; top: -7px; cursor: nesw-resize; }
+      .wiki-resize-sw { left: -7px; bottom: -7px; cursor: nesw-resize; }
+      .wiki-resize-se { right: -7px; bottom: -7px; cursor: nwse-resize; }
       .wiki-inspector {
         position: sticky;
         top: 12px;
@@ -485,9 +488,13 @@ export function kellaDashboardHtml() {
       .wiki-font-serif { font-family: Georgia, "Times New Roman", serif; }
       .wiki-font-sans { font-family: "Trebuchet MS", "Segoe UI", ui-sans-serif, system-ui, sans-serif; }
       .wiki-font-display { font-family: Georgia, "Palatino Linotype", "Times New Roman", serif; font-weight: 850; letter-spacing: 0.01em; }
+      .wiki-font-script { font-family: "Segoe Script", "Brush Script MT", cursive; }
+      .wiki-font-mono { font-family: Consolas, "Courier New", monospace; }
+      .wiki-font-cod { font-family: "Copperplate Gothic Bold", "Cinzel", Georgia, serif; font-weight: 900; letter-spacing: 0.03em; }
       .wiki-size-small { font-size: 15px; }
       .wiki-size-medium { font-size: 18px; }
       .wiki-size-large { font-size: 22px; }
+      .wiki-size-xlarge { font-size: 28px; }
       @media (max-width: 940px) {
         .wiki-builder { grid-template-columns: 1fr; }
         .wiki-inspector { position: static; }
@@ -2885,8 +2892,8 @@ export function kellaDashboardHtml() {
       }
 
       function wikiClass(page) {
-        const family = ["serif", "sans", "display"].includes(page?.fontFamily) ? page.fontFamily : "serif";
-        const size = ["small", "medium", "large"].includes(page?.fontSize) ? page.fontSize : "medium";
+        const family = ["serif", "sans", "display", "script", "mono", "cod"].includes(page?.fontFamily) ? page.fontFamily : "serif";
+        const size = ["small", "medium", "large", "xlarge"].includes(page?.fontSize) ? page.fontSize : "medium";
         return "wiki-font-" + family + " wiki-size-" + size;
       }
 
@@ -2903,12 +2910,16 @@ export function kellaDashboardHtml() {
       function wikiFontSizePx(size) {
         if (size === "small") return 18;
         if (size === "large") return 36;
+        if (size === "xlarge") return 48;
         return 24;
       }
 
       function wikiFontCss(family) {
         if (family === "sans") return '"Trebuchet MS", "Segoe UI", ui-sans-serif, system-ui, sans-serif';
         if (family === "display") return 'Georgia, "Palatino Linotype", "Times New Roman", serif';
+        if (family === "script") return '"Segoe Script", "Brush Script MT", cursive';
+        if (family === "mono") return 'Consolas, "Courier New", monospace';
+        if (family === "cod") return '"Copperplate Gothic Bold", "Cinzel", Georgia, serif';
         return 'Georgia, "Times New Roman", serif';
       }
 
@@ -2923,8 +2934,8 @@ export function kellaDashboardHtml() {
           y: wikiClamp(block?.y, 0, 1240),
           width: wikiClamp(block?.width, 80, 720),
           height: wikiClamp(block?.height, type === "image" ? 80 : 48, 900),
-          fontFamily: ["serif", "sans", "display"].includes(block?.fontFamily) ? block.fontFamily : "serif",
-          fontSize: ["small", "medium", "large"].includes(block?.fontSize) ? block.fontSize : "medium",
+          fontFamily: ["serif", "sans", "display", "script", "mono", "cod"].includes(block?.fontFamily) ? block.fontFamily : "serif",
+          fontSize: ["small", "medium", "large", "xlarge"].includes(block?.fontSize) ? block.fontSize : "medium",
           color: /^#[0-9a-fA-F]{6}$/.test(block?.color || "") ? block.color : "#3f2a13",
           align: ["left", "center", "right"].includes(block?.align) ? block.align : "left"
         };
@@ -2941,8 +2952,8 @@ export function kellaDashboardHtml() {
           fallback.push(sanitizeWikiBlock({ id: wikiBlockId(), type: "text", text: page.body, x: 90, y: page.imageDataUrl ? 385 : 130, width: 580, height: page.imageDataUrl ? 360 : 420, fontFamily: page.fontFamily, fontSize: page.fontSize }));
         }
         if (!fallback.length) {
-          fallback.push(sanitizeWikiBlock({ id: wikiBlockId(), type: "text", text: "Kella Tips & Tricks", x: 250, y: 90, width: 360, height: 80, fontFamily: "display", fontSize: "large", align: "center", color: "#ffffff" }));
-          fallback.push(sanitizeWikiBlock({ id: wikiBlockId(), type: "text", text: "Write the guide here. Drag blocks around, add pictures, and make it readable for the alliance.", x: 90, y: 220, width: 580, height: 160, fontFamily: "serif", fontSize: "medium" }));
+          fallback.push(sanitizeWikiBlock({ id: wikiBlockId(), type: "text", text: "Kella Tips & Tricks", x: 90, y: 90, width: 580, height: 92, fontFamily: "display", fontSize: "large", align: "center", color: "#3f2a13" }));
+          fallback.push(sanitizeWikiBlock({ id: wikiBlockId(), type: "text", text: "Write the guide here. Drag blocks around, add pictures, and make it readable for the alliance.", x: 90, y: 220, width: 580, height: 160, fontFamily: "serif", fontSize: "medium", align: "left" }));
         }
         return fallback;
       }
@@ -2956,6 +2967,24 @@ export function kellaDashboardHtml() {
           const id = node.closest("[data-wiki-block]")?.getAttribute("data-wiki-block") || "";
           const block = state.wikiBlocks.find(function(item) { return item.id === id; });
           if (block) block.text = node.textContent || "";
+        });
+      }
+
+      function autoFitWikiTextBlock(block, contentNode) {
+        if (!block || block.type !== "text" || !contentNode) return;
+        const blockEl = contentNode.closest("[data-wiki-block]");
+        const needed = wikiClamp(contentNode.scrollHeight + 30, 48, 980 - block.y);
+        if (needed > block.height) {
+          block.height = needed;
+          if (blockEl) blockEl.style.height = block.height + "px";
+        }
+      }
+
+      function autoFitWikiTextBlocksFromDom() {
+        document.querySelectorAll("[data-wiki-text-content]").forEach(function(node) {
+          const id = node.closest("[data-wiki-block]")?.getAttribute("data-wiki-block") || "";
+          const block = state.wikiBlocks.find(function(item) { return item.id === id; });
+          autoFitWikiTextBlock(block, node);
         });
       }
 
@@ -2992,15 +3021,34 @@ export function kellaDashboardHtml() {
         '</div>';
       }
 
+      function renderWikiBlockEditorHtml(rawBlock, editable) {
+        const block = sanitizeWikiBlock(rawBlock);
+        const selected = editable && String(block.id) === String(state.selectedWikiBlockId);
+        const classes = "wiki-block " + (block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (selected ? " selected" : "");
+        const handles = editable
+          ? '<button class="wiki-drag-handle" type="button" data-wiki-drag-handle title="Drag block">Move</button><span class="wiki-resize-handle wiki-resize-nw" data-wiki-resize-handle data-resize-corner="nw" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-ne" data-wiki-resize-handle data-resize-corner="ne" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-sw" data-wiki-resize-handle data-resize-corner="sw" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-se" data-wiki-resize-handle data-resize-corner="se" title="Resize from corner"></span>'
+          : "";
+        if (block.type === "image") {
+          const image = block.imageDataUrl
+            ? '<img src="' + escapeHtml(block.imageDataUrl) + '" alt="Wiki image" />'
+            : '<div class="empty">Choose an image.</div>';
+          return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyle(block) + '">' + image + handles + '</div>';
+        }
+        return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyle(block) + '">' +
+          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + escapeHtml(block.text || "Write here...") + '</div>' +
+          handles +
+        '</div>';
+      }
+
       function renderWikiCanvasBlocks(editable) {
-        return (state.wikiBlocks || []).map(function(block) { return renderWikiBlockHtml(block, editable); }).join("");
+        return (state.wikiBlocks || []).map(function(block) { return renderWikiBlockEditorHtml(block, editable); }).join("");
       }
 
       function wikiArticleMarkup(page, includeTitle = true) {
         const blocks = defaultWikiBlocks(page);
         return '<article class="wiki-reader ' + wikiClass(page) + '">' +
           (includeTitle ? '<h2>' + escapeHtml(page?.title || "Kella Wiki") + '</h2>' : "") +
-          '<div class="wiki-reader-page">' + blocks.map(function(block) { return renderWikiBlockHtml(block, false); }).join("") + '</div>' +
+          '<div class="wiki-reader-page">' + blocks.map(function(block) { return renderWikiBlockEditorHtml(block, false); }).join("") + '</div>' +
         '</article>';
       }
 
@@ -3025,18 +3073,15 @@ export function kellaDashboardHtml() {
           return '<aside class="wiki-inspector" data-wiki-inspector><h4>Style</h4><p class="muted">Add a text or picture block to start designing the page.</p></aside>';
         }
         const textControls = block.type === "text"
-          ? '<label>Font<select data-wiki-block-style="fontFamily"><option value="serif"' + optionSelected("serif", block.fontFamily) + '>Old paper serif</option><option value="sans"' + optionSelected("sans", block.fontFamily) + '>Clean readable</option><option value="display"' + optionSelected("display", block.fontFamily) + '>Alliance title</option></select></label>' +
-            '<label>Text Size<select data-wiki-block-style="fontSize"><option value="small"' + optionSelected("small", block.fontSize) + '>Small</option><option value="medium"' + optionSelected("medium", block.fontSize) + '>Medium</option><option value="large"' + optionSelected("large", block.fontSize) + '>Large</option></select></label>' +
+          ? '<label>Font<select data-wiki-block-style="fontFamily"><option value="serif"' + optionSelected("serif", block.fontFamily) + '>Old paper serif</option><option value="sans"' + optionSelected("sans", block.fontFamily) + '>Clean readable</option><option value="display"' + optionSelected("display", block.fontFamily) + '>Alliance title</option><option value="script"' + optionSelected("script", block.fontFamily) + '>Royal script</option><option value="cod"' + optionSelected("cod", block.fontFamily) + '>Dragon title</option><option value="mono"' + optionSelected("mono", block.fontFamily) + '>Tactical mono</option></select></label>' +
+            '<label>Text Size<select data-wiki-block-style="fontSize"><option value="small"' + optionSelected("small", block.fontSize) + '>Small</option><option value="medium"' + optionSelected("medium", block.fontSize) + '>Medium</option><option value="large"' + optionSelected("large", block.fontSize) + '>Large</option><option value="xlarge"' + optionSelected("xlarge", block.fontSize) + '>Extra Large</option></select></label>' +
             '<label>Align<select data-wiki-block-style="align"><option value="left"' + optionSelected("left", block.align) + '>Left</option><option value="center"' + optionSelected("center", block.align) + '>Center</option><option value="right"' + optionSelected("right", block.align) + '>Right</option></select></label>' +
             '<label>Color<input type="color" data-wiki-block-style="color" value="' + escapeHtml(block.color) + '" /></label>'
-          : '<button class="secondary" type="button" data-action="change-wiki-image">Change Picture</button><p class="muted">Drag the picture on the page, then resize it from the corner.</p>';
+          : '<button class="secondary" type="button" data-action="change-wiki-image">Change Picture</button><p class="muted">Drag the picture on the page, then resize it from any corner.</p>';
         return '<aside class="wiki-inspector" data-wiki-inspector>' +
           '<h4>Style</h4><p class="muted">' + (block.type === "image" ? "Picture block selected." : "Text block selected.") + '</p>' +
           textControls +
-          '<label>X Position<input type="number" data-wiki-block-style="x" value="' + block.x + '" /></label>' +
-          '<label>Y Position<input type="number" data-wiki-block-style="y" value="' + block.y + '" /></label>' +
-          '<label>Width<input type="number" data-wiki-block-style="width" value="' + block.width + '" /></label>' +
-          '<label>Height<input type="number" data-wiki-block-style="height" value="' + block.height + '" /></label>' +
+          '<p class="muted">Move with the handle. Resize from any corner. Long text grows the box automatically.</p>' +
           '<div class="toolbar"><button class="danger" type="button" data-action="delete-wiki-block">Delete Block</button></div>' +
         '</aside>';
       }
@@ -3047,14 +3092,14 @@ export function kellaDashboardHtml() {
         state.selectedWikiBlockId = state.wikiBlocks[0]?.id || "";
         const title = editing.id ? "Edit Wiki Page" : "Create Wiki Page";
         return '<section class="card wiki-editor" data-wiki-editor>' +
-          '<div class="card-header"><div><h3>' + title + '</h3><span class="muted">Design a readable guide like a mini Pages document. Add text, drop pictures, drag blocks, and save.</span></div><div class="toolbar"><button class="secondary" type="button" data-action="clear-wiki-form">New Page</button><button class="primary" type="button" data-action="save-wiki-page">' + (editing.id ? "Save Changes" : "Publish Wiki") + '</button></div></div>' +
+          '<div class="card-header"><div><h3>' + title + '</h3><span class="muted">Design a readable guide like a mini Pages document. Add text, drop pictures, drag blocks, and save.</span></div><div class="toolbar"><button class="secondary" type="button" data-link-button="/tools">Tools</button><button class="secondary" type="button" data-action="clear-wiki-form">New Page</button><button class="primary" type="button" data-action="save-wiki-page">' + (editing.id ? "Save Changes" : "Publish Wiki") + '</button></div></div>' +
           '<input type="hidden" data-wiki="id" value="' + escapeHtml(editing.id || "") + '" />' +
           '<input type="file" data-wiki-block-image accept="image/png,image/jpeg,image/webp" style="display:none" />' +
           '<div class="form-grid">' +
             '<label>Title<input data-wiki="title" maxlength="120" placeholder="Roots of War Guide" value="' + escapeHtml(editing.title || "") + '" /></label>' +
             '<label>Status<select data-wiki="status"><option value="Published"' + optionSelected("Published", editing.status || "Published") + '>Published</option><option value="Draft"' + optionSelected("Draft", editing.status || "Published") + '>Draft</option></select></label>' +
           '</div>' +
-          '<div class="wiki-builder-toolbar"><button class="secondary" type="button" data-action="add-wiki-text">Add Text</button><button class="secondary" type="button" data-action="add-wiki-image">Add Picture</button><span class="muted">Tip: use the small round handle to drag text blocks.</span></div>' +
+          '<div class="wiki-builder-toolbar"><button class="secondary" type="button" data-action="add-wiki-text">Add Text</button><button class="secondary" type="button" data-action="add-wiki-image">Add Picture</button><button class="secondary" type="button" data-link-button="/tools">Open Tools</button><span class="muted">Move with the handle. Resize any block from its corners.</span></div>' +
           '<div class="wiki-builder">' +
             '<div class="wiki-canvas-wrap"><div class="wiki-page-canvas" data-wiki-canvas>' + renderWikiCanvasBlocks(true) + '</div></div>' +
             renderWikiInspectorHtml() +
@@ -3089,6 +3134,7 @@ export function kellaDashboardHtml() {
 
       async function wikiPayload() {
         syncWikiTextFromDom();
+        autoFitWikiTextBlocksFromDom();
         const values = readWikiFormValues();
         const blocks = (state.wikiBlocks || []).map(sanitizeWikiBlock);
         const body = blocks.filter(function(block) { return block.type === "text"; }).map(function(block) { return (block.text || "").trim(); }).filter(Boolean).join("\\n\\n");
@@ -3110,6 +3156,7 @@ export function kellaDashboardHtml() {
         const inspector = document.querySelector("[data-wiki-inspector]");
         if (canvas) canvas.innerHTML = renderWikiCanvasBlocks(true);
         if (inspector) inspector.outerHTML = renderWikiInspectorHtml();
+        requestAnimationFrame(autoFitWikiTextBlocksFromDom);
       }
 
       function openWikiPage(page) {
@@ -3130,7 +3177,7 @@ export function kellaDashboardHtml() {
         skeleton("Loading wiki...");
         try {
           const pages = await loadWiki();
-          const actions = '<button class="secondary" data-action="copy-command" data-value="/wiki-admin">Copy /wiki-admin</button>' + (hasAdminAccess() ? '<button class="primary" data-action="clear-wiki-form">Create Wiki</button>' : '<button class="primary" data-action="discord-login">Login to edit</button>');
+          const actions = '<button class="secondary" data-action="copy-command" data-value="/wiki-admin">Copy /wiki-admin</button>' + (hasAdminAccess() ? '<button class="secondary" data-link-button="/tools">Tools</button><button class="primary" data-action="clear-wiki-form">Create Wiki</button>' : '<button class="primary" data-action="discord-login">Login to edit</button>');
           app.innerHTML =
             pageHeader("Kella Wiki", "Member-readable alliance rules, event guides, and officer notes in one clean library.", actions) +
             (hasAdminAccess() ? renderWikiEditor() : '<section class="card"><div class="card-header"><div><h3>Read Alliance Wiki</h3><span class="muted">Members can read published pages here. Admins can log in to create or edit wiki pages.</span></div></div></section>') +
@@ -4745,6 +4792,7 @@ export function kellaDashboardHtml() {
         state.wikiDrag = {
           id,
           mode: isResize ? "resize" : "move",
+          corner: event.target.closest("[data-wiki-resize-handle]")?.getAttribute("data-resize-corner") || "se",
           startX: event.clientX,
           startY: event.clientY,
           baseX: block.x,
@@ -4764,8 +4812,38 @@ export function kellaDashboardHtml() {
         const dx = event.clientX - drag.startX;
         const dy = event.clientY - drag.startY;
         if (drag.mode === "resize") {
-          block.width = wikiClamp(drag.baseWidth + dx, 80, 760 - block.x);
-          block.height = wikiClamp(drag.baseHeight + dy, block.type === "image" ? 80 : 48, 980 - block.y);
+          const minWidth = 80;
+          const minHeight = block.type === "image" ? 80 : 48;
+          let nextX = drag.baseX;
+          let nextY = drag.baseY;
+          let nextWidth = drag.baseWidth;
+          let nextHeight = drag.baseHeight;
+          if (drag.corner.includes("e")) nextWidth = drag.baseWidth + dx;
+          if (drag.corner.includes("s")) nextHeight = drag.baseHeight + dy;
+          if (drag.corner.includes("w")) {
+            nextX = drag.baseX + dx;
+            nextWidth = drag.baseWidth - dx;
+          }
+          if (drag.corner.includes("n")) {
+            nextY = drag.baseY + dy;
+            nextHeight = drag.baseHeight - dy;
+          }
+          if (nextWidth < minWidth) {
+            if (drag.corner.includes("w")) nextX -= minWidth - nextWidth;
+            nextWidth = minWidth;
+          }
+          if (nextHeight < minHeight) {
+            if (drag.corner.includes("n")) nextY -= minHeight - nextHeight;
+            nextHeight = minHeight;
+          }
+          nextX = wikiClamp(nextX, 0, 760 - minWidth);
+          nextY = wikiClamp(nextY, 0, 980 - minHeight);
+          nextWidth = wikiClamp(nextWidth, minWidth, 760 - nextX);
+          nextHeight = wikiClamp(nextHeight, minHeight, 980 - nextY);
+          block.x = nextX;
+          block.y = nextY;
+          block.width = nextWidth;
+          block.height = nextHeight;
         } else {
           block.x = wikiClamp(drag.baseX + dx, 0, 760 - block.width);
           block.y = wikiClamp(drag.baseY + dy, 0, 980 - block.height);
@@ -4877,7 +4955,10 @@ export function kellaDashboardHtml() {
         if (event.target.matches("[data-wiki-text-content]")) {
           const id = event.target.closest("[data-wiki-block]")?.getAttribute("data-wiki-block") || "";
           const block = state.wikiBlocks.find(function(item) { return item.id === id; });
-          if (block) block.text = event.target.textContent || "";
+          if (block) {
+            block.text = event.target.textContent || "";
+            autoFitWikiTextBlock(block, event.target);
+          }
         }
         if (event.target.matches("[data-wiki-block-style]")) {
           const block = selectedWikiBlock();
@@ -4891,6 +4972,7 @@ export function kellaDashboardHtml() {
           }
           Object.assign(block, sanitizeWikiBlock(block));
           refreshWikiBuilder();
+          requestAnimationFrame(autoFitWikiTextBlocksFromDom);
         }
         if (event.target.matches("[data-embed]")) updateEmbedPreview();
         if (event.target.matches("[data-avatar-zoom]")) setAvatarZoom(event.target.value);
