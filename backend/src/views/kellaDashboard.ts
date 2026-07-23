@@ -476,6 +476,40 @@ export function kellaDashboardHtml() {
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         gap: 14px;
       }
+      .wiki-search-card {
+        margin-bottom: 16px;
+        padding: 16px;
+      }
+      .wiki-search-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+      }
+      .wiki-search-row input {
+        width: 100%;
+        min-height: 46px;
+        border-radius: 14px;
+        border: 1px solid rgba(121, 82, 33, 0.32);
+        background: rgba(255, 248, 221, 0.78);
+        color: #2f1b09;
+        font-weight: 800;
+        padding: 0 14px;
+      }
+      .wiki-search-row input:focus {
+        border-color: rgba(190, 123, 24, 0.78);
+        box-shadow: 0 0 0 3px rgba(255, 214, 90, 0.22);
+        outline: none;
+      }
+      .wiki-search-count {
+        min-width: 112px;
+        color: #68491f;
+        font-size: 12px;
+        font-weight: 1000;
+        text-align: right;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
       .wiki-card {
         min-height: 220px;
         display: flex;
@@ -658,18 +692,18 @@ export function kellaDashboardHtml() {
       .wiki-resize-se { right: -7px; bottom: -7px; cursor: nwse-resize; }
       .wiki-inspector {
         display: grid;
-        grid-template-columns: auto minmax(280px, 1fr) minmax(360px, 0.9fr) auto;
-        gap: 8px;
-        align-items: end;
+        grid-template-columns: auto minmax(330px, 1fr) minmax(420px, 0.95fr) auto;
+        gap: 10px;
+        align-items: stretch;
         border-radius: 18px;
         border: 1px solid rgba(121, 82, 33, 0.34);
-        padding: 10px 12px;
+        padding: 12px;
         margin: 14px 0 16px;
         background: linear-gradient(180deg, rgba(255, 246, 214, 0.96), rgba(230, 193, 112, 0.82));
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.42);
       }
       .wiki-inspector--empty {
-        grid-template-columns: auto minmax(340px, 560px);
+        grid-template-columns: auto minmax(420px, 620px);
         justify-content: start;
       }
       .wiki-inspector h4 {
@@ -679,10 +713,20 @@ export function kellaDashboardHtml() {
         line-height: 1;
       }
       .wiki-style-head {
-        align-self: end;
-        min-width: 64px;
+        align-self: center;
+        display: grid;
+        gap: 2px;
+        min-width: 72px;
       }
-      .wiki-style-head p,
+      .wiki-style-head p {
+        display: block;
+        margin: 0;
+        color: #76552e;
+        font-size: 11px;
+        font-weight: 1000;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
       .wiki-style-note {
         display: none;
       }
@@ -690,21 +734,29 @@ export function kellaDashboardHtml() {
         display: grid;
         grid-template-columns: repeat(4, minmax(76px, 1fr));
         gap: 6px;
-        align-items: end;
+        align-items: stretch;
+        padding: 8px;
+        border-radius: 14px;
+        background: rgba(255, 248, 221, 0.38);
+        border: 1px solid rgba(121, 82, 33, 0.16);
       }
       .wiki-style-controls--picture {
-        grid-template-columns: minmax(140px, 190px);
+        grid-template-columns: minmax(160px, 1fr);
       }
       .wiki-style-actions {
         align-self: stretch;
         display: grid;
-        align-content: end;
+        align-content: stretch;
         min-width: 0;
+        padding: 8px;
+        border-radius: 14px;
+        background: rgba(255, 248, 221, 0.38);
+        border: 1px solid rgba(121, 82, 33, 0.16);
       }
       .wiki-delete-row {
         display: flex;
         justify-content: flex-end;
-        align-items: end;
+        align-items: stretch;
       }
       .wiki-inspector label {
         display: grid;
@@ -725,19 +777,21 @@ export function kellaDashboardHtml() {
       }
       .wiki-image-tool-row {
         display: grid;
-        grid-template-columns: repeat(4, minmax(74px, 1fr));
+        grid-template-columns: repeat(4, minmax(82px, 1fr));
         gap: 6px;
       }
       .wiki-add-block-row {
         display: grid;
-        grid-template-columns: repeat(2, minmax(82px, 1fr));
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
         gap: 6px;
       }
       .wiki-add-block-row .secondary {
         width: 100%;
       }
       .wiki-delete-row .danger {
-        min-height: 36px;
+        min-height: 100%;
+        padding-left: 14px;
+        padding-right: 14px;
         white-space: nowrap;
       }
       .wiki-misc-picker {
@@ -1910,6 +1964,7 @@ export function kellaDashboardHtml() {
         .wiki-style-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .wiki-style-controls--picture { grid-template-columns: 1fr; }
         .wiki-delete-row { justify-content: flex-start; }
+        .wiki-delete-row .danger { min-height: 42px; width: 100%; }
         .calendar-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         .event-calendar .calendar-day,
         .attendance-calendar-card .event-calendar .calendar-day { min-height: 150px; }
@@ -2009,6 +2064,8 @@ export function kellaDashboardHtml() {
         .profile-stats { grid-template-columns: 1fr; }
         .modal-close { top: 10px; right: 10px; }
         .wiki-builder-toolbar .muted { flex-basis: 100%; }
+        .wiki-search-row { grid-template-columns: 1fr; }
+        .wiki-search-count { text-align: left; }
         .wiki-canvas-wrap { width: 100%; max-height: none; padding: 12px; margin: 0 -4px; }
         .wiki-page-canvas,
         .wiki-reader-page { width: 720px; max-width: none; }
@@ -2104,7 +2161,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, reports: [], members: [], allMembers: [], alerts: [], events: [], complaints: [], wiki: null, uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null };
+      const state = { summary: null, reports: [], members: [], allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null };
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
       const wikiMiscImages = ${JSON.stringify(wikiMiscImages)};
@@ -3609,6 +3666,61 @@ export function kellaDashboardHtml() {
         '</article>';
       }
 
+      function wikiSearchText(page) {
+        const blockText = Array.isArray(page?.blocks)
+          ? page.blocks.map(function(block) {
+              return [block.text, block.label, block.caption].filter(Boolean).join(" ");
+            }).join(" ")
+          : "";
+        return [
+          page?.title,
+          page?.body,
+          wikiExcerpt(page),
+          blockText,
+          page?.status
+        ].filter(Boolean).join(" ").toLowerCase();
+      }
+
+      function filteredWikiPages(pages, query) {
+        const term = String(query || "").trim().toLowerCase();
+        if (!term) return pages || [];
+        return (pages || []).filter(function(page) {
+          return wikiSearchText(page).includes(term);
+        });
+      }
+
+      function wikiResultsHtml(pages, query) {
+        const matches = filteredWikiPages(pages, query);
+        if (!pages.length) return empty("No wiki pages yet. Admins can create the first guide from this page.");
+        if (!matches.length) return empty("No wiki pages match that search.");
+        return matches.map(wikiCard).join("");
+      }
+
+      function wikiSearchCountText(pages, query) {
+        const matches = filteredWikiPages(pages, query);
+        return String(query || "").trim() ? matches.length + " found" : (pages || []).length + " pages";
+      }
+
+      function renderWikiLibrary(pages) {
+        const query = state.wikiSearch || "";
+        return '<section class="card wiki-search-card">' +
+          '<div class="wiki-search-row">' +
+            '<input data-wiki-search value="' + escapeHtml(query) + '" placeholder="Search wiki guides, events, rules, heroes..." aria-label="Search wiki pages" />' +
+            '<span class="wiki-search-count" data-wiki-search-count>' + escapeHtml(wikiSearchCountText(pages, query)) + '</span>' +
+          '</div>' +
+        '</section>' +
+        '<section class="wiki-grid" data-wiki-results>' + wikiResultsHtml(pages, query) + '</section>';
+      }
+
+      function refreshWikiResults() {
+        const pages = state.wiki || [];
+        const query = state.wikiSearch || "";
+        const results = document.querySelector("[data-wiki-results]");
+        const count = document.querySelector("[data-wiki-search-count]");
+        if (results) results.innerHTML = wikiResultsHtml(pages, query);
+        if (count) count.textContent = wikiSearchCountText(pages, query);
+      }
+
       function optionSelected(value, selected) {
         return value === selected ? " selected" : "";
       }
@@ -3632,7 +3744,7 @@ export function kellaDashboardHtml() {
             renderWikiAssetPickerHtml("Hero", wikiHeroImages, "hero") +
             renderWikiAssetPickerHtml("Artifacts", wikiArtifactImages, "artifact") +
             renderWikiAssetPickerHtml("Marker", wikiMarkerImages, "marker") +
-            renderWikiAssetPickerHtml("Misc Images", wikiMiscImages, "misc") +
+            renderWikiAssetPickerHtml("Misc", wikiMiscImages, "misc") +
           '</div>' +
           '<div class="wiki-add-block-row">' +
             '<button class="secondary" type="button" data-action="add-wiki-text">Add Text</button>' +
@@ -3645,7 +3757,7 @@ export function kellaDashboardHtml() {
         const block = selectedWikiBlock();
         if (!block) {
           return '<section class="wiki-inspector wiki-inspector--empty" data-wiki-inspector>' +
-            '<div class="wiki-style-head"><h4>Style</h4></div>' +
+            '<div class="wiki-style-head"><h4>Style</h4><p>Add blocks</p></div>' +
             '<div class="wiki-style-actions">' + renderWikiAssetToolsHtml() + '</div>' +
           '</section>';
         }
@@ -3656,7 +3768,7 @@ export function kellaDashboardHtml() {
             '<label>Color<input type="color" data-wiki-block-style="color" value="' + escapeHtml(block.color) + '" /></label></div>'
           : '<div class="wiki-style-controls wiki-style-controls--picture"><button class="secondary" type="button" data-action="change-wiki-image">Change Picture</button></div>';
         return '<section class="wiki-inspector" data-wiki-inspector>' +
-          '<div class="wiki-style-head"><h4>Style</h4></div>' +
+          '<div class="wiki-style-head"><h4>Style</h4><p>' + (block.type === "text" ? "Text block" : "Picture block") + '</p></div>' +
           textControls +
           '<div class="wiki-style-actions">' + renderWikiAssetToolsHtml() + '</div>' +
           '<div class="wiki-delete-row"><button class="danger" type="button" data-action="delete-wiki-block">Delete Block</button></div>' +
@@ -3807,8 +3919,8 @@ export function kellaDashboardHtml() {
           const actions = hasAdminAccess() ? '<button class="primary" data-action="clear-wiki-form">Create Wiki</button>' : "";
           app.innerHTML =
             pageHeader("Kella Wiki", "Member-readable alliance rules, event guides, and officer notes in one clean library.", actions) +
-            (hasAdminAccess() ? renderWikiEditor() : '<section class="card"><div class="card-header"><div><h3>Read Alliance Wiki</h3><span class="muted">Members can read published pages here. Admins can log in to create or edit wiki pages.</span></div></div></section>') +
-            '<section class="wiki-grid">' + (pages.length ? pages.map(wikiCard).join("") : empty("No wiki pages yet. Admins can create the first guide from this page.")) + '</section>';
+            (hasAdminAccess() ? renderWikiEditor() : "") +
+            renderWikiLibrary(pages);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load wiki. ' + escapeHtml(error.message) + '</div>';
         }
@@ -5615,6 +5727,11 @@ export function kellaDashboardHtml() {
           const table = renderMembersTable(members);
           const current = app.querySelector(".table-wrap, .empty");
           if (current) current.outerHTML = table;
+        }
+        if (event.target.matches("[data-wiki-search]")) {
+          state.wikiSearch = event.target.value || "";
+          refreshWikiResults();
+          return;
         }
         if (event.target.matches("[data-admin-member-main-search]")) {
           const root = event.target.closest("[data-admin-member-form]");
