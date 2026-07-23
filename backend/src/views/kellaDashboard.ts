@@ -4007,6 +4007,36 @@ export function kellaDashboardHtml() {
         return custom.concat(images || []);
       }
 
+      function wikiBaseImagesForKind(kind) {
+        if (kind === "hero") return wikiHeroImages;
+        if (kind === "artifact") return wikiArtifactImages;
+        if (kind === "marker") return wikiMarkerImages;
+        if (kind === "pet") return wikiPetImages;
+        return wikiMiscImages;
+      }
+
+      function wikiAssetTileHtml(image, kind) {
+        const safeKind = kind || "misc";
+        const tileClass = "wiki-misc-tile wiki-misc-tile--" + safeKind;
+        return '<button class="' + tileClass + '" type="button" draggable="true" data-action="add-wiki-asset-image" data-wiki-asset-label="' + escapeHtml(image.label || "") + '" data-wiki-asset-image="' + escapeHtml(image.src) + '" title="Drag or click to add ' + escapeHtml(image.label) + '">' +
+          '<img src="' + escapeHtml(image.src) + '" alt="" loading="lazy" decoding="async" />' +
+          '<span>' + escapeHtml(image.label) + '</span>' +
+        '</button>';
+      }
+
+      function hydrateWikiAssetPanel(panel) {
+        if (!panel || panel.getAttribute("data-wiki-asset-loaded") === "true") return;
+        const kind = panel.getAttribute("data-wiki-asset-kind") || "misc";
+        const tiles = panel.querySelector("[data-wiki-asset-tiles]");
+        if (!tiles) return;
+        tiles.innerHTML = wikiAssetImagesForKind(wikiBaseImagesForKind(kind), kind).map(function(image) {
+          return wikiAssetTileHtml(image, kind);
+        }).join("");
+        panel.setAttribute("data-wiki-asset-loaded", "true");
+        const input = panel.querySelector("[data-wiki-asset-search]");
+        if (input) filterWikiAssetPanel(input);
+      }
+
       function renderWikiAssetPickerHtml(label, images, kind) {
         const safeKind = kind || "misc";
         const panelClass = "wiki-misc-panel wiki-misc-panel--" + safeKind;
@@ -4016,13 +4046,7 @@ export function kellaDashboardHtml() {
           '<span class="wiki-upload-plus">+</span>' +
           '<span>Upload</span>' +
         '</button>';
-        const tiles = wikiAssetImagesForKind(images, safeKind).map(function(image) {
-          return '<button class="' + tileClass + '" type="button" draggable="true" data-action="add-wiki-asset-image" data-wiki-asset-label="' + escapeHtml(image.label || "") + '" data-wiki-asset-image="' + escapeHtml(image.src) + '" title="Drag or click to add ' + escapeHtml(image.label) + '">' +
-            '<img src="' + escapeHtml(image.src) + '" alt="" loading="lazy" />' +
-            '<span>' + escapeHtml(image.label) + '</span>' +
-          '</button>';
-        }).join("");
-        return '<div class="wiki-misc-picker"><button class="secondary" type="button" data-action="toggle-wiki-asset-panel">' + escapeHtml(label) + '</button><div class="' + panelClass + '" data-wiki-asset-panel hidden>' + search + upload + tiles + '<div class="wiki-asset-empty" data-wiki-asset-empty hidden>No matching pictures.</div></div></div>';
+        return '<div class="wiki-misc-picker"><button class="secondary" type="button" data-action="toggle-wiki-asset-panel">' + escapeHtml(label) + '</button><div class="' + panelClass + '" data-wiki-asset-panel data-wiki-asset-kind="' + escapeHtml(safeKind) + '" data-wiki-asset-loaded="false" hidden>' + search + upload + '<div data-wiki-asset-tiles></div><div class="wiki-asset-empty" data-wiki-asset-empty hidden>No matching pictures.</div></div></div>';
       }
 
       function renderWikiAssetToolsHtml() {
@@ -5522,7 +5546,10 @@ export function kellaDashboardHtml() {
             const shouldOpen = panel.hidden;
             closeWikiAssetPanels(picker);
             panel.hidden = !shouldOpen;
-            if (!panel.hidden) panel.querySelector("[data-wiki-asset-search]")?.focus();
+            if (!panel.hidden) {
+              hydrateWikiAssetPanel(panel);
+              panel.querySelector("[data-wiki-asset-search]")?.focus();
+            }
           }
           return;
         }
@@ -6226,6 +6253,7 @@ export function kellaDashboardHtml() {
 
       document.addEventListener("input", async function(event) {
         if (event.target.matches("[data-wiki-asset-search]")) {
+          hydrateWikiAssetPanel(event.target.closest("[data-wiki-asset-panel]"));
           filterWikiAssetPanel(event.target);
           return;
         }
