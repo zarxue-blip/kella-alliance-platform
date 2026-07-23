@@ -281,6 +281,12 @@ export function kellaDashboardHtml() {
       .profile-top-button span { display: grid; gap: 1px; line-height: 1.1; }
       .profile-top-button strong { font-size: 13px; }
       .profile-top-button em { color: #725736; font-size: 11px; font-style: normal; font-weight: 850; white-space: nowrap; }
+      .feedback-top-button {
+        min-width: 178px;
+        border-color: rgba(166, 105, 35, 0.34);
+        background: linear-gradient(180deg, rgba(255, 246, 211, 0.98), rgba(228, 179, 89, 0.72));
+      }
+      .feedback-top-button img { filter: drop-shadow(0 4px 7px rgba(106, 61, 18, 0.22)); }
       .content { padding: 24px 20px 28px; }
       .guild { display: flex; align-items: center; gap: 14px; }
       .avatar {
@@ -497,6 +503,7 @@ export function kellaDashboardHtml() {
         box-shadow: 0 0 12px rgba(34, 159, 92, 0.36);
       }
       .event-calendar .calendar-day { min-height: 148px; }
+      .attendance-calendar-card .event-calendar .calendar-day { min-height: 172px; }
       .calendar-detail-list { display: grid; gap: 12px; margin-top: 16px; }
       .calendar-detail-card {
         border: 1px solid rgba(92, 55, 18, 0.16);
@@ -507,6 +514,61 @@ export function kellaDashboardHtml() {
       .calendar-detail-card h3 { font-size: 18px; margin-top: 7px; }
       .calendar-detail-card p { margin: 8px 0 0; color: #5f4729; }
       .calendar-detail-card .activity-time { margin-top: 6px; }
+      .attendance-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .attendance-summary-card {
+        border: 1px solid rgba(92, 55, 18, 0.16);
+        border-radius: 10px;
+        background: rgba(255, 247, 219, 0.50);
+        padding: 14px;
+      }
+      .attendance-summary-card span {
+        display: block;
+        color: #76552e;
+        font-size: 11px;
+        font-weight: 1000;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .attendance-summary-card strong {
+        display: block;
+        margin-top: 7px;
+        color: #2d1a08;
+        font-size: 25px;
+      }
+      .attendance-focus-list { display: grid; gap: 10px; }
+      .attendance-focus-item {
+        display: grid;
+        gap: 8px;
+        border: 1px solid rgba(92, 55, 18, 0.16);
+        border-radius: 10px;
+        background: rgba(255, 247, 219, 0.46);
+        padding: 13px;
+      }
+      .attendance-focus-item h4 { margin: 0; color: #2d1a08; }
+      .complaint-form-card { display: grid; gap: 14px; }
+      .complaint-form-card .form-grid { margin-top: 8px; }
+      .complaint-preview {
+        border: 1px dashed rgba(92, 55, 18, 0.28);
+        border-radius: 10px;
+        background: rgba(255, 247, 219, 0.42);
+        padding: 12px;
+        color: #5f4729;
+        font-weight: 850;
+      }
+      .complaint-thumb {
+        display: block;
+        width: 120px;
+        height: 84px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid rgba(92, 55, 18, 0.18);
+        margin-top: 8px;
+      }
       .alliance-stats-card { padding: 24px; }
       .metric-picker {
         display: grid;
@@ -1244,6 +1306,7 @@ export function kellaDashboardHtml() {
             </div>
             <span class="auth-pill" data-auth-status>Checking login...</span>
             <button class="profile-top-button" type="button" data-link-button="/profile" data-profile-button title="My Profile" style="display:none"><img src="/assets/icons/members.png" alt="" /><span><strong>My Profile</strong><em>Edit your player card</em></span></button>
+            <button class="profile-top-button feedback-top-button" type="button" data-action="open-complaint-form" title="Complaint or suggestion"><img src="/assets/icons/complaints.png" alt="" /><span><strong>Feedback</strong><em>Complaint or suggestion</em></span></button>
             <button class="auth-button" type="button" data-action="discord-login" data-auth-login title="Discord Login">Login</button>
             <button class="auth-button" type="button" data-action="discord-logout" data-auth-logout title="Logout" style="display:none">Logout</button>
           </div>
@@ -2123,7 +2186,7 @@ export function kellaDashboardHtml() {
 
       function calendarDetailCard(item) {
         const eventActions = item.eventId
-          ? '<p><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(item.eventId) + '">Open Attendance</button>' + (hasAdminAccess() ? '<button class="danger" type="button" data-action="delete-event" data-event-id="' + escapeHtml(item.eventId) + '" style="margin-left:8px">Delete Event</button>' : '') + '</p>'
+          ? '<p><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(item.eventId) + '">View Attendance</button>' + (hasAdminAccess() ? '<button class="danger" type="button" data-action="delete-event" data-event-id="' + escapeHtml(item.eventId) + '" style="margin-left:8px">Delete Event</button>' : '') + '</p>'
           : '';
         return '<article class="calendar-detail-card">' +
           '<span class="badge warn">' + escapeHtml(item.kind || "Detail") + '</span>' +
@@ -2160,17 +2223,17 @@ export function kellaDashboardHtml() {
 
       function calendarAttendanceSnapshot(events) {
         if (!events.length) return "";
-        return '<div class="profile-note"><strong>Attendance Status</strong><div class="calendar-detail-list">' +
+        return '<div class="calendar-detail-list">' +
           events.map(function(event) {
-            return '<article class="calendar-detail-card"><div class="card-header"><div><h3>' + escapeHtml(event.title || "Alliance Event") + '</h3><span class="activity-time">' + formatUtcDateTime(event.startsAt) + '</span></div><div class="toolbar"><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(event.id || "") + '">Full View</button>' + (hasAdminAccess() ? '<button class="danger" type="button" data-action="delete-event" data-event-id="' + escapeHtml(event.id || "") + '">Delete</button>' : '') + '</div></div>' + renderAttendanceGroups(event) + '</article>';
+            return '<article class="calendar-detail-card"><div class="card-header"><div><span class="badge warn">Event</span><h3>' + escapeHtml(event.title || "Alliance Event") + '</h3><span class="activity-time">' + formatUtcDateTime(event.startsAt) + '</span></div><div class="toolbar"><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(event.id || "") + '">Full View</button>' + (hasAdminAccess() ? '<button class="danger" type="button" data-action="delete-event" data-event-id="' + escapeHtml(event.id || "") + '">Delete</button>' : '') + '</div></div><p>' + escapeHtml(event.description || "No description added.") + '</p>' + renderAttendanceGroups(event) + '</article>';
           }).join("") +
-        '</div></div>';
+        '</div>';
       }
 
       function openCalendarDayModal(key, type) {
         if (!memberModal || !memberModalContent) return;
         const date = new Date(key + "T00:00:00Z");
-        const title = type === "events" ? "Event Calendar" : "Activity Calendar";
+        const title = type === "events" ? "Attendance Calendar" : "Activity Calendar";
         const dayEvents = eventsForDay(state.events || [], key);
         const items = type === "events"
           ? dayEvents.map(eventDetailItem)
@@ -2187,8 +2250,9 @@ export function kellaDashboardHtml() {
             '<span class="profile-avatar">' + date.getUTCDate() + '</span>' +
             '<div><span class="profile-kicker">' + escapeHtml(title) + '</span><h3 id="memberModalTitle">' + escapeHtml(dateLabel) + '</h3><div class="profile-subtitle">Call of Dragons server time - UTC</div></div>' +
           '</div>' +
-          (items.length ? '<div class="calendar-detail-list">' + items.map(calendarDetailCard).join("") + '</div>' : empty("No event or activity recorded for this day yet.")) +
-          calendarAttendanceSnapshot(dayEvents);
+          (type === "events"
+            ? (dayEvents.length ? calendarAttendanceSnapshot(dayEvents) : empty("No event recorded for this day yet."))
+            : ((items.length ? '<div class="calendar-detail-list">' + items.map(calendarDetailCard).join("") + '</div>' : empty("No activity recorded for this day yet.")) + calendarAttendanceSnapshot(dayEvents)));
         memberModal.classList.add("open");
         memberModal.setAttribute("aria-hidden", "false");
         document.body.classList.add("modal-open");
@@ -2828,13 +2892,60 @@ export function kellaDashboardHtml() {
         '</article>';
       }
 
+      function eventResponseTotal(event) {
+        const groups = attendanceGroups(event);
+        return groups.attending.length + groups.absent.length + groups.unsure.length;
+      }
+
+      function sortedEvents(events) {
+        return (events || []).slice().sort(function(left, right) {
+          return new Date(left.startsAt || 0).getTime() - new Date(right.startsAt || 0).getTime();
+        });
+      }
+
+      function renderAttendanceSummary(events) {
+        const today = dayKey(new Date());
+        const now = Date.now();
+        const monthEvents = (events || []).filter(function(event) { return inCurrentMonth(event.startsAt); });
+        const todayEvents = (events || []).filter(function(event) { return dayKey(event.startsAt) === today; });
+        const upcoming = (events || []).filter(function(event) { return new Date(event.startsAt || 0).getTime() >= now; });
+        const responses = (events || []).reduce(function(total, event) { return total + eventResponseTotal(event); }, 0);
+        return '<section class="attendance-summary-grid">' +
+          '<div class="attendance-summary-card"><span>This Month</span><strong>' + monthEvents.length + '</strong><p>Events on the calendar</p></div>' +
+          '<div class="attendance-summary-card"><span>Today</span><strong>' + todayEvents.length + '</strong><p>Events using UTC server day</p></div>' +
+          '<div class="attendance-summary-card"><span>Upcoming</span><strong>' + upcoming.length + '</strong><p>Still active or scheduled</p></div>' +
+          '<div class="attendance-summary-card"><span>Responses</span><strong>' + responses + '</strong><p>Total attendance clicks saved</p></div>' +
+        '</section>';
+      }
+
+      function renderAttendanceFocus(events) {
+        const now = Date.now();
+        const upcoming = sortedEvents(events).filter(function(event) {
+          return new Date(event.startsAt || 0).getTime() >= now - 2 * 60 * 60 * 1000;
+        }).slice(0, 5);
+        const needsReview = sortedEvents(events).filter(function(event) {
+          return eventResponseTotal(event) === 0 || attendanceGroups(event).attending.length === 0;
+        }).slice(0, 5);
+        function item(event) {
+          return '<button class="attendance-focus-item" type="button" data-link-button="/attendance/' + escapeHtml(event.id || "") + '"><h4>' + escapeHtml(event.title || "Alliance Event") + '</h4><span class="activity-time">' + formatUtcDateTime(event.startsAt) + '</span>' + attendanceBadges(event) + '</button>';
+        }
+        return '<section class="two" style="margin-top:18px">' +
+          '<div class="card"><div class="card-header"><div><h3>Next Events</h3><span class="muted">Quick jump to upcoming attendance reports.</span></div></div>' + (upcoming.length ? '<div class="attendance-focus-list">' + upcoming.map(item).join("") + '</div>' : empty("No upcoming events yet.")) + '</div>' +
+          '<div class="card"><div class="card-header"><div><h3>Needs Review</h3><span class="muted">Events with no responses or no attending players.</span></div></div>' + (needsReview.length ? '<div class="attendance-focus-list">' + needsReview.map(item).join("") + '</div>' : empty("Every event has at least one attending response.")) + '</div>' +
+        '</section>';
+      }
+
       async function renderAttendance() {
         skeleton("Loading attendance...");
         try {
           const events = await loadDashboardEvents();
+          const actions = (hasAdminAccess() ? '<button class="secondary" data-link-button="/tools">Create Event</button>' : "") + '<button class="primary" data-action="refresh-events">Refresh</button>';
           app.innerHTML =
-            pageHeader("Attendance", "Review event attendance inside Kella. Click an event to see every player response.", '<button class="secondary" data-link-button="/tools">Create Event</button><button class="primary" data-action="refresh-events">Refresh</button>') +
-            '<section class="card"><div class="card-header"><div><h3>Event Attendance</h3><span class="muted">Attending, absent, and not sure responses from Discord buttons.</span></div></div>' + renderRecentEvents(events) + '</section>';
+            pageHeader("Attendance Calendar", "Admin-friendly event attendance by UTC server day. Click any calendar day to see events and player responses.", actions) +
+            renderAttendanceSummary(events) +
+            '<section class="card attendance-calendar-card"><div class="card-header"><div><h3>' + monthTitle() + '</h3><span class="muted">Large days show event titles, server time, and response totals.</span></div><span class="badge good">Today is green</span></div>' + renderEventsCalendar(events) + '</section>' +
+            renderAttendanceFocus(events) +
+            '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Recent Event Reports</h3><span class="muted">Use this table when you need exact counts or admin actions.</span></div></div>' + renderRecentEvents(sortedEvents(events).reverse()) + '</section>';
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load attendance. ' + escapeHtml(error.message) + '</div>';
         }
@@ -3038,6 +3149,65 @@ export function kellaDashboardHtml() {
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load complaints. ' + escapeHtml(error.message) + '. Add your Password in Settings if needed.</div>';
         }
+      }
+
+      async function openComplaintForm() {
+        if (!memberModal || !memberModalContent) return;
+        const auth = await loadAuth(true);
+        if (!auth.authenticated) {
+          memberModalContent.innerHTML =
+            '<div class="member-profile-hero">' +
+              '<img class="profile-avatar" src="/assets/icons/complaints.png" alt="" />' +
+              '<div><span class="profile-kicker">Member Feedback</span><h3 id="memberModalTitle">Login Required</h3><div class="profile-subtitle">Login with Discord so R4s know who submitted the message.</div></div>' +
+            '</div>' +
+            '<section class="card complaint-form-card"><p>Complaints and suggestions are private to admins. Kella needs your Discord login before sending one.</p><button class="primary" type="button" data-action="discord-login">Login with Discord</button></section>';
+        } else {
+          memberModalContent.innerHTML =
+            '<div class="member-profile-hero">' +
+              '<img class="profile-avatar" src="/assets/icons/complaints.png" alt="" />' +
+              '<div><span class="profile-kicker">Member Feedback</span><h3 id="memberModalTitle">Complaint or Suggestion</h3><div class="profile-subtitle">Send it straight to the R4 review inbox.</div></div>' +
+            '</div>' +
+            '<section class="card complaint-form-card" data-complaint-form>' +
+              '<div class="form-grid">' +
+                '<label>Type<select data-complaint="kind"><option value="Complaint">Complaint</option><option value="Suggestion">Suggestion</option></select></label>' +
+                '<label>Title<input data-complaint="title" maxlength="140" placeholder="Short title" /></label>' +
+                '<label class="wide">Description<textarea data-complaint="description" maxlength="1800" placeholder="Tell the R4s what happened or what should improve."></textarea></label>' +
+                '<label class="wide">Optional Picture<input type="file" data-complaint-image accept="image/png,image/jpeg,image/webp" /><span class="muted">Optional screenshot, under 3 MB.</span></label>' +
+              '</div>' +
+              '<div class="complaint-preview" data-complaint-image-preview>No picture selected.</div>' +
+              '<div class="toolbar"><button class="secondary" type="button" data-member-modal-close>Cancel</button><button class="primary" type="button" data-action="submit-complaint">Submit to R4s</button></div>' +
+            '</section>';
+        }
+        memberModal.classList.add("open");
+        memberModal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-open");
+      }
+
+      async function complaintImageDataUrl() {
+        const input = document.querySelector("[data-complaint-image]");
+        const file = input?.files?.[0];
+        if (!file) return "";
+        if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) throw new Error("Picture must be PNG, JPG, or WEBP.");
+        if (file.size > 3 * 1024 * 1024) throw new Error("Picture is too large. Please use an image under 3 MB.");
+        return "data:" + file.type + ";base64," + arrayBufferToBase64(await file.arrayBuffer());
+      }
+
+      async function readComplaintForm() {
+        const root = document.querySelector("[data-complaint-form]");
+        if (!root) throw new Error("Feedback form is missing.");
+        const value = function(name) {
+          return (root.querySelector('[data-complaint="' + name + '"]')?.value || "").trim();
+        };
+        const title = value("title");
+        const description = value("description");
+        if (!title) throw new Error("Add a short title first.");
+        if (!description) throw new Error("Add a description first.");
+        return {
+          kind: value("kind") || "Complaint",
+          title,
+          description,
+          imageDataUrl: await complaintImageDataUrl()
+        };
       }
 
       function memberOptions() {
@@ -3267,12 +3437,14 @@ export function kellaDashboardHtml() {
         return '<div class="table-wrap"><table><thead><tr><th>Type</th><th>Player</th><th>Message</th><th>Status</th><th>Admin Notes</th><th>Sent</th><th>Actions</th></tr></thead><tbody>' +
           complaints.map(function(item) {
             const resolved = item.status === "Resolved";
+            const attachment = item.imageDataUrl ? '<a target="_blank" rel="noreferrer" href="' + escapeHtml(item.imageDataUrl) + '"><img class="complaint-thumb" src="' + escapeHtml(item.imageDataUrl) + '" alt="Complaint attachment" loading="lazy" /></a>' : '';
+            const message = '<strong>' + escapeHtml(item.title || item.kind || "Feedback") + '</strong><br><span>' + escapeHtml(item.message || "") + '</span>' + attachment;
             const notes = [
               item.assignedTo ? "Assigned: " + item.assignedTo : "",
               item.adminNote ? "Note: " + item.adminNote : "",
               item.lastReply ? "Last reply: " + item.lastReply : ""
             ].filter(Boolean).join("\\n");
-            return '<tr><td>' + escapeHtml(item.kind || "Complaint") + '</td><td><strong>' + escapeHtml(item.player || "Unknown") + '</strong><br><span class="muted">' + escapeHtml(item.discordId || "") + '</span></td><td>' + escapeHtml(item.message || "") + '</td><td><span class="badge ' + (resolved ? "good" : "warn") + '">' + escapeHtml(item.status || "Pending") + '</span></td><td><span class="muted">' + escapeHtml(notes || "No admin notes yet.") + '</span></td><td>' + formatDateTime(item.sentAt) + '</td><td><div class="toolbar"><button class="secondary" data-action="assign-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Assign</button><button class="secondary" data-action="note-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Note</button><button class="secondary" data-action="reply-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Reply</button><button class="secondary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Pending">Pending</button><button class="primary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Resolved">Resolve</button></div></td></tr>';
+            return '<tr><td>' + escapeHtml(item.kind || "Complaint") + '</td><td><strong>' + escapeHtml(item.player || "Unknown") + '</strong><br><span class="muted">' + escapeHtml(item.discordId || "") + '</span></td><td>' + message + '</td><td><span class="badge ' + (resolved ? "good" : "warn") + '">' + escapeHtml(item.status || "Pending") + '</span></td><td><span class="muted">' + escapeHtml(notes || "No admin notes yet.") + '</span></td><td>' + formatDateTime(item.sentAt) + '</td><td><div class="toolbar"><button class="secondary" data-action="assign-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Assign</button><button class="secondary" data-action="note-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Note</button><button class="secondary" data-action="reply-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Reply</button><button class="secondary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Pending">Pending</button><button class="primary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Resolved">Resolve</button></div></td></tr>';
           }).join("") +
           '</tbody></table></div>';
       }
@@ -3462,6 +3634,13 @@ export function kellaDashboardHtml() {
         const kind = action.getAttribute("data-action");
         if (kind === "discord-login") {
           window.location.href = "/api/auth/discord";
+          return;
+        }
+        if (kind === "open-complaint-form") {
+          setLoading(action, true);
+          openComplaintForm()
+            .catch(function(error) { toast(error.message || "Could not open feedback form.", "error"); })
+            .finally(function() { setLoading(action, false); });
           return;
         }
         if (kind === "open-avatar-upload") {
@@ -3701,6 +3880,12 @@ export function kellaDashboardHtml() {
           return "Event deleted.";
         }, "Event deleted.");
         if (kind === "refresh-complaints") withFeedback(action, async function() { state.complaints = []; await renderComplaints(); }, "Complaints refreshed.");
+        if (kind === "submit-complaint") withFeedback(action, async function() {
+          await sendJson("POST", "/api/dashboard/complaints", await readComplaintForm(), false);
+          state.complaints = [];
+          closeMemberModal();
+          return "Submitted. Kella sent it to the R4 review inbox.";
+        }, "Feedback submitted.");
         if (kind === "send-event-embed") withFeedback(action, async function() {
           await sendJson("POST", "/api/dashboard/events", eventPayload(), true);
           state.summary = null;
@@ -3917,6 +4102,11 @@ export function kellaDashboardHtml() {
             if (input) input.value = entry[1] || "";
           });
           updateEmbedPreview();
+        }
+        if (event.target.matches("[data-complaint-image]")) {
+          const preview = document.querySelector("[data-complaint-image-preview]");
+          const file = event.target.files?.[0];
+          if (preview) preview.textContent = file ? file.name + " ready to attach." : "No picture selected.";
         }
       });
 

@@ -117,6 +117,19 @@ const complaintReplySchema = z.object({
   resolve: z.boolean().optional()
 });
 
+const complaintCreateSchema = z.object({
+  kind: z.enum(["Complaint", "Suggestion"]).default("Complaint"),
+  title: z.string().min(1, "Title is required").max(140),
+  description: z.string().min(1, "Description is required").max(1800),
+  imageDataUrl: z
+    .preprocess((value) => {
+      if (typeof value !== "string") return undefined;
+      const trimmed = value.trim();
+      return trimmed || undefined;
+    }, z.string().max(4_200_000, "Image is too large. Please use a smaller picture.").regex(/^data:image\/(png|jpe?g|webp);base64,/i, "Image must be PNG, JPG, or WEBP.").optional())
+    .optional()
+});
+
 const memberRosterImportSchema = z.object({
   filename: z.string().max(180).optional(),
   snapshotDate: z.preprocess((value) => (value === "" || value === null ? undefined : value), z.coerce.date().optional()),
@@ -1723,9 +1736,12 @@ export const dashboardComplaints = asyncHandler(async (_req, res) => {
     complaints: complaints.map((complaint) => ({
       id: complaint._id.toString(),
       kind: complaint.eventType || complaint.payload?.kind || "Complaint",
+      title: complaint.payload?.title || complaint.eventType || complaint.payload?.kind || "Complaint",
       player: displayName(complaint),
       discordId: complaint.actorDiscordId,
       message: complaint.payload?.message || "",
+      imageDataUrl: complaint.payload?.imageDataUrl || "",
+      source: complaint.payload?.source || "discord",
       status: complaint.status || "Pending",
       sentAt: complaint.sentAt,
       resolvedAt: complaint.payload?.resolvedAt,
@@ -1734,6 +1750,38 @@ export const dashboardComplaints = asyncHandler(async (_req, res) => {
       lastReply: complaint.payload?.lastReply || "",
       repliedAt: complaint.payload?.repliedAt || ""
     }))
+  });
+});
+
+export const dashboardComplaintCreate = asyncHandler(async (req, res) => {
+  const user = (req as AuthenticatedRequest).user;
+  const body = complaintCreateSchema.parse(req.body);
+  const member = await findOrCreateProfileMember(user);
+  const actorName = member?.discordDisplayName || member?.ign || user.discordId;
+  const action = await KellaActionModel.create({
+    allianceId: user.allianceId,
+    type: "complaint",
+    actorDiscordId: user.discordId,
+    actorName,
+    eventType: body.kind,
+    status: "Pending",
+    payload: {
+      kind: body.kind,
+      title: body.title.trim(),
+      message: body.description.trim(),
+      imageDataUrl: body.imageDataUrl || "",
+      source: "dashboard"
+    }
+  });
+
+  res.status(201).json({
+    complaint: {
+      id: action._id.toString(),
+      kind: body.kind,
+      title: body.title.trim(),
+      status: action.status,
+      sentAt: action.sentAt
+    }
   });
 });
 

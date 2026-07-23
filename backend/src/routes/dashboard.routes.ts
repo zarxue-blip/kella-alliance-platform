@@ -18,6 +18,7 @@ import {
   dashboardSettingsUpdate,
   dashboardAttackSend,
   dashboardChatSend,
+  dashboardComplaintCreate,
   dashboardComplaintReply,
   dashboardComplaintStatusUpdate,
   dashboardComplaints,
@@ -53,6 +54,7 @@ dashboardRouter.get("/alerts", dashboardAlerts);
 dashboardRouter.get("/events", dashboardEvents);
 dashboardRouter.post("/events", authenticateDashboardAdmin, dashboardEventSend);
 dashboardRouter.delete("/events/:id", authenticateDashboardAdmin, dashboardEventDelete);
+dashboardRouter.post("/complaints", authenticate, dashboardComplaintCreate);
 dashboardRouter.get("/complaints", authenticateDashboardAdmin, dashboardComplaints);
 dashboardRouter.patch("/complaints/:id/status", authenticateDashboardAdmin, dashboardComplaintStatusUpdate);
 dashboardRouter.post("/complaints/:id/reply", authenticateDashboardAdmin, dashboardComplaintReply);
