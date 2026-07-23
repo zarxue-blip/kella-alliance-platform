@@ -748,6 +748,14 @@ async function findMemberForDiscordProfile(allianceId: string, discordId: string
   const exact = (await MemberModel.findOne({ allianceId, discordId }).select("_id ign discordId discordUsername discordDisplayName uid power powerHistory statHistory").lean()) as MergeCandidate | null;
   if (exact) return exact;
 
+  const legacyDiscordOnly = (await MemberModel.findOne({
+    allianceId,
+    uid: { $in: [discordId, `discord-${discordId}`] }
+  })
+    .select("_id ign discordId discordUsername discordDisplayName uid power powerHistory statHistory")
+    .lean()) as MergeCandidate | null;
+  if (legacyDiscordOnly) return legacyDiscordOnly;
+
   const candidates = (await MemberModel.find({
     allianceId,
     discordId: /^(xlsx|topn):/
@@ -1490,6 +1498,7 @@ export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
         lastActivity: syncedAt
       },
       $setOnInsert: {
+        allianceId,
         ign: member.discordDisplayName || member.discordUsername || member.discordId,
         uid: `discord-${member.discordId}`,
         power: 0,
@@ -1510,7 +1519,7 @@ export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
     }
     const result = existing
       ? await MemberModel.updateOne({ _id: existing._id, allianceId }, update)
-      : await MemberModel.updateOne({ allianceId, discordId: member.discordId }, update, { upsert: true });
+      : await MemberModel.updateOne({ allianceId, discordId: member.discordId }, update, { upsert: true, runValidators: true });
 
     if (result.upsertedCount) created += result.upsertedCount;
     else if (result.modifiedCount || result.matchedCount) {
