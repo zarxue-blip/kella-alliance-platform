@@ -3159,6 +3159,22 @@ export function kellaDashboardHtml() {
         requestAnimationFrame(autoFitWikiTextBlocksFromDom);
       }
 
+      function applyWikiBlockStyleChange(target) {
+        if (!target?.matches?.("[data-wiki-block-style]")) return false;
+        const block = selectedWikiBlock();
+        if (!block) return true;
+        const key = target.getAttribute("data-wiki-block-style");
+        const raw = target.value;
+        if (["x", "y", "width", "height"].includes(key)) {
+          block[key] = Number(raw || 0);
+        } else {
+          block[key] = raw;
+        }
+        Object.assign(block, sanitizeWikiBlock(block));
+        refreshWikiBuilder();
+        return true;
+      }
+
       function openWikiPage(page) {
         if (!memberModal || !memberModalContent) return;
         memberModalContent.dataset.wikiId = page.id || "";
@@ -4878,6 +4894,7 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("change", async function(event) {
+        if (applyWikiBlockStyleChange(event.target)) return;
         if (event.target.matches("[data-tool-select]")) {
           navigate("/tools?tool=" + encodeURIComponent(event.target.value || "events"));
           return;
@@ -4960,20 +4977,7 @@ export function kellaDashboardHtml() {
             autoFitWikiTextBlock(block, event.target);
           }
         }
-        if (event.target.matches("[data-wiki-block-style]")) {
-          const block = selectedWikiBlock();
-          if (!block) return;
-          const key = event.target.getAttribute("data-wiki-block-style");
-          const raw = event.target.value;
-          if (["x", "y", "width", "height"].includes(key)) {
-            block[key] = Number(raw || 0);
-          } else {
-            block[key] = raw;
-          }
-          Object.assign(block, sanitizeWikiBlock(block));
-          refreshWikiBuilder();
-          requestAnimationFrame(autoFitWikiTextBlocksFromDom);
-        }
+        if (applyWikiBlockStyleChange(event.target)) return;
         if (event.target.matches("[data-embed]")) updateEmbedPreview();
         if (event.target.matches("[data-avatar-zoom]")) setAvatarZoom(event.target.value);
       });
