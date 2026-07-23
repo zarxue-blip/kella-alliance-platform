@@ -3657,7 +3657,7 @@ export function kellaDashboardHtml() {
 
       function isWikiAssetSrc(src) {
         const value = String(src || "").trim();
-        if (/^data:image\/(png|jpe?g|webp);base64,/i.test(value)) return true;
+        if (/^data:image\\/(png|jpe?g|webp);base64,/i.test(value)) return true;
         return ["/assets/wiki-misc/", "/assets/wiki-heroes/", "/assets/wiki-markers/", "/assets/wiki-artifacts/", "/assets/wiki-pets/"].some(function(prefix) {
           return value.startsWith(prefix);
         });
