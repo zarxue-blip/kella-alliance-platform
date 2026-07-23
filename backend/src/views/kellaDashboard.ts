@@ -904,6 +904,33 @@ export function kellaDashboardHtml() {
       .wiki-misc-panel[hidden] {
         display: none;
       }
+      .wiki-asset-search {
+        grid-column: 1 / -1;
+        display: block;
+      }
+      .wiki-asset-search input {
+        width: 100%;
+        min-height: 38px;
+        padding: 9px 12px;
+        border: 1px solid rgba(121, 82, 33, 0.32);
+        border-radius: 12px;
+        background: rgba(255, 250, 230, 0.90);
+        color: #3f2a13;
+        font-weight: 800;
+      }
+      .wiki-asset-search input:focus {
+        outline: 2px solid rgba(218, 154, 37, 0.46);
+        border-color: rgba(173, 112, 28, 0.72);
+      }
+      .wiki-asset-empty {
+        grid-column: 1 / -1;
+        padding: 14px;
+        border: 1px dashed rgba(121, 82, 33, 0.36);
+        border-radius: 12px;
+        color: #71512b;
+        font-weight: 900;
+        text-align: center;
+      }
       .wiki-misc-panel--artifact {
         width: min(470px, calc(100vw - 36px));
         max-height: min(520px, 72vh);
@@ -937,6 +964,24 @@ export function kellaDashboardHtml() {
       .wiki-misc-tile:hover {
         border-color: rgba(173, 112, 28, 0.68);
         box-shadow: 0 8px 18px rgba(101, 63, 20, 0.16);
+      }
+      .wiki-misc-upload {
+        border-style: dashed;
+        background: linear-gradient(180deg, rgba(255, 245, 202, 0.95), rgba(231, 196, 116, 0.72));
+        cursor: pointer;
+      }
+      .wiki-upload-plus {
+        display: grid;
+        width: 44px;
+        height: 44px;
+        place-items: center;
+        border: 1px solid rgba(121, 82, 33, 0.26);
+        border-radius: 14px;
+        background: rgba(255, 252, 232, 0.72);
+        color: #8a4d08;
+        font-size: 28px;
+        font-weight: 950;
+        line-height: 1;
       }
       .wiki-misc-tile img {
         width: 100%;
@@ -2234,7 +2279,8 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, reports: [], members: [], allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null };
+      const state = { summary: null, reports: [], members: [], allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null };
+      const WIKI_CUSTOM_IMAGE_KEY = "kellaWikiCustomImages";
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
       const wikiMiscImages = ${JSON.stringify(wikiMiscImages)};
@@ -3603,6 +3649,7 @@ export function kellaDashboardHtml() {
 
       function isWikiAssetSrc(src) {
         const value = String(src || "").trim();
+        if (/^data:image\/(png|jpe?g|webp);base64,/i.test(value)) return true;
         return ["/assets/wiki-misc/", "/assets/wiki-heroes/", "/assets/wiki-markers/", "/assets/wiki-artifacts/", "/assets/wiki-pets/"].some(function(prefix) {
           return value.startsWith(prefix);
         });
@@ -3923,17 +3970,49 @@ export function kellaDashboardHtml() {
         return value === selected ? " selected" : "";
       }
 
+      function loadWikiCustomImages() {
+        if (Array.isArray(state.wikiCustomImages)) return state.wikiCustomImages;
+        try {
+          const parsed = JSON.parse(localStorage.getItem(WIKI_CUSTOM_IMAGE_KEY) || "[]");
+          state.wikiCustomImages = Array.isArray(parsed)
+            ? parsed.filter(function(image) {
+                return image && typeof image.src === "string" && isWikiAssetSrc(image.src) && typeof image.kind === "string";
+              }).slice(0, 80)
+            : [];
+        } catch (_error) {
+          state.wikiCustomImages = [];
+        }
+        return state.wikiCustomImages;
+      }
+
+      function saveWikiCustomImages(images) {
+        state.wikiCustomImages = images.slice(0, 80);
+        localStorage.setItem(WIKI_CUSTOM_IMAGE_KEY, JSON.stringify(state.wikiCustomImages));
+      }
+
+      function wikiAssetImagesForKind(images, kind) {
+        const custom = loadWikiCustomImages().filter(function(image) {
+          return image.kind === kind;
+        });
+        return custom.concat(images || []);
+      }
+
       function renderWikiAssetPickerHtml(label, images, kind) {
         const safeKind = kind || "misc";
         const panelClass = "wiki-misc-panel wiki-misc-panel--" + safeKind;
         const tileClass = "wiki-misc-tile wiki-misc-tile--" + safeKind;
-        const tiles = images.map(function(image) {
-          return '<button class="' + tileClass + '" type="button" draggable="true" data-action="add-wiki-asset-image" data-wiki-asset-image="' + escapeHtml(image.src) + '" title="Drag or click to add ' + escapeHtml(image.label) + '">' +
+        const search = '<label class="wiki-asset-search"><input data-wiki-asset-search placeholder="Search ' + escapeHtml(label.toLowerCase()) + ' pictures..." aria-label="Search ' + escapeHtml(label) + ' pictures" /></label>';
+        const upload = '<button class="' + tileClass + ' wiki-misc-upload" type="button" data-action="upload-wiki-stock-image" data-wiki-stock-kind="' + escapeHtml(safeKind) + '" title="Upload custom ' + escapeHtml(label) + ' image">' +
+          '<span class="wiki-upload-plus">+</span>' +
+          '<span>Upload</span>' +
+        '</button>';
+        const tiles = wikiAssetImagesForKind(images, safeKind).map(function(image) {
+          return '<button class="' + tileClass + '" type="button" draggable="true" data-action="add-wiki-asset-image" data-wiki-asset-label="' + escapeHtml(image.label || "") + '" data-wiki-asset-image="' + escapeHtml(image.src) + '" title="Drag or click to add ' + escapeHtml(image.label) + '">' +
             '<img src="' + escapeHtml(image.src) + '" alt="" loading="lazy" />' +
             '<span>' + escapeHtml(image.label) + '</span>' +
           '</button>';
         }).join("");
-        return '<div class="wiki-misc-picker"><button class="secondary" type="button" data-action="toggle-wiki-asset-panel">' + escapeHtml(label) + '</button><div class="' + panelClass + '" data-wiki-asset-panel hidden>' + tiles + '</div></div>';
+        return '<div class="wiki-misc-picker"><button class="secondary" type="button" data-action="toggle-wiki-asset-panel">' + escapeHtml(label) + '</button><div class="' + panelClass + '" data-wiki-asset-panel hidden>' + search + upload + tiles + '<div class="wiki-asset-empty" data-wiki-asset-empty hidden>No matching pictures.</div></div></div>';
       }
 
       function renderWikiAssetToolsHtml() {
@@ -3981,6 +4060,7 @@ export function kellaDashboardHtml() {
           '<div class="card-header"><div><h3>' + title + '</h3></div><div class="toolbar"><button class="secondary" type="button" data-action="clear-wiki-form">New Page</button><button class="primary" type="button" data-action="save-wiki-page">' + (editing.id ? "Save Changes" : "Publish Wiki") + '</button></div></div>' +
           '<input type="hidden" data-wiki="id" value="' + escapeHtml(editing.id || "") + '" />' +
           '<input type="file" data-wiki-block-image accept="image/png,image/jpeg,image/webp" style="display:none" />' +
+          '<input type="file" data-wiki-stock-image accept="image/png,image/jpeg,image/webp" style="display:none" />' +
           '<div class="form-grid">' +
             '<label>Title<input data-wiki="title" maxlength="120" placeholder="Roots of War Guide" value="' + escapeHtml(editing.title || "") + '" /></label>' +
             '<label>Status<select data-wiki="status"><option value="Published"' + optionSelected("Published", editing.status || "Published") + '>Published</option><option value="Draft"' + optionSelected("Draft", editing.status || "Published") + '>Draft</option></select></label>' +
@@ -4015,6 +4095,80 @@ export function kellaDashboardHtml() {
         if (!/^image\\/(png|jpe?g|webp)$/i.test(file.type)) throw new Error("Wiki image must be PNG, JPG, or WEBP.");
         if (file.size > 3 * 1024 * 1024) throw new Error("Wiki image is too large. Please use a picture under 3 MB.");
         return "data:" + file.type + ";base64," + arrayBufferToBase64(await file.arrayBuffer());
+      }
+
+      async function wikiImageFileDataUrl(file) {
+        if (!/^image\\/(png|jpe?g|webp)$/i.test(file.type)) throw new Error("Wiki image must be PNG, JPG, or WEBP.");
+        if (file.size > 5 * 1024 * 1024) throw new Error("Stock image is too large. Please use a picture under 5 MB.");
+        return "data:" + file.type + ";base64," + arrayBufferToBase64(await file.arrayBuffer());
+      }
+
+      function loadWikiImageElement(src) {
+        return new Promise(function(resolve, reject) {
+          const image = new Image();
+          image.onload = function() { resolve(image); };
+          image.onerror = function() { reject(new Error("Could not read that image.")); };
+          image.src = src;
+        });
+      }
+
+      async function readWikiStockImageFile(file) {
+        const src = await wikiImageFileDataUrl(file);
+        const image = await loadWikiImageElement(src);
+        const maxSide = 384;
+        const naturalWidth = image.naturalWidth || image.width || maxSide;
+        const naturalHeight = image.naturalHeight || image.height || maxSide;
+        const scale = Math.min(1, maxSide / Math.max(naturalWidth, naturalHeight));
+        const width = Math.max(1, Math.round(naturalWidth * scale));
+        const height = Math.max(1, Math.round(naturalHeight * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        if (!context) return src;
+        context.clearRect(0, 0, width, height);
+        context.drawImage(image, 0, 0, width, height);
+        return canvas.toDataURL("image/webp", 0.86);
+      }
+
+      function wikiStockImageLabel(filename) {
+        return String(filename || "Custom Image")
+          .replace(/\\.[^.]+$/, "")
+          .replace(/[-_]+/g, " ")
+          .replace(/\\s+/g, " ")
+          .trim()
+          .slice(0, 42) || "Custom Image";
+      }
+
+      function addWikiCustomStockImage(kind, src, label) {
+        const safeKind = ["hero", "artifact", "marker", "pet", "misc"].includes(kind) ? kind : "misc";
+        const images = loadWikiCustomImages().filter(function(image) {
+          return !(image.kind === safeKind && image.src === src);
+        });
+        images.unshift({ kind: safeKind, src, label: label || "Custom Image", uploadedAt: new Date().toISOString() });
+        saveWikiCustomImages(images);
+      }
+
+      function closeWikiAssetPanels(exceptPicker) {
+        document.querySelectorAll("[data-wiki-asset-panel]").forEach(function(panel) {
+          if (exceptPicker && exceptPicker.contains(panel)) return;
+          panel.hidden = true;
+        });
+      }
+
+      function filterWikiAssetPanel(input) {
+        const panel = input.closest("[data-wiki-asset-panel]");
+        if (!panel) return;
+        const query = String(input.value || "").trim().toLowerCase();
+        let visible = 0;
+        panel.querySelectorAll("[data-wiki-asset-label]").forEach(function(tile) {
+          const label = String(tile.getAttribute("data-wiki-asset-label") || "").toLowerCase();
+          const match = !query || label.includes(query);
+          tile.hidden = !match;
+          if (match) visible += 1;
+        });
+        const emptyState = panel.querySelector("[data-wiki-asset-empty]");
+        if (emptyState) emptyState.hidden = visible > 0;
       }
 
       async function wikiPayload() {
@@ -5257,6 +5411,9 @@ export function kellaDashboardHtml() {
           return;
         }
 
+        const wikiAssetPicker = event.target.closest(".wiki-misc-picker");
+        if (!wikiAssetPicker) closeWikiAssetPanels();
+
         const wikiBlock = event.target.closest("[data-wiki-block]");
         if (wikiBlock && document.querySelector("[data-wiki-editor]")) {
           const wikiBlockIdValue = wikiBlock.getAttribute("data-wiki-block") || "";
@@ -5349,8 +5506,19 @@ export function kellaDashboardHtml() {
           return;
         }
         if (kind === "toggle-wiki-asset-panel") {
-          const panel = action.closest(".wiki-misc-picker")?.querySelector("[data-wiki-asset-panel]");
-          if (panel) panel.hidden = !panel.hidden;
+          const picker = action.closest(".wiki-misc-picker");
+          const panel = picker?.querySelector("[data-wiki-asset-panel]");
+          if (panel) {
+            const shouldOpen = panel.hidden;
+            closeWikiAssetPanels(picker);
+            panel.hidden = !shouldOpen;
+            if (!panel.hidden) panel.querySelector("[data-wiki-asset-search]")?.focus();
+          }
+          return;
+        }
+        if (kind === "upload-wiki-stock-image") {
+          state.wikiStockUploadKind = action.getAttribute("data-wiki-stock-kind") || "misc";
+          document.querySelector("[data-wiki-stock-image]")?.click();
           return;
         }
         if (kind === "add-wiki-asset-image") {
@@ -5827,9 +5995,7 @@ export function kellaDashboardHtml() {
         const canvas = event.target.closest?.("[data-wiki-canvas]");
         if (!canvas || !event.dataTransfer) return;
         const src = event.dataTransfer.getData("application/x-kella-wiki-image") || event.dataTransfer.getData("text/plain");
-        const isWikiAsset = ["/assets/wiki-misc/", "/assets/wiki-heroes/", "/assets/wiki-markers/", "/assets/wiki-artifacts/", "/assets/wiki-pets/"].some(function(prefix) {
-          return src.startsWith(prefix);
-        });
+        const isWikiAsset = isWikiAssetSrc(src);
         if (!src || !isWikiAsset) return;
         event.preventDefault();
         const rect = canvas.getBoundingClientRect();
@@ -6004,9 +6170,27 @@ export function kellaDashboardHtml() {
             toast(error.message || "Could not add that picture.", "error");
           }
         }
+        if (event.target.matches("[data-wiki-stock-image]")) {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          try {
+            const imageDataUrl = await readWikiStockImageFile(file);
+            const label = wikiStockImageLabel(file.name);
+            addWikiCustomStockImage(state.wikiStockUploadKind || "misc", imageDataUrl, label);
+            event.target.value = "";
+            refreshWikiBuilder();
+            toast("Stock image added. Open that picture tab again to use it.", "success");
+          } catch (error) {
+            toast(error.message || "Could not add that stock image.", "error");
+          }
+        }
       });
 
       document.addEventListener("input", async function(event) {
+        if (event.target.matches("[data-wiki-asset-search]")) {
+          filterWikiAssetPanel(event.target);
+          return;
+        }
         if (event.target.matches("[data-module-search]")) {
           const term = event.target.value.toLowerCase();
           document.querySelectorAll("[data-module-card]").forEach(function(card) {

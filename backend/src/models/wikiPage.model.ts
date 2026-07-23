@@ -10,7 +10,7 @@ const wikiBlockSchema = new Schema(
   {
     id: { type: String, required: true, trim: true, maxlength: 80 },
     type: { type: String, enum: wikiBlockTypes, required: true },
-    text: { type: String, default: "", maxlength: 50000 },
+    text: { type: String, default: "", maxlength: 500000 },
     imageDataUrl: { type: String, default: "" },
     x: { type: Number, default: 90, min: 0, max: 760 },
     y: { type: Number, default: 90, min: 0, max: 50000 },
@@ -29,7 +29,7 @@ const wikiPageSchema = new Schema(
     allianceId: { type: Schema.Types.ObjectId, ref: "Alliance", required: true, index: true },
     title: { type: String, required: true, trim: true, maxlength: 120 },
     slug: { type: String, required: true, trim: true, lowercase: true, maxlength: 100 },
-    body: { type: String, required: true, trim: true, maxlength: 50000 },
+    body: { type: String, required: true, trim: true, maxlength: 500000 },
     imageDataUrl: { type: String, default: "" },
     fontFamily: { type: String, enum: wikiFontFamilies, default: "serif" },
     fontSize: { type: String, enum: wikiFontSizes, default: "medium" },

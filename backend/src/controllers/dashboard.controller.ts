@@ -146,7 +146,7 @@ const wikiImageSchema = z
 const wikiBlockSchema = z.object({
   id: z.string().min(1).max(80),
   type: z.enum(wikiBlockTypes),
-  text: z.string().max(50000).optional().default(""),
+  text: z.string().max(500000).optional().default(""),
   imageDataUrl: wikiImageSchema,
   x: z.coerce.number().min(0).max(760).default(90),
   y: z.coerce.number().min(0).max(50000).default(90),
@@ -160,7 +160,7 @@ const wikiBlockSchema = z.object({
 
 const wikiPageCreateSchema = z.object({
   title: z.string().min(1, "Wiki title is required").max(120),
-  body: z.string().min(1, "Wiki text is required").max(50000),
+  body: z.string().min(1, "Wiki text is required").max(500000),
   imageDataUrl: wikiImageSchema,
   fontFamily: z.enum(wikiFontFamilies).default("serif"),
   fontSize: z.enum(wikiFontSizes).default("medium"),
