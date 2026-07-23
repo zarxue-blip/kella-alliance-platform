@@ -5,7 +5,7 @@ import { AllianceModel } from "../models/alliance.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { UserModel } from "../models/user.model.js";
-import { WikiPageModel, wikiFontFamilies, wikiFontSizes, wikiStatuses } from "../models/wikiPage.model.js";
+import { WikiPageModel, wikiAlignments, wikiBlockTypes, wikiFontFamilies, wikiFontSizes, wikiStatuses } from "../models/wikiPage.model.js";
 import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendDiscordMessage, sendEventAttendanceEmbed, sendRootsRegistration } from "../services/discord.service.js";
 import { cleanImportedPlayerName, parseTopnCsv, parseTopnJson, parseTopnWorkbook, type ImportedTopnMember } from "../services/xlsx.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -139,12 +139,28 @@ const wikiImageSchema = z
   }, z.string().max(4_200_000, "Wiki image is too large. Please use a smaller picture.").regex(/^data:image\/(png|jpe?g|webp);base64,/i, "Wiki image must be PNG, JPG, or WEBP.").optional())
   .optional();
 
+const wikiBlockSchema = z.object({
+  id: z.string().min(1).max(80),
+  type: z.enum(wikiBlockTypes),
+  text: z.string().max(6000).optional().default(""),
+  imageDataUrl: wikiImageSchema,
+  x: z.coerce.number().min(0).max(760).default(90),
+  y: z.coerce.number().min(0).max(1300).default(90),
+  width: z.coerce.number().min(60).max(760).default(320),
+  height: z.coerce.number().min(36).max(1300).default(180),
+  fontFamily: z.enum(wikiFontFamilies).default("serif"),
+  fontSize: z.enum(wikiFontSizes).default("medium"),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#3f2a13"),
+  align: z.enum(wikiAlignments).default("left")
+});
+
 const wikiPageCreateSchema = z.object({
   title: z.string().min(1, "Wiki title is required").max(120),
   body: z.string().min(1, "Wiki text is required").max(6000),
   imageDataUrl: wikiImageSchema,
   fontFamily: z.enum(wikiFontFamilies).default("serif"),
   fontSize: z.enum(wikiFontSizes).default("medium"),
+  blocks: z.array(wikiBlockSchema).max(60).optional(),
   status: z.enum(wikiStatuses).default("Published")
 });
 
@@ -304,7 +320,76 @@ function dashboardActor(req: unknown) {
   return user?.discordId || "Dashboard";
 }
 
+function wikiTextFromBlocks(blocks?: any[]) {
+  const text = (blocks || [])
+    .filter((block) => block?.type === "text")
+    .map((block) => String(block.text || "").trim())
+    .filter(Boolean)
+    .join("\n\n")
+    .trim();
+  return text;
+}
+
+function wikiImageFromBlocks(blocks?: any[]) {
+  return (blocks || []).find((block) => block?.type === "image" && block.imageDataUrl)?.imageDataUrl || "";
+}
+
+function wikiBlocksDto(page: any) {
+  const blocks = Array.isArray(page.blocks) ? page.blocks : [];
+  if (blocks.length) {
+    return blocks.map((block: any) => ({
+      id: block.id || new Types.ObjectId().toString(),
+      type: block.type === "image" ? "image" : "text",
+      text: block.text || "",
+      imageDataUrl: block.imageDataUrl || "",
+      x: Number.isFinite(block.x) ? block.x : 90,
+      y: Number.isFinite(block.y) ? block.y : 90,
+      width: Number.isFinite(block.width) ? block.width : 320,
+      height: Number.isFinite(block.height) ? block.height : 180,
+      fontFamily: wikiFontFamilies.includes(block.fontFamily) ? block.fontFamily : page.fontFamily || "serif",
+      fontSize: wikiFontSizes.includes(block.fontSize) ? block.fontSize : page.fontSize || "medium",
+      color: /^#[0-9a-fA-F]{6}$/.test(block.color || "") ? block.color : "#3f2a13",
+      align: wikiAlignments.includes(block.align) ? block.align : "left"
+    }));
+  }
+
+  const legacyBlocks: any[] = [];
+  if (page.imageDataUrl) {
+    legacyBlocks.push({
+      id: `legacy-image-${page._id}`,
+      type: "image",
+      imageDataUrl: page.imageDataUrl,
+      x: 150,
+      y: 90,
+      width: 460,
+      height: 260,
+      fontFamily: page.fontFamily || "serif",
+      fontSize: page.fontSize || "medium",
+      color: "#3f2a13",
+      align: "center"
+    });
+  }
+  if (page.body) {
+    legacyBlocks.push({
+      id: `legacy-text-${page._id}`,
+      type: "text",
+      text: page.body,
+      imageDataUrl: "",
+      x: 90,
+      y: page.imageDataUrl ? 385 : 120,
+      width: 580,
+      height: page.imageDataUrl ? 360 : 420,
+      fontFamily: page.fontFamily || "serif",
+      fontSize: page.fontSize || "medium",
+      color: "#3f2a13",
+      align: "left"
+    });
+  }
+  return legacyBlocks;
+}
+
 function wikiPageDto(page: any) {
+  const blocks = wikiBlocksDto(page);
   return {
     id: page._id.toString(),
     title: page.title || "Untitled Wiki",
@@ -313,6 +398,7 @@ function wikiPageDto(page: any) {
     imageDataUrl: page.imageDataUrl || "",
     fontFamily: page.fontFamily || "serif",
     fontSize: page.fontSize || "medium",
+    blocks,
     status: page.status || "Published",
     createdBy: page.createdBy || "Dashboard",
     updatedBy: page.updatedBy || page.createdBy || "Dashboard",
@@ -2031,14 +2117,18 @@ export const dashboardWikiCreate = asyncHandler(async (req, res) => {
   const body = wikiPageCreateSchema.parse(req.body);
   const allianceId = await resolveAllianceId();
   const title = body.title.trim();
+  const blocks = body.blocks || [];
+  const textBody = wikiTextFromBlocks(blocks) || body.body.trim();
+  const blockImage = wikiImageFromBlocks(blocks);
   const page = await WikiPageModel.create({
     allianceId,
     title,
     slug: await uniqueWikiSlug(allianceId || "", title),
-    body: body.body.trim(),
-    imageDataUrl: body.imageDataUrl || "",
+    body: textBody,
+    imageDataUrl: blockImage || body.imageDataUrl || "",
     fontFamily: body.fontFamily,
     fontSize: body.fontSize,
+    blocks,
     status: body.status,
     createdBy: dashboardActor(req),
     updatedBy: dashboardActor(req)
@@ -2060,6 +2150,13 @@ export const dashboardWikiUpdate = asyncHandler(async (req, res) => {
   if (body.imageDataUrl !== undefined) update.imageDataUrl = body.imageDataUrl || "";
   if (body.fontFamily !== undefined) update.fontFamily = body.fontFamily;
   if (body.fontSize !== undefined) update.fontSize = body.fontSize;
+  if (body.blocks !== undefined) {
+    update.blocks = body.blocks;
+    const textBody = wikiTextFromBlocks(body.blocks);
+    const blockImage = wikiImageFromBlocks(body.blocks);
+    if (textBody) update.body = textBody;
+    update.imageDataUrl = blockImage || (typeof update.imageDataUrl === "string" ? update.imageDataUrl : "");
+  }
   if (body.status !== undefined) update.status = body.status;
 
   const page = await WikiPageModel.findOneAndUpdate(
