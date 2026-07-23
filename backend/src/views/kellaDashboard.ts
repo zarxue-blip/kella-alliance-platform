@@ -636,7 +636,8 @@ export function kellaDashboardHtml() {
         box-shadow: 0 10px 24px rgba(68, 39, 13, 0.20);
       }
       .wiki-drag-handle,
-      .wiki-resize-handle {
+      .wiki-resize-handle,
+      .wiki-delete-block-button {
         position: absolute;
         z-index: 4;
         display: grid;
@@ -690,9 +691,31 @@ export function kellaDashboardHtml() {
       .wiki-resize-ne { right: -7px; top: -7px; cursor: nesw-resize; }
       .wiki-resize-sw { left: -7px; bottom: -7px; cursor: nesw-resize; }
       .wiki-resize-se { right: -7px; bottom: -7px; cursor: nwse-resize; }
+      .wiki-delete-block-button {
+        top: -17px;
+        right: 20px;
+        width: 30px;
+        height: 30px;
+        border: 1px solid rgba(127, 21, 18, 0.72);
+        border-radius: 999px;
+        color: #fff7df;
+        background: linear-gradient(180deg, #9e241b, #72120f);
+        font-size: 18px;
+        font-weight: 1000;
+        line-height: 1;
+        cursor: pointer;
+        opacity: 0;
+        pointer-events: none;
+        box-shadow: 0 8px 16px rgba(67, 20, 10, 0.22);
+      }
+      .wiki-block:hover .wiki-delete-block-button,
+      .wiki-block.selected .wiki-delete-block-button {
+        opacity: 0.98;
+        pointer-events: auto;
+      }
       .wiki-inspector {
         display: grid;
-        grid-template-columns: auto minmax(330px, 1fr) minmax(420px, 0.95fr) auto;
+        grid-template-columns: auto minmax(330px, 1fr) minmax(420px, 0.95fr);
         gap: 10px;
         align-items: stretch;
         border-radius: 18px;
@@ -753,11 +776,6 @@ export function kellaDashboardHtml() {
         background: rgba(255, 248, 221, 0.38);
         border: 1px solid rgba(121, 82, 33, 0.16);
       }
-      .wiki-delete-row {
-        display: flex;
-        justify-content: flex-end;
-        align-items: stretch;
-      }
       .wiki-inspector label {
         display: grid;
         gap: 4px;
@@ -787,12 +805,6 @@ export function kellaDashboardHtml() {
       }
       .wiki-add-block-row .secondary {
         width: 100%;
-      }
-      .wiki-delete-row .danger {
-        min-height: 100%;
-        padding-left: 14px;
-        padding-right: 14px;
-        white-space: nowrap;
       }
       .wiki-misc-picker {
         min-width: 0;
@@ -1963,8 +1975,6 @@ export function kellaDashboardHtml() {
         .wiki-inspector { grid-template-columns: 1fr; align-items: stretch; }
         .wiki-style-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .wiki-style-controls--picture { grid-template-columns: 1fr; }
-        .wiki-delete-row { justify-content: flex-start; }
-        .wiki-delete-row .danger { min-height: 42px; width: 100%; }
         .calendar-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         .event-calendar .calendar-day,
         .attendance-calendar-card .event-calendar .calendar-day { min-height: 150px; }
@@ -3611,9 +3621,9 @@ export function kellaDashboardHtml() {
         return escapeHtml(wikiBlockStyle(block));
       }
 
-      function wikiBlockHandlesHtml(editable) {
+      function wikiBlockHandlesHtml(editable, blockId) {
         return editable
-          ? '<button class="wiki-drag-handle" type="button" data-wiki-drag-handle title="Drag block" aria-label="Drag block"></button><span class="wiki-resize-handle wiki-resize-nw" data-wiki-resize-handle data-resize-corner="nw" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-ne" data-wiki-resize-handle data-resize-corner="ne" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-sw" data-wiki-resize-handle data-resize-corner="sw" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-se" data-wiki-resize-handle data-resize-corner="se" title="Resize from corner"></span>'
+          ? '<button class="wiki-delete-block-button" type="button" data-action="delete-wiki-block" data-wiki-delete-block="' + escapeHtml(blockId || "") + '" title="Delete block" aria-label="Delete block">&times;</button><button class="wiki-drag-handle" type="button" data-wiki-drag-handle title="Drag block" aria-label="Drag block"></button><span class="wiki-resize-handle wiki-resize-nw" data-wiki-resize-handle data-resize-corner="nw" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-ne" data-wiki-resize-handle data-resize-corner="ne" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-sw" data-wiki-resize-handle data-resize-corner="sw" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-se" data-wiki-resize-handle data-resize-corner="se" title="Resize from corner"></span>'
           : "";
       }
 
@@ -3621,7 +3631,7 @@ export function kellaDashboardHtml() {
         const block = sanitizeWikiBlock(rawBlock);
         const selected = editable && String(block.id) === String(state.selectedWikiBlockId);
         const classes = "wiki-block " + (block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (selected ? " selected" : "");
-        const handles = wikiBlockHandlesHtml(editable);
+        const handles = wikiBlockHandlesHtml(editable, block.id);
         if (block.type === "image") {
           const image = block.imageDataUrl
             ? '<img src="' + escapeHtml(block.imageDataUrl) + '" alt="Wiki image" />'
@@ -3638,7 +3648,7 @@ export function kellaDashboardHtml() {
         const block = sanitizeWikiBlock(rawBlock);
         const selected = editable && String(block.id) === String(state.selectedWikiBlockId);
         const classes = "wiki-block " + (block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (selected ? " selected" : "");
-        const handles = wikiBlockHandlesHtml(editable);
+        const handles = wikiBlockHandlesHtml(editable, block.id);
         if (block.type === "image") {
           const image = block.imageDataUrl
             ? '<img src="' + escapeHtml(block.imageDataUrl) + '" alt="Wiki image" />'
@@ -3782,7 +3792,6 @@ export function kellaDashboardHtml() {
           '<div class="wiki-style-head"><h4>Style</h4><p>' + (block.type === "text" ? "Text block" : "Picture block") + '</p></div>' +
           textControls +
           '<div class="wiki-style-actions">' + renderWikiAssetToolsHtml() + '</div>' +
-          '<div class="wiki-delete-row"><button class="danger" type="button" data-action="delete-wiki-block">Delete Block</button></div>' +
         '</section>';
       }
 
@@ -5003,7 +5012,7 @@ export function kellaDashboardHtml() {
             state.selectedWikiBlockId = wikiBlockIdValue;
             refreshWikiBuilder();
           }
-          if (!event.target.closest("[data-wiki-text-content]")) return;
+          if (!event.target.closest("[data-wiki-text-content]") && !event.target.closest("[data-action]")) return;
         }
 
         const action = event.target.closest("[data-action]");
@@ -5111,7 +5120,8 @@ export function kellaDashboardHtml() {
           return;
         }
         if (kind === "delete-wiki-block") {
-          const block = selectedWikiBlock();
+          const blockId = action.getAttribute("data-wiki-delete-block") || action.closest("[data-wiki-block]")?.getAttribute("data-wiki-block") || selectedWikiBlock()?.id || "";
+          const block = state.wikiBlocks.find(function(item) { return String(item.id) === String(blockId); });
           if (!block) return;
           state.wikiBlocks = state.wikiBlocks.filter(function(item) { return item.id !== block.id; });
           state.selectedWikiBlockId = state.wikiBlocks[0]?.id || "";
