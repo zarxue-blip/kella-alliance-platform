@@ -5,6 +5,7 @@ import { AllianceModel } from "../models/alliance.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { UserModel } from "../models/user.model.js";
+import { WikiPageModel, wikiFontFamilies, wikiFontSizes, wikiStatuses } from "../models/wikiPage.model.js";
 import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendDiscordMessage, sendEventAttendanceEmbed, sendRootsRegistration } from "../services/discord.service.js";
 import { cleanImportedPlayerName, parseTopnCsv, parseTopnJson, parseTopnWorkbook, type ImportedTopnMember } from "../services/xlsx.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -130,6 +131,27 @@ const complaintCreateSchema = z.object({
     .optional()
 });
 
+const wikiImageSchema = z
+  .preprocess((value) => {
+    if (typeof value !== "string") return undefined;
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }, z.string().max(4_200_000, "Wiki image is too large. Please use a smaller picture.").regex(/^data:image\/(png|jpe?g|webp);base64,/i, "Wiki image must be PNG, JPG, or WEBP.").optional())
+  .optional();
+
+const wikiPageCreateSchema = z.object({
+  title: z.string().min(1, "Wiki title is required").max(120),
+  body: z.string().min(1, "Wiki text is required").max(6000),
+  imageDataUrl: wikiImageSchema,
+  fontFamily: z.enum(wikiFontFamilies).default("serif"),
+  fontSize: z.enum(wikiFontSizes).default("medium"),
+  status: z.enum(wikiStatuses).default("Published")
+});
+
+const wikiPageUpdateSchema = wikiPageCreateSchema.partial().refine((value) => Object.keys(value).length > 0, {
+  message: "Nothing to update"
+});
+
 const memberRosterImportSchema = z.object({
   filename: z.string().max(180).optional(),
   snapshotDate: z.preprocess((value) => (value === "" || value === null ? undefined : value), z.coerce.date().optional()),
@@ -249,6 +271,54 @@ function parseReportId(id: string) {
 
 function displayName(action: any) {
   return action.actorName || action.targetName || action.actorDiscordId || action.targetDiscordId || "Unknown Player";
+}
+
+function slugifyWikiTitle(value: string) {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  return slug || `wiki-${Date.now()}`;
+}
+
+async function uniqueWikiSlug(allianceId: string, title: string, ignoreId?: string) {
+  const base = slugifyWikiTitle(title);
+  for (let index = 0; index < 50; index += 1) {
+    const slug = index ? `${base}-${index + 1}` : base;
+    const existing = await WikiPageModel.findOne({
+      allianceId,
+      slug,
+      ...(ignoreId ? { _id: { $ne: ignoreId } } : {})
+    })
+      .select("_id")
+      .lean();
+    if (!existing) return slug;
+  }
+  return `${base}-${Date.now()}`;
+}
+
+function dashboardActor(req: unknown) {
+  const user = (req as Partial<AuthenticatedRequest>)?.user;
+  return user?.discordId || "Dashboard";
+}
+
+function wikiPageDto(page: any) {
+  return {
+    id: page._id.toString(),
+    title: page.title || "Untitled Wiki",
+    slug: page.slug || "",
+    body: page.body || "",
+    imageDataUrl: page.imageDataUrl || "",
+    fontFamily: page.fontFamily || "serif",
+    fontSize: page.fontSize || "medium",
+    status: page.status || "Published",
+    createdBy: page.createdBy || "Dashboard",
+    updatedBy: page.updatedBy || page.createdBy || "Dashboard",
+    createdAt: page.createdAt,
+    updatedAt: page.updatedAt
+  };
 }
 
 function discordMessageLink(message?: any) {
@@ -1939,6 +2009,74 @@ export const rootsReportDetails = asyncHandler(async (req, res) => {
       unsure: playersByStatus["Not Sure"]
     }
   });
+});
+
+async function listWikiPages(includeDrafts: boolean) {
+  const allianceId = await resolveAllianceId();
+  const filter: Record<string, unknown> = allianceFilter(allianceId);
+  if (!includeDrafts) filter.status = "Published";
+  const pages = await WikiPageModel.find(filter).sort({ updatedAt: -1, title: 1 }).limit(200).lean();
+  return pages.map(wikiPageDto);
+}
+
+export const dashboardWikiList = asyncHandler(async (_req, res) => {
+  res.json({ pages: await listWikiPages(false) });
+});
+
+export const dashboardWikiAdminList = asyncHandler(async (_req, res) => {
+  res.json({ pages: await listWikiPages(true) });
+});
+
+export const dashboardWikiCreate = asyncHandler(async (req, res) => {
+  const body = wikiPageCreateSchema.parse(req.body);
+  const allianceId = await resolveAllianceId();
+  const title = body.title.trim();
+  const page = await WikiPageModel.create({
+    allianceId,
+    title,
+    slug: await uniqueWikiSlug(allianceId || "", title),
+    body: body.body.trim(),
+    imageDataUrl: body.imageDataUrl || "",
+    fontFamily: body.fontFamily,
+    fontSize: body.fontSize,
+    status: body.status,
+    createdBy: dashboardActor(req),
+    updatedBy: dashboardActor(req)
+  });
+  res.status(201).json({ page: wikiPageDto(page) });
+});
+
+export const dashboardWikiUpdate = asyncHandler(async (req, res) => {
+  if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid wiki page id");
+  const body = wikiPageUpdateSchema.parse(req.body);
+  const allianceId = await resolveAllianceId();
+  const update: Record<string, unknown> = { updatedBy: dashboardActor(req) };
+  if (body.title !== undefined) {
+    const title = body.title.trim();
+    update.title = title;
+    update.slug = await uniqueWikiSlug(allianceId || "", title, req.params.id);
+  }
+  if (body.body !== undefined) update.body = body.body.trim();
+  if (body.imageDataUrl !== undefined) update.imageDataUrl = body.imageDataUrl || "";
+  if (body.fontFamily !== undefined) update.fontFamily = body.fontFamily;
+  if (body.fontSize !== undefined) update.fontSize = body.fontSize;
+  if (body.status !== undefined) update.status = body.status;
+
+  const page = await WikiPageModel.findOneAndUpdate(
+    { _id: req.params.id, ...allianceFilter(allianceId) },
+    { $set: update },
+    { new: true, runValidators: true }
+  ).lean();
+  if (!page) throw new HttpError(404, "Wiki page not found");
+  res.json({ page: wikiPageDto(page) });
+});
+
+export const dashboardWikiDelete = asyncHandler(async (req, res) => {
+  if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid wiki page id");
+  const allianceId = await resolveAllianceId();
+  const page = (await WikiPageModel.findOneAndDelete({ _id: req.params.id, ...allianceFilter(allianceId) }).lean()) as any;
+  if (!page) throw new HttpError(404, "Wiki page not found");
+  res.json({ ok: true, deletedPage: { id: page._id.toString(), title: page.title || "Wiki page" } });
 });
 
 export const dashboardSettings = asyncHandler(async (_req, res) => {

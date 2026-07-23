@@ -4,6 +4,7 @@ import {
   ButtonStyle,
   ChatInputCommandInteraction,
   ModalBuilder,
+  PermissionFlagsBits,
   SlashCommandBuilder,
   TextInputBuilder,
   TextInputStyle
@@ -344,6 +345,31 @@ export const commands: BotCommand[] = [
         )
       );
       await interaction.showModal(modal);
+    }
+  },
+  {
+    data: new SlashCommandBuilder()
+      .setName("wiki-admin")
+      .setDescription("Post the Kella Wiki reader button for members.")
+      .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+    async execute(interaction) {
+      const wikiUrl = `${config.PUBLIC_APP_URL.replace(/\/$/, "")}/wiki`;
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setLabel("Read Kella Wiki").setStyle(ButtonStyle.Link).setURL(wikiUrl),
+        new ButtonBuilder().setLabel("Open Wiki Admin").setStyle(ButtonStyle.Link).setURL(wikiUrl)
+      );
+
+      await interaction.reply({
+        embeds: [
+          {
+            title: "Kella Alliance Wiki",
+            description: "Read alliance rules, event guides, and officer notes in one clean place.",
+            color: 0xfacc15,
+            footer: { text: "Kella keeps the notes. You keep the excuses short." }
+          }
+        ],
+        components: [row]
+      });
     }
   },
   {

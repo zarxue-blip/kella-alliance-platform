@@ -53,6 +53,7 @@ export function createApp() {
     [
       "/",
       "/profile",
+      "/wiki",
       "/members",
       "/roots-of-war",
       "/roots-registration",

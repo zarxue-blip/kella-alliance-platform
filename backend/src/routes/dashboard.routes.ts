@@ -28,6 +28,11 @@ import {
   dashboardRootsCreate,
   dashboardShieldSend,
   dashboardSummary,
+  dashboardWikiAdminList,
+  dashboardWikiCreate,
+  dashboardWikiDelete,
+  dashboardWikiList,
+  dashboardWikiUpdate,
   dashboardDmAlertResendFailed,
   rootsReportDetails,
   rootsReportList,
@@ -54,6 +59,11 @@ dashboardRouter.get("/alerts", dashboardAlerts);
 dashboardRouter.get("/events", dashboardEvents);
 dashboardRouter.post("/events", authenticateDashboardAdmin, dashboardEventSend);
 dashboardRouter.delete("/events/:id", authenticateDashboardAdmin, dashboardEventDelete);
+dashboardRouter.get("/wiki", dashboardWikiList);
+dashboardRouter.get("/wiki/admin", authenticateDashboardAdmin, dashboardWikiAdminList);
+dashboardRouter.post("/wiki", authenticateDashboardAdmin, dashboardWikiCreate);
+dashboardRouter.patch("/wiki/:id", authenticateDashboardAdmin, dashboardWikiUpdate);
+dashboardRouter.delete("/wiki/:id", authenticateDashboardAdmin, dashboardWikiDelete);
 dashboardRouter.post("/complaints", authenticate, dashboardComplaintCreate);
 dashboardRouter.get("/complaints", authenticateDashboardAdmin, dashboardComplaints);
 dashboardRouter.patch("/complaints/:id/status", authenticateDashboardAdmin, dashboardComplaintStatusUpdate);

@@ -142,10 +142,11 @@ function helpText() {
     "- attack: emergency alert",
     "- members: roster and sync",
     "- dashboard: command center link",
+    "- wiki: alliance rules and guides",
     "- time: live UTC countdown timer",
     "- complain: private complaint or suggestion for admins",
     "",
-    "Useful commands: /roots, /summit, /time, /shield, /attack, /checkin, /absence, /apply, /complain, /dashboard"
+    "Useful commands: /roots, /summit, /time, /shield, /attack, /checkin, /absence, /apply, /complain, /wiki-admin, /dashboard"
   ].join("\n");
 }
 
@@ -238,8 +239,8 @@ function answerMention(question: string) {
     return "Call of Dragons server time is 24-hour UTC. Use /time utc:13 UTC to post a live countdown. If your clock says 7 PM and the event says 19:00 UTC, congratulations, numbers still work.";
   }
 
-  if (hasAny(text, ["rule", "rules", "nap", "alliance rule"])) {
-    return "Follow alliance rules, respect NAPs, shield when needed, and read announcements before asking what the announcement says. Ambitious, I know.";
+  if (hasAny(text, ["wiki", "guide", "guides", "rule", "rules", "nap", "alliance rule"])) {
+    return `Kella Wiki is here: ${config.PUBLIC_APP_URL.replace(/\/$/, "")}/wiki\nRead rules, event guides, and officer notes there. Yes, reading is still legal in 2026.`;
   }
 
   if (hasAny(text, ["translate", "translation", "flag", "language"])) {
