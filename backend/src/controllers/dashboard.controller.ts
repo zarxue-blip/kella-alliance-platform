@@ -790,6 +790,17 @@ function preferProfileCandidate(current: MergeCandidate | undefined, next: Merge
   return current;
 }
 
+function syncErrorMessage(error: unknown) {
+  const err = error as { code?: unknown; name?: string; message?: string; keyPattern?: Record<string, unknown> };
+  if (Number(err?.code) === 11000) {
+    const fields = Object.keys(err.keyPattern || {}).join(", ");
+    return fields ? `Duplicate member data for ${fields}.` : "Duplicate member data.";
+  }
+  if (err?.name === "ValidationError") return err.message || "Member data failed validation.";
+  if (err?.name === "CastError") return err.message || "Member data has an invalid database ID.";
+  return err?.message || "Unknown member sync error.";
+}
+
 async function bulkWriteMemberOps(ops: any[]) {
   for (let index = 0; index < ops.length; index += 400) {
     const chunk = ops.slice(index, index + 400);
@@ -1481,62 +1492,76 @@ export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
   let created = 0;
   let updated = 0;
   let merged = 0;
+  let skipped = 0;
+  const failures: Array<{ discordId: string; name: string; message: string }> = [];
 
   for (const member of discordMembers) {
-    const existing = (await findMemberForDiscordProfile(
-      allianceId,
-      member.discordId,
-      member.discordDisplayName,
-      member.discordUsername
-    )) as any;
-    const update: any = {
-      $set: {
-        discordId: member.discordId,
-        discordUsername: member.discordUsername,
-        discordDisplayName: member.discordDisplayName,
-        discordAvatarUrl: member.discordAvatarUrl,
-        lastActivity: syncedAt
-      },
-      $setOnInsert: {
+    try {
+      const existing = (await findMemberForDiscordProfile(
         allianceId,
-        ign: member.discordDisplayName || member.discordUsername || member.discordId,
-        uid: `discord-${member.discordId}`,
-        power: 0,
-        alliance: alliance.tag || alliance.name || "Discord",
-        rank: "Discord",
-        role: "Member",
-        timezone: alliance.timezone || "UTC",
-        country: "Unknown",
-        joinDate: member.joinedAt ? new Date(member.joinedAt) : syncedAt,
-        attendanceScore: 0,
-        warScore: 0,
-        contributionScore: 0,
-        notes: ""
-      }
-    };
-    if (existing && String(existing.uid || "") === member.discordId && isDiscordOnlyProfile(existing)) {
-      update.$set.uid = `discord-${member.discordId}`;
-    }
-    const result = existing
-      ? await MemberModel.updateOne({ _id: existing._id, allianceId }, update)
-      : await MemberModel.updateOne({ allianceId, discordId: member.discordId }, update, { upsert: true, runValidators: true });
+        member.discordId,
+        member.discordDisplayName,
+        member.discordUsername
+      )) as any;
+      const update: any = {
+        $set: {
+          discordId: member.discordId,
+          discordUsername: member.discordUsername,
+          discordDisplayName: member.discordDisplayName,
+          discordAvatarUrl: member.discordAvatarUrl,
+          lastActivity: syncedAt
+        },
+        $setOnInsert: {
+          allianceId,
+          ign: member.discordDisplayName || member.discordUsername || member.discordId,
+          uid: `discord-${member.discordId}`,
+          power: 0,
+          alliance: alliance.tag || alliance.name || "Discord",
+          rank: "Discord",
+          role: "Member",
+          timezone: alliance.timezone || "UTC",
+          country: "Unknown",
+          joinDate: member.joinedAt ? new Date(member.joinedAt) : syncedAt,
+          attendanceScore: 0,
+          warScore: 0,
+          contributionScore: 0,
+          notes: ""
+        }
+      };
+      const result = existing
+        ? await MemberModel.updateOne({ _id: existing._id, allianceId }, update, { runValidators: true })
+        : await MemberModel.updateOne({ allianceId, discordId: member.discordId }, update, { upsert: true, runValidators: true });
 
-    if (result.upsertedCount) created += result.upsertedCount;
-    else if (result.modifiedCount || result.matchedCount) {
-      updated += 1;
-      if (isUploadedOnlyMember(existing)) merged += 1;
+      if (result.upsertedCount) created += result.upsertedCount;
+      else if (result.modifiedCount || result.matchedCount) {
+        updated += 1;
+        if (isUploadedOnlyMember(existing)) merged += 1;
+      }
+    } catch (error) {
+      skipped += 1;
+      const failure = {
+        discordId: member.discordId,
+        name: member.discordDisplayName || member.discordUsername || member.discordId,
+        message: syncErrorMessage(error)
+      };
+      if (failures.length < 10) failures.push(failure);
+      console.error("[dashboardDiscordMemberSync] skipped member", failure);
     }
+  }
+
+  if (!created && !updated && skipped === discordMembers.length && failures.length) {
+    throw new HttpError(500, `Discord sync could not save members. First error: ${failures[0]?.name}: ${failures[0]?.message}`);
   }
 
   await KellaActionModel.create({
     allianceId,
     type: "discord_member_sync",
     actorName: "Dashboard",
-    status: "Completed",
-    payload: { total: discordMembers.length, created, updated, merged }
+    status: skipped ? "Completed with warnings" : "Completed",
+    payload: { total: discordMembers.length, created, updated, merged, skipped, failures }
   });
 
-  res.json({ total: discordMembers.length, created, updated, merged, syncedAt });
+  res.json({ total: discordMembers.length, created, updated, merged, skipped, failures, syncedAt });
 });
 
 export const dashboardAlerts = asyncHandler(async (_req, res) => {

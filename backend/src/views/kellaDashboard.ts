@@ -3579,7 +3579,7 @@ export function kellaDashboardHtml() {
           } else {
             await renderDashboard();
           }
-          return "Synced " + sync.total + " Discord members (" + sync.created + " new, " + sync.updated + " updated).";
+          return "Synced " + sync.total + " Discord members (" + sync.created + " new, " + sync.updated + " updated" + (sync.skipped ? ", " + sync.skipped + " skipped" : "") + ").";
         }, "Discord members synced. Open Members to view profiles.");
         if (kind === "upload-member-xlsx") withFeedback(action, async function() {
           const sync = await sendJson("POST", "/api/dashboard/members/import-xlsx", await readMemberUploadForm(), true);
