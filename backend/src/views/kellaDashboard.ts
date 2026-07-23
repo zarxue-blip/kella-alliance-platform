@@ -585,41 +585,44 @@ export function kellaDashboardHtml() {
       .wiki-resize-se { right: -7px; bottom: -7px; cursor: nwse-resize; }
       .wiki-inspector {
         display: grid;
-        grid-template-columns: minmax(150px, 0.75fr) minmax(260px, 2fr) minmax(250px, 1.35fr) auto;
-        gap: 14px;
+        grid-template-columns: auto minmax(0, 1fr) minmax(210px, 0.75fr) auto;
+        gap: 10px;
         align-items: end;
         border-radius: 18px;
         border: 1px solid rgba(121, 82, 33, 0.34);
-        padding: 16px;
+        padding: 14px 16px;
         margin: 14px 0 16px;
         background: linear-gradient(180deg, rgba(255, 246, 214, 0.96), rgba(230, 193, 112, 0.82));
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.42);
       }
       .wiki-inspector h4 {
-        margin: 0 0 5px;
+        margin: 0;
         font-family: Georgia, "Times New Roman", serif;
-        font-size: 22px;
+        font-size: 24px;
+        line-height: 1;
       }
       .wiki-style-head {
-        align-self: center;
+        align-self: end;
+        min-width: 64px;
       }
       .wiki-style-head p,
       .wiki-style-note {
-        margin: 0;
+        display: none;
       }
       .wiki-style-controls {
         display: grid;
-        grid-template-columns: repeat(4, minmax(120px, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(4, minmax(82px, 1fr));
+        gap: 8px;
         align-items: end;
       }
       .wiki-style-controls--picture {
-        grid-template-columns: minmax(170px, 220px) minmax(220px, 1fr);
+        grid-template-columns: minmax(140px, 190px);
       }
       .wiki-style-actions {
         align-self: stretch;
         display: grid;
         align-content: end;
+        min-width: 0;
       }
       .wiki-delete-row {
         display: flex;
@@ -630,27 +633,31 @@ export function kellaDashboardHtml() {
         display: grid;
         gap: 6px;
         margin-bottom: 0;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 900;
         color: #5a3818;
       }
       .wiki-inspector input,
       .wiki-inspector select {
-        min-height: 38px;
+        min-height: 36px;
       }
       .wiki-image-tools {
         display: grid;
-        gap: 10px;
+        gap: 7px;
         margin-top: 0;
       }
       .wiki-image-tool-row,
       .wiki-add-block-row {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
+        grid-template-columns: repeat(2, minmax(82px, 1fr));
+        gap: 7px;
       }
       .wiki-add-block-row .secondary {
         width: 100%;
+      }
+      .wiki-delete-row .danger {
+        min-height: 36px;
+        white-space: nowrap;
       }
       .wiki-misc-picker {
         min-width: 0;
@@ -3501,7 +3508,7 @@ export function kellaDashboardHtml() {
         const block = selectedWikiBlock();
         if (!block) {
           return '<section class="wiki-inspector" data-wiki-inspector>' +
-            '<div class="wiki-style-head"><h4>Style</h4><p class="muted">Add a text or picture block to start designing the page.</p></div>' +
+            '<div class="wiki-style-head"><h4>Style</h4></div>' +
             '<div class="wiki-style-controls"></div>' +
             '<div class="wiki-style-actions">' + renderWikiAssetToolsHtml() + '</div>' +
           '</section>';
@@ -3511,9 +3518,9 @@ export function kellaDashboardHtml() {
             '<label>Text Size<select data-wiki-block-style="fontSize"><option value="small"' + optionSelected("small", block.fontSize) + '>Small</option><option value="medium"' + optionSelected("medium", block.fontSize) + '>Medium</option><option value="large"' + optionSelected("large", block.fontSize) + '>Large</option><option value="xlarge"' + optionSelected("xlarge", block.fontSize) + '>Extra Large</option></select></label>' +
             '<label>Align<select data-wiki-block-style="align"><option value="left"' + optionSelected("left", block.align) + '>Left</option><option value="center"' + optionSelected("center", block.align) + '>Center</option><option value="right"' + optionSelected("right", block.align) + '>Right</option></select></label>' +
             '<label>Color<input type="color" data-wiki-block-style="color" value="' + escapeHtml(block.color) + '" /></label></div>'
-          : '<div class="wiki-style-controls wiki-style-controls--picture"><button class="secondary" type="button" data-action="change-wiki-image">Change Picture</button><p class="muted wiki-style-note">Drag the picture on the page, then resize it from any corner.</p></div>';
+          : '<div class="wiki-style-controls wiki-style-controls--picture"><button class="secondary" type="button" data-action="change-wiki-image">Change Picture</button></div>';
         return '<section class="wiki-inspector" data-wiki-inspector>' +
-          '<div class="wiki-style-head"><h4>Style</h4><p class="muted">' + (block.type === "image" ? "Picture block selected." : "Text block selected.") + '</p></div>' +
+          '<div class="wiki-style-head"><h4>Style</h4></div>' +
           textControls +
           '<div class="wiki-style-actions">' + renderWikiAssetToolsHtml() + '</div>' +
           '<div class="wiki-delete-row"><button class="danger" type="button" data-action="delete-wiki-block">Delete Block</button></div>' +
@@ -3526,7 +3533,7 @@ export function kellaDashboardHtml() {
         state.selectedWikiBlockId = state.wikiBlocks[0]?.id || "";
         const title = editing.id ? "Edit Wiki Page" : "Create Wiki Page";
         return '<section class="card wiki-editor" data-wiki-editor>' +
-          '<div class="card-header"><div><h3>' + title + '</h3><span class="muted">Design a readable guide like a mini Pages document. Add text, drop pictures, drag blocks, and save.</span></div><div class="toolbar"><button class="secondary" type="button" data-action="clear-wiki-form">New Page</button><button class="primary" type="button" data-action="save-wiki-page">' + (editing.id ? "Save Changes" : "Publish Wiki") + '</button></div></div>' +
+          '<div class="card-header"><div><h3>' + title + '</h3></div><div class="toolbar"><button class="secondary" type="button" data-action="clear-wiki-form">New Page</button><button class="primary" type="button" data-action="save-wiki-page">' + (editing.id ? "Save Changes" : "Publish Wiki") + '</button></div></div>' +
           '<input type="hidden" data-wiki="id" value="' + escapeHtml(editing.id || "") + '" />' +
           '<input type="file" data-wiki-block-image accept="image/png,image/jpeg,image/webp" style="display:none" />' +
           '<div class="form-grid">' +
