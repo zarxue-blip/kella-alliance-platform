@@ -2279,7 +2279,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, reports: [], members: [], allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null };
+      const state = { summary: null, reports: [], members: [], dashboardMembers: [], allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null };
       const WIKI_CUSTOM_IMAGE_KEY = "kellaWikiCustomImages";
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
@@ -2658,7 +2658,7 @@ export function kellaDashboardHtml() {
 
       function allRosterMembers() {
         const byId = new Map();
-        (state.allMembers || []).concat(state.members || []).forEach(function(member) {
+        (state.allMembers || []).concat(state.members || [], state.dashboardMembers || []).forEach(function(member) {
           if (member?.id) byId.set(String(member.id), member);
         });
         return Array.from(byId.values());
@@ -2687,7 +2687,8 @@ export function kellaDashboardHtml() {
       }
 
       function memberPowerPercent(member) {
-        const strongestPower = Math.max.apply(null, (state.members || []).map(function(item) { return Number(item.power || 0); }).concat([Number(member?.power || 0), 1]));
+        const pool = ((state.members && state.members.length) ? state.members : state.dashboardMembers) || [];
+        const strongestPower = Math.max.apply(null, pool.map(function(item) { return Number(item.power || 0); }).concat([Number(member?.power || 0), 1]));
         return Math.max(4, Math.min(100, Math.round((Number(member?.power || 0) / strongestPower) * 100)));
       }
 
@@ -3273,6 +3274,13 @@ export function kellaDashboardHtml() {
           state.allMembers = allData.members || [];
         }
         return state.members;
+      }
+
+      async function loadDashboardMembers(force = false) {
+        if (state.dashboardMembers.length && !force) return state.dashboardMembers;
+        const data = await fetchJson("/api/dashboard/members?view=dashboard&limit=500");
+        state.dashboardMembers = data.members || [];
+        return state.dashboardMembers;
       }
 
       async function loadProfile(force = false) {
@@ -4369,7 +4377,7 @@ export function kellaDashboardHtml() {
       async function renderDashboard() {
         skeleton("Loading dashboard...");
         try {
-          const results = await Promise.all([loadSummary(), loadSettings(), loadMembers(), loadDashboardEvents()]);
+          const results = await Promise.all([loadSummary(), loadSettings(), loadDashboardMembers(), loadDashboardEvents()]);
           renderDashboardData(results[0], results[2], results[3]);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load dashboard data. ' + escapeHtml(error.message) + '</div>';
@@ -5588,7 +5596,7 @@ export function kellaDashboardHtml() {
             const member = findMemberById(openMemberId) || (state.profile && String(state.profile.id) === String(openMemberId) ? state.profile : null);
             if (member) openMemberModal(member);
           }
-          if (location.pathname === "/") renderDashboardData(state.summary || {}, state.members || [], state.events || []);
+          if (location.pathname === "/") renderDashboardData(state.summary || {}, state.dashboardMembers || [], state.events || []);
           if (location.pathname === "/profile") renderProfile();
           return;
         }
@@ -5652,6 +5660,7 @@ export function kellaDashboardHtml() {
           const sync = await sendJson("POST", "/api/dashboard/sync-discord-members", {}, true);
           state.summary = null;
           state.members = [];
+          state.dashboardMembers = [];
           state.allMembers = [];
           state.alerts = [];
           if (location.pathname === "/members") {
@@ -5665,6 +5674,7 @@ export function kellaDashboardHtml() {
           const sync = await sendJson("POST", "/api/dashboard/members/import-xlsx", await readMemberUploadForm(), true);
           state.summary = null;
           state.members = [];
+          state.dashboardMembers = [];
           state.allMembers = [];
           state.uploads = null;
           await renderMembers();
@@ -5674,6 +5684,7 @@ export function kellaDashboardHtml() {
           const data = await sendJson("PATCH", "/api/dashboard/profile", readProfileForm(), false);
           state.profile = data.member;
           state.members = [];
+          state.dashboardMembers = [];
           state.allMembers = [];
           await renderProfile();
           return "Profile saved.";
@@ -5683,6 +5694,7 @@ export function kellaDashboardHtml() {
           if (!id) throw new Error("Member id missing.");
           const data = await sendJson("PATCH", "/api/dashboard/members/" + encodeURIComponent(id), readAdminMemberForm(), true);
           const updated = data.member;
+          state.dashboardMembers = [];
           state.members = (state.members || []).map(function(member) {
             return String(member.id) === String(updated.id) ? updated : member;
           });
@@ -5698,6 +5710,7 @@ export function kellaDashboardHtml() {
           const data = await sendJson("POST", "/api/dashboard/members", readManualMemberForm(), true);
           state.summary = null;
           state.members = [];
+          state.dashboardMembers = [];
           state.allMembers = [];
           await loadMembers();
           if (location.pathname === "/members") {
@@ -5717,6 +5730,7 @@ export function kellaDashboardHtml() {
           }
           await sendJson("DELETE", "/api/dashboard/members/" + encodeURIComponent(id), undefined, true);
           state.summary = null;
+          state.dashboardMembers = [];
           state.members = (state.members || []).filter(function(item) { return String(item.id) !== String(id); });
           state.allMembers = (state.allMembers || []).filter(function(item) { return String(item.id) !== String(id); });
           closeMemberModal();
@@ -5731,9 +5745,14 @@ export function kellaDashboardHtml() {
           state.summary = null;
           state.alerts = [];
           state.reports = [];
+          state.dashboardMembers = [];
           await route();
         }, "Page refreshed.");
-        if (kind === "refresh-dashboard") withFeedback(action, async function() { state.summary = null; await renderDashboard(); }, "Dashboard refreshed.");
+        if (kind === "refresh-dashboard") withFeedback(action, async function() {
+          state.summary = null;
+          state.dashboardMembers = [];
+          await renderDashboard();
+        }, "Dashboard refreshed.");
         if (kind === "refresh-reports") withFeedback(action, async function() {
           state.reports = [];
           if (location.pathname.startsWith("/roots-reports/")) {
@@ -5860,6 +5879,7 @@ export function kellaDashboardHtml() {
           await sendJson("PATCH", "/api/dashboard/uploads/" + encodeURIComponent(id), { filename: filename.trim(), snapshotDate: snapshotDate.trim() }, true);
           state.uploads = null;
           state.members = [];
+          state.dashboardMembers = [];
           state.summary = null;
           await renderSettings();
           return "Roster upload updated.";
@@ -5874,6 +5894,7 @@ export function kellaDashboardHtml() {
           const result = await sendJson("DELETE", "/api/dashboard/uploads/" + encodeURIComponent(id), undefined, true);
           state.uploads = null;
           state.members = [];
+          state.dashboardMembers = [];
           state.summary = null;
           await renderSettings();
           return "Roster upload deleted. " + (result.deletedMembers || 0) + " upload-only members removed and " + (result.updatedMembers || 0) + " profiles recalculated.";
@@ -5885,6 +5906,7 @@ export function kellaDashboardHtml() {
           const result = await sendJson("DELETE", "/api/dashboard/uploads", undefined, true);
           state.uploads = null;
           state.members = [];
+          state.dashboardMembers = [];
           state.summary = null;
           await renderSettings();
           return "Imported roster data cleared. " + (result.deletedUploads || 0) + " upload records removed, " + (result.deletedMembers || 0) + " upload-only members deleted, and " + (result.updatedMembers || 0) + " Discord profiles recalculated.";
@@ -6249,9 +6271,9 @@ export function kellaDashboardHtml() {
         autoRefreshBusy = true;
         try {
           state.summary = null;
-          state.members = [];
+          state.dashboardMembers = [];
           state.events = [];
-          const results = await Promise.all([loadSummary(), loadMembers(), loadDashboardEvents()]);
+          const results = await Promise.all([loadSummary(), loadDashboardMembers(true), loadDashboardEvents()]);
           if (location.pathname === "/" && !document.hidden) {
             renderDashboardData(results[0], results[1], results[2]);
           }
@@ -6265,7 +6287,7 @@ export function kellaDashboardHtml() {
         if (document.hidden) return;
         if (document.activeElement && document.activeElement.matches("input, textarea, select")) return;
         refreshDashboardSilently();
-      }, 45000);
+      }, 120000);
       route();
     </script>
   </body>

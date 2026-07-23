@@ -834,7 +834,12 @@ function discordUserAvatarUrl(discordId?: string, avatar?: string) {
   return `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.${ext}?size=128`;
 }
 
-function dashboardMemberDto(member: any) {
+function limitedHistory<T>(items: T[], limit?: number) {
+  if (!limit || limit <= 0 || items.length <= limit) return items;
+  return items.slice(-limit);
+}
+
+function dashboardMemberDto(member: any, options: { historyLimit?: number; compact?: boolean } = {}) {
   const powerHistory = (member.powerHistory || [])
     .map((entry: any) => ({
       date: entry.date,
@@ -881,13 +886,13 @@ function dashboardMemberDto(member: any) {
     rank: member.rank,
     role: member.role,
     attendance: member.attendanceScore,
-    notes: member.notes,
+    notes: options.compact ? "" : member.notes,
     alliance: member.alliance,
     power: member.power,
-    powerHistory,
-    statHistory: statHistory.sort((left: any, right: any) => new Date(left.date).getTime() - new Date(right.date).getTime()),
-    timezone: member.timezone,
-    country: member.country
+    powerHistory: limitedHistory(powerHistory, options.historyLimit),
+    statHistory: limitedHistory(statHistory.sort((left: any, right: any) => new Date(left.date).getTime() - new Date(right.date).getTime()), options.historyLimit),
+    timezone: options.compact ? "" : member.timezone,
+    country: options.compact ? "" : member.country
   };
 }
 
@@ -1328,6 +1333,11 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
 export const dashboardMembers = asyncHandler(async (req, res) => {
   const allianceId = await resolveAllianceId();
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const dashboardView = req.query.view === "dashboard" || req.query.compact === "1";
+  const requestedLimit = Number(req.query.limit || 0);
+  const limit = dashboardView
+    ? Math.max(50, Math.min(Number.isFinite(requestedLimit) && requestedLimit > 0 ? requestedLimit : 500, 500))
+    : 2000;
   const filter: Record<string, unknown> = allianceFilter(allianceId);
   if (q) {
     filter.$or = [
@@ -1339,15 +1349,27 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
       { role: { $regex: q, $options: "i" } }
     ];
   }
+  if (dashboardView && !q) {
+    filter.alliance = { $regex: "kog|lwl|mf", $options: "i" };
+  }
 
-  const members = (await MemberModel.find(filter)
+  const memberQuery = MemberModel.find(filter)
     .sort({ power: -1, attendanceScore: -1, ign: 1 })
-    .limit(2000)
-    .select("mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role timezone country attendanceScore notes alliance power powerHistory statHistory")
-    .lean()) as DashboardMember[];
+    .limit(limit)
+    .select(
+      dashboardView
+        ? "mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role attendanceScore alliance power powerHistory statHistory"
+        : "mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role timezone country attendanceScore notes alliance power powerHistory statHistory"
+    );
+
+  if (dashboardView) {
+    memberQuery.slice("powerHistory", -10).slice("statHistory", -10);
+  }
+
+  const members = (await memberQuery.lean()) as DashboardMember[];
 
   res.json({
-    members: members.map(dashboardMemberDto)
+    members: members.map((member) => dashboardMemberDto(member, dashboardView ? { historyLimit: 10, compact: true } : {}))
   });
 });
 
