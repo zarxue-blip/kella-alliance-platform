@@ -649,6 +649,16 @@ export function kellaDashboardHtml() {
         word-break: break-word;
         white-space: pre-wrap;
       }
+      .wiki-inline-image {
+        display: inline-block;
+        width: 1.45em;
+        height: 1.45em;
+        margin: 0 0.12em;
+        vertical-align: -0.28em;
+        object-fit: contain;
+        border-radius: 0.22em;
+        user-select: all;
+      }
       .wiki-image-block {
         padding: 8px;
         background: rgba(255, 246, 211, 0.28);
@@ -3591,10 +3601,41 @@ export function kellaDashboardHtml() {
         return 'Georgia, "Times New Roman", serif';
       }
 
+      function isWikiAssetSrc(src) {
+        const value = String(src || "").trim();
+        return ["/assets/wiki-misc/", "/assets/wiki-heroes/", "/assets/wiki-markers/", "/assets/wiki-artifacts/", "/assets/wiki-pets/"].some(function(prefix) {
+          return value.startsWith(prefix);
+        });
+      }
+
+      function wikiInlineImageToken(src) {
+        return "[[kella-img:" + String(src || "").replace(/\\]/g, "") + "]]";
+      }
+
+      function wikiInlineImageHtml(src) {
+        if (!isWikiAssetSrc(src)) return "";
+        return '<img class="wiki-inline-image" src="' + escapeHtml(src) + '" alt="" data-wiki-inline-image="' + escapeHtml(src) + '" contenteditable="false" draggable="false" />';
+      }
+
+      function wikiTextContentHtml(text) {
+        const raw = String(text || "Write here...");
+        const pattern = /\\[\\[kella-img:([^\\]]+)\\]\\]/g;
+        let cursor = 0;
+        let html = "";
+        raw.replace(pattern, function(match, src, offset) {
+          html += escapeHtml(raw.slice(cursor, offset));
+          html += wikiInlineImageHtml(src) || escapeHtml(match);
+          cursor = offset + match.length;
+          return match;
+        });
+        html += escapeHtml(raw.slice(cursor));
+        return html;
+      }
+
       function sanitizeWikiBlock(block) {
         const type = block?.type === "image" ? "image" : "text";
-        const minWidth = 80;
-        const minHeight = type === "image" ? 80 : 48;
+        const minWidth = type === "image" ? 24 : 80;
+        const minHeight = type === "image" ? 24 : 48;
         const width = wikiClamp(block?.width, minWidth, WIKI_PAGE_WIDTH - 40);
         const height = wikiClamp(block?.height, minHeight, WIKI_MAX_PAGE_HEIGHT);
         const x = wikiClamp(block?.x, 0, WIKI_PAGE_WIDTH - width);
@@ -3678,6 +3719,11 @@ export function kellaDashboardHtml() {
           if (current.nodeType !== Node.ELEMENT_NODE) return;
           const element = current;
           const tag = element.tagName || "";
+          if (tag === "IMG") {
+            const src = element.getAttribute("data-wiki-inline-image") || element.getAttribute("src") || "";
+            if (isWikiAssetSrc(src)) parts.push(wikiInlineImageToken(src));
+            return;
+          }
           if (tag === "BR") {
             appendBreak();
             return;
@@ -3765,7 +3811,7 @@ export function kellaDashboardHtml() {
           return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + image + handles + '</div>';
         }
         return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' +
-          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="plaintext-only" spellcheck="true" data-wiki-text-content' : "") + '>' + escapeHtml(block.text || "Write here...") + '</div>' +
+          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + wikiTextContentHtml(block.text || "Write here...") + '</div>' +
           addText +
           handles +
         '</div>';
@@ -3784,7 +3830,7 @@ export function kellaDashboardHtml() {
           return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + image + handles + '</div>';
         }
         return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' +
-          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="plaintext-only" spellcheck="true" data-wiki-text-content' : "") + '>' + escapeHtml(block.text || "Write here...") + '</div>' +
+          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + wikiTextContentHtml(block.text || "Write here...") + '</div>' +
           addText +
           handles +
         '</div>';
@@ -4016,6 +4062,58 @@ export function kellaDashboardHtml() {
           autoFitWikiTextBlock(block, content);
           node.setAttribute("style", wikiBlockStyle(block));
         }
+      }
+
+      function focusedWikiTextNode() {
+        const active = document.activeElement?.closest?.("[data-wiki-text-content]");
+        if (active) return active;
+        const selection = window.getSelection?.();
+        const anchor = selection?.anchorNode;
+        const selectedText = anchor?.parentElement?.closest?.("[data-wiki-text-content]");
+        if (selectedText) return selectedText;
+        if (state.selectedWikiBlockId) {
+          return wikiBlockElement(state.selectedWikiBlockId)?.querySelector("[data-wiki-text-content]") || null;
+        }
+        return null;
+      }
+
+      function insertWikiInlineImage(src) {
+        if (!isWikiAssetSrc(src)) return false;
+        const textNode = focusedWikiTextNode();
+        if (!textNode) return false;
+        const blockEl = textNode.closest("[data-wiki-block]");
+        const blockId = blockEl?.getAttribute("data-wiki-block") || "";
+        const block = state.wikiBlocks.find(function(item) { return item.id === blockId && item.type === "text"; });
+        if (!block) return false;
+
+        const selection = window.getSelection?.();
+        let range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+        if (!range || !textNode.contains(range.commonAncestorContainer)) {
+          range = document.createRange();
+          range.selectNodeContents(textNode);
+          range.collapse(false);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
+
+        const image = document.createElement("img");
+        image.className = "wiki-inline-image";
+        image.src = src;
+        image.alt = "";
+        image.setAttribute("data-wiki-inline-image", src);
+        image.setAttribute("contenteditable", "false");
+        image.setAttribute("draggable", "false");
+        const spacer = document.createTextNode(" ");
+        range.deleteContents();
+        range.insertNode(spacer);
+        range.insertNode(image);
+        range.setStartAfter(spacer);
+        range.collapse(true);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        block.text = wikiPlainTextFromEditable(textNode);
+        autoFitWikiTextBlock(block, textNode);
+        return true;
       }
 
       function applyWikiBlockStyleChange(target) {
@@ -5256,8 +5354,13 @@ export function kellaDashboardHtml() {
           return;
         }
         if (kind === "add-wiki-asset-image") {
-          insertWikiImageBlock(action.getAttribute("data-wiki-asset-image") || "");
-          toast("Image added to the wiki page.", "success");
+          const src = action.getAttribute("data-wiki-asset-image") || "";
+          if (insertWikiInlineImage(src)) {
+            toast("Image inserted into the text box.", "success");
+          } else {
+            insertWikiImageBlock(src);
+            toast("Image added to the wiki page.", "success");
+          }
           return;
         }
         if (kind === "change-wiki-image") {
@@ -5782,8 +5885,8 @@ export function kellaDashboardHtml() {
         const dx = event.clientX - drag.startX;
         const dy = event.clientY - drag.startY;
         if (drag.mode === "resize") {
-          const minWidth = 80;
-          const minHeight = block.type === "image" ? 80 : 48;
+          const minWidth = block.type === "image" ? 24 : 80;
+          const minHeight = block.type === "image" ? 24 : 48;
           let nextX = drag.baseX;
           let nextY = drag.baseY;
           let nextWidth = drag.baseWidth;
