@@ -466,6 +466,9 @@ export function kellaDashboardHtml() {
         border: 1px solid rgba(111, 71, 25, 0.38);
         box-shadow: inset 0 0 42px rgba(122, 80, 34, 0.17), 0 18px 36px rgba(55, 32, 12, 0.24);
       }
+      .wiki-page-canvas {
+        max-width: none;
+      }
       .wiki-page-canvas::before,
       .wiki-reader-page::before {
         content: "";
@@ -3277,15 +3280,21 @@ export function kellaDashboardHtml() {
 
       function sanitizeWikiBlock(block) {
         const type = block?.type === "image" ? "image" : "text";
+        const minWidth = 80;
+        const minHeight = type === "image" ? 80 : 48;
+        const width = wikiClamp(block?.width, minWidth, 720);
+        const height = wikiClamp(block?.height, minHeight, 900);
+        const x = wikiClamp(block?.x, 0, 760 - width);
+        const y = wikiClamp(block?.y, 0, 980 - height);
         return {
           id: String(block?.id || wikiBlockId()).slice(0, 80),
           type,
           text: String(block?.text || "").slice(0, 6000),
           imageDataUrl: String(block?.imageDataUrl || ""),
-          x: wikiClamp(block?.x, 0, 700),
-          y: wikiClamp(block?.y, 0, 1240),
-          width: wikiClamp(block?.width, 80, 720),
-          height: wikiClamp(block?.height, type === "image" ? 80 : 48, 900),
+          x,
+          y,
+          width,
+          height,
           fontFamily: ["serif", "sans", "display", "script", "mono", "cod"].includes(block?.fontFamily) ? block.fontFamily : "serif",
           fontSize: ["small", "medium", "large", "xlarge"].includes(block?.fontSize) ? block.fontSize : "medium",
           color: /^#[0-9a-fA-F]{6}$/.test(block?.color || "") ? block.color : "#3f2a13",
