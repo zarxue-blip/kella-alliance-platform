@@ -102,6 +102,7 @@ export function kellaDashboardHtml() {
       }
 
       * { box-sizing: border-box; }
+      html { min-width: 0; overflow-x: hidden; }
       body {
         margin: 0;
         background:
@@ -114,12 +115,15 @@ export function kellaDashboardHtml() {
         color: var(--text);
         font-family: "Trebuchet MS", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
         min-height: 100vh;
+        min-width: 0;
+        overflow-x: hidden;
       }
 
       button, input, select, textarea { font: inherit; }
       button { cursor: pointer; }
       button:disabled { cursor: not-allowed; opacity: 0.62; }
       a { color: inherit; }
+      img, svg, video, canvas { max-width: 100%; }
 
       .shell {
         width: min(1240px, calc(100vw - 28px));
@@ -145,6 +149,7 @@ export function kellaDashboardHtml() {
         padding: 20px 14px;
         display: flex;
         flex-direction: column;
+        min-width: 0;
       }
 
       .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding: 0 7px; }
@@ -186,7 +191,9 @@ export function kellaDashboardHtml() {
         font-size: 14px;
         text-shadow: 0 1px 0 rgba(0,0,0,0.42);
         transition: background 160ms ease, color 160ms ease, transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+        min-width: 0;
       }
+      nav a span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .nav-icon {
         width: 28px;
         height: 28px;
@@ -232,7 +239,7 @@ export function kellaDashboardHtml() {
       }
       .topbar {
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
         gap: 14px;
         min-height: 58px;
@@ -263,7 +270,7 @@ export function kellaDashboardHtml() {
         color: #241509;
         font-size: 13px;
       }
-      .top-actions { display: flex; align-items: center; gap: 8px; }
+      .top-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
       .top-actions .server-clock { min-width: 150px; }
       .auth-pill {
         display: inline-flex;
@@ -609,10 +616,13 @@ export function kellaDashboardHtml() {
       @media (max-width: 940px) {
         .wiki-builder { grid-template-columns: 1fr; }
         .wiki-inspector { position: static; }
-        .wiki-page-canvas, .wiki-reader-page { width: 720px; }
+        .wiki-canvas-wrap, .wiki-reader { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .wiki-page-canvas, .wiki-reader-page { width: 720px; max-width: none; }
       }
-      .content { padding: 24px 20px 28px; }
+      .content { padding: 24px 20px 28px; min-width: 0; }
       .guild { display: flex; align-items: center; gap: 14px; }
+      .guild, .guild > div { min-width: 0; }
+      .guild h1, .guild span { overflow-wrap: anywhere; }
       .avatar {
         width: 42px;
         height: 42px;
@@ -1255,7 +1265,12 @@ export function kellaDashboardHtml() {
       th, td { padding: 14px 16px; border-bottom: 1px solid rgba(98, 62, 24, 0.20); text-align: left; vertical-align: top; }
       th { color: #5d350e; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; background: rgba(210, 162, 83, 0.28); }
       td { color: #2b1706; }
-      .table-wrap { overflow-x: auto; }
+      .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+      }
+      .table-wrap table { margin: 0; }
       tbody tr { transition: background 150ms ease, transform 150ms ease; }
 
       .empty, .error, .skeleton {
@@ -1594,34 +1609,142 @@ export function kellaDashboardHtml() {
       }
 
       @media (max-width: 1120px) {
+        .shell { width: min(100%, calc(100vw - 20px)); grid-template-columns: 220px minmax(0, 1fr); }
+        .topbar { grid-template-columns: 1fr; align-items: start; }
+        .top-actions { justify-content: flex-start; flex-wrap: wrap; }
         .grid, .stats, .form-grid, .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .two, .players, .dashboard-main, .attendance-grid { grid-template-columns: 1fr; }
+        .calendar-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .event-calendar .calendar-day,
+        .attendance-calendar-card .event-calendar .calendar-day { min-height: 150px; }
+        .command-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
       @media (max-width: 780px) {
         body { background-attachment: scroll; }
-        .shell { width: 100%; min-height: 100vh; margin: 0; border-radius: 0; grid-template-columns: 1fr; border-left: 0; border-right: 0; }
-        .shell > aside { min-height: auto; padding: 14px; }
-        .brand { margin-bottom: 14px; }
-        nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-        nav a { min-height: 44px; padding: 8px 9px; font-size: 13px; }
+        .shell {
+          width: 100%;
+          min-height: 100vh;
+          margin: 0;
+          border-radius: 0;
+          grid-template-columns: 1fr;
+          border-left: 0;
+          border-right: 0;
+          overflow: visible;
+        }
+        .shell > aside {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          min-height: auto;
+          padding: 10px 12px 11px;
+          border-right: 0;
+          border-bottom: 1px solid rgba(255, 214, 90, 0.28);
+        }
+        .brand { margin-bottom: 10px; padding: 0 2px; }
+        .brand-logo { width: 42px; height: 42px; border-radius: 12px; }
+        .brand strong { font-size: 14px; }
+        .brand span { font-size: 10px; }
+        nav {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          padding: 2px 2px 7px;
+          margin: 0 -2px;
+          scroll-snap-type: x proximity;
+          -webkit-overflow-scrolling: touch;
+        }
+        nav a {
+          flex: 0 0 auto;
+          min-height: 42px;
+          max-width: 172px;
+          padding: 8px 10px;
+          font-size: 13px;
+          scroll-snap-align: start;
+        }
+        nav a.active, nav a:hover { transform: translateY(-1px); }
         .nav-icon { width: 26px; height: 26px; }
-        .content { padding: 20px 14px 26px; }
+        .side-spacer, .side-footer { display: none; }
+        .content { padding: 18px 12px 92px; }
         .hero, .topbar { grid-template-columns: 1fr; display: grid; align-items: start; }
-        .topbar { padding: 14px; gap: 12px; }
-        .top-actions { width: 100%; flex-wrap: wrap; }
+        .topbar {
+          position: sticky;
+          top: 112px;
+          z-index: 18;
+          padding: 12px;
+          gap: 12px;
+          box-shadow: 0 8px 20px rgba(67, 37, 10, 0.12);
+        }
+        .guild { gap: 10px; }
+        .guild .avatar-img { width: 40px; height: 40px; }
+        h1 { font-size: 21px; line-height: 1.05; }
+        h2 { font-size: 28px; line-height: 1.08; }
+        h3 { font-size: 18px; }
+        .hero { gap: 13px; margin-bottom: 18px; }
+        .hero p { line-height: 1.5; }
+        .top-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .top-actions .server-clock { flex: 1 1 100%; justify-items: start; }
-        .top-actions .auth-button { flex: 1; }
-        .profile-top-button { flex: 1 1 100%; min-width: 0; }
-        .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row, .command-board, .power-trend-row, .power-history-list, .interactive-chart { grid-template-columns: 1fr; }
+        .top-actions .server-clock,
+        .auth-pill { grid-column: 1 / -1; width: 100%; justify-items: start; }
+        .top-actions .auth-button,
+        .profile-top-button { width: 100%; min-width: 0; justify-content: center; }
+        .profile-top-button { padding-right: 9px; }
+        .profile-top-button em { white-space: normal; }
+        .toolbar { width: 100%; gap: 8px; }
+        .toolbar > button,
+        .toolbar > a,
+        .toolbar > label { flex: 1 1 150px; min-width: 0; }
+        .card, .preview, .alliance-stats-card { padding: 16px; }
+        .card-header { align-items: flex-start; flex-direction: column; gap: 10px; }
+        .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row, .command-board, .power-trend-row, .power-history-list, .interactive-chart, .attendance-summary-grid { grid-template-columns: 1fr; }
         .upload-comparison-row { grid-template-columns: 1fr 1fr; }
         .trend-pill { justify-self: stretch; }
-        .calendar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .calendar-grid { grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 8px; }
+        .calendar-day { min-height: 128px; padding: 9px; }
+        .event-calendar .calendar-day,
+        .attendance-calendar-card .event-calendar .calendar-day { min-height: 142px; }
+        .calendar-entry { white-space: normal; }
+        .metric-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+        .metric-button { min-height: 36px; padding: 5px 6px; font-size: 9px; }
+        table { min-width: 680px; }
+        th, td { padding: 11px 12px; }
         .member-modal { padding: 10px; align-items: end; }
         .member-modal-panel { width: 100%; max-height: calc(100vh - 24px); border-radius: 14px 14px 0 0; padding: 18px; }
         .member-profile-hero { grid-template-columns: 1fr; text-align: center; padding-right: 0; justify-items: center; }
         .profile-stats { grid-template-columns: 1fr; }
         .modal-close { top: 10px; right: 10px; }
+        .wiki-builder-toolbar .muted { flex-basis: 100%; }
+        .wiki-canvas-wrap { padding: 12px; margin: 0 -4px; }
+        .wiki-page-canvas,
+        .wiki-reader-page { width: 720px; max-width: none; }
+        .wiki-inspector { padding: 14px; }
+        .wiki-misc-panel { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .avatar-cropper { align-items: end; padding: 10px; }
+        .avatar-cropper-panel { width: 100%; border-radius: 14px 14px 0 0; padding: 18px; }
+        .toast-stack { right: 12px; bottom: 78px; width: calc(100vw - 24px); }
         .kofi-tip { right: 14px; bottom: 14px; padding: 9px 13px 9px 9px; }
+      }
+      @media (max-width: 520px) {
+        .shell > aside { padding: 9px 10px 10px; }
+        .topbar { top: 105px; }
+        .top-actions { grid-template-columns: 1fr; }
+        .profile-top-button, .auth-button { min-height: 42px; }
+        .stats, .quick-grid { gap: 10px; }
+        .stat strong { font-size: 23px; }
+        .overview-panel { min-height: 220px; padding: 17px; }
+        .calendar-grid { grid-template-columns: 1fr; }
+        .calendar-day,
+        .event-calendar .calendar-day,
+        .attendance-calendar-card .event-calendar .calendar-day { min-height: 116px; }
+        .metric-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .member-cell { min-width: 190px; }
+        table { min-width: 620px; }
+        .power-sparkline { height: 86px; }
+        .interactive-chart .power-sparkline { height: 180px; }
+        .wiki-page-canvas,
+        .wiki-reader-page { width: 680px; }
+        .wiki-misc-panel { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .kofi-tip { gap: 0; padding: 8px; font-size: 0; }
+        .kofi-tip img { width: 32px; height: 32px; }
       }
     </style>
   </head>
