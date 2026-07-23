@@ -637,6 +637,21 @@ export function kellaDashboardHtml() {
         border-radius: 14px;
         background: rgba(255, 250, 226, 0.58);
       }
+      .wiki-misc-panel--hero {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 8px);
+        z-index: 20;
+        width: min(430px, calc(100vw - 36px));
+        max-height: min(520px, 72vh);
+        grid-template-columns: repeat(2, minmax(160px, 1fr));
+        margin-top: 0;
+        padding: 12px;
+        background:
+          linear-gradient(180deg, rgba(255, 250, 226, 0.98), rgba(238, 207, 137, 0.96)),
+          radial-gradient(circle at 50% 0%, rgba(255, 215, 87, 0.32), transparent 55%);
+        box-shadow: 0 22px 46px rgba(64, 37, 11, 0.28);
+      }
       .wiki-misc-panel[hidden] {
         display: none;
       }
@@ -671,6 +686,24 @@ export function kellaDashboardHtml() {
         font-weight: 800;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+      .wiki-misc-tile--hero {
+        min-height: 190px;
+        padding: 10px;
+        gap: 8px;
+        align-content: start;
+        background: linear-gradient(180deg, rgba(255, 248, 217, 0.90), rgba(231, 196, 116, 0.72));
+      }
+      .wiki-misc-tile--hero img {
+        height: 142px;
+      }
+      .wiki-misc-tile--hero span {
+        font-size: 13px;
+        line-height: 1.2;
+        white-space: normal;
+        overflow: visible;
+        text-align: center;
+        text-overflow: clip;
       }
       .wiki-reader {
         display: grid;
@@ -3393,13 +3426,16 @@ export function kellaDashboardHtml() {
       }
 
       function renderWikiAssetPickerHtml(label, images) {
+        const isHeroPicker = label === "Hero";
+        const panelClass = isHeroPicker ? "wiki-misc-panel wiki-misc-panel--hero" : "wiki-misc-panel";
+        const tileClass = isHeroPicker ? "wiki-misc-tile wiki-misc-tile--hero" : "wiki-misc-tile";
         const tiles = images.map(function(image) {
-          return '<button class="wiki-misc-tile" type="button" draggable="true" data-action="add-wiki-asset-image" data-wiki-asset-image="' + escapeHtml(image.src) + '" title="Drag or click to add ' + escapeHtml(image.label) + '">' +
+          return '<button class="' + tileClass + '" type="button" draggable="true" data-action="add-wiki-asset-image" data-wiki-asset-image="' + escapeHtml(image.src) + '" title="Drag or click to add ' + escapeHtml(image.label) + '">' +
             '<img src="' + escapeHtml(image.src) + '" alt="" loading="lazy" />' +
             '<span>' + escapeHtml(image.label) + '</span>' +
           '</button>';
         }).join("");
-        return '<div class="wiki-misc-picker"><button class="secondary" type="button" data-action="toggle-wiki-asset-panel">' + escapeHtml(label) + '</button><div class="wiki-misc-panel" data-wiki-asset-panel hidden>' + tiles + '</div></div>';
+        return '<div class="wiki-misc-picker"><button class="secondary" type="button" data-action="toggle-wiki-asset-panel">' + escapeHtml(label) + '</button><div class="' + panelClass + '" data-wiki-asset-panel hidden>' + tiles + '</div></div>';
       }
 
       function renderWikiAssetToolsHtml() {
