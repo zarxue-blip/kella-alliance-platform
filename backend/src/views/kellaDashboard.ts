@@ -389,6 +389,8 @@ export function kellaDashboardHtml() {
         box-shadow: 0 0 0 4px rgba(255, 214, 90, 0.24);
       }
       .wiki-text-block {
+        display: flex;
+        align-items: center;
         padding: 12px 14px;
         line-height: 1.35;
         white-space: pre-wrap;
@@ -397,7 +399,7 @@ export function kellaDashboardHtml() {
       }
       .wiki-text-content {
         width: 100%;
-        min-height: 100%;
+        min-height: auto;
         outline: none;
         overflow: visible;
         overflow-wrap: anywhere;
@@ -427,13 +429,22 @@ export function kellaDashboardHtml() {
         box-shadow: 0 8px 16px rgba(67, 37, 10, 0.16);
       }
       .wiki-drag-handle {
-        right: 8px;
-        top: 8px;
-        width: 28px;
-        height: 28px;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        min-width: 58px;
+        height: 32px;
+        padding: 0 10px;
         border-radius: 999px;
         cursor: grab;
+        font-size: 0;
         font-weight: 1000;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .wiki-drag-handle::after {
+        content: "Drag";
+        font-size: 11px;
       }
       .wiki-resize-handle {
         width: 18px;
@@ -2937,7 +2948,7 @@ export function kellaDashboardHtml() {
           fontFamily: ["serif", "sans", "display", "script", "mono", "cod"].includes(block?.fontFamily) ? block.fontFamily : "serif",
           fontSize: ["small", "medium", "large", "xlarge"].includes(block?.fontSize) ? block.fontSize : "medium",
           color: /^#[0-9a-fA-F]{6}$/.test(block?.color || "") ? block.color : "#3f2a13",
-          align: ["left", "center", "right"].includes(block?.align) ? block.align : "left"
+          align: ["left", "center", "right"].includes(block?.align) ? block.align : "center"
         };
       }
 
@@ -2953,7 +2964,7 @@ export function kellaDashboardHtml() {
         }
         if (!fallback.length) {
           fallback.push(sanitizeWikiBlock({ id: wikiBlockId(), type: "text", text: "Kella Tips & Tricks", x: 90, y: 90, width: 580, height: 92, fontFamily: "display", fontSize: "large", align: "center", color: "#3f2a13" }));
-          fallback.push(sanitizeWikiBlock({ id: wikiBlockId(), type: "text", text: "Write the guide here. Drag blocks around, add pictures, and make it readable for the alliance.", x: 90, y: 220, width: 580, height: 160, fontFamily: "serif", fontSize: "medium", align: "left" }));
+          fallback.push(sanitizeWikiBlock({ id: wikiBlockId(), type: "text", text: "Write the guide here. Drag blocks around, add pictures, and make it readable for the alliance.", x: 90, y: 220, width: 580, height: 160, fontFamily: "serif", fontSize: "medium", align: "center" }));
         }
         return fallback;
       }
@@ -4339,7 +4350,7 @@ export function kellaDashboardHtml() {
         }
         if (kind === "add-wiki-text") {
           syncWikiTextFromDom();
-          const block = sanitizeWikiBlock({ id: wikiBlockId(), type: "text", text: "New text block", x: 110, y: 140 + (state.wikiBlocks.length * 26), width: 420, height: 110, fontFamily: "serif", fontSize: "medium" });
+          const block = sanitizeWikiBlock({ id: wikiBlockId(), type: "text", text: "New text block", x: 110, y: 140 + (state.wikiBlocks.length * 26), width: 420, height: 110, fontFamily: "serif", fontSize: "medium", align: "center" });
           state.wikiBlocks.push(block);
           state.selectedWikiBlockId = block.id;
           refreshWikiBuilder();
