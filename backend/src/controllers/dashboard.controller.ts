@@ -136,7 +136,9 @@ const wikiImageSchema = z
     if (typeof value !== "string") return undefined;
     const trimmed = value.trim();
     return trimmed || undefined;
-  }, z.string().max(4_200_000, "Wiki image is too large. Please use a smaller picture.").regex(/^data:image\/(png|jpe?g|webp);base64,/i, "Wiki image must be PNG, JPG, or WEBP.").optional())
+  }, z.string().max(4_200_000, "Wiki image is too large. Please use a smaller picture.").refine((value) => {
+    return /^data:image\/(png|jpe?g|webp);base64,/i.test(value) || /^\/assets\/wiki-misc\/[a-z0-9._/-]+\.(png|jpe?g|webp)$/i.test(value);
+  }, "Wiki image must be PNG, JPG, WEBP, or a Kella misc image.").optional())
   .optional();
 
 const wikiBlockSchema = z.object({
@@ -151,7 +153,7 @@ const wikiBlockSchema = z.object({
   fontFamily: z.enum(wikiFontFamilies).default("serif"),
   fontSize: z.enum(wikiFontSizes).default("medium"),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#3f2a13"),
-  align: z.enum(wikiAlignments).default("left")
+  align: z.enum(wikiAlignments).default("center")
 });
 
 const wikiPageCreateSchema = z.object({
@@ -349,7 +351,7 @@ function wikiBlocksDto(page: any) {
       fontFamily: wikiFontFamilies.includes(block.fontFamily) ? block.fontFamily : page.fontFamily || "serif",
       fontSize: wikiFontSizes.includes(block.fontSize) ? block.fontSize : page.fontSize || "medium",
       color: /^#[0-9a-fA-F]{6}$/.test(block.color || "") ? block.color : "#3f2a13",
-      align: wikiAlignments.includes(block.align) ? block.align : "left"
+      align: wikiAlignments.includes(block.align) ? block.align : "center"
     }));
   }
 

@@ -19,7 +19,7 @@ const wikiBlockSchema = new Schema(
     fontFamily: { type: String, enum: wikiFontFamilies, default: "serif" },
     fontSize: { type: String, enum: wikiFontSizes, default: "medium" },
     color: { type: String, default: "#3f2a13", maxlength: 7 },
-    align: { type: String, enum: wikiAlignments, default: "left" }
+    align: { type: String, enum: wikiAlignments, default: "center" }
   },
   { _id: false }
 );
