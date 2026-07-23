@@ -639,9 +639,10 @@ export function kellaDashboardHtml() {
       .wiki-text-content {
         box-sizing: border-box;
         width: 100%;
+        height: 100%;
         max-width: 100%;
         max-height: 100%;
-        min-height: auto;
+        min-height: 0;
         outline: none;
         overflow: hidden;
         overflow-wrap: anywhere;
@@ -3661,11 +3662,40 @@ export function kellaDashboardHtml() {
         })[0];
       }
 
+      function wikiPlainTextFromEditable(node) {
+        if (!node) return "";
+        const parts = [];
+        const blockTags = new Set(["ADDRESS", "ARTICLE", "ASIDE", "BLOCKQUOTE", "DIV", "FIGCAPTION", "FIGURE", "FOOTER", "H1", "H2", "H3", "H4", "H5", "H6", "HEADER", "LI", "MAIN", "NAV", "OL", "P", "PRE", "SECTION", "UL"]);
+        const appendBreak = function() {
+          if (parts.length && parts[parts.length - 1] !== "\\n") parts.push("\\n");
+        };
+        const walk = function(current) {
+          if (!current) return;
+          if (current.nodeType === Node.TEXT_NODE) {
+            parts.push((current.nodeValue || "").replace(/\\u00a0/g, " "));
+            return;
+          }
+          if (current.nodeType !== Node.ELEMENT_NODE) return;
+          const element = current;
+          const tag = element.tagName || "";
+          if (tag === "BR") {
+            appendBreak();
+            return;
+          }
+          const isBlock = blockTags.has(tag);
+          if (isBlock) appendBreak();
+          Array.from(element.childNodes || []).forEach(walk);
+          if (isBlock) appendBreak();
+        };
+        Array.from(node.childNodes || []).forEach(walk);
+        return parts.join("").replace(/\\n+$/g, "");
+      }
+
       function syncWikiTextFromDom() {
         document.querySelectorAll("[data-wiki-text-content]").forEach(function(node) {
           const id = node.closest("[data-wiki-block]")?.getAttribute("data-wiki-block") || "";
           const block = state.wikiBlocks.find(function(item) { return item.id === id; });
-          if (block) block.text = node.textContent || "";
+          if (block) block.text = wikiPlainTextFromEditable(node);
         });
       }
 
@@ -3735,7 +3765,7 @@ export function kellaDashboardHtml() {
           return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + image + handles + '</div>';
         }
         return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' +
-          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + escapeHtml(block.text || "Write here...") + '</div>' +
+          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="plaintext-only" spellcheck="true" data-wiki-text-content' : "") + '>' + escapeHtml(block.text || "Write here...") + '</div>' +
           addText +
           handles +
         '</div>';
@@ -3754,7 +3784,7 @@ export function kellaDashboardHtml() {
           return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + image + handles + '</div>';
         }
         return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' +
-          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + escapeHtml(block.text || "Write here...") + '</div>' +
+          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="plaintext-only" spellcheck="true" data-wiki-text-content' : "") + '>' + escapeHtml(block.text || "Write here...") + '</div>' +
           addText +
           handles +
         '</div>';
@@ -5903,7 +5933,7 @@ export function kellaDashboardHtml() {
           const id = event.target.closest("[data-wiki-block]")?.getAttribute("data-wiki-block") || "";
           const block = state.wikiBlocks.find(function(item) { return item.id === id; });
           if (block) {
-            block.text = event.target.textContent || "";
+            block.text = wikiPlainTextFromEditable(event.target);
             autoFitWikiTextBlock(block, event.target);
           }
         }
