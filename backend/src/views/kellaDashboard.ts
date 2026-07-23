@@ -435,14 +435,17 @@ export function kellaDashboardHtml() {
       }
       .wiki-builder {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 290px;
-        gap: 16px;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
         align-items: start;
       }
       .wiki-canvas-wrap {
         overflow: auto;
         border-radius: 18px;
-        padding: 18px;
+        width: min(850px, 100%);
+        max-height: min(1080px, calc(100vh - 300px));
+        margin: 0 auto;
+        padding: 22px;
         background:
           radial-gradient(circle at 50% 0%, rgba(255,255,255,0.28), transparent 40%),
           linear-gradient(180deg, rgba(77, 48, 18, 0.18), rgba(52, 31, 11, 0.10));
@@ -581,23 +584,52 @@ export function kellaDashboardHtml() {
       .wiki-resize-sw { left: -7px; bottom: -7px; cursor: nesw-resize; }
       .wiki-resize-se { right: -7px; bottom: -7px; cursor: nwse-resize; }
       .wiki-inspector {
-        position: sticky;
-        top: 12px;
+        display: grid;
+        grid-template-columns: minmax(150px, 0.75fr) minmax(260px, 2fr) minmax(250px, 1.35fr) auto;
+        gap: 14px;
+        align-items: end;
         border-radius: 18px;
         border: 1px solid rgba(121, 82, 33, 0.34);
         padding: 16px;
+        margin: 14px 0 16px;
         background: linear-gradient(180deg, rgba(255, 246, 214, 0.96), rgba(230, 193, 112, 0.82));
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.42);
       }
       .wiki-inspector h4 {
-        margin: 0 0 10px;
+        margin: 0 0 5px;
         font-family: Georgia, "Times New Roman", serif;
         font-size: 22px;
+      }
+      .wiki-style-head {
+        align-self: center;
+      }
+      .wiki-style-head p,
+      .wiki-style-note {
+        margin: 0;
+      }
+      .wiki-style-controls {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(120px, 1fr));
+        gap: 10px;
+        align-items: end;
+      }
+      .wiki-style-controls--picture {
+        grid-template-columns: minmax(170px, 220px) minmax(220px, 1fr);
+      }
+      .wiki-style-actions {
+        align-self: stretch;
+        display: grid;
+        align-content: end;
+      }
+      .wiki-delete-row {
+        display: flex;
+        justify-content: flex-end;
+        align-items: end;
       }
       .wiki-inspector label {
         display: grid;
         gap: 6px;
-        margin-bottom: 10px;
+        margin-bottom: 0;
         font-size: 13px;
         font-weight: 900;
         color: #5a3818;
@@ -609,7 +641,7 @@ export function kellaDashboardHtml() {
       .wiki-image-tools {
         display: grid;
         gap: 10px;
-        margin-top: 10px;
+        margin-top: 0;
       }
       .wiki-image-tool-row,
       .wiki-add-block-row {
@@ -1734,6 +1766,10 @@ export function kellaDashboardHtml() {
         .top-actions { justify-content: flex-start; flex-wrap: wrap; }
         .grid, .stats, .form-grid, .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .two, .players, .dashboard-main, .attendance-grid { grid-template-columns: 1fr; }
+        .wiki-inspector { grid-template-columns: 1fr; align-items: stretch; }
+        .wiki-style-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .wiki-style-controls--picture { grid-template-columns: 1fr; }
+        .wiki-delete-row { justify-content: flex-start; }
         .calendar-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         .event-calendar .calendar-day,
         .attendance-calendar-card .event-calendar .calendar-day { min-height: 150px; }
@@ -1833,10 +1869,11 @@ export function kellaDashboardHtml() {
         .profile-stats { grid-template-columns: 1fr; }
         .modal-close { top: 10px; right: 10px; }
         .wiki-builder-toolbar .muted { flex-basis: 100%; }
-        .wiki-canvas-wrap { padding: 12px; margin: 0 -4px; }
+        .wiki-canvas-wrap { width: 100%; max-height: none; padding: 12px; margin: 0 -4px; }
         .wiki-page-canvas,
         .wiki-reader-page { width: 720px; max-width: none; }
         .wiki-inspector { padding: 14px; }
+        .wiki-style-controls { grid-template-columns: 1fr; }
         .wiki-misc-panel { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         .avatar-cropper { align-items: end; padding: 10px; }
         .avatar-cropper-panel { width: 100%; border-radius: 14px 14px 0 0; padding: 18px; }
@@ -3463,21 +3500,24 @@ export function kellaDashboardHtml() {
       function renderWikiInspectorHtml() {
         const block = selectedWikiBlock();
         if (!block) {
-          return '<aside class="wiki-inspector" data-wiki-inspector><h4>Style</h4><p class="muted">Add a text or picture block to start designing the page.</p>' + renderWikiAssetToolsHtml() + '</aside>';
+          return '<section class="wiki-inspector" data-wiki-inspector>' +
+            '<div class="wiki-style-head"><h4>Style</h4><p class="muted">Add a text or picture block to start designing the page.</p></div>' +
+            '<div class="wiki-style-controls"></div>' +
+            '<div class="wiki-style-actions">' + renderWikiAssetToolsHtml() + '</div>' +
+          '</section>';
         }
         const textControls = block.type === "text"
-          ? '<label>Font<select data-wiki-block-style="fontFamily"><option value="serif"' + optionSelected("serif", block.fontFamily) + '>Old paper serif</option><option value="sans"' + optionSelected("sans", block.fontFamily) + '>Clean readable</option><option value="display"' + optionSelected("display", block.fontFamily) + '>Alliance title</option><option value="script"' + optionSelected("script", block.fontFamily) + '>Royal script</option><option value="cod"' + optionSelected("cod", block.fontFamily) + '>Dragon title</option><option value="mono"' + optionSelected("mono", block.fontFamily) + '>Tactical mono</option></select></label>' +
+          ? '<div class="wiki-style-controls"><label>Font<select data-wiki-block-style="fontFamily"><option value="serif"' + optionSelected("serif", block.fontFamily) + '>Old paper serif</option><option value="sans"' + optionSelected("sans", block.fontFamily) + '>Clean readable</option><option value="display"' + optionSelected("display", block.fontFamily) + '>Alliance title</option><option value="script"' + optionSelected("script", block.fontFamily) + '>Royal script</option><option value="cod"' + optionSelected("cod", block.fontFamily) + '>Dragon title</option><option value="mono"' + optionSelected("mono", block.fontFamily) + '>Tactical mono</option></select></label>' +
             '<label>Text Size<select data-wiki-block-style="fontSize"><option value="small"' + optionSelected("small", block.fontSize) + '>Small</option><option value="medium"' + optionSelected("medium", block.fontSize) + '>Medium</option><option value="large"' + optionSelected("large", block.fontSize) + '>Large</option><option value="xlarge"' + optionSelected("xlarge", block.fontSize) + '>Extra Large</option></select></label>' +
             '<label>Align<select data-wiki-block-style="align"><option value="left"' + optionSelected("left", block.align) + '>Left</option><option value="center"' + optionSelected("center", block.align) + '>Center</option><option value="right"' + optionSelected("right", block.align) + '>Right</option></select></label>' +
-            '<label>Color<input type="color" data-wiki-block-style="color" value="' + escapeHtml(block.color) + '" /></label>'
-          : '<button class="secondary" type="button" data-action="change-wiki-image">Change Picture</button><p class="muted">Drag the picture on the page, then resize it from any corner.</p>';
-        return '<aside class="wiki-inspector" data-wiki-inspector>' +
-          '<h4>Style</h4><p class="muted">' + (block.type === "image" ? "Picture block selected." : "Text block selected.") + '</p>' +
+            '<label>Color<input type="color" data-wiki-block-style="color" value="' + escapeHtml(block.color) + '" /></label></div>'
+          : '<div class="wiki-style-controls wiki-style-controls--picture"><button class="secondary" type="button" data-action="change-wiki-image">Change Picture</button><p class="muted wiki-style-note">Drag the picture on the page, then resize it from any corner.</p></div>';
+        return '<section class="wiki-inspector" data-wiki-inspector>' +
+          '<div class="wiki-style-head"><h4>Style</h4><p class="muted">' + (block.type === "image" ? "Picture block selected." : "Text block selected.") + '</p></div>' +
           textControls +
-          renderWikiAssetToolsHtml() +
-          '<p class="muted">Use the small top handle to move blocks. Resize from any corner. Long text grows the box automatically.</p>' +
-          '<div class="toolbar"><button class="danger" type="button" data-action="delete-wiki-block">Delete Block</button></div>' +
-        '</aside>';
+          '<div class="wiki-style-actions">' + renderWikiAssetToolsHtml() + '</div>' +
+          '<div class="wiki-delete-row"><button class="danger" type="button" data-action="delete-wiki-block">Delete Block</button></div>' +
+        '</section>';
       }
 
       function renderWikiEditor(page) {
@@ -3493,9 +3533,9 @@ export function kellaDashboardHtml() {
             '<label>Title<input data-wiki="title" maxlength="120" placeholder="Roots of War Guide" value="' + escapeHtml(editing.title || "") + '" /></label>' +
             '<label>Status<select data-wiki="status"><option value="Published"' + optionSelected("Published", editing.status || "Published") + '>Published</option><option value="Draft"' + optionSelected("Draft", editing.status || "Published") + '>Draft</option></select></label>' +
           '</div>' +
+          renderWikiInspectorHtml() +
           '<div class="wiki-builder">' +
             '<div class="wiki-canvas-wrap"><div class="wiki-page-canvas" data-wiki-canvas>' + renderWikiCanvasBlocks(true) + '</div></div>' +
-            renderWikiInspectorHtml() +
           '</div>' +
         '</section>';
       }
