@@ -138,7 +138,7 @@ const wikiImageSchema = z
     return trimmed || undefined;
   }, z.string().max(4_200_000, "Wiki image is too large. Please use a smaller picture.").refine((value) => {
     const isUploadedImage = /^data:image\/(png|jpe?g|webp);base64,/i.test(value);
-    const isKellaAsset = /^\/assets\/wiki-(misc|heroes|markers|artifacts)\/[a-z0-9._/-]+\.(png|jpe?g|webp)$/i.test(value);
+    const isKellaAsset = /^\/assets\/wiki-(misc|heroes|markers|artifacts|pets)\/[a-z0-9._/-]+\.(png|jpe?g|webp)$/i.test(value);
     return isUploadedImage || isKellaAsset;
   }, "Wiki image must be PNG, JPG, WEBP, or a Kella wiki asset.").optional())
   .optional();

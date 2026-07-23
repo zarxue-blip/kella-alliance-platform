@@ -200,6 +200,29 @@ const wikiArtifactImages = [
   { src: "/assets/wiki-artifacts/wolf-woman-of-haelor.jpg", label: "Wolf Woman Of Haelor" }
 ];
 
+const wikiPetImages = [
+  { src: "/assets/wiki-pets/Auric-Warhound.webp", label: "Auric Warhound" },
+  { src: "/assets/wiki-pets/Barbed-Manticore.webp", label: "Barbed Manticore" },
+  { src: "/assets/wiki-pets/Berserk-Faedrake.webp", label: "Berserk Faedrake" },
+  { src: "/assets/wiki-pets/Blade-Manticore.webp", label: "Blade Manticore" },
+  { src: "/assets/wiki-pets/Bruin-Bear.webp", label: "Bruin Bear" },
+  { src: "/assets/wiki-pets/Frost-Bear.webp", label: "Frost Bear" },
+  { src: "/assets/wiki-pets/Golden-Roc.webp", label: "Golden Roc" },
+  { src: "/assets/wiki-pets/Ice-Lizard.webp", label: "Ice Lizard" },
+  { src: "/assets/wiki-pets/Moonbear.webp", label: "Moonbear" },
+  { src: "/assets/wiki-pets/Mossrock-Aurochs.webp", label: "Mossrock Aurochs" },
+  { src: "/assets/wiki-pets/Night-Roc.webp", label: "Night Roc" },
+  { src: "/assets/wiki-pets/Sand-Lizard.webp", label: "Sand Lizard" },
+  { src: "/assets/wiki-pets/Sapphire-Faedrake.webp", label: "Sapphire Faedrake" },
+  { src: "/assets/wiki-pets/Seraphic-Faedrake.webp", label: "Seraphic Faedrake" },
+  { src: "/assets/wiki-pets/Shadow-Faedrake.webp", label: "Shadow Faedrake" },
+  { src: "/assets/wiki-pets/Shadow-Manticore.webp", label: "Shadow Manticore" },
+  { src: "/assets/wiki-pets/Snowpeak-Roc.webp", label: "Snowpeak Roc" },
+  { src: "/assets/wiki-pets/Striped-Bear.webp", label: "Striped Bear" },
+  { src: "/assets/wiki-pets/Thunder-Lizard.webp", label: "Thunder Lizard" },
+  { src: "/assets/wiki-pets/Venomous-Lizard.webp", label: "Venomous Lizard" }
+];
+
 function navLink(item: (typeof navItems)[number]) {
   return `<a href="${item.path}" data-link data-path="${item.path}"><img class="nav-icon" src="${item.icon}" alt="" loading="lazy" /><span>${item.label}</span></a>`;
 }
@@ -713,6 +736,30 @@ export function kellaDashboardHtml() {
         opacity: 0.98;
         pointer-events: auto;
       }
+      .wiki-add-text-inline {
+        position: absolute;
+        left: 50%;
+        bottom: -44px;
+        z-index: 6;
+        transform: translateX(-50%);
+        min-width: 150px;
+        min-height: 34px;
+        border: 1px solid rgba(121, 82, 33, 0.34);
+        border-radius: 999px;
+        background: linear-gradient(180deg, #fff3bc, #e7bc61);
+        color: #5a3411;
+        font-weight: 1000;
+        box-shadow: 0 10px 20px rgba(64, 37, 11, 0.18);
+        cursor: pointer;
+      }
+      .wiki-add-text-inline:hover {
+        filter: brightness(1.04);
+        transform: translateX(-50%) translateY(-1px);
+      }
+      .wiki-add-text-inline--empty {
+        top: 150px;
+        bottom: auto;
+      }
       .wiki-inspector {
         display: grid;
         grid-template-columns: auto minmax(330px, 1fr) minmax(420px, 0.95fr);
@@ -795,12 +842,12 @@ export function kellaDashboardHtml() {
       }
       .wiki-image-tool-row {
         display: grid;
-        grid-template-columns: repeat(4, minmax(82px, 1fr));
+        grid-template-columns: repeat(5, minmax(72px, 1fr));
         gap: 6px;
       }
       .wiki-add-block-row {
         display: grid;
-        grid-template-columns: repeat(2, minmax(120px, 1fr));
+        grid-template-columns: minmax(120px, 1fr);
         gap: 6px;
       }
       .wiki-add-block-row .secondary {
@@ -815,62 +862,50 @@ export function kellaDashboardHtml() {
         width: 100%;
       }
       .wiki-misc-panel {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 8px;
-        max-height: 250px;
-        margin-top: 10px;
-        padding: 8px;
-        overflow: auto;
-        border: 1px solid rgba(121, 82, 33, 0.30);
-        border-radius: 14px;
-        background: rgba(255, 250, 226, 0.58);
-      }
-      .wiki-misc-panel--hero {
         position: absolute;
         right: 0;
         top: calc(100% + 8px);
         z-index: 20;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(74px, 1fr));
+        gap: 8px;
+        width: min(420px, calc(100vw - 36px));
+        max-height: min(460px, 68vh);
+        margin-top: 0;
+        padding: 8px;
+        overflow: auto;
+        border: 1px solid rgba(121, 82, 33, 0.30);
+        border-radius: 14px;
+        background:
+          linear-gradient(180deg, rgba(255, 250, 226, 0.98), rgba(238, 207, 137, 0.96)),
+          radial-gradient(circle at 50% 0%, rgba(255, 215, 87, 0.28), transparent 55%);
+        box-shadow: 0 22px 46px rgba(64, 37, 11, 0.28);
+      }
+      .wiki-misc-panel--hero {
         width: min(430px, calc(100vw - 36px));
         max-height: min(520px, 72vh);
         grid-template-columns: repeat(2, minmax(160px, 1fr));
-        margin-top: 0;
         padding: 12px;
-        background:
-          linear-gradient(180deg, rgba(255, 250, 226, 0.98), rgba(238, 207, 137, 0.96)),
-          radial-gradient(circle at 50% 0%, rgba(255, 215, 87, 0.32), transparent 55%);
-        box-shadow: 0 22px 46px rgba(64, 37, 11, 0.28);
       }
       .wiki-misc-panel[hidden] {
         display: none;
       }
       .wiki-misc-panel--artifact {
-        position: absolute;
-        right: 0;
-        top: calc(100% + 8px);
-        z-index: 20;
         width: min(470px, calc(100vw - 36px));
         max-height: min(520px, 72vh);
         grid-template-columns: repeat(3, minmax(120px, 1fr));
-        margin-top: 0;
         padding: 12px;
-        background:
-          linear-gradient(180deg, rgba(255, 250, 226, 0.98), rgba(238, 207, 137, 0.96)),
-          radial-gradient(circle at 50% 0%, rgba(255, 215, 87, 0.32), transparent 55%);
-        box-shadow: 0 22px 46px rgba(64, 37, 11, 0.28);
+      }
+      .wiki-misc-panel--pet {
+        width: min(470px, calc(100vw - 36px));
+        max-height: min(520px, 72vh);
+        grid-template-columns: repeat(3, minmax(120px, 1fr));
+        padding: 12px;
       }
       .wiki-misc-panel--marker {
-        position: absolute;
-        right: 0;
-        top: calc(100% + 8px);
-        z-index: 20;
         width: min(350px, calc(100vw - 36px));
         max-height: min(440px, 66vh);
         grid-template-columns: repeat(4, minmax(62px, 1fr));
-        margin-top: 0;
-        background:
-          linear-gradient(180deg, rgba(255, 250, 226, 0.98), rgba(238, 207, 137, 0.94));
-        box-shadow: 0 18px 38px rgba(64, 37, 11, 0.24);
       }
       .wiki-misc-tile {
         display: grid;
@@ -931,6 +966,20 @@ export function kellaDashboardHtml() {
         height: 82px;
       }
       .wiki-misc-tile--artifact span {
+        white-space: normal;
+        overflow: visible;
+        text-align: center;
+        text-overflow: clip;
+      }
+      .wiki-misc-tile--pet {
+        min-height: 128px;
+        padding: 9px;
+        align-content: start;
+      }
+      .wiki-misc-tile--pet img {
+        height: 82px;
+      }
+      .wiki-misc-tile--pet span {
         white-space: normal;
         overflow: visible;
         text-align: center;
@@ -2178,6 +2227,7 @@ export function kellaDashboardHtml() {
       const wikiHeroImages = ${JSON.stringify(wikiHeroImages)};
       const wikiMarkerImages = ${JSON.stringify(wikiMarkerImages)};
       const wikiArtifactImages = ${JSON.stringify(wikiArtifactImages)};
+      const wikiPetImages = ${JSON.stringify(wikiPetImages)};
       const statMetricOptions = [
         { key: "power", label: "Power" },
         { key: "merits", label: "Merits" },
@@ -2365,7 +2415,7 @@ export function kellaDashboardHtml() {
       }
 
       function pageHeader(title, description, actions = "") {
-        return '<section class="hero"><div><h2>' + title + '</h2><p>' + description + '</p></div><div class="toolbar">' + actions + '</div></section>';
+        return '<section class="hero"><div><h2>' + title + '</h2>' + (description ? '<p>' + description + '</p>' : '') + '</div><div class="toolbar">' + actions + '</div></section>';
       }
 
       function stat(label, value) {
@@ -3577,6 +3627,14 @@ export function kellaDashboardHtml() {
         return state.wikiBlocks.find(function(block) { return String(block.id) === String(state.selectedWikiBlockId); }) || state.wikiBlocks[0] || null;
       }
 
+      function lastWikiTextBlock() {
+        const textBlocks = (state.wikiBlocks || []).filter(function(item) { return item.type === "text"; });
+        if (!textBlocks.length) return null;
+        return textBlocks.slice().sort(function(a, b) {
+          return (Number(b.y || 0) + Number(b.height || 0)) - (Number(a.y || 0) + Number(a.height || 0));
+        })[0];
+      }
+
       function syncWikiTextFromDom() {
         document.querySelectorAll("[data-wiki-text-content]").forEach(function(node) {
           const id = node.closest("[data-wiki-block]")?.getAttribute("data-wiki-block") || "";
@@ -3627,11 +3685,22 @@ export function kellaDashboardHtml() {
           : "";
       }
 
+      function isLastWikiTextBlock(blockId) {
+        const last = lastWikiTextBlock();
+        return Boolean(last && String(last.id) === String(blockId));
+      }
+
+      function wikiInlineAddTextHtml(editable, block) {
+        if (!editable || block.type !== "text" || !isLastWikiTextBlock(block.id)) return "";
+        return '<button class="wiki-add-text-inline" type="button" data-action="add-wiki-text-after" data-after-wiki-block="' + escapeHtml(block.id) + '">+ Add Text</button>';
+      }
+
       function renderWikiBlockHtml(rawBlock, editable) {
         const block = sanitizeWikiBlock(rawBlock);
         const selected = editable && String(block.id) === String(state.selectedWikiBlockId);
         const classes = "wiki-block " + (block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (selected ? " selected" : "");
         const handles = wikiBlockHandlesHtml(editable, block.id);
+        const addText = wikiInlineAddTextHtml(editable, block);
         if (block.type === "image") {
           const image = block.imageDataUrl
             ? '<img src="' + escapeHtml(block.imageDataUrl) + '" alt="Wiki image" />'
@@ -3640,6 +3709,7 @@ export function kellaDashboardHtml() {
         }
         return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' +
           '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + escapeHtml(block.text || "Write here...") + '</div>' +
+          addText +
           handles +
         '</div>';
       }
@@ -3649,6 +3719,7 @@ export function kellaDashboardHtml() {
         const selected = editable && String(block.id) === String(state.selectedWikiBlockId);
         const classes = "wiki-block " + (block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (selected ? " selected" : "");
         const handles = wikiBlockHandlesHtml(editable, block.id);
+        const addText = wikiInlineAddTextHtml(editable, block);
         if (block.type === "image") {
           const image = block.imageDataUrl
             ? '<img src="' + escapeHtml(block.imageDataUrl) + '" alt="Wiki image" />'
@@ -3657,12 +3728,15 @@ export function kellaDashboardHtml() {
         }
         return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' +
           '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + escapeHtml(block.text || "Write here...") + '</div>' +
+          addText +
           handles +
         '</div>';
       }
 
       function renderWikiCanvasBlocks(editable) {
-        return (state.wikiBlocks || []).map(function(block) { return renderWikiBlockEditorHtml(block, editable); }).join("");
+        const blocks = (state.wikiBlocks || []).map(function(block) { return renderWikiBlockEditorHtml(block, editable); }).join("");
+        if (!editable || (state.wikiBlocks || []).some(function(block) { return block.type === "text"; })) return blocks;
+        return blocks + '<button class="wiki-add-text-inline wiki-add-text-inline--empty" type="button" data-action="add-wiki-text">+ Add Text</button>';
       }
 
       function wikiArticleMarkup(page, includeTitle = true) {
@@ -3765,10 +3839,10 @@ export function kellaDashboardHtml() {
             renderWikiAssetPickerHtml("Hero", wikiHeroImages, "hero") +
             renderWikiAssetPickerHtml("Artifacts", wikiArtifactImages, "artifact") +
             renderWikiAssetPickerHtml("Marker", wikiMarkerImages, "marker") +
+            renderWikiAssetPickerHtml("Pet", wikiPetImages, "pet") +
             renderWikiAssetPickerHtml("Misc", wikiMiscImages, "misc") +
           '</div>' +
           '<div class="wiki-add-block-row">' +
-            '<button class="secondary" type="button" data-action="add-wiki-text">Add Text</button>' +
             '<button class="secondary" type="button" data-action="add-wiki-image">Add Picture</button>' +
           '</div>' +
         '</div>';
@@ -3789,7 +3863,7 @@ export function kellaDashboardHtml() {
             '<label>Color<input type="color" data-wiki-block-style="color" value="' + escapeHtml(block.color) + '" /></label></div>'
           : '<div class="wiki-style-controls wiki-style-controls--picture"><button class="secondary" type="button" data-action="change-wiki-image">Change Picture</button></div>';
         return '<section class="wiki-inspector" data-wiki-inspector>' +
-          '<div class="wiki-style-head"><h4>Style</h4><p>' + (block.type === "text" ? "Text block" : "Picture block") + '</p></div>' +
+          '<div class="wiki-style-head"><h4>Style</h4></div>' +
           textControls +
           '<div class="wiki-style-actions">' + renderWikiAssetToolsHtml() + '</div>' +
         '</section>';
@@ -3918,6 +3992,27 @@ export function kellaDashboardHtml() {
         refreshWikiBuilder();
       }
 
+      function insertWikiTextBlock(afterBlockId) {
+        syncWikiTextFromDom();
+        const source = (state.wikiBlocks || []).find(function(item) { return String(item.id) === String(afterBlockId); }) || lastWikiTextBlock();
+        const block = sanitizeWikiBlock({
+          id: wikiBlockId(),
+          type: "text",
+          text: "New text block",
+          x: source ? source.x : 110,
+          y: source ? wikiClamp(Number(source.y || 0) + Number(source.height || 0) + 54, 0, 860) : wikiClamp(140 + (state.wikiBlocks.length * 26), 0, 860),
+          width: source ? source.width : 420,
+          height: 110,
+          fontFamily: source?.fontFamily || "serif",
+          fontSize: source?.fontSize || "medium",
+          align: source?.align || "center",
+          color: source?.color || "#3f2a13"
+        });
+        state.wikiBlocks.push(block);
+        state.selectedWikiBlockId = block.id;
+        refreshWikiBuilder();
+      }
+
       function openWikiPage(page) {
         if (!memberModal || !memberModalContent) return;
         memberModalContent.dataset.wikiId = page.id || "";
@@ -3938,7 +4033,7 @@ export function kellaDashboardHtml() {
           const pages = await loadWiki();
           const actions = hasWikiEditAccess() ? '<button class="primary" data-action="clear-wiki-form">Create Wiki</button>' : "";
           app.innerHTML =
-            pageHeader("Kella Wiki", "Member-readable alliance rules, event guides, and officer notes in one clean library.", actions) +
+            pageHeader("Kella Wiki", "", actions) +
             (hasWikiEditAccess() ? renderWikiEditor() : "") +
             renderWikiLibrary(pages);
         } catch (error) {
@@ -5086,12 +5181,8 @@ export function kellaDashboardHtml() {
           document.querySelector("[data-wiki-editor]")?.scrollIntoView({ behavior: "smooth", block: "start" });
           return;
         }
-        if (kind === "add-wiki-text") {
-          syncWikiTextFromDom();
-          const block = sanitizeWikiBlock({ id: wikiBlockId(), type: "text", text: "New text block", x: 110, y: 140 + (state.wikiBlocks.length * 26), width: 420, height: 110, fontFamily: "serif", fontSize: "medium", align: "center" });
-          state.wikiBlocks.push(block);
-          state.selectedWikiBlockId = block.id;
-          refreshWikiBuilder();
+        if (kind === "add-wiki-text" || kind === "add-wiki-text-after") {
+          insertWikiTextBlock(action.getAttribute("data-after-wiki-block") || "");
           return;
         }
         if (kind === "add-wiki-image") {
@@ -5573,7 +5664,7 @@ export function kellaDashboardHtml() {
         const canvas = event.target.closest?.("[data-wiki-canvas]");
         if (!canvas || !event.dataTransfer) return;
         const src = event.dataTransfer.getData("application/x-kella-wiki-image") || event.dataTransfer.getData("text/plain");
-        const isWikiAsset = ["/assets/wiki-misc/", "/assets/wiki-heroes/", "/assets/wiki-markers/", "/assets/wiki-artifacts/"].some(function(prefix) {
+        const isWikiAsset = ["/assets/wiki-misc/", "/assets/wiki-heroes/", "/assets/wiki-markers/", "/assets/wiki-artifacts/", "/assets/wiki-pets/"].some(function(prefix) {
           return src.startsWith(prefix);
         });
         if (!src || !isWikiAsset) return;
@@ -5588,6 +5679,7 @@ export function kellaDashboardHtml() {
       document.addEventListener("mousedown", function(event) {
         const editor = document.querySelector("[data-wiki-editor]");
         if (!editor) return;
+        if (event.target.closest("[data-action]")) return;
         const blockEl = event.target.closest("[data-wiki-block]");
         if (!blockEl) return;
         const isResize = !!event.target.closest("[data-wiki-resize-handle]");
