@@ -569,6 +569,34 @@ export function kellaDashboardHtml() {
         border: 1px solid rgba(92, 55, 18, 0.18);
         margin-top: 8px;
       }
+      .complaint-detail {
+        display: grid;
+        gap: 14px;
+      }
+      .complaint-detail-message {
+        border: 1px solid rgba(92, 55, 18, 0.16);
+        border-radius: 10px;
+        background: rgba(255, 247, 219, 0.54);
+        padding: 16px;
+        color: #3a220c;
+        white-space: pre-wrap;
+        line-height: 1.55;
+        font-weight: 750;
+      }
+      .complaint-detail-image {
+        display: block;
+        width: 100%;
+        max-height: 62vh;
+        object-fit: contain;
+        border-radius: 12px;
+        border: 1px solid rgba(92, 55, 18, 0.22);
+        background: rgba(47, 27, 10, 0.10);
+      }
+      .complaint-detail-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+      }
       .alliance-stats-card { padding: 24px; }
       .metric-picker {
         display: grid;
@@ -2180,7 +2208,10 @@ export function kellaDashboardHtml() {
         closeAvatarCropper();
         memberModal.classList.remove("open");
         memberModal.setAttribute("aria-hidden", "true");
-        if (memberModalContent) delete memberModalContent.dataset.memberId;
+        if (memberModalContent) {
+          delete memberModalContent.dataset.memberId;
+          delete memberModalContent.dataset.complaintId;
+        }
         document.body.classList.remove("modal-open");
       }
 
@@ -3437,16 +3468,76 @@ export function kellaDashboardHtml() {
         return '<div class="table-wrap"><table><thead><tr><th>Type</th><th>Player</th><th>Message</th><th>Status</th><th>Admin Notes</th><th>Sent</th><th>Actions</th></tr></thead><tbody>' +
           complaints.map(function(item) {
             const resolved = item.status === "Resolved";
-            const attachment = item.imageDataUrl ? '<a target="_blank" rel="noreferrer" href="' + escapeHtml(item.imageDataUrl) + '"><img class="complaint-thumb" src="' + escapeHtml(item.imageDataUrl) + '" alt="Complaint attachment" loading="lazy" /></a>' : '';
+            const attachment = item.imageDataUrl ? '<button class="secondary" type="button" data-action="open-complaint-detail" data-complaint-id="' + escapeHtml(item.id) + '">View Image</button>' : '<span class="muted">No image</span>';
             const message = '<strong>' + escapeHtml(item.title || item.kind || "Feedback") + '</strong><br><span>' + escapeHtml(item.message || "") + '</span>' + attachment;
             const notes = [
               item.assignedTo ? "Assigned: " + item.assignedTo : "",
               item.adminNote ? "Note: " + item.adminNote : "",
               item.lastReply ? "Last reply: " + item.lastReply : ""
             ].filter(Boolean).join("\\n");
-            return '<tr><td>' + escapeHtml(item.kind || "Complaint") + '</td><td><strong>' + escapeHtml(item.player || "Unknown") + '</strong><br><span class="muted">' + escapeHtml(item.discordId || "") + '</span></td><td>' + message + '</td><td><span class="badge ' + (resolved ? "good" : "warn") + '">' + escapeHtml(item.status || "Pending") + '</span></td><td><span class="muted">' + escapeHtml(notes || "No admin notes yet.") + '</span></td><td>' + formatDateTime(item.sentAt) + '</td><td><div class="toolbar"><button class="secondary" data-action="assign-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Assign</button><button class="secondary" data-action="note-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Note</button><button class="secondary" data-action="reply-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Reply</button><button class="secondary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Pending">Pending</button><button class="primary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Resolved">Resolve</button></div></td></tr>';
+            return '<tr><td>' + escapeHtml(item.kind || "Complaint") + '</td><td><strong>' + escapeHtml(item.player || "Unknown") + '</strong><br><span class="muted">' + escapeHtml(item.discordId || "") + '</span></td><td>' + message + '</td><td><span class="badge ' + (resolved ? "good" : "warn") + '">' + escapeHtml(item.status || "Pending") + '</span></td><td><span class="muted">' + escapeHtml(notes || "No admin notes yet.") + '</span></td><td>' + formatDateTime(item.sentAt) + '</td><td><div class="toolbar"><button class="primary" data-action="open-complaint-detail" data-complaint-id="' + escapeHtml(item.id) + '">Open</button><button class="secondary" data-action="assign-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Assign</button><button class="secondary" data-action="note-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Note</button><button class="secondary" data-action="reply-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Reply</button><button class="secondary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Pending">Pending</button><button class="primary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Resolved">Resolve</button></div></td></tr>';
           }).join("") +
           '</tbody></table></div>';
+      }
+
+      function findComplaintById(id) {
+        return (state.complaints || []).find(function(item) { return String(item.id) === String(id); });
+      }
+
+      function complaintActionButtons(item) {
+        const id = escapeHtml(item.id || "");
+        return '<div class="toolbar">' +
+          '<button class="secondary" data-action="assign-complaint" data-complaint-id="' + id + '">Assign</button>' +
+          '<button class="secondary" data-action="note-complaint" data-complaint-id="' + id + '">Note</button>' +
+          '<button class="secondary" data-action="reply-complaint" data-complaint-id="' + id + '">Reply</button>' +
+          '<button class="secondary" data-action="set-complaint-status" data-complaint-id="' + id + '" data-status="Pending">Pending</button>' +
+          '<button class="primary" data-action="set-complaint-status" data-complaint-id="' + id + '" data-status="Resolved">Resolve</button>' +
+        '</div>';
+      }
+
+      function openComplaintDetail(item) {
+        if (!item || !memberModal || !memberModalContent) return;
+        memberModalContent.dataset.complaintId = item.id || "";
+        const image = item.imageDataUrl
+          ? '<div class="card"><div class="card-header"><div><h3>Attached Image</h3><span class="muted">Screenshot submitted by the member.</span></div><a class="secondary" href="' + escapeHtml(item.imageDataUrl) + '" target="_blank" rel="noreferrer">Open Full Image</a></div><img class="complaint-detail-image" src="' + escapeHtml(item.imageDataUrl) + '" alt="Complaint attachment" /></div>'
+          : '<div class="empty">No image was attached to this complaint.</div>';
+        memberModalContent.innerHTML =
+          '<div class="member-profile-hero">' +
+            '<img class="profile-avatar" src="/assets/icons/complaints.png" alt="" />' +
+            '<div><span class="profile-kicker">' + escapeHtml(item.kind || "Feedback") + '</span><h3 id="memberModalTitle">' + escapeHtml(item.title || item.kind || "Complaint") + '</h3><div class="profile-subtitle">Submitted by ' + escapeHtml(item.player || "Unknown") + ' - ' + formatDateTime(item.sentAt) + '</div></div>' +
+          '</div>' +
+          '<section class="complaint-detail">' +
+            '<div class="complaint-detail-meta">' +
+              profileStat("Status", item.status || "Pending") +
+              profileStat("Discord ID", item.discordId || "Unknown") +
+              profileStat("Source", item.source || "discord") +
+              profileStat("Assigned", item.assignedTo || "Unassigned") +
+            '</div>' +
+            '<div class="card"><div class="card-header"><div><h3>Message</h3><span class="muted">Full complaint or suggestion text.</span></div></div><div class="complaint-detail-message">' + escapeHtml(item.message || "No message added.") + '</div></div>' +
+            image +
+            '<div class="card"><div class="card-header"><div><h3>Admin Handling</h3><span class="muted">' + escapeHtml(item.adminNote || "No admin note yet.") + '</span></div></div>' + complaintActionButtons(item) + '</div>' +
+          '</section>';
+        memberModal.classList.add("open");
+        memberModal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-open");
+      }
+
+      async function refreshComplaintsView() {
+        const openComplaintId = memberModal?.classList.contains("open") ? (memberModalContent?.dataset?.complaintId || "") : "";
+        state.complaints = [];
+        if (location.pathname === "/complaints") {
+          await renderComplaints();
+        } else {
+          await loadComplaints();
+        }
+        if (openComplaintId) {
+          const selected = findComplaintById(openComplaintId);
+          if (selected) {
+            openComplaintDetail(selected);
+          } else {
+            closeMemberModal();
+          }
+        }
       }
 
       function arrayBufferToBase64(buffer) {
@@ -3886,6 +3977,19 @@ export function kellaDashboardHtml() {
           closeMemberModal();
           return "Submitted. Kella sent it to the R4 review inbox.";
         }, "Feedback submitted.");
+        if (kind === "open-complaint-detail") {
+          setLoading(action, true);
+          Promise.resolve()
+            .then(async function() {
+              if (!state.complaints.length) await loadComplaints();
+              const item = findComplaintById(action.getAttribute("data-complaint-id") || "");
+              if (!item) throw new Error("Complaint could not be found.");
+              openComplaintDetail(item);
+            })
+            .catch(function(error) { toast(error.message || "Could not open complaint.", "error"); })
+            .finally(function() { setLoading(action, false); });
+          return;
+        }
         if (kind === "send-event-embed") withFeedback(action, async function() {
           await sendJson("POST", "/api/dashboard/events", eventPayload(), true);
           state.summary = null;
@@ -3905,24 +4009,21 @@ export function kellaDashboardHtml() {
           const id = action.getAttribute("data-complaint-id") || "";
           const status = action.getAttribute("data-status") || "Pending";
           await sendJson("PATCH", "/api/dashboard/complaints/" + encodeURIComponent(id) + "/status", { status }, true);
-          state.complaints = [];
-          await renderComplaints();
+          await refreshComplaintsView();
         }, "Complaint updated.");
         if (kind === "assign-complaint") withFeedback(action, async function() {
           const id = action.getAttribute("data-complaint-id") || "";
           const assignedTo = prompt("Assign complaint to who?");
           if (assignedTo === null) return "Assignment cancelled.";
           await sendJson("PATCH", "/api/dashboard/complaints/" + encodeURIComponent(id) + "/status", { assignedTo }, true);
-          state.complaints = [];
-          await renderComplaints();
+          await refreshComplaintsView();
         }, "Complaint assigned.");
         if (kind === "note-complaint") withFeedback(action, async function() {
           const id = action.getAttribute("data-complaint-id") || "";
           const adminNote = prompt("Admin note");
           if (adminNote === null) return "Note cancelled.";
           await sendJson("PATCH", "/api/dashboard/complaints/" + encodeURIComponent(id) + "/status", { adminNote }, true);
-          state.complaints = [];
-          await renderComplaints();
+          await refreshComplaintsView();
         }, "Complaint note saved.");
         if (kind === "reply-complaint") withFeedback(action, async function() {
           const id = action.getAttribute("data-complaint-id") || "";
@@ -3930,8 +4031,7 @@ export function kellaDashboardHtml() {
           if (!message) return "Reply cancelled.";
           const resolve = window.confirm("Mark this complaint resolved after sending the reply?");
           await sendJson("POST", "/api/dashboard/complaints/" + encodeURIComponent(id) + "/reply", { message, resolve }, true);
-          state.complaints = [];
-          await renderComplaints();
+          await refreshComplaintsView();
         }, "Reply sent.");
         if (kind === "save-settings") withFeedback(action, async function() { await saveSettings(readSettingsForm()); }, "Settings saved.");
         if (kind === "refresh-roster-uploads") withFeedback(action, async function() {
