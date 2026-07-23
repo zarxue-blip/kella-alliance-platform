@@ -146,12 +146,12 @@ const wikiImageSchema = z
 const wikiBlockSchema = z.object({
   id: z.string().min(1).max(80),
   type: z.enum(wikiBlockTypes),
-  text: z.string().max(6000).optional().default(""),
+  text: z.string().max(50000).optional().default(""),
   imageDataUrl: wikiImageSchema,
   x: z.coerce.number().min(0).max(760).default(90),
-  y: z.coerce.number().min(0).max(1300).default(90),
+  y: z.coerce.number().min(0).max(50000).default(90),
   width: z.coerce.number().min(60).max(760).default(320),
-  height: z.coerce.number().min(36).max(1300).default(180),
+  height: z.coerce.number().min(36).max(50000).default(180),
   fontFamily: z.enum(wikiFontFamilies).default("serif"),
   fontSize: z.enum(wikiFontSizes).default("medium"),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#3f2a13"),
@@ -160,11 +160,11 @@ const wikiBlockSchema = z.object({
 
 const wikiPageCreateSchema = z.object({
   title: z.string().min(1, "Wiki title is required").max(120),
-  body: z.string().min(1, "Wiki text is required").max(6000),
+  body: z.string().min(1, "Wiki text is required").max(50000),
   imageDataUrl: wikiImageSchema,
   fontFamily: z.enum(wikiFontFamilies).default("serif"),
   fontSize: z.enum(wikiFontSizes).default("medium"),
-  blocks: z.array(wikiBlockSchema).max(60).optional(),
+  blocks: z.array(wikiBlockSchema).max(120).optional(),
   status: z.enum(wikiStatuses).default("Published")
 });
 

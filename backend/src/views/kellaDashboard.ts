@@ -585,10 +585,11 @@ export function kellaDashboardHtml() {
       .wiki-reader-page {
         position: relative;
         width: 760px;
-        height: 980px;
+        height: var(--wiki-page-height, 980px);
+        min-height: 980px;
         max-width: 100%;
         margin: 0 auto;
-        overflow: hidden;
+        overflow: visible;
         border-radius: 8px;
         color: #3f2a13;
         background:
@@ -613,9 +614,6 @@ export function kellaDashboardHtml() {
         background-size: 28px 28px;
         pointer-events: none;
       }
-      .wiki-reader-page {
-        height: min(980px, 74vh);
-      }
       .wiki-block {
         position: absolute;
         z-index: 1;
@@ -631,7 +629,7 @@ export function kellaDashboardHtml() {
       }
       .wiki-text-block {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         padding: 12px 14px;
         line-height: 1.35;
         white-space: pre-wrap;
@@ -639,11 +637,16 @@ export function kellaDashboardHtml() {
         min-height: 48px;
       }
       .wiki-text-content {
+        box-sizing: border-box;
         width: 100%;
+        max-width: 100%;
+        max-height: 100%;
         min-height: auto;
         outline: none;
-        overflow: visible;
+        overflow: hidden;
         overflow-wrap: anywhere;
+        word-break: break-word;
+        white-space: pre-wrap;
       }
       .wiki-image-block {
         padding: 8px;
@@ -3560,6 +3563,11 @@ export function kellaDashboardHtml() {
         return "wiki-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
       }
 
+      const WIKI_PAGE_WIDTH = 760;
+      const WIKI_MIN_PAGE_HEIGHT = 980;
+      const WIKI_MAX_PAGE_HEIGHT = 50000;
+      const WIKI_PAGE_BOTTOM_PADDING = 96;
+
       function wikiClamp(value, min, max) {
         const numeric = Number(value);
         if (!Number.isFinite(numeric)) return min;
@@ -3586,14 +3594,14 @@ export function kellaDashboardHtml() {
         const type = block?.type === "image" ? "image" : "text";
         const minWidth = 80;
         const minHeight = type === "image" ? 80 : 48;
-        const width = wikiClamp(block?.width, minWidth, 720);
-        const height = wikiClamp(block?.height, minHeight, 900);
-        const x = wikiClamp(block?.x, 0, 760 - width);
-        const y = wikiClamp(block?.y, 0, 980 - height);
+        const width = wikiClamp(block?.width, minWidth, WIKI_PAGE_WIDTH - 40);
+        const height = wikiClamp(block?.height, minHeight, WIKI_MAX_PAGE_HEIGHT);
+        const x = wikiClamp(block?.x, 0, WIKI_PAGE_WIDTH - width);
+        const y = wikiClamp(block?.y, 0, WIKI_MAX_PAGE_HEIGHT - height);
         return {
           id: String(block?.id || wikiBlockId()).slice(0, 80),
           type,
-          text: String(block?.text || "").slice(0, 6000),
+          text: String(block?.text || "").slice(0, 50000),
           imageDataUrl: String(block?.imageDataUrl || ""),
           x,
           y,
@@ -3604,6 +3612,24 @@ export function kellaDashboardHtml() {
           color: /^#[0-9a-fA-F]{6}$/.test(block?.color || "") ? block.color : "#3f2a13",
           align: ["left", "center", "right"].includes(block?.align) ? block.align : "center"
         };
+      }
+
+      function wikiPageHeight(blocks) {
+        const bottom = (blocks || []).reduce(function(max, rawBlock) {
+          const block = sanitizeWikiBlock(rawBlock);
+          return Math.max(max, Number(block.y || 0) + Number(block.height || 0));
+        }, 0);
+        return wikiClamp(bottom + WIKI_PAGE_BOTTOM_PADDING, WIKI_MIN_PAGE_HEIGHT, WIKI_MAX_PAGE_HEIGHT);
+      }
+
+      function wikiPageStyle(blocks) {
+        return 'style="--wiki-page-height:' + wikiPageHeight(blocks) + 'px"';
+      }
+
+      function resizeWikiPageToContent() {
+        const canvas = document.querySelector("[data-wiki-canvas]");
+        if (!canvas) return;
+        canvas.style.setProperty("--wiki-page-height", wikiPageHeight(state.wikiBlocks || []) + "px");
       }
 
       function defaultWikiBlocks(page) {
@@ -3646,11 +3672,12 @@ export function kellaDashboardHtml() {
       function autoFitWikiTextBlock(block, contentNode) {
         if (!block || block.type !== "text" || !contentNode) return;
         const blockEl = contentNode.closest("[data-wiki-block]");
-        const needed = wikiClamp(contentNode.scrollHeight + 30, 48, 980 - block.y);
+        const needed = wikiClamp(contentNode.scrollHeight + 30, 48, WIKI_MAX_PAGE_HEIGHT - block.y);
         if (needed > block.height) {
           block.height = needed;
           if (blockEl) blockEl.style.height = block.height + "px";
         }
+        resizeWikiPageToContent();
       }
 
       function autoFitWikiTextBlocksFromDom() {
@@ -3743,7 +3770,7 @@ export function kellaDashboardHtml() {
         const blocks = defaultWikiBlocks(page);
         return '<article class="wiki-reader ' + wikiClass(page) + '">' +
           (includeTitle ? '<h2>' + escapeHtml(page?.title || "Kella Wiki") + '</h2>' : "") +
-          '<div class="wiki-reader-page">' + blocks.map(function(block) { return renderWikiBlockEditorHtml(block, false); }).join("") + '</div>' +
+          '<div class="wiki-reader-page" ' + wikiPageStyle(blocks) + '>' + blocks.map(function(block) { return renderWikiBlockEditorHtml(block, false); }).join("") + '</div>' +
         '</article>';
       }
 
@@ -3884,7 +3911,7 @@ export function kellaDashboardHtml() {
           '</div>' +
           renderWikiInspectorHtml() +
           '<div class="wiki-builder">' +
-            '<div class="wiki-canvas-wrap"><div class="wiki-page-canvas" data-wiki-canvas>' + renderWikiCanvasBlocks(true) + '</div></div>' +
+            '<div class="wiki-canvas-wrap"><div class="wiki-page-canvas" data-wiki-canvas ' + wikiPageStyle(state.wikiBlocks) + '>' + renderWikiCanvasBlocks(true) + '</div></div>' +
           '</div>' +
         '</section>';
       }
@@ -3936,7 +3963,10 @@ export function kellaDashboardHtml() {
       function refreshWikiBuilder() {
         const canvas = document.querySelector("[data-wiki-canvas]");
         const inspector = document.querySelector("[data-wiki-inspector]");
-        if (canvas) canvas.innerHTML = renderWikiCanvasBlocks(true);
+        if (canvas) {
+          canvas.innerHTML = renderWikiCanvasBlocks(true);
+          resizeWikiPageToContent();
+        }
         if (inspector) inspector.outerHTML = renderWikiInspectorHtml();
         requestAnimationFrame(autoFitWikiTextBlocksFromDom);
       }
@@ -3982,8 +4012,8 @@ export function kellaDashboardHtml() {
           id: wikiBlockId(),
           type: "image",
           imageDataUrl: src,
-          x: wikiClamp(Number.isFinite(x) ? x : 150, 0, 520),
-          y: wikiClamp(Number.isFinite(y) ? y : 170 + (state.wikiBlocks.length * 24), 0, 760),
+          x: wikiClamp(Number.isFinite(x) ? x : 150, 0, WIKI_PAGE_WIDTH - 220),
+          y: wikiClamp(Number.isFinite(y) ? y : 170 + (state.wikiBlocks.length * 24), 0, WIKI_MAX_PAGE_HEIGHT - 220),
           width: 220,
           height: 220
         });
@@ -4000,7 +4030,7 @@ export function kellaDashboardHtml() {
           type: "text",
           text: "New text block",
           x: source ? source.x : 110,
-          y: source ? wikiClamp(Number(source.y || 0) + Number(source.height || 0) + 54, 0, 860) : wikiClamp(140 + (state.wikiBlocks.length * 26), 0, 860),
+          y: source ? wikiClamp(Number(source.y || 0) + Number(source.height || 0) + 54, 0, WIKI_MAX_PAGE_HEIGHT - 110) : wikiClamp(140 + (state.wikiBlocks.length * 26), 0, WIKI_MAX_PAGE_HEIGHT - 110),
           width: source ? source.width : 420,
           height: 110,
           fontFamily: source?.fontFamily || "serif",
@@ -5670,10 +5700,18 @@ export function kellaDashboardHtml() {
         if (!src || !isWikiAsset) return;
         event.preventDefault();
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.offsetWidth ? 760 / canvas.offsetWidth : 1;
-        const scaleY = canvas.offsetHeight ? 980 / canvas.offsetHeight : 1;
+        const scaleX = canvas.offsetWidth ? WIKI_PAGE_WIDTH / canvas.offsetWidth : 1;
+        const scaleY = canvas.offsetHeight ? wikiPageHeight(state.wikiBlocks || []) / canvas.offsetHeight : 1;
         insertWikiImageBlock(src, ((event.clientX - rect.left) * scaleX) - 110, ((event.clientY - rect.top) * scaleY) - 110);
         toast("Image dropped into the wiki page.", "success");
+      });
+
+      document.addEventListener("paste", function(event) {
+        if (!event.target.matches?.("[data-wiki-text-content]")) return;
+        const text = event.clipboardData?.getData("text/plain");
+        if (!text) return;
+        event.preventDefault();
+        document.execCommand("insertText", false, text);
       });
 
       document.addEventListener("mousedown", function(event) {
@@ -5738,21 +5776,22 @@ export function kellaDashboardHtml() {
             if (drag.corner.includes("n")) nextY -= minHeight - nextHeight;
             nextHeight = minHeight;
           }
-          nextX = wikiClamp(nextX, 0, 760 - minWidth);
-          nextY = wikiClamp(nextY, 0, 980 - minHeight);
-          nextWidth = wikiClamp(nextWidth, minWidth, 760 - nextX);
-          nextHeight = wikiClamp(nextHeight, minHeight, 980 - nextY);
+          nextX = wikiClamp(nextX, 0, WIKI_PAGE_WIDTH - minWidth);
+          nextY = wikiClamp(nextY, 0, WIKI_MAX_PAGE_HEIGHT - minHeight);
+          nextWidth = wikiClamp(nextWidth, minWidth, WIKI_PAGE_WIDTH - nextX);
+          nextHeight = wikiClamp(nextHeight, minHeight, WIKI_MAX_PAGE_HEIGHT - nextY);
           block.x = nextX;
           block.y = nextY;
           block.width = nextWidth;
           block.height = nextHeight;
         } else {
-          block.x = wikiClamp(drag.baseX + dx, 0, 760 - block.width);
-          block.y = wikiClamp(drag.baseY + dy, 0, 980 - block.height);
+          block.x = wikiClamp(drag.baseX + dx, 0, WIKI_PAGE_WIDTH - block.width);
+          block.y = wikiClamp(drag.baseY + dy, 0, WIKI_MAX_PAGE_HEIGHT - block.height);
         }
         Array.from(document.querySelectorAll("[data-wiki-block]")).forEach(function(node) {
           if (node.getAttribute("data-wiki-block") === drag.id) node.setAttribute("style", wikiBlockStyle(block));
         });
+        resizeWikiPageToContent();
         event.preventDefault();
       });
 
