@@ -16,6 +16,7 @@ const envSchema = z.object({
   DASHBOARD_ADMIN_TOKEN: z.string().optional(),
   DASHBOARD_ADMIN_DISCORD_IDS: z.string().optional(),
   DASHBOARD_ADMIN_ROLE_IDS: z.string().optional(),
+  DASHBOARD_WIKI_ROLE_IDS: z.string().default("1529826271813570650"),
   DASHBOARD_MEMBER_ROLE_IDS: z.string().default("1485933229168005282"),
   FRONTEND_ORIGIN: z.string().url().default("http://localhost:3000"),
   PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),

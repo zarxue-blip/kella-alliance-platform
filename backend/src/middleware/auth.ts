@@ -22,6 +22,7 @@ export interface TokenPayload extends AuthUser {
 
 const dashboardAdminRoles: UserRole[] = ["Owner", "Leader", "R4 Officer", "War Marshal", "Recruiter", "Event Manager"];
 const fallbackDashboardAdminRoleIds = ["1524118642353111214"];
+const fallbackDashboardWikiRoleIds = ["1529826271813570650"];
 
 function csvSet(value?: string) {
   return new Set(
@@ -37,6 +38,14 @@ export function isDashboardAdminUser(user: { discordId?: string; role?: UserRole
   if (user.discordId && csvSet(env.DASHBOARD_ADMIN_DISCORD_IDS).has(user.discordId)) return true;
   const configuredRoleIds = csvSet(env.DASHBOARD_ADMIN_ROLE_IDS);
   fallbackDashboardAdminRoleIds.forEach((roleId) => configuredRoleIds.add(roleId));
+  if (configuredRoleIds.size && (user.discordRoleIds || []).some((roleId) => configuredRoleIds.has(roleId))) return true;
+  return false;
+}
+
+export function isDashboardWikiEditorUser(user: { discordId?: string; role?: UserRole; discordRoleIds?: string[] }) {
+  if (isDashboardAdminUser(user)) return true;
+  const configuredRoleIds = csvSet(env.DASHBOARD_WIKI_ROLE_IDS);
+  fallbackDashboardWikiRoleIds.forEach((roleId) => configuredRoleIds.add(roleId));
   if (configuredRoleIds.size && (user.discordRoleIds || []).some((roleId) => configuredRoleIds.has(roleId))) return true;
   return false;
 }
@@ -109,6 +118,47 @@ export function authenticateDashboardAdmin(req: Request, _res: Response, next: N
         }
         if (!isDashboardAdminUser(user)) {
           next(new HttpError(403, "This Discord account does not have Kella admin access"));
+          return;
+        }
+        (req as AuthenticatedRequest).user = {
+          id: user._id.toString(),
+          discordId: user.discordId,
+          role: user.role,
+          allianceId: user.allianceId.toString()
+        };
+        next();
+      })
+      .catch(() => next(new HttpError(401, "Invalid session")));
+  } catch {
+    next(new HttpError(401, "Invalid session"));
+  }
+}
+
+export function authenticateDashboardWikiEditor(req: Request, _res: Response, next: NextFunction) {
+  const token = req.header("x-dashboard-admin-token") || req.header("x-service-token");
+  const expected = env.DASHBOARD_ADMIN_TOKEN || env.BOT_API_TOKEN;
+  if (token && token === expected) {
+    next();
+    return;
+  }
+
+  const sessionToken = req.cookies?.[env.SESSION_COOKIE_NAME];
+  if (!sessionToken) {
+    next(new HttpError(401, "Discord wiki login or Password required"));
+    return;
+  }
+
+  try {
+    const payload = jwt.verify(sessionToken, env.JWT_SECRET) as TokenPayload;
+    UserModel.findById(payload.id)
+      .lean()
+      .then((user: any) => {
+        if (!user || user.disabled) {
+          next(new HttpError(401, "Session is no longer valid"));
+          return;
+        }
+        if (!isDashboardWikiEditorUser(user)) {
+          next(new HttpError(403, "This Discord account does not have Kella wiki editor access"));
           return;
         }
         (req as AuthenticatedRequest).user = {

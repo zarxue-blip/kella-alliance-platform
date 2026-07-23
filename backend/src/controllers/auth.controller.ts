@@ -6,7 +6,7 @@ import { UserModel } from "../models/user.model.js";
 import { getDiscordAuthorizationUrl, exchangeDiscordCode, getDiscordOAuthGuildMember } from "../services/discordOAuth.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
-import { isDashboardAdminUser, signSessionToken, type AuthenticatedRequest } from "../middleware/auth.js";
+import { isDashboardAdminUser, isDashboardWikiEditorUser, signSessionToken, type AuthenticatedRequest } from "../middleware/auth.js";
 
 const oauthStates = new Set<string>();
 
@@ -65,7 +65,18 @@ export const discordCallback = asyncHandler(async (req: Request, res: Response) 
     role: existingUser?.role,
     discordRoleIds
   });
-  if (env.DISCORD_GUILD_ID && !hasConfiguredAdminAccess && userCount > 0 && !hasAnyRole(discordRoleIds, env.DASHBOARD_MEMBER_ROLE_IDS)) {
+  const hasConfiguredWikiEditorAccess = isDashboardWikiEditorUser({
+    discordId: identity.id,
+    role: existingUser?.role,
+    discordRoleIds
+  });
+  if (
+    env.DISCORD_GUILD_ID &&
+    !hasConfiguredAdminAccess &&
+    !hasConfiguredWikiEditorAccess &&
+    userCount > 0 &&
+    !hasAnyRole(discordRoleIds, env.DASHBOARD_MEMBER_ROLE_IDS)
+  ) {
     throw new HttpError(403, "This Discord account does not have the Kella member role");
   }
   const nextRole =
@@ -115,6 +126,7 @@ export const getMe = asyncHandler(async (req: AuthenticatedRequest, res: Respons
   res.json({
     user,
     isDashboardAdmin: Boolean(user && isDashboardAdminUser(user as any)),
+    isDashboardWikiEditor: Boolean(user && isDashboardWikiEditorUser(user as any)),
     loginUrl: "/api/auth/discord"
   });
 });

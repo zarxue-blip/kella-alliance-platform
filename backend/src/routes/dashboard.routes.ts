@@ -38,7 +38,7 @@ import {
   rootsReportList,
   rootsReportSend
 } from "../controllers/dashboard.controller.js";
-import { authenticate, authenticateDashboardAdmin } from "../middleware/auth.js";
+import { authenticate, authenticateDashboardAdmin, authenticateDashboardWikiEditor } from "../middleware/auth.js";
 
 export const dashboardRouter = Router();
 
@@ -60,9 +60,9 @@ dashboardRouter.get("/events", dashboardEvents);
 dashboardRouter.post("/events", authenticateDashboardAdmin, dashboardEventSend);
 dashboardRouter.delete("/events/:id", authenticateDashboardAdmin, dashboardEventDelete);
 dashboardRouter.get("/wiki", dashboardWikiList);
-dashboardRouter.get("/wiki/admin", authenticateDashboardAdmin, dashboardWikiAdminList);
-dashboardRouter.post("/wiki", authenticateDashboardAdmin, dashboardWikiCreate);
-dashboardRouter.patch("/wiki/:id", authenticateDashboardAdmin, dashboardWikiUpdate);
+dashboardRouter.get("/wiki/admin", authenticateDashboardWikiEditor, dashboardWikiAdminList);
+dashboardRouter.post("/wiki", authenticateDashboardWikiEditor, dashboardWikiCreate);
+dashboardRouter.patch("/wiki/:id", authenticateDashboardWikiEditor, dashboardWikiUpdate);
 dashboardRouter.delete("/wiki/:id", authenticateDashboardAdmin, dashboardWikiDelete);
 dashboardRouter.post("/complaints", authenticate, dashboardComplaintCreate);
 dashboardRouter.get("/complaints", authenticateDashboardAdmin, dashboardComplaints);

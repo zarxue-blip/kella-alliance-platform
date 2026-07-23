@@ -2258,8 +2258,16 @@ export function kellaDashboardHtml() {
         return Boolean(state.auth?.isDashboardAdmin);
       }
 
+      function isDashboardWikiEditor() {
+        return Boolean(state.auth?.isDashboardWikiEditor);
+      }
+
       function hasAdminAccess() {
         return isDashboardAdmin() || Boolean(adminToken());
+      }
+
+      function hasWikiEditAccess() {
+        return hasAdminAccess() || isDashboardWikiEditor();
       }
 
       function pathRequiresAdmin(path) {
@@ -3174,8 +3182,8 @@ export function kellaDashboardHtml() {
 
       async function loadWiki(force = false) {
         if (state.wiki && !force) return state.wiki;
-        const admin = hasAdminAccess();
-        const data = await fetchJson(admin ? "/api/dashboard/wiki/admin" : "/api/dashboard/wiki", admin);
+        const canEditWiki = hasWikiEditAccess();
+        const data = await fetchJson(canEditWiki ? "/api/dashboard/wiki/admin" : "/api/dashboard/wiki", canEditWiki);
         state.wiki = data.pages || [];
         return state.wiki;
       }
@@ -3227,7 +3235,7 @@ export function kellaDashboardHtml() {
           return;
         }
         if (user) {
-          target.textContent = "Discord: " + (user.username || user.discordId) + (state.auth?.isDashboardAdmin ? " (Admin)" : " (Member)");
+          target.textContent = "Discord: " + (user.username || user.discordId) + (state.auth?.isDashboardAdmin ? " (Admin)" : state.auth?.isDashboardWikiEditor ? " (Wiki Editor)" : " (Member)");
           if (loginButton) loginButton.style.display = "none";
           if (logoutButton) logoutButton.style.display = "";
           if (profileButton) profileButton.style.display = "";
@@ -3241,13 +3249,13 @@ export function kellaDashboardHtml() {
         try {
           const response = await fetch("/api/auth/me", { credentials: "same-origin", headers: { accept: "application/json" } });
           if (response.status === 401) {
-            state.auth = { authenticated: false, isDashboardAdmin: false };
+            state.auth = { authenticated: false, isDashboardAdmin: false, isDashboardWikiEditor: false };
           } else {
             state.auth = await parseResponse(response);
             state.auth.authenticated = true;
           }
         } catch {
-          state.auth = { authenticated: false, isDashboardAdmin: false };
+          state.auth = { authenticated: false, isDashboardAdmin: false, isDashboardWikiEditor: false };
         }
         updateAuthStatus();
         return state.auth;
@@ -3656,13 +3664,16 @@ export function kellaDashboardHtml() {
       }
 
       function wikiCard(page) {
-        const adminActions = hasAdminAccess()
-          ? '<button class="secondary" type="button" data-action="edit-wiki-page" data-wiki-id="' + escapeHtml(page.id) + '">Edit</button><button class="danger" type="button" data-action="delete-wiki-page" data-wiki-id="' + escapeHtml(page.id) + '">Delete</button>'
+        const editAction = hasWikiEditAccess()
+          ? '<button class="secondary" type="button" data-action="edit-wiki-page" data-wiki-id="' + escapeHtml(page.id) + '">Edit</button>'
+          : "";
+        const deleteAction = hasAdminAccess()
+          ? '<button class="danger" type="button" data-action="delete-wiki-page" data-wiki-id="' + escapeHtml(page.id) + '">Delete</button>'
           : "";
         return '<article class="card wiki-card">' +
           '<div>' + wikiImageHtml(page, "wiki-thumb") + '<h3>' + escapeHtml(page.title || "Kella Wiki") + '</h3><p>' + escapeHtml(wikiExcerpt(page)) + '</p></div>' +
-          '<div class="toolbar"><button class="primary" type="button" data-action="open-wiki-page" data-wiki-id="' + escapeHtml(page.id) + '">Read</button>' + adminActions + '</div>' +
-          '<span class="muted">Updated ' + formatDateTime(page.updatedAt || page.createdAt) + (hasAdminAccess() ? " - " + escapeHtml(page.status || "Published") : "") + '</span>' +
+          '<div class="toolbar"><button class="primary" type="button" data-action="open-wiki-page" data-wiki-id="' + escapeHtml(page.id) + '">Read</button>' + editAction + deleteAction + '</div>' +
+          '<span class="muted">Updated ' + formatDateTime(page.updatedAt || page.createdAt) + (hasWikiEditAccess() ? " - " + escapeHtml(page.status || "Published") : "") + '</span>' +
         '</article>';
       }
 
@@ -3916,10 +3927,10 @@ export function kellaDashboardHtml() {
         skeleton("Loading wiki...");
         try {
           const pages = await loadWiki();
-          const actions = hasAdminAccess() ? '<button class="primary" data-action="clear-wiki-form">Create Wiki</button>' : "";
+          const actions = hasWikiEditAccess() ? '<button class="primary" data-action="clear-wiki-form">Create Wiki</button>' : "";
           app.innerHTML =
             pageHeader("Kella Wiki", "Member-readable alliance rules, event guides, and officer notes in one clean library.", actions) +
-            (hasAdminAccess() ? renderWikiEditor() : "") +
+            (hasWikiEditAccess() ? renderWikiEditor() : "") +
             renderWikiLibrary(pages);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load wiki. ' + escapeHtml(error.message) + '</div>';
@@ -3927,9 +3938,15 @@ export function kellaDashboardHtml() {
       }
 
       function renderDashboardData(summary, members = [], events = []) {
+        const dashboardActions = hasAdminAccess()
+          ? '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-link-button="/tools">Open Tools</button>'
+          : "";
+        const eventActions = hasAdminAccess()
+          ? '<button class="secondary" data-link-button="/attendance">Attendance</button><button class="primary" data-link-button="/tools">Create Event</button>'
+          : '<button class="secondary" data-link-button="/attendance">Attendance</button>';
         app.innerHTML =
-          pageHeader("Dashboard", "A cleaner command room for events, power, and member activity.", '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-link-button="/tools">Open Tools</button>') +
-          '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events. Click any day to view event attendance.</span></div><div class="toolbar"><button class="secondary" data-link-button="/attendance">Attendance</button><button class="primary" data-link-button="/tools">Create Event</button></div></div>' + renderEventsCalendar(events) + '</section>' +
+          pageHeader("Dashboard", "A cleaner command room for events, power, and member activity.", dashboardActions) +
+          '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events. Click any day to view event attendance.</span></div><div class="toolbar">' + eventActions + '</div></div>' + renderEventsCalendar(events) + '</section>' +
           '<section class="card alliance-stats-card"><div class="card-header"><div><h3>Alliance Stats</h3><span class="muted">Top 50 rows follow the stat button you choose. Power uses current Power from the uploaded Excel file.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</section>';
       }
 
@@ -5022,7 +5039,7 @@ export function kellaDashboardHtml() {
         if (kind === "apply-avatar-crop") withFeedback(action, applyAvatarCrop, "Photo ready.");
         if (kind === "discord-logout") withFeedback(action, async function() {
           await sendJson("POST", "/api/auth/logout", {}, false);
-          state.auth = { authenticated: false, isDashboardAdmin: false };
+          state.auth = { authenticated: false, isDashboardAdmin: false, isDashboardWikiEditor: false };
           state.channels = null;
           state.templates = null;
           state.profile = null;
@@ -5036,8 +5053,8 @@ export function kellaDashboardHtml() {
           return;
         }
         if (kind === "edit-wiki-page") {
-          if (!hasAdminAccess()) {
-            toast("Admin access is required to edit wiki pages.", "error");
+          if (!hasWikiEditAccess()) {
+            toast("Wiki editor access is required to edit wiki pages.", "error");
             return;
           }
           const page = findWikiPageById(action.getAttribute("data-wiki-id") || "");
@@ -5051,8 +5068,8 @@ export function kellaDashboardHtml() {
           return;
         }
         if (kind === "clear-wiki-form") {
-          if (!hasAdminAccess()) {
-            toast("Admin access is required to create wiki pages.", "error");
+          if (!hasWikiEditAccess()) {
+            toast("Wiki editor access is required to create wiki pages.", "error");
             return;
           }
           const editor = document.querySelector("[data-wiki-editor]");
@@ -5102,7 +5119,7 @@ export function kellaDashboardHtml() {
           return;
         }
         if (kind === "save-wiki-page") withFeedback(action, async function() {
-          if (!hasAdminAccess()) throw new Error("Admin access is required to save wiki pages.");
+          if (!hasWikiEditAccess()) throw new Error("Wiki editor access is required to save wiki pages.");
           const payload = await wikiPayload();
           if (payload.id) {
             await sendJson("PATCH", "/api/dashboard/wiki/" + encodeURIComponent(payload.id), payload, true);
