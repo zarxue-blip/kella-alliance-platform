@@ -479,11 +479,15 @@ export function kellaDashboardHtml() {
         text-transform: uppercase;
       }
       .wiki-drag-handle::after {
-        content: "↕";
+        content: "";
         display: block;
-        font-size: 16px;
-        line-height: 1;
-        transform: rotate(45deg);
+        width: 13px;
+        height: 13px;
+        border-radius: 3px;
+        background:
+          linear-gradient(#3f2a13, #3f2a13) center / 13px 2px no-repeat,
+          linear-gradient(#3f2a13, #3f2a13) center / 2px 13px no-repeat;
+        opacity: 0.82;
       }
       .wiki-block:hover .wiki-drag-handle,
       .wiki-block:hover .wiki-resize-handle,
@@ -3109,20 +3113,28 @@ export function kellaDashboardHtml() {
         return "left:" + block.x + "px;top:" + block.y + "px;width:" + block.width + "px;height:" + block.height + "px;font-family:" + wikiFontCss(block.fontFamily) + ";font-size:" + wikiFontSizePx(block.fontSize) + "px;color:" + block.color + ";text-align:" + block.align + ";";
       }
 
+      function wikiBlockStyleAttr(block) {
+        return escapeHtml(wikiBlockStyle(block));
+      }
+
+      function wikiBlockHandlesHtml(editable) {
+        return editable
+          ? '<button class="wiki-drag-handle" type="button" data-wiki-drag-handle title="Drag block" aria-label="Drag block"></button><span class="wiki-resize-handle wiki-resize-nw" data-wiki-resize-handle data-resize-corner="nw" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-ne" data-wiki-resize-handle data-resize-corner="ne" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-sw" data-wiki-resize-handle data-resize-corner="sw" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-se" data-wiki-resize-handle data-resize-corner="se" title="Resize from corner"></span>'
+          : "";
+      }
+
       function renderWikiBlockHtml(rawBlock, editable) {
         const block = sanitizeWikiBlock(rawBlock);
         const selected = editable && String(block.id) === String(state.selectedWikiBlockId);
         const classes = "wiki-block " + (block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (selected ? " selected" : "");
-        const handles = editable
-          ? '<button class="wiki-drag-handle" type="button" data-wiki-drag-handle title="Drag block">↕</button><span class="wiki-resize-handle" data-wiki-resize-handle title="Resize block"></span>'
-          : "";
+        const handles = wikiBlockHandlesHtml(editable);
         if (block.type === "image") {
           const image = block.imageDataUrl
             ? '<img src="' + escapeHtml(block.imageDataUrl) + '" alt="Wiki image" />'
             : '<div class="empty">Choose an image.</div>';
-          return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyle(block) + '">' + image + handles + '</div>';
+          return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + image + handles + '</div>';
         }
-        return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyle(block) + '">' +
+        return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' +
           '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + escapeHtml(block.text || "Write here...") + '</div>' +
           handles +
         '</div>';
@@ -3132,16 +3144,14 @@ export function kellaDashboardHtml() {
         const block = sanitizeWikiBlock(rawBlock);
         const selected = editable && String(block.id) === String(state.selectedWikiBlockId);
         const classes = "wiki-block " + (block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (selected ? " selected" : "");
-        const handles = editable
-          ? '<button class="wiki-drag-handle" type="button" data-wiki-drag-handle title="Drag block">Move</button><span class="wiki-resize-handle wiki-resize-nw" data-wiki-resize-handle data-resize-corner="nw" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-ne" data-wiki-resize-handle data-resize-corner="ne" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-sw" data-wiki-resize-handle data-resize-corner="sw" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-se" data-wiki-resize-handle data-resize-corner="se" title="Resize from corner"></span>'
-          : "";
+        const handles = wikiBlockHandlesHtml(editable);
         if (block.type === "image") {
           const image = block.imageDataUrl
             ? '<img src="' + escapeHtml(block.imageDataUrl) + '" alt="Wiki image" />'
             : '<div class="empty">Choose an image.</div>';
-          return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyle(block) + '">' + image + handles + '</div>';
+          return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + image + handles + '</div>';
         }
-        return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyle(block) + '">' +
+        return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' +
           '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + escapeHtml(block.text || "Write here...") + '</div>' +
           handles +
         '</div>';
