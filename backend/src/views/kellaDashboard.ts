@@ -603,6 +603,47 @@ export function kellaDashboardHtml() {
       .wiki-page-canvas {
         max-width: none;
       }
+      .wiki-reader-stage {
+        position: relative;
+        width: 100%;
+        min-height: 240px;
+        overflow: auto;
+        overscroll-behavior: contain;
+        border-radius: 12px;
+        background: rgba(77, 48, 18, 0.10);
+      }
+      .wiki-reader-stage .wiki-reader-page {
+        position: absolute;
+        top: 0;
+        left: 0;
+        max-width: none;
+        margin: 0;
+        transform: scale(var(--wiki-reader-scale, 1));
+        transform-origin: top left;
+      }
+      .wiki-reader-sizer {
+        position: relative;
+        margin: 0 auto;
+      }
+      .wiki-reader-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .wiki-reader-toolbar button {
+        min-width: 38px;
+        min-height: 36px;
+        padding: 6px 10px;
+      }
+      .wiki-reader-zoom {
+        min-width: 58px;
+        color: #68491f;
+        font-size: 12px;
+        font-weight: 1000;
+        text-align: center;
+      }
       .wiki-page-canvas::before,
       .wiki-reader-page::before {
         content: "";
@@ -651,8 +692,8 @@ export function kellaDashboardHtml() {
       }
       .wiki-inline-image {
         display: inline-block;
-        width: 1.45em;
-        height: 1.45em;
+        width: 1.35em;
+        height: 1.35em;
         margin: 0 0.12em;
         vertical-align: -0.28em;
         object-fit: contain;
@@ -775,6 +816,9 @@ export function kellaDashboardHtml() {
         bottom: auto;
       }
       .wiki-inspector {
+        position: sticky;
+        top: 10px;
+        z-index: 16;
         display: grid;
         grid-template-columns: auto minmax(330px, 1fr) minmax(420px, 0.95fr);
         gap: 10px;
@@ -816,7 +860,7 @@ export function kellaDashboardHtml() {
       }
       .wiki-style-controls {
         display: grid;
-        grid-template-columns: repeat(4, minmax(76px, 1fr));
+        grid-template-columns: repeat(4, minmax(72px, 1fr));
         gap: 6px;
         align-items: stretch;
         padding: 8px;
@@ -827,6 +871,33 @@ export function kellaDashboardHtml() {
       .wiki-style-controls--picture {
         grid-template-columns: minmax(160px, 1fr);
       }
+      .wiki-inline-format {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(3, 38px) minmax(108px, 1fr) minmax(72px, 0.7fr);
+        gap: 6px;
+        align-items: end;
+      }
+      .wiki-format-button {
+        min-width: 38px;
+        min-height: 38px;
+        padding: 6px;
+        border: 1px solid rgba(121, 82, 33, 0.32);
+        border-radius: 9px;
+        background: rgba(255, 250, 230, 0.88);
+        color: #3f2a13;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 16px;
+        font-weight: 900;
+      }
+      .wiki-format-button:hover,
+      .wiki-format-button.active {
+        border-color: rgba(190, 123, 24, 0.78);
+        background: linear-gradient(180deg, #fff2b5, #e7b84e);
+      }
+      .wiki-format-button[data-wiki-inline-command="italic"] { font-style: italic; }
+      .wiki-format-button[data-wiki-inline-command="underline"] { text-decoration: underline; }
+      .wiki-inline-format label { min-width: 0; }
       .wiki-style-actions {
         align-self: stretch;
         display: grid;
@@ -1081,9 +1152,8 @@ export function kellaDashboardHtml() {
       .wiki-size-xlarge { font-size: 28px; }
       @media (max-width: 940px) {
         .wiki-builder { grid-template-columns: 1fr; }
-        .wiki-inspector { position: static; }
-        .wiki-canvas-wrap, .wiki-reader { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .wiki-page-canvas, .wiki-reader-page { width: 720px; max-width: none; }
+        .wiki-canvas-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .wiki-page-canvas { width: 720px; max-width: none; }
       }
       .content { padding: 24px 20px 28px; min-width: 0; }
       .guild { display: flex; align-items: center; gap: 14px; }
@@ -1886,6 +1956,9 @@ export function kellaDashboardHtml() {
         box-shadow: 0 35px 110px rgba(0, 0, 0, 0.66), inset 0 1px 0 rgba(255,255,255,0.07);
         padding: 22px;
       }
+      .member-modal.wiki-modal .member-modal-panel {
+        width: min(940px, calc(100vw - 28px));
+      }
       .modal-close {
         position: absolute;
         top: 14px;
@@ -2185,10 +2258,13 @@ export function kellaDashboardHtml() {
         .wiki-search-row { grid-template-columns: 1fr; }
         .wiki-search-count { text-align: left; }
         .wiki-canvas-wrap { width: 100%; max-height: none; padding: 12px; margin: 0 -4px; }
-        .wiki-page-canvas,
-        .wiki-reader-page { width: 720px; max-width: none; }
-        .wiki-inspector { padding: 14px; }
+        .wiki-page-canvas { width: 720px; max-width: none; }
+        .wiki-reader { width: 100%; min-width: 0; overflow: hidden; }
+        .wiki-reader-stage { width: 100%; overflow: auto; }
+        .wiki-inspector { top: 236px; padding: 10px; max-height: calc(100vh - 250px); overflow: auto; }
         .wiki-style-controls { grid-template-columns: 1fr; }
+        .wiki-inline-format { grid-template-columns: repeat(3, 38px) minmax(100px, 1fr); }
+        .wiki-inline-format label:last-child { grid-column: 1 / -1; }
         .wiki-misc-panel { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         .avatar-cropper { align-items: end; padding: 10px; }
         .avatar-cropper-panel { width: 100%; border-radius: 14px 14px 0 0; padding: 18px; }
@@ -2212,8 +2288,8 @@ export function kellaDashboardHtml() {
         table { min-width: 620px; }
         .power-sparkline { height: 86px; }
         .interactive-chart .power-sparkline { height: 180px; }
-        .wiki-page-canvas,
-        .wiki-reader-page { width: 680px; }
+        .wiki-page-canvas { width: 680px; }
+        .wiki-reader-toolbar { justify-content: center; }
         .wiki-misc-panel { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         .kofi-tip { gap: 0; padding: 8px; font-size: 0; }
         .kofi-tip img { width: 32px; height: 32px; }
@@ -2279,7 +2355,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null };
+      const state = { summary: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1 };
       const WIKI_CUSTOM_IMAGE_KEY = "kellaWikiCustomImages";
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
@@ -3141,6 +3217,7 @@ export function kellaDashboardHtml() {
         if (!memberModal) return;
         closeAvatarCropper();
         memberModal.classList.remove("open");
+        memberModal.classList.remove("wiki-modal");
         memberModal.setAttribute("aria-hidden", "true");
         if (memberModalContent) {
           delete memberModalContent.dataset.memberId;
@@ -3674,7 +3751,8 @@ export function kellaDashboardHtml() {
         return '<img class="wiki-inline-image" src="' + escapeHtml(src) + '" alt="" data-wiki-inline-image="' + escapeHtml(src) + '" contenteditable="false" draggable="false" />';
       }
 
-      function wikiTextContentHtml(text) {
+      function wikiTextContentHtml(text, richTextHtml) {
+        if (String(richTextHtml || "").trim()) return String(richTextHtml);
         const raw = String(text || "Write here...");
         const pattern = /\\[\\[kella-img:([^\\]]+)\\]\\]/g;
         let cursor = 0;
@@ -3701,6 +3779,7 @@ export function kellaDashboardHtml() {
           id: String(block?.id || wikiBlockId()).slice(0, 80),
           type,
           text: String(block?.text || "").slice(0, 50000),
+          richTextHtml: type === "text" ? String(block?.richTextHtml || "").slice(0, 500000) : "",
           imageDataUrl: String(block?.imageDataUrl || ""),
           x,
           y,
@@ -3798,7 +3877,10 @@ export function kellaDashboardHtml() {
         document.querySelectorAll("[data-wiki-text-content]").forEach(function(node) {
           const id = node.closest("[data-wiki-block]")?.getAttribute("data-wiki-block") || "";
           const block = state.wikiBlocks.find(function(item) { return item.id === id; });
-          if (block) block.text = wikiPlainTextFromEditable(node);
+          if (block) {
+            block.text = wikiPlainTextFromEditable(node);
+            block.richTextHtml = node.innerHTML;
+          }
         });
       }
 
@@ -3868,7 +3950,7 @@ export function kellaDashboardHtml() {
           return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + image + handles + '</div>';
         }
         return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' +
-          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + wikiTextContentHtml(block.text || "Write here...") + '</div>' +
+          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + wikiTextContentHtml(block.text || "Write here...", block.richTextHtml) + '</div>' +
           addText +
           handles +
         '</div>';
@@ -3887,7 +3969,7 @@ export function kellaDashboardHtml() {
           return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + image + handles + '</div>';
         }
         return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' +
-          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + wikiTextContentHtml(block.text || "Write here...") + '</div>' +
+          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + wikiTextContentHtml(block.text || "Write here...", block.richTextHtml) + '</div>' +
           addText +
           handles +
         '</div>';
@@ -3901,10 +3983,34 @@ export function kellaDashboardHtml() {
 
       function wikiArticleMarkup(page, includeTitle = true) {
         const blocks = defaultWikiBlocks(page);
+        const pageHeight = wikiPageHeight(blocks);
         return '<article class="wiki-reader ' + wikiClass(page) + '">' +
           (includeTitle ? '<h2>' + escapeHtml(page?.title || "Kella Wiki") + '</h2>' : "") +
-          '<div class="wiki-reader-page" ' + wikiPageStyle(blocks) + '>' + blocks.map(function(block) { return renderWikiBlockEditorHtml(block, false); }).join("") + '</div>' +
+          '<div class="wiki-reader-toolbar"><button class="secondary" type="button" data-action="wiki-reader-zoom-out" aria-label="Zoom out">-</button><span class="wiki-reader-zoom" data-wiki-reader-zoom>Fit</span><button class="secondary" type="button" data-action="wiki-reader-zoom-in" aria-label="Zoom in">+</button><button class="secondary" type="button" data-action="wiki-reader-zoom-reset">Fit</button></div>' +
+          '<div class="wiki-reader-stage" data-wiki-reader-stage data-wiki-page-height="' + pageHeight + '"><div class="wiki-reader-sizer" data-wiki-reader-sizer><div class="wiki-reader-page" data-wiki-reader-page ' + wikiPageStyle(blocks) + '>' + blocks.map(function(block) { return renderWikiBlockEditorHtml(block, false); }).join("") + '</div></div></div>' +
         '</article>';
+      }
+
+      function fitWikiReader() {
+        const stage = document.querySelector("[data-wiki-reader-stage]");
+        const sizer = stage?.querySelector("[data-wiki-reader-sizer]");
+        const page = stage?.querySelector("[data-wiki-reader-page]");
+        if (!stage || !sizer || !page) return;
+        const pageHeight = Number(stage.getAttribute("data-wiki-page-height") || WIKI_MIN_PAGE_HEIGHT);
+        const availableWidth = Math.max(240, stage.clientWidth - 2);
+        const fitScale = Math.min(1, availableWidth / WIKI_PAGE_WIDTH);
+        const scale = wikiClamp(fitScale * (state.wikiReaderZoom || 1), 0.25, 2);
+        page.style.setProperty("--wiki-reader-scale", String(scale));
+        sizer.style.width = Math.round(WIKI_PAGE_WIDTH * scale) + "px";
+        sizer.style.height = Math.round(pageHeight * scale) + "px";
+        stage.style.height = Math.round(pageHeight * scale) + "px";
+        const readout = document.querySelector("[data-wiki-reader-zoom]");
+        if (readout) readout.textContent = (state.wikiReaderZoom || 1) === 1 ? "Fit" : Math.round(scale * 100) + "%";
+      }
+
+      function setWikiReaderZoom(value) {
+        state.wikiReaderZoom = wikiClamp(value, 0.6, 1.8);
+        fitWikiReader();
       }
 
       function wikiCard(page) {
@@ -4074,9 +4180,16 @@ export function kellaDashboardHtml() {
         }
         const textControls = block.type === "text"
           ? '<div class="wiki-style-controls"><label>Font<select data-wiki-block-style="fontFamily"><option value="serif"' + optionSelected("serif", block.fontFamily) + '>Old paper serif</option><option value="sans"' + optionSelected("sans", block.fontFamily) + '>Clean readable</option><option value="display"' + optionSelected("display", block.fontFamily) + '>Alliance title</option><option value="script"' + optionSelected("script", block.fontFamily) + '>Royal script</option><option value="cod"' + optionSelected("cod", block.fontFamily) + '>Dragon title</option><option value="mono"' + optionSelected("mono", block.fontFamily) + '>Tactical mono</option></select></label>' +
-            '<label>Text Size<select data-wiki-block-style="fontSize"><option value="small"' + optionSelected("small", block.fontSize) + '>Small</option><option value="medium"' + optionSelected("medium", block.fontSize) + '>Medium</option><option value="large"' + optionSelected("large", block.fontSize) + '>Large</option><option value="xlarge"' + optionSelected("xlarge", block.fontSize) + '>Extra Large</option></select></label>' +
+            '<label>Block Size<select data-wiki-block-style="fontSize"><option value="small"' + optionSelected("small", block.fontSize) + '>Small</option><option value="medium"' + optionSelected("medium", block.fontSize) + '>Medium</option><option value="large"' + optionSelected("large", block.fontSize) + '>Large</option><option value="xlarge"' + optionSelected("xlarge", block.fontSize) + '>Extra Large</option></select></label>' +
             '<label>Align<select data-wiki-block-style="align"><option value="left"' + optionSelected("left", block.align) + '>Left</option><option value="center"' + optionSelected("center", block.align) + '>Center</option><option value="right"' + optionSelected("right", block.align) + '>Right</option></select></label>' +
-            '<label>Color<input type="color" data-wiki-block-style="color" value="' + escapeHtml(block.color) + '" /></label></div>'
+            '<label>Block Color<input type="color" data-wiki-block-style="color" value="' + escapeHtml(block.color) + '" /></label>' +
+            '<div class="wiki-inline-format" aria-label="Selected text formatting">' +
+              '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="bold" title="Bold selected text" aria-label="Bold selected text">B</button>' +
+              '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="italic" title="Italic selected text" aria-label="Italic selected text">I</button>' +
+              '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="underline" title="Underline selected text" aria-label="Underline selected text">U</button>' +
+              '<label>Selection Size<select data-wiki-inline-style="fontSize"><option value="16">16</option><option value="18">18</option><option value="20">20</option><option value="24" selected>24</option><option value="28">28</option><option value="32">32</option><option value="36">36</option><option value="40">40</option><option value="48">48</option></select></label>' +
+              '<label>Selection Color<input type="color" data-wiki-inline-style="color" value="' + escapeHtml(block.color) + '" /></label>' +
+            '</div></div>'
           : '<div class="wiki-style-controls wiki-style-controls--picture"><button class="secondary" type="button" data-action="change-wiki-image">Change Picture</button></div>';
         return '<section class="wiki-inspector" data-wiki-inspector>' +
           '<div class="wiki-style-head"><h4>Style</h4></div>' +
@@ -4255,6 +4368,9 @@ export function kellaDashboardHtml() {
       function focusedWikiTextNode() {
         const active = document.activeElement?.closest?.("[data-wiki-text-content]");
         if (active) return active;
+        const savedBlockId = state.wikiTextSelection?.blockId || "";
+        const savedText = savedBlockId ? wikiBlockElement(savedBlockId)?.querySelector("[data-wiki-text-content]") : null;
+        if (savedText) return savedText;
         const selection = window.getSelection?.();
         const anchor = selection?.anchorNode;
         const selectedText = anchor?.parentElement?.closest?.("[data-wiki-text-content]");
@@ -4263,6 +4379,62 @@ export function kellaDashboardHtml() {
           return wikiBlockElement(state.selectedWikiBlockId)?.querySelector("[data-wiki-text-content]") || null;
         }
         return null;
+      }
+
+      function rememberWikiTextSelection() {
+        const selection = window.getSelection?.();
+        if (!selection?.rangeCount) return;
+        const range = selection.getRangeAt(0);
+        const element = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+          ? range.commonAncestorContainer
+          : range.commonAncestorContainer.parentElement;
+        const textNode = element?.closest?.("[data-wiki-text-content]");
+        if (!textNode) return;
+        const blockId = textNode.closest("[data-wiki-block]")?.getAttribute("data-wiki-block") || "";
+        if (!blockId) return;
+        state.wikiTextSelection = { blockId, range: range.cloneRange() };
+      }
+
+      function restoreWikiTextSelection() {
+        const saved = state.wikiTextSelection;
+        const textNode = saved?.blockId ? wikiBlockElement(saved.blockId)?.querySelector("[data-wiki-text-content]") : null;
+        if (!saved?.range || !textNode || !saved.range.startContainer?.isConnected || !textNode.contains(saved.range.commonAncestorContainer)) return null;
+        const selection = window.getSelection?.();
+        selection?.removeAllRanges();
+        selection?.addRange(saved.range.cloneRange());
+        return { selection, range: selection?.rangeCount ? selection.getRangeAt(0) : null, textNode };
+      }
+
+      function applyWikiSelectionMarkup(kind, value) {
+        const restored = restoreWikiTextSelection();
+        if (!restored?.range || restored.range.collapsed) {
+          toast("Select the words you want to format first.", "error");
+          return false;
+        }
+        const wrapper = kind === "bold"
+          ? document.createElement("strong")
+          : kind === "italic"
+            ? document.createElement("em")
+            : kind === "underline"
+              ? document.createElement("u")
+              : document.createElement("span");
+        if (kind === "fontSize") wrapper.style.fontSize = wikiClamp(value, 14, 48) + "px";
+        if (kind === "color" && /^#[0-9a-fA-F]{6}$/.test(value || "")) wrapper.style.color = value;
+        const fragment = restored.range.extractContents();
+        wrapper.appendChild(fragment);
+        restored.range.insertNode(wrapper);
+        restored.range.selectNodeContents(wrapper);
+        restored.selection?.removeAllRanges();
+        restored.selection?.addRange(restored.range);
+        rememberWikiTextSelection();
+        const blockId = restored.textNode.closest("[data-wiki-block]")?.getAttribute("data-wiki-block") || "";
+        const block = state.wikiBlocks.find(function(item) { return item.id === blockId; });
+        if (block) {
+          block.text = wikiPlainTextFromEditable(restored.textNode);
+          block.richTextHtml = restored.textNode.innerHTML;
+          autoFitWikiTextBlock(block, restored.textNode);
+        }
+        return true;
       }
 
       function insertWikiInlineImage(src) {
@@ -4274,8 +4446,9 @@ export function kellaDashboardHtml() {
         const block = state.wikiBlocks.find(function(item) { return item.id === blockId && item.type === "text"; });
         if (!block) return false;
 
-        const selection = window.getSelection?.();
-        let range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+        const restored = restoreWikiTextSelection();
+        const selection = restored?.selection || window.getSelection?.();
+        let range = restored?.textNode === textNode ? restored.range : (selection?.rangeCount ? selection.getRangeAt(0) : null);
         if (!range || !textNode.contains(range.commonAncestorContainer)) {
           range = document.createRange();
           range.selectNodeContents(textNode);
@@ -4300,6 +4473,8 @@ export function kellaDashboardHtml() {
         selection?.removeAllRanges();
         selection?.addRange(range);
         block.text = wikiPlainTextFromEditable(textNode);
+        block.richTextHtml = textNode.innerHTML;
+        rememberWikiTextSelection();
         autoFitWikiTextBlock(block, textNode);
         return true;
       }
@@ -4318,6 +4493,12 @@ export function kellaDashboardHtml() {
         }
         Object.assign(block, sanitizeWikiBlock(block));
         updateWikiBlockElement(block);
+        return true;
+      }
+
+      function applyWikiInlineStyleChange(target) {
+        if (!target?.matches?.("[data-wiki-inline-style]")) return false;
+        applyWikiSelectionMarkup(target.getAttribute("data-wiki-inline-style") || "", target.value || "");
         return true;
       }
 
@@ -4361,6 +4542,7 @@ export function kellaDashboardHtml() {
 
       function openWikiPage(page) {
         if (!memberModal || !memberModalContent) return;
+        state.wikiReaderZoom = 1;
         memberModalContent.dataset.wikiId = page.id || "";
         memberModalContent.innerHTML =
           '<div class="member-profile-hero">' +
@@ -4368,9 +4550,11 @@ export function kellaDashboardHtml() {
             '<div><span class="profile-kicker">Kella Wiki</span><h3 id="memberModalTitle">' + escapeHtml(page.title || "Wiki Page") + '</h3><div class="profile-subtitle">Rules, guides, and alliance notes.</div></div>' +
           '</div>' +
           wikiArticleMarkup(page, false);
+        memberModal.classList.add("wiki-modal");
         memberModal.classList.add("open");
         memberModal.setAttribute("aria-hidden", "false");
         document.body.classList.add("modal-open");
+        requestAnimationFrame(fitWikiReader);
       }
 
       async function renderWiki() {
@@ -5534,6 +5718,22 @@ export function kellaDashboardHtml() {
           insertWikiTextBlock(action.getAttribute("data-after-wiki-block") || "");
           return;
         }
+        if (kind === "format-wiki-selection") {
+          applyWikiSelectionMarkup(action.getAttribute("data-wiki-inline-command") || "");
+          return;
+        }
+        if (kind === "wiki-reader-zoom-out") {
+          setWikiReaderZoom((state.wikiReaderZoom || 1) - 0.15);
+          return;
+        }
+        if (kind === "wiki-reader-zoom-in") {
+          setWikiReaderZoom((state.wikiReaderZoom || 1) + 0.15);
+          return;
+        }
+        if (kind === "wiki-reader-zoom-reset") {
+          setWikiReaderZoom(1);
+          return;
+        }
         if (kind === "add-wiki-image") {
           state.wikiImageTarget = "";
           document.querySelector("[data-wiki-block-image]")?.click();
@@ -6079,6 +6279,10 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("mousedown", function(event) {
+        if (event.target.closest("[data-action='format-wiki-selection']")) {
+          event.preventDefault();
+          return;
+        }
         const editor = document.querySelector("[data-wiki-editor]");
         if (!editor) return;
         if (event.target.closest("[data-action]")) return;
@@ -6183,6 +6387,7 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("change", async function(event) {
+        if (applyWikiInlineStyleChange(event.target)) return;
         if (applyWikiBlockStyleChange(event.target)) return;
         if (event.target.matches("[data-tool-select]")) {
           navigate("/tools?tool=" + encodeURIComponent(event.target.value || "events"));
@@ -6222,6 +6427,11 @@ export function kellaDashboardHtml() {
             if (existing) {
               existing.imageDataUrl = imageDataUrl;
               state.selectedWikiBlockId = existing.id;
+            } else if (insertWikiInlineImage(imageDataUrl)) {
+              state.wikiImageTarget = "";
+              event.target.value = "";
+              toast("Picture inserted where you were typing.", "success");
+              return;
             } else {
               const block = sanitizeWikiBlock({ id: wikiBlockId(), type: "image", imageDataUrl, x: 130, y: 160 + (state.wikiBlocks.length * 24), width: 420, height: 260 });
               state.wikiBlocks.push(block);
@@ -6287,6 +6497,7 @@ export function kellaDashboardHtml() {
           const block = state.wikiBlocks.find(function(item) { return item.id === id; });
           if (block) {
             block.text = wikiPlainTextFromEditable(event.target);
+            block.richTextHtml = event.target.innerHTML;
             autoFitWikiTextBlock(block, event.target);
           }
         }
@@ -6307,6 +6518,8 @@ export function kellaDashboardHtml() {
       }
 
       window.addEventListener("popstate", route);
+      window.addEventListener("resize", fitWikiReader);
+      document.addEventListener("selectionchange", rememberWikiTextSelection);
       updateServerClock();
       setInterval(updateServerClock, 1000);
       let autoRefreshBusy = false;

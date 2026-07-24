@@ -11,6 +11,7 @@ const wikiBlockSchema = new Schema(
     id: { type: String, required: true, trim: true, maxlength: 80 },
     type: { type: String, enum: wikiBlockTypes, required: true },
     text: { type: String, default: "", maxlength: 500000 },
+    richTextHtml: { type: String, default: "", maxlength: 500000 },
     imageDataUrl: { type: String, default: "" },
     x: { type: Number, default: 90, min: 0, max: 760 },
     y: { type: Number, default: 90, min: 0, max: 50000 },

@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import sanitizeHtml from "sanitize-html";
 import { z } from "zod";
 import { env } from "../config/env.js";
 import { AllianceModel } from "../models/alliance.model.js";
@@ -147,6 +148,7 @@ const wikiBlockSchema = z.object({
   id: z.string().min(1).max(80),
   type: z.enum(wikiBlockTypes),
   text: z.string().max(500000).optional().default(""),
+  richTextHtml: z.string().max(500000).optional().default(""),
   imageDataUrl: wikiImageSchema,
   x: z.coerce.number().min(0).max(760).default(90),
   y: z.coerce.number().min(0).max(50000).default(90),
@@ -338,6 +340,55 @@ function wikiImageFromBlocks(blocks?: any[]) {
   return (blocks || []).find((block) => block?.type === "image" && block.imageDataUrl)?.imageDataUrl || "";
 }
 
+function safeWikiRichTextHtml(value: unknown) {
+  return sanitizeHtml(String(value || ""), {
+    allowedTags: ["b", "strong", "i", "em", "u", "span", "br", "div", "p", "img"],
+    allowedAttributes: {
+      span: ["style"],
+      img: ["src", "alt", "class", "data-wiki-inline-image", "contenteditable", "draggable"]
+    },
+    allowedStyles: {
+      span: {
+        color: [/^#[0-9a-f]{6}$/i, /^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/i],
+        "font-size": [/^(14|16|18|20|24|28|32|36|40|48)px$/],
+        "font-weight": [/^(bold|[5-9]00)$/],
+        "font-style": [/^italic$/],
+        "text-decoration": [/^underline$/]
+      }
+    },
+    allowedSchemesByTag: { img: ["data"] },
+    allowProtocolRelative: false,
+    exclusiveFilter(frame) {
+      if (frame.tag !== "img") return false;
+      const src = String(frame.attribs?.src || "");
+      return !(
+        /^data:image\/(png|jpe?g|webp);base64,/i.test(src) ||
+        /^\/assets\/wiki-(misc|heroes|markers|artifacts|pets)\/[a-z0-9._/-]+\.(png|jpe?g|webp)$/i.test(src)
+      );
+    },
+    transformTags: {
+      img: (_tagName, attribs) => ({
+        tagName: "img",
+        attribs: {
+          src: attribs.src || "",
+          alt: "",
+          class: "wiki-inline-image",
+          "data-wiki-inline-image": attribs["data-wiki-inline-image"] || attribs.src || "",
+          contenteditable: "false",
+          draggable: "false"
+        }
+      })
+    }
+  });
+}
+
+function sanitizeWikiBlocks(blocks: any[]) {
+  return blocks.map((block) => ({
+    ...block,
+    richTextHtml: block.type === "text" ? safeWikiRichTextHtml(block.richTextHtml) : ""
+  }));
+}
+
 function wikiBlocksDto(page: any) {
   const blocks = Array.isArray(page.blocks) ? page.blocks : [];
   if (blocks.length) {
@@ -345,6 +396,7 @@ function wikiBlocksDto(page: any) {
       id: block.id || new Types.ObjectId().toString(),
       type: block.type === "image" ? "image" : "text",
       text: block.text || "",
+      richTextHtml: safeWikiRichTextHtml(block.richTextHtml),
       imageDataUrl: block.imageDataUrl || "",
       x: Number.isFinite(block.x) ? block.x : 90,
       y: Number.isFinite(block.y) ? block.y : 90,
@@ -362,6 +414,7 @@ function wikiBlocksDto(page: any) {
     legacyBlocks.push({
       id: `legacy-image-${page._id}`,
       type: "image",
+      richTextHtml: "",
       imageDataUrl: page.imageDataUrl,
       x: 150,
       y: 90,
@@ -378,6 +431,7 @@ function wikiBlocksDto(page: any) {
       id: `legacy-text-${page._id}`,
       type: "text",
       text: page.body,
+      richTextHtml: "",
       imageDataUrl: "",
       x: 90,
       y: page.imageDataUrl ? 385 : 120,
@@ -2156,7 +2210,7 @@ export const dashboardWikiCreate = asyncHandler(async (req, res) => {
   const body = wikiPageCreateSchema.parse(req.body);
   const allianceId = await resolveAllianceId();
   const title = body.title.trim();
-  const blocks = body.blocks || [];
+  const blocks = sanitizeWikiBlocks(body.blocks || []);
   const textBody = wikiTextFromBlocks(blocks) || body.body.trim();
   const blockImage = wikiImageFromBlocks(blocks);
   const page = await WikiPageModel.create({
@@ -2190,9 +2244,10 @@ export const dashboardWikiUpdate = asyncHandler(async (req, res) => {
   if (body.fontFamily !== undefined) update.fontFamily = body.fontFamily;
   if (body.fontSize !== undefined) update.fontSize = body.fontSize;
   if (body.blocks !== undefined) {
-    update.blocks = body.blocks;
-    const textBody = wikiTextFromBlocks(body.blocks);
-    const blockImage = wikiImageFromBlocks(body.blocks);
+    const blocks = sanitizeWikiBlocks(body.blocks);
+    update.blocks = blocks;
+    const textBody = wikiTextFromBlocks(blocks);
+    const blockImage = wikiImageFromBlocks(blocks);
     if (textBody) update.body = textBody;
     update.imageDataUrl = blockImage || (typeof update.imageDataUrl === "string" ? update.imageDataUrl : "");
   }
