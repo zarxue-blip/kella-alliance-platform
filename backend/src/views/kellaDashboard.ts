@@ -607,8 +607,11 @@ export function kellaDashboardHtml() {
         position: relative;
         width: 100%;
         min-height: 240px;
-        overflow: auto;
-        overscroll-behavior: contain;
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
+        touch-action: pan-y pinch-zoom;
         border-radius: 12px;
         background: rgba(77, 48, 18, 0.10);
       }
@@ -2260,7 +2263,7 @@ export function kellaDashboardHtml() {
         .wiki-canvas-wrap { width: 100%; max-height: none; padding: 12px; margin: 0 -4px; }
         .wiki-page-canvas { width: 720px; max-width: none; }
         .wiki-reader { width: 100%; min-width: 0; overflow: hidden; }
-        .wiki-reader-stage { width: 100%; overflow: auto; }
+        .wiki-reader-stage { width: 100%; overflow-x: auto; overflow-y: hidden; }
         .wiki-inspector { top: 236px; padding: 10px; max-height: calc(100vh - 250px); overflow: auto; }
         .wiki-style-controls { grid-template-columns: 1fr; }
         .wiki-inline-format { grid-template-columns: repeat(3, 38px) minmax(100px, 1fr); }
@@ -6516,6 +6519,16 @@ export function kellaDashboardHtml() {
         link.remove();
         URL.revokeObjectURL(url);
       }
+
+      memberModal?.addEventListener("wheel", function(event) {
+        if (!memberModal.classList.contains("wiki-modal")) return;
+        const stage = event.target.closest?.("[data-wiki-reader-stage]");
+        if (!stage || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+        const panel = memberModal.querySelector(".member-modal-panel");
+        if (!panel) return;
+        panel.scrollTop += event.deltaY;
+        event.preventDefault();
+      }, { passive: false });
 
       window.addEventListener("popstate", route);
       window.addEventListener("resize", fitWikiReader);
