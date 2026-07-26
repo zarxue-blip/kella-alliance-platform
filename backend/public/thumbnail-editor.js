@@ -3,6 +3,9 @@
   const HEIGHT = 720;
   const HANDLE_SIZE = 24;
   const fonts = {
+    "Hero King": '"Hero King", fantasy',
+    "Dragon Force": '"Dragon Force", fantasy',
+    "Tribal Dragon": '"Tribal Dragon", fantasy',
     "Draconic Title": '"Copperplate Gothic Bold", Copperplate, Georgia, serif',
     "Dragon Rune": 'Papyrus, "Segoe Print", fantasy',
     "Runic Stone": '"Rockwell Extra Bold", "Arial Black", Georgia, serif',
@@ -25,6 +28,7 @@
       this.selectedId = "";
       this.drag = null;
       this.editor = null;
+      this.deleteButton = null;
       this.background = "";
       this.backgroundImage = null;
       this.bind();
@@ -47,6 +51,18 @@
           return;
         }
 
+        const toggle = event.target.closest("[data-thumbnail-toggle]");
+        if (toggle) {
+          const layer = this.selected();
+          const key = toggle.dataset.thumbnailToggle;
+          if (!layer || !key) return;
+          layer[key] = !layer[key];
+          toggle.classList.toggle("active", Boolean(layer[key]));
+          this.updateEditorStyle();
+          this.draw();
+          return;
+        }
+
         const action = event.target.closest("[data-thumbnail-action]")?.dataset.thumbnailAction;
         if (!action) return;
         if (layerRow) this.selectedId = layerRow.dataset.thumbnailLayerId;
@@ -65,7 +81,11 @@
         layer[key] = ["fontSize", "opacity"].includes(key) ? Number(value) : value;
         if (key === "text") layer.name = String(value || "Text").split("\n")[0].slice(0, 28) || "Text";
         this.updateEditorStyle();
-        this.draw();
+        if (key === "fontFamily" && document.fonts?.load) {
+          document.fonts.load(`32px "${value}"`).then(() => this.draw()).catch(() => this.draw());
+        } else {
+          this.draw();
+        }
       });
 
       this.canvas.addEventListener("pointerdown", (event) => this.pointerDown(event));
@@ -187,10 +207,20 @@
       )?.[0] || "";
     }
 
+    deleteAt(layer, point) {
+      const x = layer.x + layer.width - 28;
+      const y = layer.y + 28;
+      return Math.hypot(point.x - x, point.y - y) <= 22;
+    }
+
     pointerDown(event) {
       this.stopEditing();
       const point = this.canvasPoint(event);
       const selected = this.selected();
+      if (selected && this.deleteAt(selected, point)) {
+        this.removeSelected();
+        return;
+      }
       const selectedHandle = selected ? this.handleAt(selected, point) : "";
       const layer = selectedHandle ? selected : this.hit(point);
 
@@ -210,6 +240,7 @@
         y: layer.y,
         width: layer.width,
         height: layer.height,
+        fontSize: layer.fontSize,
         handle,
         moved: false
       };
@@ -268,6 +299,10 @@
       layer.y = Math.max(0, Math.min(HEIGHT - minHeight, y));
       layer.width = Math.min(WIDTH - layer.x, width);
       layer.height = Math.min(HEIGHT - layer.y, height);
+      if (layer.type === "text" && Number.isFinite(this.drag.fontSize)) {
+        const scale = layer.height / Math.max(minHeight, this.drag.height);
+        layer.fontSize = Math.max(12, Math.min(180, Math.round(this.drag.fontSize * scale)));
+      }
     }
 
     pointerUp() {
@@ -302,8 +337,23 @@
           editor.blur();
         }
       });
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "thumbnail-inline-delete";
+      deleteButton.textContent = "\u00d7";
+      deleteButton.title = "Delete this text box";
+      deleteButton.setAttribute("aria-label", "Delete this text box");
+      deleteButton.addEventListener("pointerdown", (event) => event.stopPropagation());
+      deleteButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.selectedId = layer.id;
+        this.removeSelected();
+      });
       this.shell.appendChild(editor);
+      this.shell.appendChild(deleteButton);
       this.editor = editor;
+      this.deleteButton = deleteButton;
       this.updateEditorStyle();
       editor.focus();
       editor.select();
@@ -340,6 +390,12 @@
         height: `${layer.height * scaleY}px`,
         fontSize: `${(layer.fontSize || 40) * scaleY}px`
       });
+      if (this.deleteButton) {
+        Object.assign(this.deleteButton.style, {
+          left: `${rect.left - shellRect.left + (layer.x + layer.width) * scaleX - 17}px`,
+          top: `${rect.top - shellRect.top + layer.y * scaleY - 17}px`
+        });
+      }
     }
 
     stopEditing() {
@@ -347,6 +403,8 @@
       const editor = this.editor;
       this.editor = null;
       editor.remove();
+      this.deleteButton?.remove();
+      this.deleteButton = null;
     }
 
     wrapText(context, text, maxWidth) {
@@ -427,6 +485,23 @@
             context.fillRect(x - 10, y - 10, 20, 20);
             context.strokeRect(x - 10, y - 10, 20, 20);
           });
+          const deleteX = layer.x + layer.width - 28;
+          const deleteY = layer.y + 28;
+          context.beginPath();
+          context.fillStyle = "#8f2419";
+          context.strokeStyle = "#fff1c2";
+          context.lineWidth = 2;
+          context.arc(deleteX, deleteY, 18, 0, Math.PI * 2);
+          context.fill();
+          context.stroke();
+          context.beginPath();
+          context.strokeStyle = "#ffffff";
+          context.lineWidth = 4;
+          context.moveTo(deleteX - 7, deleteY - 7);
+          context.lineTo(deleteX + 7, deleteY + 7);
+          context.moveTo(deleteX + 7, deleteY - 7);
+          context.lineTo(deleteX - 7, deleteY + 7);
+          context.stroke();
         }
         context.restore();
       });
@@ -435,13 +510,11 @@
     controlsHtml(layer) {
       if (!layer) return '<p class="muted">Click a text box to type, move, or resize it.</p>';
       return [
-        `<label>Text<textarea rows="3" data-thumbnail-property="text">${this.escape(layer.text)}</textarea></label>`,
-        `<label>Font<select data-thumbnail-property="fontFamily">${Object.keys(fonts).map((font) => `<option value="${font}"${font === layer.fontFamily ? " selected" : ""}>${font}</option>`).join("")}</select></label>`,
+        `<label>Font<select class="thumbnail-font-select" data-thumbnail-property="fontFamily" style="font-family:${this.escape(fonts[layer.fontFamily] || fonts.Cinzel)}">${Object.keys(fonts).map((font) => `<option value="${font}" style="font-family:${this.escape(fonts[font])}"${font === layer.fontFamily ? " selected" : ""}>${font}</option>`).join("")}</select></label>`,
         `<label>Size<input type="range" min="16" max="120" value="${layer.fontSize}" data-thumbnail-property="fontSize"></label>`,
-        `<label>Color<input type="color" value="${layer.color}" data-thumbnail-property="color"></label>`,
+        `<label class="thumbnail-color-label">Color<input class="thumbnail-color-wheel" type="color" value="${layer.color}" data-thumbnail-property="color" title="Choose text color"></label>`,
         `<label>Alignment<select data-thumbnail-property="align"><option value="left"${layer.align === "left" ? " selected" : ""}>Left</option><option value="center"${layer.align === "center" ? " selected" : ""}>Center</option><option value="right"${layer.align === "right" ? " selected" : ""}>Right</option></select></label>`,
-        `<label><input type="checkbox" data-thumbnail-property="bold"${layer.bold ? " checked" : ""}> Bold</label>`,
-        `<label><input type="checkbox" data-thumbnail-property="italic"${layer.italic ? " checked" : ""}> Italic</label>`
+        `<div class="thumbnail-format-buttons"><button class="thumbnail-format-toggle${layer.bold ? " active" : ""}" type="button" data-thumbnail-toggle="bold" aria-pressed="${layer.bold ? "true" : "false"}"><strong>Bold</strong></button><button class="thumbnail-format-toggle${layer.italic ? " active" : ""}" type="button" data-thumbnail-toggle="italic" aria-pressed="${layer.italic ? "true" : "false"}"><em>Italic</em></button></div>`
       ].join("");
     }
 
@@ -459,12 +532,6 @@
       const selected = this.selected();
       const controls = this.root.querySelector("[data-thumbnail-controls]");
       if (controls) controls.innerHTML = this.controlsHtml(selected);
-      const list = this.root.querySelector("[data-thumbnail-layer-list]");
-      if (list && redrawLayers) {
-        list.innerHTML = [...this.layers].reverse().map((layer) =>
-          `<div class="thumbnail-layer-row${layer.id === this.selectedId ? " active" : ""}" data-thumbnail-layer-id="${layer.id}"><span class="thumbnail-layer-name">${this.escape(layer.name || layer.type)}</span><button type="button" data-thumbnail-action="move-up" title="Move up">&#8593;</button><button type="button" data-thumbnail-action="move-down" title="Move down">&#8595;</button><button type="button" data-thumbnail-action="delete" title="Delete">&times;</button></div>`
-        ).join("");
-      }
       this.draw();
     }
 

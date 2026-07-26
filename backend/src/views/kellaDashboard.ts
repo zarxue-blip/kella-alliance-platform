@@ -250,7 +250,7 @@ export function kellaDashboardHtml() {
     <link rel="icon" type="image/png" href="/assets/kellacoin.png?v=4" />
     <link rel="shortcut icon" type="image/png" href="/assets/kellacoin.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/kellacoin.png?v=4" />
-    <link rel="stylesheet" href="/assets/thumbnail-editor.css?v=2" />
+    <link rel="stylesheet" href="/assets/thumbnail-editor.css?v=3" />
     <style>
       :root {
         color-scheme: dark;
@@ -2366,7 +2366,7 @@ export function kellaDashboardHtml() {
     <div id="avatarCropper" class="avatar-cropper" aria-hidden="true"></div>
     <div id="toasts" class="toast-stack" aria-live="polite"></div>
     <a class="kofi-tip" href="https://ko-fi.com/exuz19" target="_blank" rel="noreferrer"><img src="/assets/kellacoin.png" alt="" />Tip Me</a>
-    <script src="/assets/thumbnail-editor.js?v=2"></script>
+    <script src="/assets/thumbnail-editor.js?v=3"></script>
     <script>
       const app = document.getElementById("app");
       const toasts = document.getElementById("toasts");
@@ -5070,8 +5070,7 @@ export function kellaDashboardHtml() {
             '<h4 style="margin:14px 0 8px">Backgrounds</h4><div class="thumbnail-backgrounds">' + backgrounds + '</div>' +
           '</div><aside class="thumbnail-sidebar">' +
             '<h4>Text Style</h4><div class="thumbnail-controls" data-thumbnail-controls></div>' +
-            '<h4>Text Boxes</h4><div class="thumbnail-layer-list" data-thumbnail-layer-list></div>' +
-            '<div class="thumbnail-status" data-thumbnail-status>Click a text box to type, drag, or resize from any corner.</div>' +
+            '<div class="thumbnail-status" data-thumbnail-status>Click text to type. Drag to move, use any corner to resize, or use X to delete.</div>' +
           '</aside></div>' +
         '</section>';
       }

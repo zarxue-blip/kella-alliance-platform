@@ -1,6 +1,21 @@
+@font-face {
+  font-family: "Hero King";
+  src: url("/assets/fonts/Heroking-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Dragon Force";
+  src: url("/assets/fonts/DragonForcE.ttf") format("truetype");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Tribal Dragon";
+  src: url("/assets/fonts/TribalDragon-23Ll.ttf") format("truetype");
+  font-display: swap;
+}
 .thumbnail-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr) 230px;
   gap: 16px;
   margin-top: 16px;
 }
@@ -59,6 +74,22 @@
   white-space: pre-wrap;
   box-shadow: 0 0 0 2px rgba(86, 50, 4, .55);
 }
+.thumbnail-inline-delete {
+  position: absolute;
+  z-index: 6;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0;
+  border: 2px solid #fff1c2;
+  border-radius: 50%;
+  background: #8f2419;
+  color: #fff;
+  font: 700 24px/28px Arial, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .38);
+}
+.thumbnail-inline-delete:hover { background: #b42d20; }
 .thumbnail-backgrounds {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -90,6 +121,48 @@
 .thumbnail-controls input,
 .thumbnail-controls select,
 .thumbnail-controls textarea { width: 100%; }
+.thumbnail-font-select,
+.thumbnail-font-select option {
+  font-size: 16px;
+}
+.thumbnail-color-label {
+  justify-items: start;
+}
+.thumbnail-color-wheel {
+  width: 46px !important;
+  height: 46px;
+  padding: 3px;
+  border: 1px solid rgba(99, 61, 10, .5);
+  border-radius: 50%;
+  background: #fff2c8;
+  cursor: pointer;
+}
+.thumbnail-color-wheel::-webkit-color-swatch-wrapper { padding: 0; }
+.thumbnail-color-wheel::-webkit-color-swatch {
+  border: 0;
+  border-radius: 50%;
+}
+.thumbnail-color-wheel::-moz-color-swatch {
+  border: 0;
+  border-radius: 50%;
+}
+.thumbnail-format-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.thumbnail-format-toggle {
+  padding: 9px 10px;
+  border: 1px solid rgba(99, 61, 10, .36);
+  border-radius: 6px;
+  background: rgba(255, 248, 218, .55);
+  color: #4d310d;
+}
+.thumbnail-format-toggle.active {
+  border-color: #9a6512;
+  background: linear-gradient(180deg, #ffe88a, #dda223);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5);
+}
 .thumbnail-layer-list { display: grid; gap: 6px; max-height: 220px; overflow: auto; }
 .thumbnail-layer-row {
   display: grid;
