@@ -250,7 +250,7 @@ export function kellaDashboardHtml() {
     <link rel="icon" type="image/png" href="/assets/kellacoin.png?v=4" />
     <link rel="shortcut icon" type="image/png" href="/assets/kellacoin.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/kellacoin.png?v=4" />
-    <link rel="stylesheet" href="/assets/thumbnail-editor.css?v=1" />
+    <link rel="stylesheet" href="/assets/thumbnail-editor.css?v=2" />
     <style>
       :root {
         color-scheme: dark;
@@ -2366,7 +2366,7 @@ export function kellaDashboardHtml() {
     <div id="avatarCropper" class="avatar-cropper" aria-hidden="true"></div>
     <div id="toasts" class="toast-stack" aria-live="polite"></div>
     <a class="kofi-tip" href="https://ko-fi.com/exuz19" target="_blank" rel="noreferrer"><img src="/assets/kellacoin.png" alt="" />Tip Me</a>
-    <script src="/assets/thumbnail-editor.js?v=1"></script>
+    <script src="/assets/thumbnail-editor.js?v=2"></script>
     <script>
       const app = document.getElementById("app");
       const toasts = document.getElementById("toasts");
@@ -5064,23 +5064,14 @@ export function kellaDashboardHtml() {
           '</div>' +
           '<div class="thumbnail-workspace"><div class="thumbnail-stage-card">' +
             '<div class="thumbnail-toolbar">' +
-              '<button class="secondary active" type="button" data-thumbnail-action="select">Select</button>' +
-              '<button class="secondary" type="button" data-thumbnail-action="add-layer">Add Layer</button>' +
               '<button class="secondary" type="button" data-thumbnail-action="add-text">Add Text</button>' +
-              '<button class="secondary" type="button" data-thumbnail-action="add-image">Add Image</button>' +
-              '<button class="secondary" type="button" data-thumbnail-action="erase">Eraser</button>' +
-              '<button class="secondary" type="button" data-thumbnail-action="cut">Cut</button>' +
-              '<button class="secondary" type="button" data-thumbnail-action="copy">Copy</button>' +
-              '<button class="secondary" type="button" data-thumbnail-action="paste">Paste</button>' +
-              '<button class="secondary" type="button" data-thumbnail-action="download">Download</button>' +
             '</div>' +
-            '<input type="file" data-thumbnail-image-input accept="image/png,image/jpeg,image/webp" hidden />' +
-            '<div class="thumbnail-canvas-shell"><canvas class="thumbnail-canvas" data-thumbnail-canvas data-mode="select" aria-label="Thumbnail editor canvas"></canvas></div>' +
+            '<div class="thumbnail-canvas-shell"><canvas class="thumbnail-canvas" data-thumbnail-canvas aria-label="Thumbnail editor canvas"></canvas></div>' +
             '<h4 style="margin:14px 0 8px">Backgrounds</h4><div class="thumbnail-backgrounds">' + backgrounds + '</div>' +
           '</div><aside class="thumbnail-sidebar">' +
-            '<h4>Selected Object</h4><div class="thumbnail-controls" data-thumbnail-controls></div>' +
-            '<h4>Layers</h4><div class="thumbnail-layer-list" data-thumbnail-layer-list></div>' +
-            '<div class="thumbnail-status" data-thumbnail-status>Select and drag objects on the canvas.</div>' +
+            '<h4>Text Style</h4><div class="thumbnail-controls" data-thumbnail-controls></div>' +
+            '<h4>Text Boxes</h4><div class="thumbnail-layer-list" data-thumbnail-layer-list></div>' +
+            '<div class="thumbnail-status" data-thumbnail-status>Click a text box to type, drag, or resize from any corner.</div>' +
           '</aside></div>' +
         '</section>';
       }

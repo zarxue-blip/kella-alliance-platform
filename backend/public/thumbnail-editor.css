@@ -38,11 +38,27 @@
   display: block;
   width: 100%;
   height: 100%;
-  cursor: default;
+  cursor: grab;
 }
-.thumbnail-canvas[data-mode="select"] { cursor: grab; }
 .thumbnail-canvas[data-dragging="true"] { cursor: grabbing; }
-.thumbnail-canvas[data-mode="erase"] { cursor: crosshair; }
+.thumbnail-inline-editor {
+  position: absolute;
+  z-index: 4;
+  display: block;
+  min-width: 40px;
+  min-height: 30px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  resize: none;
+  border: 2px solid #ffd45a;
+  border-radius: 3px;
+  outline: none;
+  background: rgba(12, 9, 5, .22);
+  line-height: 1.14;
+  white-space: pre-wrap;
+  box-shadow: 0 0 0 2px rgba(86, 50, 4, .55);
+}
 .thumbnail-backgrounds {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

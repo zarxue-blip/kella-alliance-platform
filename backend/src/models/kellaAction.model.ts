@@ -21,6 +21,7 @@ const kellaActionSchema = new Schema(
         "event_response",
         "embed_sent",
         "chat_sent",
+        "thumbnail_sent",
         "roots_report_sent",
         "complaint",
         "discord_member_sync",

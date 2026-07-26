@@ -1,30 +1,32 @@
 (function () {
   const WIDTH = 1280;
   const HEIGHT = 720;
+  const HANDLE_SIZE = 24;
   const fonts = {
+    "Draconic Title": '"Copperplate Gothic Bold", Copperplate, Georgia, serif',
+    "Dragon Rune": 'Papyrus, "Segoe Print", fantasy',
+    "Runic Stone": '"Rockwell Extra Bold", "Arial Black", Georgia, serif',
+    "Elder Script": '"Lucida Calligraphy", "Segoe Script", cursive',
+    "War Banner": "Impact, Haettenschweiler, sans-serif",
     Cinzel: "Cinzel, Georgia, serif",
     Georgia: "Georgia, serif",
-    Arial: "Arial, sans-serif",
-    Impact: "Impact, Haettenschweiler, sans-serif",
-    Verdana: "Verdana, sans-serif",
-    Monospace: "monospace"
+    Arial: "Arial, sans-serif"
   };
 
   class ThumbnailEditor {
     constructor(root) {
       this.root = root;
       this.canvas = root.querySelector("[data-thumbnail-canvas]");
+      this.shell = root.querySelector(".thumbnail-canvas-shell");
       this.context = this.canvas.getContext("2d");
       this.canvas.width = WIDTH;
       this.canvas.height = HEIGHT;
       this.layers = [];
       this.selectedId = "";
-      this.mode = "select";
-      this.clipboard = null;
       this.drag = null;
+      this.editor = null;
       this.background = "";
       this.backgroundImage = null;
-      this.imageInput = root.querySelector("[data-thumbnail-image-input]");
       this.bind();
       const firstBackground = root.querySelector("[data-thumbnail-background]");
       if (firstBackground) this.setBackground(firstBackground.dataset.thumbnailBackground);
@@ -36,27 +38,24 @@
       this.root.addEventListener("click", (event) => {
         const background = event.target.closest("[data-thumbnail-background]");
         if (background) return this.setBackground(background.dataset.thumbnailBackground);
+
         const layerRow = event.target.closest("[data-thumbnail-layer-id]");
         if (layerRow && !event.target.closest("button")) {
+          this.stopEditing();
           this.selectedId = layerRow.dataset.thumbnailLayerId;
-          return this.refresh();
+          this.refresh();
+          return;
         }
+
         const action = event.target.closest("[data-thumbnail-action]")?.dataset.thumbnailAction;
         if (!action) return;
         if (layerRow) this.selectedId = layerRow.dataset.thumbnailLayerId;
-        if (action === "select") this.setMode("select");
-        if (action === "erase") this.setMode("erase");
-        if (action === "add-layer") this.addText("New layer");
-        if (action === "add-text") this.addText("New text");
-        if (action === "add-image") this.imageInput?.click();
-        if (action === "cut") this.cut();
-        if (action === "copy") this.copy();
-        if (action === "paste") this.paste();
+        if (action === "add-text") this.addText("Type your message");
         if (action === "delete") this.removeSelected();
         if (action === "move-up") this.moveSelected(1);
         if (action === "move-down") this.moveSelected(-1);
-        if (action === "download") this.download();
       });
+
       this.root.addEventListener("input", (event) => {
         const key = event.target.dataset.thumbnailProperty;
         if (!key) return;
@@ -64,58 +63,36 @@
         if (!layer) return;
         const value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
         layer[key] = ["fontSize", "opacity"].includes(key) ? Number(value) : value;
-        this.refresh(false);
+        if (key === "text") layer.name = String(value || "Text").split("\n")[0].slice(0, 28) || "Text";
+        this.updateEditorStyle();
+        this.draw();
       });
-      this.imageInput?.addEventListener("change", async () => {
-        const file = this.imageInput.files?.[0];
-        if (!file) return;
-        if (!/^image\/(png|jpe?g|webp)$/i.test(file.type)) return this.status("Choose a PNG, JPG, or WEBP image.");
-        const url = await this.fileDataUrl(file);
-        const image = await this.loadImage(url);
-        const scale = Math.min(1, 420 / Math.max(image.naturalWidth, image.naturalHeight));
-        this.layers.push({
-          id: this.id(),
-          type: "image",
-          name: file.name.replace(/\.[^.]+$/, "") || "Picture",
-          image,
-          src: url,
-          x: 430,
-          y: 200,
-          width: Math.max(60, image.naturalWidth * scale),
-          height: Math.max(60, image.naturalHeight * scale),
-          opacity: 1
-        });
-        this.selectedId = this.layers[this.layers.length - 1].id;
-        this.imageInput.value = "";
-        this.refresh();
-      });
+
       this.canvas.addEventListener("pointerdown", (event) => this.pointerDown(event));
       window.addEventListener("pointermove", (event) => this.pointerMove(event));
       window.addEventListener("pointerup", () => this.pointerUp());
+      window.addEventListener("resize", () => this.positionEditor());
       window.addEventListener("keydown", (event) => {
         if (!this.root.isConnected || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || "")) return;
-        if (event.key === "Delete" || event.key === "Backspace") this.removeSelected();
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c") this.copy();
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "x") this.cut();
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "v") this.paste();
+        if ((event.key === "Delete" || event.key === "Backspace") && this.selectedId) this.removeSelected();
       });
     }
 
-    id() { return "layer-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
-    selected() { return this.layers.find((layer) => layer.id === this.selectedId); }
+    id() {
+      return "layer-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    }
+
+    selected() {
+      return this.layers.find((layer) => layer.id === this.selectedId);
+    }
+
     status(message) {
       const node = this.root.querySelector("[data-thumbnail-status]");
       if (node) node.textContent = message || "";
     }
-    setMode(mode) {
-      this.mode = mode;
-      this.canvas.dataset.mode = mode;
-      this.root.querySelectorAll("[data-thumbnail-action='select'],[data-thumbnail-action='erase']").forEach((button) => {
-        button.classList.toggle("active", button.dataset.thumbnailAction === mode);
-      });
-      this.status(mode === "erase" ? "Click an object to erase it." : "Select and drag objects on the canvas.");
-    }
+
     addText(text) {
+      this.stopEditing();
       const isTitle = this.layers.filter((layer) => layer.type === "text").length === 0;
       const layer = {
         id: this.id(),
@@ -123,10 +100,10 @@
         name: isTitle ? "Title" : "Text",
         text,
         x: 170,
-        y: isTitle ? 180 : 390,
+        y: isTitle ? 170 : 380,
         width: 940,
-        height: isTitle ? 110 : 80,
-        fontFamily: "Cinzel",
+        height: isTitle ? 120 : 100,
+        fontFamily: isTitle ? "Draconic Title" : "Cinzel",
         fontSize: isTitle ? 64 : 38,
         color: "#fff4c2",
         align: "center",
@@ -137,34 +114,17 @@
       this.layers.push(layer);
       this.selectedId = layer.id;
       this.refresh();
+      requestAnimationFrame(() => this.startEditing(layer));
     }
+
     removeSelected() {
       if (!this.selectedId) return;
+      this.stopEditing();
       this.layers = this.layers.filter((layer) => layer.id !== this.selectedId);
       this.selectedId = this.layers.at(-1)?.id || "";
       this.refresh();
     }
-    copy() {
-      const layer = this.selected();
-      if (!layer) return this.status("Select an object first.");
-      this.clipboard = { ...layer, image: layer.image };
-      this.status("Object copied.");
-    }
-    cut() {
-      const layer = this.selected();
-      if (!layer) return this.status("Select an object first.");
-      this.clipboard = { ...layer, image: layer.image };
-      this.removeSelected();
-      this.status("Object cut. Use Paste to restore it.");
-    }
-    paste() {
-      if (!this.clipboard) return this.status("Nothing has been copied yet.");
-      const layer = { ...this.clipboard, id: this.id(), x: this.clipboard.x + 24, y: this.clipboard.y + 24 };
-      this.layers.push(layer);
-      this.selectedId = layer.id;
-      this.refresh();
-      this.status("Object pasted.");
-    }
+
     moveSelected(direction) {
       const index = this.layers.findIndex((layer) => layer.id === this.selectedId);
       const target = Math.max(0, Math.min(this.layers.length - 1, index + direction));
@@ -173,25 +133,21 @@
       this.layers.splice(target, 0, layer);
       this.refresh();
     }
+
     async setBackground(src) {
       if (!src) return;
       try {
         this.backgroundImage = await this.loadImage(src);
         this.background = src;
-        this.root.querySelectorAll("[data-thumbnail-background]").forEach((button) => button.classList.toggle("active", button.dataset.thumbnailBackground === src));
+        this.root.querySelectorAll("[data-thumbnail-background]").forEach((button) => {
+          button.classList.toggle("active", button.dataset.thumbnailBackground === src);
+        });
         this.draw();
       } catch {
         this.status("That background could not be loaded.");
       }
     }
-    fileDataUrl(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
+
     loadImage(src) {
       return new Promise((resolve, reject) => {
         const image = new Image();
@@ -200,34 +156,68 @@
         image.src = src;
       });
     }
+
     canvasPoint(event) {
       const rect = this.canvas.getBoundingClientRect();
-      return { x: (event.clientX - rect.left) * WIDTH / rect.width, y: (event.clientY - rect.top) * HEIGHT / rect.height };
+      return {
+        x: (event.clientX - rect.left) * WIDTH / rect.width,
+        y: (event.clientY - rect.top) * HEIGHT / rect.height
+      };
     }
+
     hit(point) {
-      return [...this.layers].reverse().find((layer) => point.x >= layer.x && point.x <= layer.x + layer.width && point.y >= layer.y && point.y <= layer.y + layer.height);
+      return [...this.layers].reverse().find((layer) =>
+        point.x >= layer.x &&
+        point.x <= layer.x + layer.width &&
+        point.y >= layer.y &&
+        point.y <= layer.y + layer.height
+      );
     }
+
+    handleAt(layer, point) {
+      const handles = {
+        nw: { x: layer.x, y: layer.y },
+        ne: { x: layer.x + layer.width, y: layer.y },
+        sw: { x: layer.x, y: layer.y + layer.height },
+        se: { x: layer.x + layer.width, y: layer.y + layer.height }
+      };
+      return Object.entries(handles).find(([, handle]) =>
+        Math.abs(point.x - handle.x) <= HANDLE_SIZE &&
+        Math.abs(point.y - handle.y) <= HANDLE_SIZE
+      )?.[0] || "";
+    }
+
     pointerDown(event) {
+      this.stopEditing();
       const point = this.canvasPoint(event);
-      const layer = this.hit(point);
-      if (this.mode === "erase") {
-        if (layer) {
-          this.selectedId = layer.id;
-          this.removeSelected();
-        }
-        return;
-      }
+      const selected = this.selected();
+      const selectedHandle = selected ? this.handleAt(selected, point) : "";
+      const layer = selectedHandle ? selected : this.hit(point);
+
       if (!layer) {
         this.selectedId = "";
-        return this.refresh();
+        this.refresh();
+        return;
       }
+
       this.selectedId = layer.id;
-      const resize = point.x > layer.x + layer.width - 30 && point.y > layer.y + layer.height - 30;
-      this.drag = { id: layer.id, startX: point.x, startY: point.y, x: layer.x, y: layer.y, width: layer.width, height: layer.height, resize };
+      const handle = selectedHandle || this.handleAt(layer, point);
+      this.drag = {
+        id: layer.id,
+        startX: point.x,
+        startY: point.y,
+        x: layer.x,
+        y: layer.y,
+        width: layer.width,
+        height: layer.height,
+        handle,
+        moved: false
+      };
       this.canvas.dataset.dragging = "true";
       this.canvas.setPointerCapture?.(event.pointerId);
       this.refresh();
     }
+
     pointerMove(event) {
       if (!this.drag) return;
       const layer = this.layers.find((item) => item.id === this.drag.id);
@@ -235,21 +225,130 @@
       const point = this.canvasPoint(event);
       const dx = point.x - this.drag.startX;
       const dy = point.y - this.drag.startY;
-      if (this.drag.resize) {
-        layer.width = Math.max(50, Math.min(WIDTH - layer.x, this.drag.width + dx));
-        layer.height = Math.max(40, Math.min(HEIGHT - layer.y, this.drag.height + dy));
-      } else {
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) this.drag.moved = true;
+
+      if (!this.drag.handle) {
         layer.x = Math.max(0, Math.min(WIDTH - layer.width, this.drag.x + dx));
         layer.y = Math.max(0, Math.min(HEIGHT - layer.height, this.drag.y + dy));
+      } else {
+        this.resizeLayer(layer, dx, dy, this.drag.handle);
       }
       this.draw();
     }
+
+    resizeLayer(layer, dx, dy, handle) {
+      const minWidth = 80;
+      const minHeight = 46;
+      let x = this.drag.x;
+      let y = this.drag.y;
+      let width = this.drag.width;
+      let height = this.drag.height;
+
+      if (handle.includes("e")) width = this.drag.width + dx;
+      if (handle.includes("s")) height = this.drag.height + dy;
+      if (handle.includes("w")) {
+        x = this.drag.x + dx;
+        width = this.drag.width - dx;
+      }
+      if (handle.includes("n")) {
+        y = this.drag.y + dy;
+        height = this.drag.height - dy;
+      }
+
+      if (width < minWidth) {
+        if (handle.includes("w")) x -= minWidth - width;
+        width = minWidth;
+      }
+      if (height < minHeight) {
+        if (handle.includes("n")) y -= minHeight - height;
+        height = minHeight;
+      }
+
+      layer.x = Math.max(0, Math.min(WIDTH - minWidth, x));
+      layer.y = Math.max(0, Math.min(HEIGHT - minHeight, y));
+      layer.width = Math.min(WIDTH - layer.x, width);
+      layer.height = Math.min(HEIGHT - layer.y, height);
+    }
+
     pointerUp() {
       if (!this.drag) return;
+      const finished = this.drag;
+      const layer = this.layers.find((item) => item.id === finished.id);
       this.drag = null;
       this.canvas.dataset.dragging = "false";
       this.refresh();
+      if (layer?.type === "text" && !finished.moved && !finished.handle) this.startEditing(layer);
     }
+
+    startEditing(layer) {
+      if (!layer || layer.type !== "text" || !this.shell) return;
+      this.stopEditing();
+      const editor = document.createElement("textarea");
+      editor.className = "thumbnail-inline-editor";
+      editor.value = layer.text || "";
+      editor.setAttribute("aria-label", "Edit text directly on the thumbnail");
+      editor.addEventListener("input", () => {
+        layer.text = editor.value;
+        layer.name = editor.value.split("\n")[0].slice(0, 28) || "Text";
+        this.draw();
+      });
+      editor.addEventListener("blur", () => {
+        if (this.editor === editor) this.stopEditing();
+        this.refresh();
+      });
+      editor.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          editor.blur();
+        }
+      });
+      this.shell.appendChild(editor);
+      this.editor = editor;
+      this.updateEditorStyle();
+      editor.focus();
+      editor.select();
+      this.status("Type directly in the selected text box. Press Esc when finished.");
+    }
+
+    updateEditorStyle() {
+      const layer = this.selected();
+      if (!this.editor || !layer) return;
+      const family = fonts[layer.fontFamily] || fonts.Cinzel;
+      Object.assign(this.editor.style, {
+        fontFamily: family,
+        fontSize: `${layer.fontSize || 40}px`,
+        fontWeight: layer.bold ? "700" : "400",
+        fontStyle: layer.italic ? "italic" : "normal",
+        color: layer.color || "#ffffff",
+        textAlign: layer.align || "center",
+        opacity: Number.isFinite(layer.opacity) ? String(layer.opacity) : "1"
+      });
+      this.positionEditor();
+    }
+
+    positionEditor() {
+      const layer = this.selected();
+      if (!this.editor || !layer) return;
+      const rect = this.canvas.getBoundingClientRect();
+      const shellRect = this.shell.getBoundingClientRect();
+      const scaleX = rect.width / WIDTH;
+      const scaleY = rect.height / HEIGHT;
+      Object.assign(this.editor.style, {
+        left: `${rect.left - shellRect.left + layer.x * scaleX}px`,
+        top: `${rect.top - shellRect.top + layer.y * scaleY}px`,
+        width: `${layer.width * scaleX}px`,
+        height: `${layer.height * scaleY}px`,
+        fontSize: `${(layer.fontSize || 40) * scaleY}px`
+      });
+    }
+
+    stopEditing() {
+      if (!this.editor) return;
+      const editor = this.editor;
+      this.editor = null;
+      editor.remove();
+    }
+
     wrapText(context, text, maxWidth) {
       const paragraphs = String(text || "").split("\n");
       const lines = [];
@@ -262,12 +361,15 @@
           if (context.measureText(candidate).width > maxWidth && line) {
             lines.push(line);
             line = word;
-          } else line = candidate;
+          } else {
+            line = candidate;
+          }
         });
         lines.push(line);
       });
       return lines;
     }
+
     draw(exporting) {
       const context = this.context;
       context.clearRect(0, 0, WIDTH, HEIGHT);
@@ -282,6 +384,7 @@
       }
       context.fillStyle = "rgba(0,0,0,.18)";
       context.fillRect(0, 0, WIDTH, HEIGHT);
+
       this.layers.forEach((layer) => {
         context.save();
         context.globalAlpha = Number.isFinite(layer.opacity) ? layer.opacity : 1;
@@ -293,42 +396,65 @@
           context.font = `${layer.italic ? "italic " : ""}${layer.bold ? "700 " : "400 "}${layer.fontSize || 40}px ${family}`;
           context.textAlign = layer.align || "center";
           context.textBaseline = "top";
-          const anchorX = layer.align === "left" ? layer.x : layer.align === "right" ? layer.x + layer.width : layer.x + layer.width / 2;
+          const anchorX = layer.align === "left"
+            ? layer.x
+            : layer.align === "right"
+              ? layer.x + layer.width
+              : layer.x + layer.width / 2;
           const lines = this.wrapText(context, layer.text, layer.width);
           const lineHeight = (layer.fontSize || 40) * 1.14;
-          lines.slice(0, Math.max(1, Math.floor(layer.height / lineHeight))).forEach((line, index) => context.fillText(line, anchorX, layer.y + index * lineHeight));
+          lines.slice(0, Math.max(1, Math.floor(layer.height / lineHeight))).forEach((line, index) => {
+            context.fillText(line, anchorX, layer.y + index * lineHeight);
+          });
         }
-        if (!exporting && layer.id === this.selectedId) {
+
+        if (!exporting && layer.id === this.selectedId && !this.editor) {
           context.globalAlpha = 1;
           context.strokeStyle = "#ffd45a";
           context.lineWidth = 3;
           context.setLineDash([10, 7]);
           context.strokeRect(layer.x, layer.y, layer.width, layer.height);
           context.setLineDash([]);
-          context.fillStyle = "#ffd45a";
-          context.fillRect(layer.x + layer.width - 14, layer.y + layer.height - 14, 20, 20);
+          [
+            [layer.x, layer.y],
+            [layer.x + layer.width, layer.y],
+            [layer.x, layer.y + layer.height],
+            [layer.x + layer.width, layer.y + layer.height]
+          ].forEach(([x, y]) => {
+            context.fillStyle = "#ffd45a";
+            context.strokeStyle = "#6d4308";
+            context.lineWidth = 2;
+            context.fillRect(x - 10, y - 10, 20, 20);
+            context.strokeRect(x - 10, y - 10, 20, 20);
+          });
         }
         context.restore();
       });
     }
+
     controlsHtml(layer) {
-      if (!layer) return '<p class="muted">Select a text or picture on the canvas to edit it.</p>';
-      if (layer.type === "image") {
-        return `<label>Opacity<input type="range" min="0.1" max="1" step="0.05" value="${layer.opacity ?? 1}" data-thumbnail-property="opacity"></label>`;
-      }
+      if (!layer) return '<p class="muted">Click a text box to type, move, or resize it.</p>';
       return [
         `<label>Text<textarea rows="3" data-thumbnail-property="text">${this.escape(layer.text)}</textarea></label>`,
         `<label>Font<select data-thumbnail-property="fontFamily">${Object.keys(fonts).map((font) => `<option value="${font}"${font === layer.fontFamily ? " selected" : ""}>${font}</option>`).join("")}</select></label>`,
-        `<label>Size<input type="range" min="16" max="110" value="${layer.fontSize}" data-thumbnail-property="fontSize"><span>${layer.fontSize}px</span></label>`,
+        `<label>Size<input type="range" min="16" max="120" value="${layer.fontSize}" data-thumbnail-property="fontSize"></label>`,
         `<label>Color<input type="color" value="${layer.color}" data-thumbnail-property="color"></label>`,
         `<label>Alignment<select data-thumbnail-property="align"><option value="left"${layer.align === "left" ? " selected" : ""}>Left</option><option value="center"${layer.align === "center" ? " selected" : ""}>Center</option><option value="right"${layer.align === "right" ? " selected" : ""}>Right</option></select></label>`,
         `<label><input type="checkbox" data-thumbnail-property="bold"${layer.bold ? " checked" : ""}> Bold</label>`,
         `<label><input type="checkbox" data-thumbnail-property="italic"${layer.italic ? " checked" : ""}> Italic</label>`
       ].join("");
     }
+
     escape(value) {
-      return String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+      return String(value || "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
     }
+
     refresh(redrawLayers = true) {
       const selected = this.selected();
       const controls = this.root.querySelector("[data-thumbnail-controls]");
@@ -336,23 +462,18 @@
       const list = this.root.querySelector("[data-thumbnail-layer-list]");
       if (list && redrawLayers) {
         list.innerHTML = [...this.layers].reverse().map((layer) =>
-          `<div class="thumbnail-layer-row${layer.id === this.selectedId ? " active" : ""}" data-thumbnail-layer-id="${layer.id}"><span class="thumbnail-layer-name">${this.escape(layer.name || layer.type)}</span><button type="button" data-thumbnail-action="move-up" title="Move up">↑</button><button type="button" data-thumbnail-action="move-down" title="Move down">↓</button><button type="button" data-thumbnail-action="delete" title="Delete">×</button></div>`
+          `<div class="thumbnail-layer-row${layer.id === this.selectedId ? " active" : ""}" data-thumbnail-layer-id="${layer.id}"><span class="thumbnail-layer-name">${this.escape(layer.name || layer.type)}</span><button type="button" data-thumbnail-action="move-up" title="Move up">&#8593;</button><button type="button" data-thumbnail-action="move-down" title="Move down">&#8595;</button><button type="button" data-thumbnail-action="delete" title="Delete">&times;</button></div>`
         ).join("");
       }
       this.draw();
     }
+
     toDataUrl() {
+      this.stopEditing();
       this.draw(true);
       const dataUrl = this.canvas.toDataURL("image/png");
       this.draw(false);
       return dataUrl;
-    }
-    download() {
-      const link = document.createElement("a");
-      link.href = this.toDataUrl();
-      link.download = "kella-announcement.png";
-      link.click();
-      this.status("PNG downloaded.");
     }
   }
 
@@ -362,6 +483,8 @@
       root.__kellaThumbnailEditor = new ThumbnailEditor(root);
       return root.__kellaThumbnailEditor;
     },
-    get(root) { return root?.__kellaThumbnailEditor || null; }
+    get(root) {
+      return root?.__kellaThumbnailEditor || null;
+    }
   };
 })();

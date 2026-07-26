@@ -2601,6 +2601,9 @@ export const dashboardThumbnailSend = asyncHandler(async (req, res) => {
       channelId: message?.channel_id,
       messageLink: discordMessageLink(message)
     }
+  }).catch((error) => {
+    console.error("Thumbnail sent to Discord but activity logging failed", error);
+    return null;
   });
   res.status(201).json({ action, message });
 });
