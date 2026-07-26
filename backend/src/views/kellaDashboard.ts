@@ -223,6 +223,19 @@ const wikiPetImages = [
   { src: "/assets/wiki-pets/Venomous-Lizard.webp", label: "Venomous Lizard" }
 ];
 
+const thumbnailBackgrounds = [
+  "arti.webp", "athe.webp", "atk.webp", "baby-dragon.webp", "beach.webp", "boad.webp", "bondfire.webp",
+  "chatgpt-image-jul-26-2026-02-52-14-am.webp", "chatgpt-image-jul-26-2026-02-56-35-am.webp",
+  "chatgpt-image-jul-26-2026-02-57-50-am.webp", "donkey.webp", "draag.webp", "drags.webp", "eirlys.webp",
+  "fly.webp", "gae.webp", "generated-image-1-2-copy.webp", "generated-image-1-2.webp", "generated-image-1-3.webp",
+  "generated-image-1-4.webp", "generated-image-1-5.webp", "generated-image-1-6.webp", "generated-image-1.webp",
+  "generated-image-2.webp", "hosk.webp", "hosky.webp", "ice-dragon.webp", "lil.webp", "lili.webp", "megachin.webp",
+  "nikko.webp", "nikpose.webp", "peet.webp", "petparty.webp", "pets.webp", "shadow.webp", "text.webp", "textbex.webp"
+].map((filename) => ({
+  src: `/assets/thumbnail-backgrounds/${filename}`,
+  label: filename.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+}));
+
 function navLink(item: (typeof navItems)[number]) {
   return `<a href="${item.path}" data-link data-path="${item.path}"><img class="nav-icon" src="${item.icon}" alt="" loading="lazy" /><span>${item.label}</span></a>`;
 }
@@ -237,6 +250,7 @@ export function kellaDashboardHtml() {
     <link rel="icon" type="image/png" href="/assets/kellacoin.png?v=4" />
     <link rel="shortcut icon" type="image/png" href="/assets/kellacoin.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/kellacoin.png?v=4" />
+    <link rel="stylesheet" href="/assets/thumbnail-editor.css?v=1" />
     <style>
       :root {
         color-scheme: dark;
@@ -2352,6 +2366,7 @@ export function kellaDashboardHtml() {
     <div id="avatarCropper" class="avatar-cropper" aria-hidden="true"></div>
     <div id="toasts" class="toast-stack" aria-live="polite"></div>
     <a class="kofi-tip" href="https://ko-fi.com/exuz19" target="_blank" rel="noreferrer"><img src="/assets/kellacoin.png" alt="" />Tip Me</a>
+    <script src="/assets/thumbnail-editor.js?v=1"></script>
     <script>
       const app = document.getElementById("app");
       const toasts = document.getElementById("toasts");
@@ -2367,6 +2382,7 @@ export function kellaDashboardHtml() {
       const wikiMarkerImages = ${JSON.stringify(wikiMarkerImages)};
       const wikiArtifactImages = ${JSON.stringify(wikiArtifactImages)};
       const wikiPetImages = ${JSON.stringify(wikiPetImages)};
+      const thumbnailBackgrounds = ${JSON.stringify(thumbnailBackgrounds)};
       const statMetricOptions = [
         { key: "power", label: "Power" },
         { key: "merits", label: "Merits" },
@@ -3988,7 +4004,7 @@ export function kellaDashboardHtml() {
         const blocks = defaultWikiBlocks(page);
         const pageHeight = wikiPageHeight(blocks);
         return '<article class="wiki-reader ' + wikiClass(page) + '">' +
-          (includeTitle ? '<h2>' + escapeHtml(page?.title || "Kella Wiki") + '</h2>' : "") +
+          (includeTitle ? '<h2>' + escapeHtml(page?.title || "Kella Wiki") + '</h2><div class="wiki-article-author">By ' + escapeHtml(page?.author || page?.createdBy || "Kella Officer") + '</div>' : "") +
           '<div class="wiki-reader-toolbar"><button class="secondary" type="button" data-action="wiki-reader-zoom-out" aria-label="Zoom out">-</button><span class="wiki-reader-zoom" data-wiki-reader-zoom>Fit</span><button class="secondary" type="button" data-action="wiki-reader-zoom-in" aria-label="Zoom in">+</button><button class="secondary" type="button" data-action="wiki-reader-zoom-reset">Fit</button></div>' +
           '<div class="wiki-reader-stage" data-wiki-reader-stage data-wiki-page-height="' + pageHeight + '"><div class="wiki-reader-sizer" data-wiki-reader-sizer><div class="wiki-reader-page" data-wiki-reader-page ' + wikiPageStyle(blocks) + '>' + blocks.map(function(block) { return renderWikiBlockEditorHtml(block, false); }).join("") + '</div></div></div>' +
         '</article>';
@@ -4024,7 +4040,7 @@ export function kellaDashboardHtml() {
           ? '<button class="danger" type="button" data-action="delete-wiki-page" data-wiki-id="' + escapeHtml(page.id) + '">Delete</button>'
           : "";
         return '<article class="card wiki-card">' +
-          '<div>' + wikiImageHtml(page, "wiki-thumb") + '<h3>' + escapeHtml(page.title || "Kella Wiki") + '</h3><p>' + escapeHtml(wikiExcerpt(page)) + '</p></div>' +
+          '<div>' + wikiImageHtml(page, "wiki-thumb") + '<h3>' + escapeHtml(page.title || "Kella Wiki") + '</h3><span class="muted">By ' + escapeHtml(page.author || page.createdBy || "Kella Officer") + '</span><p>' + escapeHtml(wikiExcerpt(page)) + '</p></div>' +
           '<div class="toolbar"><button class="primary" type="button" data-action="open-wiki-page" data-wiki-id="' + escapeHtml(page.id) + '">Read</button>' + editAction + deleteAction + '</div>' +
           '<span class="muted">Updated ' + formatDateTime(page.updatedAt || page.createdAt) + (hasWikiEditAccess() ? " - " + escapeHtml(page.status || "Published") : "") + '</span>' +
         '</article>';
@@ -4039,6 +4055,7 @@ export function kellaDashboardHtml() {
         return [
           page?.title,
           page?.body,
+          page?.author,
           wikiExcerpt(page),
           blockText,
           page?.status
@@ -4213,6 +4230,7 @@ export function kellaDashboardHtml() {
           '<input type="file" data-wiki-stock-image accept="image/png,image/jpeg,image/webp" style="display:none" />' +
           '<div class="form-grid">' +
             '<label>Title<input data-wiki="title" maxlength="120" placeholder="Roots of War Guide" value="' + escapeHtml(editing.title || "") + '" /></label>' +
+            '<label>Author<input data-wiki="author" maxlength="120" placeholder="Officer name" value="' + escapeHtml(editing.author || state.auth?.user?.displayName || state.auth?.user?.username || "") + '" /></label>' +
             '<label>Status<select data-wiki="status"><option value="Published"' + optionSelected("Published", editing.status || "Published") + '>Published</option><option value="Draft"' + optionSelected("Draft", editing.status || "Published") + '>Draft</option></select></label>' +
           '</div>' +
           renderWikiInspectorHtml() +
@@ -4234,9 +4252,12 @@ export function kellaDashboardHtml() {
         };
         const title = value("title");
         if (!title) throw new Error("Add a wiki title first.");
+        const author = value("author");
+        if (!author) throw new Error("Add the author name.");
         return {
           id: value("id"),
           title,
+          author,
           status: value("status") || "Published"
         };
       }
@@ -4550,7 +4571,7 @@ export function kellaDashboardHtml() {
         memberModalContent.innerHTML =
           '<div class="member-profile-hero">' +
             '<img class="profile-avatar" src="/assets/icons/embed-sender.png" alt="" />' +
-            '<div><span class="profile-kicker">Kella Wiki</span><h3 id="memberModalTitle">' + escapeHtml(page.title || "Wiki Page") + '</h3><div class="profile-subtitle">Rules, guides, and alliance notes.</div></div>' +
+            '<div><span class="profile-kicker">Kella Wiki</span><h3 id="memberModalTitle">' + escapeHtml(page.title || "Wiki Page") + '</h3><div class="profile-subtitle">By ' + escapeHtml(page.author || page.createdBy || "Kella Officer") + '</div></div>' +
           '</div>' +
           wikiArticleMarkup(page, false);
         memberModal.classList.add("wiki-modal");
@@ -4946,7 +4967,8 @@ export function kellaDashboardHtml() {
           ["chat", "Kella Chat"],
           ["alerts", "Attack + DM Alerts"],
           ["shield", "Shield Alerts"],
-          ["embed", "Embed Sender"]
+          ["embed", "Embed Sender"],
+          ["thumbnails", "Thumbnails"]
         ];
         return '<section class="card tool-picker"><label>Choose Tool<select data-tool-select>' + tools.map(function(tool) {
           return '<option value="' + tool[0] + '"' + (tool[0] === selected ? " selected" : "") + '>' + tool[1] + '</option>';
@@ -5023,6 +5045,46 @@ export function kellaDashboardHtml() {
           '<aside class="preview" data-embed-preview><img class="thumb" data-preview-thumb alt="" /><h3 data-preview-title></h3><p data-preview-description></p><img class="image" data-preview-image alt="" /><footer data-preview-footer></footer></aside></section>';
       }
 
+      async function thumbnailToolContent() {
+        let channelField = '<label>Discord Channel<input data-thumbnail-send="channelManual" placeholder="Paste channel ID" /></label>';
+        try {
+          await loadChannels();
+          channelField = '<label>Discord Channel<select data-thumbnail-send="channelId">' + channelOptions() + '</select></label>';
+        } catch {
+          state.channels = [];
+        }
+        const backgrounds = thumbnailBackgrounds.map(function(item) {
+          return '<button class="thumbnail-background" type="button" data-thumbnail-background="' + escapeHtml(item.src) + '" title="' + escapeHtml(item.label) + '"><img src="' + escapeHtml(item.src) + '" alt="' + escapeHtml(item.label) + '" loading="lazy" /></button>';
+        }).join("");
+        return '<section class="card" style="margin-top:18px" data-thumbnail-editor>' +
+          '<div class="card-header"><div><h3>Thumbnails</h3><span class="muted">Design an announcement image, download it, or send it through Kella.</span></div><button class="primary" type="button" data-action="send-thumbnail">Send Picture</button></div>' +
+          '<div class="form-grid">' + channelField +
+            '<label>Role Mention ID<input data-thumbnail-send="roleMentionId" placeholder="Optional role ID" /></label>' +
+            '<label class="wide">Discord Message<input data-thumbnail-send="message" maxlength="1000" placeholder="Optional message above the picture" /></label>' +
+          '</div>' +
+          '<div class="thumbnail-workspace"><div class="thumbnail-stage-card">' +
+            '<div class="thumbnail-toolbar">' +
+              '<button class="secondary active" type="button" data-thumbnail-action="select">Select</button>' +
+              '<button class="secondary" type="button" data-thumbnail-action="add-layer">Add Layer</button>' +
+              '<button class="secondary" type="button" data-thumbnail-action="add-text">Add Text</button>' +
+              '<button class="secondary" type="button" data-thumbnail-action="add-image">Add Image</button>' +
+              '<button class="secondary" type="button" data-thumbnail-action="erase">Eraser</button>' +
+              '<button class="secondary" type="button" data-thumbnail-action="cut">Cut</button>' +
+              '<button class="secondary" type="button" data-thumbnail-action="copy">Copy</button>' +
+              '<button class="secondary" type="button" data-thumbnail-action="paste">Paste</button>' +
+              '<button class="secondary" type="button" data-thumbnail-action="download">Download</button>' +
+            '</div>' +
+            '<input type="file" data-thumbnail-image-input accept="image/png,image/jpeg,image/webp" hidden />' +
+            '<div class="thumbnail-canvas-shell"><canvas class="thumbnail-canvas" data-thumbnail-canvas data-mode="select" aria-label="Thumbnail editor canvas"></canvas></div>' +
+            '<h4 style="margin:14px 0 8px">Backgrounds</h4><div class="thumbnail-backgrounds">' + backgrounds + '</div>' +
+          '</div><aside class="thumbnail-sidebar">' +
+            '<h4>Selected Object</h4><div class="thumbnail-controls" data-thumbnail-controls></div>' +
+            '<h4>Layers</h4><div class="thumbnail-layer-list" data-thumbnail-layer-list></div>' +
+            '<div class="thumbnail-status" data-thumbnail-status>Select and drag objects on the canvas.</div>' +
+          '</aside></div>' +
+        '</section>';
+      }
+
       async function renderTools(forcedTool) {
         skeleton("Loading tools...");
         const selected = forcedTool || new URLSearchParams(location.search).get("tool") || "events";
@@ -5039,8 +5101,10 @@ export function kellaDashboardHtml() {
             content = shieldToolContent(await loadAlerts());
           }
           if (selected === "embed") content = await embedToolContent();
-          app.innerHTML = pageHeader("Tools", "Pick the admin tool you need. Events, chat, alerts, shield warnings, and embeds live here now.", "") + toolPicker(selected) + content;
+          if (selected === "thumbnails") content = await thumbnailToolContent();
+          app.innerHTML = pageHeader("Tools", "Pick the admin tool you need. Events, chat, alerts, shield warnings, embeds, and thumbnails live here.", "") + toolPicker(selected) + content;
           if (selected === "embed") updateEmbedPreview();
+          if (selected === "thumbnails") requestAnimationFrame(function() { window.KellaThumbnailEditor?.mount(document.querySelector("[data-thumbnail-editor]")); });
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load tools. ' + escapeHtml(error.message) + '</div>';
         }
@@ -6198,6 +6262,24 @@ export function kellaDashboardHtml() {
           state.summary = null;
           await renderTools("chat");
         }, "Kella chat message sent.");
+        if (kind === "send-thumbnail") withFeedback(action, async function() {
+          const root = document.querySelector("[data-thumbnail-editor]");
+          const editor = window.KellaThumbnailEditor?.get(root);
+          if (!editor) throw new Error("Thumbnail editor is not ready yet.");
+          const channelId = root.querySelector('[data-thumbnail-send="channelId"]')?.value || root.querySelector('[data-thumbnail-send="channelManual"]')?.value || "";
+          if (!channelId.trim()) throw new Error("Choose a Discord channel first.");
+          const imageDataUrl = editor.toDataUrl();
+          await sendJson("POST", "/api/dashboard/tools/thumbnail", {
+            channelId,
+            roleMentionId: root.querySelector('[data-thumbnail-send="roleMentionId"]')?.value || "",
+            message: root.querySelector('[data-thumbnail-send="message"]')?.value || "",
+            filename: "kella-announcement.png",
+            imageDataUrl
+          }, true);
+          state.summary = null;
+          editor.status("Picture sent to Discord.");
+          return "Thumbnail sent through Kella.";
+        }, "Thumbnail sent.");
         if (kind === "send-dm-alert") withFeedback(action, async function() {
           const title = document.querySelector("[data-dm-alert-title]")?.value || "Kella Alliance Alert";
           const message = document.querySelector("[data-dm-alert-message]")?.value || "";

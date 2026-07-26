@@ -7,7 +7,7 @@ import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { UserModel } from "../models/user.model.js";
 import { WikiPageModel, wikiAlignments, wikiBlockTypes, wikiFontFamilies, wikiFontSizes, wikiStatuses } from "../models/wikiPage.model.js";
-import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendDiscordMessage, sendEventAttendanceEmbed, sendRootsRegistration } from "../services/discord.service.js";
+import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendDiscordImage, sendDiscordMessage, sendEventAttendanceEmbed, sendRootsRegistration } from "../services/discord.service.js";
 import { cleanImportedPlayerName, parseTopnCsv, parseTopnJson, parseTopnWorkbook, type ImportedTopnMember } from "../services/xlsx.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
@@ -90,6 +90,17 @@ const chatToolSchema = z.object({
   roleMentionId: z.string().optional()
 });
 
+const thumbnailToolSchema = z.object({
+  channelId: z.string().min(1, "Target channel is required"),
+  roleMentionId: z.string().optional(),
+  message: z.string().max(1000).optional(),
+  filename: z.string().max(100).optional(),
+  imageDataUrl: z
+    .string()
+    .max(12_000_000, "Thumbnail is too large.")
+    .regex(/^data:image\/png;base64,/i, "Thumbnail must be a PNG image.")
+});
+
 const rootsReportSendSchema = z.object({
   channelId: z.string().min(1, "Target channel is required"),
   roleMentionId: z.string().optional()
@@ -162,6 +173,7 @@ const wikiBlockSchema = z.object({
 
 const wikiPageCreateSchema = z.object({
   title: z.string().min(1, "Wiki title is required").max(120),
+  author: z.string().min(1, "Author is required").max(120),
   body: z.string().min(1, "Wiki text is required").max(500000),
   imageDataUrl: wikiImageSchema,
   fontFamily: z.enum(wikiFontFamilies).default("serif"),
@@ -452,6 +464,7 @@ function wikiPageDto(page: any) {
   return {
     id: page._id.toString(),
     title: page.title || "Untitled Wiki",
+    author: page.author || page.createdBy || "Kella Officer",
     slug: page.slug || "",
     body: page.body || "",
     imageDataUrl: page.imageDataUrl || "",
@@ -2216,6 +2229,7 @@ export const dashboardWikiCreate = asyncHandler(async (req, res) => {
   const page = await WikiPageModel.create({
     allianceId,
     title,
+    author: body.author.trim(),
     slug: await uniqueWikiSlug(allianceId || "", title),
     body: textBody,
     imageDataUrl: blockImage || body.imageDataUrl || "",
@@ -2239,6 +2253,7 @@ export const dashboardWikiUpdate = asyncHandler(async (req, res) => {
     update.title = title;
     update.slug = await uniqueWikiSlug(allianceId || "", title, req.params.id);
   }
+  if (body.author !== undefined) update.author = body.author.trim();
   if (body.body !== undefined) update.body = body.body.trim();
   if (body.imageDataUrl !== undefined) update.imageDataUrl = body.imageDataUrl || "";
   if (body.fontFamily !== undefined) update.fontFamily = body.fontFamily;
@@ -2547,6 +2562,41 @@ export const dashboardChatSend = asyncHandler(async (req, res) => {
     payload: {
       message: messageInput.content,
       roleMentionId: messageInput.roleMentionId,
+      messageId: message?.id,
+      channelId: message?.channel_id,
+      messageLink: discordMessageLink(message)
+    }
+  });
+  res.status(201).json({ action, message });
+});
+
+export const dashboardThumbnailSend = asyncHandler(async (req, res) => {
+  const body = thumbnailToolSchema.parse(req.body);
+  const allianceId = await resolveAllianceId();
+  const imageBuffer = Buffer.from(body.imageDataUrl.replace(/^data:image\/png;base64,/i, ""), "base64");
+  const hasPngSignature =
+    imageBuffer.length >= 8 &&
+    imageBuffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  if (!hasPngSignature || imageBuffer.length > 8 * 1024 * 1024) {
+    throw new HttpError(400, "Thumbnail image must be under 8 MB.");
+  }
+
+  const message = await sendDiscordImage({
+    channelId: body.channelId,
+    roleMentionId: body.roleMentionId || "",
+    content: body.message || "",
+    filename: body.filename || "kella-announcement.png",
+    imageBuffer
+  });
+  const action = await KellaActionModel.create({
+    allianceId,
+    type: "thumbnail_sent",
+    actorName: dashboardActor(req),
+    targetDiscordId: body.channelId,
+    status: "Sent",
+    payload: {
+      message: body.message || "",
+      roleMentionId: body.roleMentionId || "",
       messageId: message?.id,
       channelId: message?.channel_id,
       messageLink: discordMessageLink(message)

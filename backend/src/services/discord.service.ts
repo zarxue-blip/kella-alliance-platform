@@ -27,6 +27,14 @@ interface SendMessageInput {
   roleMentionId?: string;
 }
 
+interface SendImageInput {
+  channelId: string;
+  imageBuffer: Buffer;
+  filename?: string;
+  content?: string;
+  roleMentionId?: string;
+}
+
 interface SendEventAttendanceInput extends SendEmbedInput {
   eventId: string;
   startsAt: Date;
@@ -217,6 +225,37 @@ export async function sendDiscordMessage(input: SendMessageInput) {
       allowed_mentions: input.roleMentionId ? { roles: [input.roleMentionId] } : { parse: [] }
     })
   });
+}
+
+export async function sendDiscordImage(input: SendImageInput) {
+  if (!input.channelId) throw new HttpError(400, "Channel ID is required");
+  if (!input.imageBuffer?.length) throw new HttpError(400, "Thumbnail image is required");
+
+  const filename = (input.filename || "kella-announcement.png").replace(/[^a-z0-9._-]/gi, "-");
+  const roleMention = input.roleMentionId ? `<@&${input.roleMentionId}>` : "";
+  const form = new FormData();
+  form.append(
+    "payload_json",
+    JSON.stringify({
+      content: [roleMention, input.content?.trim()].filter(Boolean).join("\n") || undefined,
+      allowed_mentions: input.roleMentionId ? { roles: [input.roleMentionId] } : { parse: [] },
+      attachments: [{ id: 0, filename }]
+    })
+  );
+  const imageBytes = new Uint8Array(input.imageBuffer.length);
+  imageBytes.set(input.imageBuffer);
+  form.append("files[0]", new Blob([imageBytes], { type: "image/png" }), filename);
+
+  const response = await fetch(`https://discord.com/api/v10/channels/${input.channelId}/messages`, {
+    method: "POST",
+    headers: { authorization: `Bot ${requireBotToken()}` },
+    body: form
+  });
+  const text = await response.text().catch(() => "");
+  if (!response.ok) {
+    throw new HttpError(response.status >= 500 ? 502 : response.status, `Discord API error: ${text || response.statusText}`);
+  }
+  return parseJsonText(text);
 }
 
 export async function sendAttackAlert(input: SendAttackInput) {
