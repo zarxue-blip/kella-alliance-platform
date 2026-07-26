@@ -1,6 +1,16 @@
 import { Schema, model, type InferSchemaType } from "mongoose";
 
-export const wikiFontFamilies = ["serif", "sans", "display", "script", "mono", "cod"] as const;
+export const wikiFontFamilies = [
+  "serif",
+  "sans",
+  "display",
+  "script",
+  "mono",
+  "cod",
+  "hero-king",
+  "dragon-force",
+  "tribal-dragon"
+] as const;
 export const wikiFontSizes = ["small", "medium", "large", "xlarge"] as const;
 export const wikiStatuses = ["Published", "Draft"] as const;
 export const wikiBlockTypes = ["text", "image"] as const;

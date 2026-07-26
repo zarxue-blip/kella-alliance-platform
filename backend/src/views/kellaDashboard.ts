@@ -252,6 +252,21 @@ export function kellaDashboardHtml() {
     <link rel="apple-touch-icon" href="/assets/kellacoin.png?v=4" />
     <link rel="stylesheet" href="/assets/thumbnail-editor.css?v=3" />
     <style>
+      @font-face {
+        font-family: "Hero King";
+        src: url("/assets/fonts/Heroking-Regular.ttf") format("truetype");
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Dragon Force";
+        src: url("/assets/fonts/DragonForcE.ttf") format("truetype");
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Tribal Dragon";
+        src: url("/assets/fonts/TribalDragon-23Ll.ttf") format("truetype");
+        font-display: swap;
+      }
       :root {
         color-scheme: dark;
         --bg: #150f09;
@@ -877,7 +892,7 @@ export function kellaDashboardHtml() {
       }
       .wiki-style-controls {
         display: grid;
-        grid-template-columns: repeat(4, minmax(72px, 1fr));
+        grid-template-columns: repeat(3, minmax(72px, 1fr));
         gap: 6px;
         align-items: stretch;
         padding: 8px;
@@ -915,6 +930,39 @@ export function kellaDashboardHtml() {
       .wiki-format-button[data-wiki-inline-command="italic"] { font-style: italic; }
       .wiki-format-button[data-wiki-inline-command="underline"] { text-decoration: underline; }
       .wiki-inline-format label { min-width: 0; }
+      .wiki-color-control {
+        display: flex !important;
+        flex-direction: column;
+        align-items: center;
+        justify-content: end;
+      }
+      .wiki-color-wheel {
+        width: 38px !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        padding: 2px !important;
+        border-radius: 50% !important;
+        cursor: pointer;
+        overflow: hidden;
+        background: rgba(255, 250, 230, 0.88);
+      }
+      .wiki-color-wheel::-webkit-color-swatch-wrapper { padding: 2px; }
+      .wiki-color-wheel::-webkit-color-swatch {
+        border: 0;
+        border-radius: 50%;
+      }
+      .wiki-color-wheel::-moz-color-swatch {
+        border: 0;
+        border-radius: 50%;
+      }
+      .wiki-font-option-hero { font-family: "Hero King", Georgia, serif; }
+      .wiki-font-option-force { font-family: "Dragon Force", Georgia, serif; }
+      .wiki-font-option-tribal { font-family: "Tribal Dragon", Georgia, serif; }
+      .wiki-share-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
       .wiki-style-actions {
         align-self: stretch;
         display: grid;
@@ -1163,6 +1211,9 @@ export function kellaDashboardHtml() {
       .wiki-font-script { font-family: "Segoe Script", "Brush Script MT", cursive; }
       .wiki-font-mono { font-family: Consolas, "Courier New", monospace; }
       .wiki-font-cod { font-family: "Copperplate Gothic Bold", "Cinzel", Georgia, serif; font-weight: 900; letter-spacing: 0.03em; }
+      .wiki-font-hero-king { font-family: "Hero King", Georgia, serif; }
+      .wiki-font-dragon-force { font-family: "Dragon Force", Georgia, serif; }
+      .wiki-font-tribal-dragon { font-family: "Tribal Dragon", Georgia, serif; }
       .wiki-size-small { font-size: 15px; }
       .wiki-size-medium { font-size: 18px; }
       .wiki-size-large { font-size: 22px; }
@@ -3717,7 +3768,7 @@ export function kellaDashboardHtml() {
       }
 
       function wikiClass(page) {
-        const family = ["serif", "sans", "display", "script", "mono", "cod"].includes(page?.fontFamily) ? page.fontFamily : "serif";
+        const family = ["serif", "sans", "display", "script", "mono", "cod", "hero-king", "dragon-force", "tribal-dragon"].includes(page?.fontFamily) ? page.fontFamily : "serif";
         const size = ["small", "medium", "large", "xlarge"].includes(page?.fontSize) ? page.fontSize : "medium";
         return "wiki-font-" + family + " wiki-size-" + size;
       }
@@ -3745,6 +3796,9 @@ export function kellaDashboardHtml() {
       }
 
       function wikiFontCss(family) {
+        if (family === "hero-king") return '"Hero King", Georgia, serif';
+        if (family === "dragon-force") return '"Dragon Force", Georgia, serif';
+        if (family === "tribal-dragon") return '"Tribal Dragon", Georgia, serif';
         if (family === "sans") return '"Trebuchet MS", "Segoe UI", ui-sans-serif, system-ui, sans-serif';
         if (family === "display") return 'Georgia, "Palatino Linotype", "Times New Roman", serif';
         if (family === "script") return '"Segoe Script", "Brush Script MT", cursive';
@@ -3804,7 +3858,7 @@ export function kellaDashboardHtml() {
           y,
           width,
           height,
-          fontFamily: ["serif", "sans", "display", "script", "mono", "cod"].includes(block?.fontFamily) ? block.fontFamily : "serif",
+          fontFamily: ["serif", "sans", "display", "script", "mono", "cod", "hero-king", "dragon-force", "tribal-dragon"].includes(block?.fontFamily) ? block.fontFamily : "serif",
           fontSize: ["small", "medium", "large", "xlarge"].includes(block?.fontSize) ? block.fontSize : "medium",
           color: /^#[0-9a-fA-F]{6}$/.test(block?.color || "") ? block.color : "#3f2a13",
           align: ["left", "center", "right"].includes(block?.align) ? block.align : "center"
@@ -4039,9 +4093,13 @@ export function kellaDashboardHtml() {
         const deleteAction = hasAdminAccess()
           ? '<button class="danger" type="button" data-action="delete-wiki-page" data-wiki-id="' + escapeHtml(page.id) + '">Delete</button>'
           : "";
+        const shareSlug = String(page.slug || "").trim();
+        const shareAction = shareSlug
+          ? '<button class="secondary wiki-share-button" type="button" data-action="share-wiki-page" data-wiki-slug="' + escapeHtml(shareSlug) + '" aria-label="Share ' + escapeHtml(page.title || "wiki page") + '"><span aria-hidden="true">&#8599;</span> Share</button>'
+          : "";
         return '<article class="card wiki-card">' +
           '<div>' + wikiImageHtml(page, "wiki-thumb") + '<h3>' + escapeHtml(page.title || "Kella Wiki") + '</h3><span class="muted">By ' + escapeHtml(page.author || page.createdBy || "Kella Officer") + '</span><p>' + escapeHtml(wikiExcerpt(page)) + '</p></div>' +
-          '<div class="toolbar"><button class="primary" type="button" data-action="open-wiki-page" data-wiki-id="' + escapeHtml(page.id) + '">Read</button>' + editAction + deleteAction + '</div>' +
+          '<div class="toolbar"><button class="primary" type="button" data-action="open-wiki-page" data-wiki-id="' + escapeHtml(page.id) + '">Read</button>' + shareAction + editAction + deleteAction + '</div>' +
           '<span class="muted">Updated ' + formatDateTime(page.updatedAt || page.createdAt) + (hasWikiEditAccess() ? " - " + escapeHtml(page.status || "Published") : "") + '</span>' +
         '</article>';
       }
@@ -4199,16 +4257,15 @@ export function kellaDashboardHtml() {
           '</section>';
         }
         const textControls = block.type === "text"
-          ? '<div class="wiki-style-controls"><label>Font<select data-wiki-block-style="fontFamily"><option value="serif"' + optionSelected("serif", block.fontFamily) + '>Old paper serif</option><option value="sans"' + optionSelected("sans", block.fontFamily) + '>Clean readable</option><option value="display"' + optionSelected("display", block.fontFamily) + '>Alliance title</option><option value="script"' + optionSelected("script", block.fontFamily) + '>Royal script</option><option value="cod"' + optionSelected("cod", block.fontFamily) + '>Dragon title</option><option value="mono"' + optionSelected("mono", block.fontFamily) + '>Tactical mono</option></select></label>' +
+          ? '<div class="wiki-style-controls"><label>Font<select data-wiki-block-style="fontFamily"><option value="serif"' + optionSelected("serif", block.fontFamily) + '>Old paper serif</option><option value="sans"' + optionSelected("sans", block.fontFamily) + '>Clean readable</option><option value="display"' + optionSelected("display", block.fontFamily) + '>Alliance title</option><option value="script"' + optionSelected("script", block.fontFamily) + '>Royal script</option><option value="cod"' + optionSelected("cod", block.fontFamily) + '>Dragon title</option><option value="mono"' + optionSelected("mono", block.fontFamily) + '>Tactical mono</option><option class="wiki-font-option-hero" value="hero-king"' + optionSelected("hero-king", block.fontFamily) + '>Hero King</option><option class="wiki-font-option-force" value="dragon-force"' + optionSelected("dragon-force", block.fontFamily) + '>Dragon Force</option><option class="wiki-font-option-tribal" value="tribal-dragon"' + optionSelected("tribal-dragon", block.fontFamily) + '>Tribal Dragon</option></select></label>' +
             '<label>Block Size<select data-wiki-block-style="fontSize"><option value="small"' + optionSelected("small", block.fontSize) + '>Small</option><option value="medium"' + optionSelected("medium", block.fontSize) + '>Medium</option><option value="large"' + optionSelected("large", block.fontSize) + '>Large</option><option value="xlarge"' + optionSelected("xlarge", block.fontSize) + '>Extra Large</option></select></label>' +
             '<label>Align<select data-wiki-block-style="align"><option value="left"' + optionSelected("left", block.align) + '>Left</option><option value="center"' + optionSelected("center", block.align) + '>Center</option><option value="right"' + optionSelected("right", block.align) + '>Right</option></select></label>' +
-            '<label>Block Color<input type="color" data-wiki-block-style="color" value="' + escapeHtml(block.color) + '" /></label>' +
             '<div class="wiki-inline-format" aria-label="Selected text formatting">' +
               '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="bold" title="Bold selected text" aria-label="Bold selected text">B</button>' +
               '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="italic" title="Italic selected text" aria-label="Italic selected text">I</button>' +
               '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="underline" title="Underline selected text" aria-label="Underline selected text">U</button>' +
               '<label>Selection Size<select data-wiki-inline-style="fontSize"><option value="16">16</option><option value="18">18</option><option value="20">20</option><option value="24" selected>24</option><option value="28">28</option><option value="32">32</option><option value="36">36</option><option value="40">40</option><option value="48">48</option></select></label>' +
-              '<label>Selection Color<input type="color" data-wiki-inline-style="color" value="' + escapeHtml(block.color) + '" /></label>' +
+              '<label class="wiki-color-control">Selection Color<input class="wiki-color-wheel" type="color" data-wiki-inline-style="color" value="' + escapeHtml(block.color) + '" /></label>' +
             '</div></div>'
           : '<div class="wiki-style-controls wiki-style-controls--picture"><button class="secondary" type="button" data-action="change-wiki-image">Change Picture</button></div>';
         return '<section class="wiki-inspector" data-wiki-inspector>' +
@@ -4581,10 +4638,24 @@ export function kellaDashboardHtml() {
         requestAnimationFrame(fitWikiReader);
       }
 
-      async function renderWiki() {
+      async function renderWiki(slug = "") {
         skeleton("Loading wiki...");
         try {
           const pages = await loadWiki();
+          if (slug) {
+            const decodedSlug = decodeURIComponent(String(slug || ""));
+            const page = pages.find(function(item) { return String(item.slug || "") === decodedSlug; });
+            if (!page || (!hasWikiEditAccess() && page.status !== "Published")) {
+              app.innerHTML = pageHeader("Kella Wiki", "", '<button class="secondary" data-link-button="/wiki">Back to Wiki</button>') +
+                '<div class="empty">This wiki page could not be found.</div>';
+              return;
+            }
+            state.wikiReaderZoom = 1;
+            app.innerHTML = pageHeader(escapeHtml(page.title || "Kella Wiki"), "By " + escapeHtml(page.author || page.createdBy || "Kella Officer"), '<button class="secondary" data-link-button="/wiki">Back to Wiki</button>') +
+              '<section class="card wiki-shared-reader">' + wikiArticleMarkup(page, false) + '</section>';
+            requestAnimationFrame(fitWikiReader);
+            return;
+          }
           const actions = hasWikiEditAccess() ? '<button class="primary" data-action="clear-wiki-form">Create Wiki</button>' : "";
           app.innerHTML =
             pageHeader("Kella Wiki", "", actions) +
@@ -5627,6 +5698,7 @@ export function kellaDashboardHtml() {
         setActiveNav();
         if (path === "/") return renderDashboard();
         if (path === "/wiki") return renderWiki();
+        if (path.startsWith("/wiki/")) return renderWiki(path.slice("/wiki/".length));
         if (path === "/profile") return renderProfile();
         if (path === "/members") return renderMembers();
         if (path === "/attendance") return renderAttendance();
@@ -5773,6 +5845,29 @@ export function kellaDashboardHtml() {
         }
         if (kind === "add-wiki-text" || kind === "add-wiki-text-after") {
           insertWikiTextBlock(action.getAttribute("data-after-wiki-block") || "");
+          return;
+        }
+        if (kind === "share-wiki-page") {
+          const slug = action.getAttribute("data-wiki-slug") || "";
+          if (!slug) {
+            toast("This wiki page does not have a share link yet.", "error");
+            return;
+          }
+          const shareUrl = location.origin + "/wiki/" + encodeURIComponent(slug);
+          const page = (state.wiki || []).find(function(item) { return String(item.slug || "") === slug; });
+          if (navigator.share) {
+            navigator.share({ title: page?.title || "Kella Wiki", url: shareUrl }).catch(function(error) {
+              if (error?.name !== "AbortError") toast("Could not open the share menu.", "error");
+            });
+          } else if (navigator.clipboard) {
+            navigator.clipboard.writeText(shareUrl).then(function() {
+              toast("Wiki link copied.", "success");
+            }).catch(function() {
+              toast("Could not copy the wiki link.", "error");
+            });
+          } else {
+            window.prompt("Copy this wiki link:", shareUrl);
+          }
           return;
         }
         if (kind === "format-wiki-selection") {
