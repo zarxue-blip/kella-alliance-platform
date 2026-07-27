@@ -1490,6 +1490,11 @@ export function kellaDashboardHtml() {
       .attendance-focus-item h4 { margin: 0; color: #2d1a08; }
       .complaint-form-card { display: grid; gap: 14px; }
       .complaint-form-card .form-grid { margin-top: 8px; }
+      .feedback-page {
+        width: min(100%, 860px);
+        margin: 0 auto;
+      }
+      .feedback-page .complaint-form-card { padding: clamp(18px, 3vw, 30px); }
       .complaint-preview {
         border: 1px dashed rgba(92, 55, 18, 0.28);
         border-radius: 10px;
@@ -2397,7 +2402,7 @@ export function kellaDashboardHtml() {
             </div>
             <span class="auth-pill" data-auth-status>Checking login...</span>
             <button class="profile-top-button" type="button" data-link-button="/profile" data-profile-button title="My Profile" style="display:none"><img src="/assets/icons/members.png" alt="" /><span><strong>My Profile</strong><em>Edit your player card</em></span></button>
-            <button class="profile-top-button feedback-top-button" type="button" data-action="open-complaint-form" title="Complaint or suggestion"><img src="/assets/icons/complaints.png" alt="" /><span><strong>Feedback</strong><em>Complaint or suggestion</em></span></button>
+            <button class="profile-top-button feedback-top-button" type="button" data-link-button="/complains" title="Complaint or suggestion"><img src="/assets/icons/complaints.png" alt="" /><span><strong>Feedback</strong><em>Complaint or suggestion</em></span></button>
             <button class="auth-button" type="button" data-action="discord-login" data-auth-login title="Discord Login">Login</button>
             <button class="auth-button" type="button" data-action="discord-logout" data-auth-logout title="Logout" style="display:none">Logout</button>
           </div>
@@ -5250,6 +5255,41 @@ export function kellaDashboardHtml() {
         document.body.classList.add("modal-open");
       }
 
+      function complaintFormMarkup() {
+        return '<section class="card complaint-form-card" data-complaint-form>' +
+          '<div class="card-header"><div><h3>Complaint or Suggestion</h3><span class="muted">Privately send your message to the R4 review inbox.</span></div></div>' +
+          '<div class="form-grid">' +
+            '<label>Type<select data-complaint="kind"><option value="Complaint">Complaint</option><option value="Suggestion">Suggestion</option></select></label>' +
+            '<label>Title<input data-complaint="title" maxlength="140" placeholder="Short title" /></label>' +
+            '<label class="wide">Description<textarea data-complaint="description" maxlength="1800" placeholder="Tell the R4s what happened or what should improve."></textarea></label>' +
+            '<label class="wide">Optional Picture<input type="file" data-complaint-image accept="image/png,image/jpeg,image/webp" /><span class="muted">Optional screenshot, under 3 MB.</span></label>' +
+          '</div>' +
+          '<div class="complaint-preview" data-complaint-image-preview>No picture selected.</div>' +
+          '<div class="toolbar"><button class="secondary" type="button" data-link-button="/">Back to Dashboard</button><button class="primary" type="button" data-action="submit-complaint">Submit to R4s</button></div>' +
+        '</section>';
+      }
+
+      async function renderMemberFeedback() {
+        skeleton("Loading feedback form...");
+        try {
+          const auth = await loadAuth(true);
+          const content = auth.authenticated
+            ? complaintFormMarkup()
+            : '<section class="card complaint-form-card"><div class="card-header"><div><h3>Discord Login Required</h3><span class="muted">Login so R4s know who submitted the message.</span></div></div><p>Your complaint or suggestion stays private to alliance admins.</p><div class="toolbar"><button class="secondary" type="button" data-link-button="/">Back to Dashboard</button><button class="primary" type="button" data-action="discord-login">Login with Discord</button></div></section>';
+          app.innerHTML =
+            pageHeader("Feedback", "Send a private complaint or suggestion to the R4 team.") +
+            '<div class="feedback-page">' + content + '</div>';
+        } catch (error) {
+          app.innerHTML = '<div class="error">Could not load the feedback form. ' + escapeHtml(error.message || "Please try again.") + '</div>';
+        }
+      }
+
+      function renderFeedbackSuccess() {
+        app.innerHTML =
+          pageHeader("Feedback Sent", "Kella delivered your message to the R4 review inbox.") +
+          '<div class="feedback-page"><section class="card complaint-form-card"><div class="card-header"><div><h3>Submission Confirmed</h3><span class="muted">Your complaint or suggestion is now being reviewed by the R4 team.</span></div></div><div class="toolbar"><button class="secondary" type="button" data-link-button="/">Back to Dashboard</button><button class="primary" type="button" data-action="new-complaint">Send Another</button></div></section></div>';
+      }
+
       async function complaintImageDataUrl() {
         const input = document.querySelector("[data-complaint-image]");
         const file = input?.files?.[0];
@@ -5714,6 +5754,7 @@ export function kellaDashboardHtml() {
           return renderTools("shield");
         }
         if (path === "/embed-sender") return renderTools("embed");
+        if (path === "/complains") return renderMemberFeedback();
         if (path === "/complaints") return renderComplaints();
         if (path === "/settings") return renderSettings();
         navigate("/");
@@ -5845,6 +5886,10 @@ export function kellaDashboardHtml() {
         }
         if (kind === "add-wiki-text" || kind === "add-wiki-text-after") {
           insertWikiTextBlock(action.getAttribute("data-after-wiki-block") || "");
+          return;
+        }
+        if (kind === "new-complaint") {
+          renderMemberFeedback();
           return;
         }
         if (kind === "share-wiki-page") {
@@ -6198,7 +6243,11 @@ export function kellaDashboardHtml() {
         if (kind === "submit-complaint") withFeedback(action, async function() {
           await sendJson("POST", "/api/dashboard/complaints", await readComplaintForm(), false);
           state.complaints = [];
-          closeMemberModal();
+          if (location.pathname === "/complains") {
+            renderFeedbackSuccess();
+          } else {
+            closeMemberModal();
+          }
           return "Submitted. Kella sent it to the R4 review inbox.";
         }, "Feedback submitted.");
         if (kind === "open-complaint-detail") {

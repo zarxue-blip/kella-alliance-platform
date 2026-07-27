@@ -67,6 +67,7 @@ export function createApp() {
       "/alerts",
       "/shield-alerts",
       "/embed-sender",
+      "/complains",
       "/complaints",
       "/settings"
     ],
