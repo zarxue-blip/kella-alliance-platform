@@ -47,9 +47,12 @@ export async function handleMessageReactionAdd(
     const translation = await translateForFlag(sourceText, flag);
     if (!translation) return;
 
-    const trimNote = translation.wasTrimmed ? "\n\n_Note: I translated the first part because the free service has a short text limit._" : "";
+    const trimNote = translation.wasTrimmed ? "\n\n_Note: I translated the readable portion that fits in one Discord reply._" : "";
+    const heading = translation.alreadyTargetLanguage
+      ? `${flag} **This message already appears to be ${translation.language.label}.**`
+      : `${flag} **${translation.language.label} translation**`;
     await message.reply({
-      content: `${flag} **${translation.language.label} translation**\n${translation.translatedText}${trimNote}`,
+      content: `${heading}\n${translation.translatedText}${trimNote}`,
       allowedMentions: { repliedUser: false }
     });
   } catch (error) {

@@ -4,6 +4,7 @@ type TranslationResult = {
   translatedText: string;
   detectedSource?: string;
   provider: string;
+  alreadyTargetLanguage?: boolean;
 };
 
 const flagLanguageMap: Record<string, { code: string; label: string }> = {
@@ -116,8 +117,22 @@ function normalizeMessageText(value: string) {
     .replace(/<@!?(\d+)>/g, "@user")
     .replace(/<@&(\d+)>/g, "@role")
     .replace(/<#(\d+)>/g, "#channel")
-    .replace(/\s+/g, " ")
+    .replace(/[^\S\r\n]+/g, " ")
+    .replace(/\r\n?/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .join("\n")
     .trim();
+}
+
+function decodeTranslationEntities(value: string) {
+  return value
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0?39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&amp;/gi, "&");
 }
 
 function comparableText(value: string) {
@@ -173,7 +188,7 @@ async function requestMyMemoryTranslation(text: string, sourceLanguage: string, 
     throw new Error(payload.responseDetails || "Translation service rejected the request.");
   }
 
-  const translatedText = payload.responseData?.translatedText?.trim();
+  const translatedText = decodeTranslationEntities(payload.responseData?.translatedText?.trim() || "");
   if (!translatedText) throw new Error("Translation service returned an empty response.");
 
   return {
@@ -207,11 +222,13 @@ async function requestGooglePublicTranslation(text: string, targetLanguage: stri
     throw new Error("Translation service returned an unexpected response.");
   }
 
-  const translatedText = payload[0]
+  const translatedText = decodeTranslationEntities(
+    payload[0]
     .map((part) => (Array.isArray(part) ? part[0] : ""))
     .filter((part) => typeof part === "string")
     .join("")
-    .trim();
+    .trim()
+  );
 
   if (!translatedText) throw new Error("Translation service returned an empty response.");
 
@@ -222,10 +239,16 @@ async function requestGooglePublicTranslation(text: string, targetLanguage: stri
   } satisfies TranslationResult;
 }
 
+function languageMatchesTarget(detectedSource: string | undefined, targetLanguage: string) {
+  if (!detectedSource) return false;
+  const detected = detectedSource.toLowerCase().split("-")[0];
+  const target = targetLanguage.toLowerCase().split("-")[0];
+  return detected === target;
+}
+
 async function firstUsefulTranslation(text: string, targetLanguage: string) {
   const attempts = [
     () => requestGooglePublicTranslation(text, targetLanguage),
-    () => requestMyMemoryTranslation(text, "en", targetLanguage),
     () => requestMyMemoryTranslation(text, "Autodetect", targetLanguage)
   ];
 
@@ -235,6 +258,9 @@ async function firstUsefulTranslation(text: string, targetLanguage: string) {
     try {
       const result = await attempt();
       if (!isSameTranslation(text, result.translatedText)) return result;
+      if (languageMatchesTarget(result.detectedSource, targetLanguage)) {
+        return { ...result, alreadyTargetLanguage: true };
+      }
       lastError = new Error("Translation came back unchanged.");
     } catch (error) {
       lastError = error;
@@ -245,6 +271,26 @@ async function firstUsefulTranslation(text: string, targetLanguage: string) {
   throw new Error("No translation service produced a useful result.");
 }
 
+function translationChunks(value: string, maxLength = 900) {
+  const chunks: string[] = [];
+  let remaining = value.trim();
+
+  while (remaining.length > maxLength) {
+    const window = remaining.slice(0, maxLength + 1);
+    const paragraphBreak = window.lastIndexOf("\n\n");
+    const lineBreak = window.lastIndexOf("\n");
+    const sentenceBreak = Math.max(window.lastIndexOf(". "), window.lastIndexOf("! "), window.lastIndexOf("? "));
+    const wordBreak = window.lastIndexOf(" ");
+    const splitAt = Math.max(paragraphBreak, lineBreak, sentenceBreak, wordBreak);
+    const safeSplit = splitAt >= Math.floor(maxLength * 0.55) ? splitAt + (splitAt === sentenceBreak ? 1 : 0) : maxLength;
+    chunks.push(remaining.slice(0, safeSplit).trim());
+    remaining = remaining.slice(safeSplit).trim();
+  }
+
+  if (remaining) chunks.push(remaining);
+  return chunks;
+}
+
 export async function translateForFlag(messageText: string, flag: string) {
   const language = getLanguageFromFlag(flag);
   if (!language) return null;
@@ -252,12 +298,24 @@ export async function translateForFlag(messageText: string, flag: string) {
   const normalized = normalizeMessageText(messageText);
   if (!normalized) throw new Error("There is no readable text to translate.");
 
-  const trimmed = trimToUtf8Bytes(normalized, 480);
-  const result = await firstUsefulTranslation(trimmed, language.code);
+  const trimmed = trimToUtf8Bytes(normalized, 5_200);
+  const chunks = translationChunks(trimmed);
+  const results: TranslationResult[] = [];
+
+  for (const chunk of chunks) {
+    results.push(await firstUsefulTranslation(chunk, language.code));
+  }
+
+  const combinedTranslation = results.map((result) => result.translatedText).join("\n");
+  const translatedText = [...combinedTranslation].slice(0, 1_750).join("");
+  const alreadyTargetLanguage = results.every((result) => result.alreadyTargetLanguage);
 
   return {
-    ...result,
+    translatedText,
+    detectedSource: results.find((result) => result.detectedSource)?.detectedSource,
+    provider: [...new Set(results.map((result) => result.provider))].join(" + "),
+    alreadyTargetLanguage,
     language,
-    wasTrimmed: trimmed.length < normalized.length
+    wasTrimmed: trimmed.length < normalized.length || translatedText.length < combinedTranslation.length
   };
 }
