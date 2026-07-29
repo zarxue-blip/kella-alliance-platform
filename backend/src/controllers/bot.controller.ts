@@ -109,6 +109,16 @@ export const botSummary = asyncHandler(async (req, res) => {
   res.json({ operations, tasks });
 });
 
+export const botCommandSettings = asyncHandler(async (req, res) => {
+  const query = serviceContextSchema.parse(req.query);
+  const allianceId = await resolveAllianceId(query.allianceId);
+  const alliance = (await AllianceModel.findById(allianceId).select("settings.disabledCommands").lean()) as any;
+  const disabledCommands = Array.isArray(alliance?.settings?.disabledCommands)
+    ? alliance.settings.disabledCommands
+    : [];
+  res.json({ disabledCommands });
+});
+
 export const botShieldAlert = asyncHandler(async (req, res) => {
   const body = serviceContextSchema
     .extend({

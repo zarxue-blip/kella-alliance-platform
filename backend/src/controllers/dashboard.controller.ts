@@ -62,7 +62,27 @@ const dashboardSettingsSchema = z.object({
       attendanceChannel: z.string().max(120).optional(),
       alertChannel: z.string().max(120).optional(),
       officerRoles: z.array(z.string().min(1).max(80)).max(20).optional(),
-      moduleStates: z.record(z.boolean()).optional()
+      moduleStates: z.record(z.boolean()).optional(),
+      disabledCommands: z
+        .array(
+          z.enum([
+            "shield",
+            "attack",
+            "roots",
+            "summit",
+            "time",
+            "remind",
+            "checkin",
+            "absence",
+            "apply",
+            "complain",
+            "suggest",
+            "wiki-admin",
+            "dashboard"
+          ])
+        )
+        .max(30)
+        .optional()
     })
     .optional()
 });
@@ -1296,7 +1316,8 @@ function publicSettings(alliance: any) {
       attendanceChannel: settings.attendanceChannel || "",
       alertChannel: settings.alertChannel || "",
       officerRoles: settings.officerRoles || ["Leader", "R4 Officer", "War Marshal", "Event Manager", "Recruiter"],
-      moduleStates: normalizeModuleStates(settings.moduleStates)
+      moduleStates: normalizeModuleStates(settings.moduleStates),
+      disabledCommands: Array.isArray(settings.disabledCommands) ? settings.disabledCommands : []
     }
   };
 }

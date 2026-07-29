@@ -8,6 +8,7 @@ import {
   botAttackAlert,
   botAttackResponse,
   botComplaint,
+  botCommandSettings,
   botDailyCheckIn,
   botEventReminder,
   botEventResponse,
@@ -46,6 +47,7 @@ botRouter.post("/checkin", botDailyCheckIn);
 botRouter.post("/absence", botAbsence);
 botRouter.post("/application", botApplication);
 botRouter.post("/complaint", botComplaint);
+botRouter.get("/command-settings", botCommandSettings);
 botRouter.post("/reminder", botEventReminder);
 botRouter.get("/summary", botSummary);
 botRouter.post("/alert", botAlert);

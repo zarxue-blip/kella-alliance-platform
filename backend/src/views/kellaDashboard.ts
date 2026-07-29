@@ -1857,6 +1857,21 @@ export function kellaDashboardHtml() {
       }
       .switch i { display: block; width: 20px; height: 20px; border-radius: 50%; background: #8c6b41; }
       .switch.on i { margin-left: auto; background: linear-gradient(135deg, #ffe88a, #b96b1c); box-shadow: 0 0 18px rgba(255, 214, 90, 0.42); }
+      .command-settings { margin-top: 18px; }
+      .command-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+      .command-setting {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 13px 14px;
+        border: 1px solid rgba(92, 55, 18, 0.20);
+        border-radius: 8px;
+        background: rgba(255, 247, 219, 0.46);
+      }
+      .command-setting strong { display: block; color: #3f250e; }
+      .command-setting small { display: block; margin-top: 3px; color: #775a36; line-height: 1.35; }
+      .command-setting .switch:disabled { cursor: not-allowed; opacity: 0.5; }
       .module-actions { display: flex; gap: 10px; align-items: center; }
       .module-actions button {
         border: 0;
@@ -2236,6 +2251,7 @@ export function kellaDashboardHtml() {
       }
       @media (max-width: 780px) {
         body { background-attachment: scroll; }
+        .command-settings-grid { grid-template-columns: 1fr; }
         .shell {
           width: 100%;
           min-height: 100vh;
@@ -2433,6 +2449,21 @@ export function kellaDashboardHtml() {
       const WIKI_CUSTOM_IMAGE_KEY = "kellaWikiCustomImages";
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
+      const dashboardCommands = [
+        { name: "shield", label: "Shield Alert", description: "DM a shield warning to one player." },
+        { name: "attack", label: "Attack Alert", description: "Post an emergency alliance attack alert." },
+        { name: "roots", label: "Roots Registration", description: "Open 14 UTC and 20 UTC Roots registration." },
+        { name: "summit", label: "Summit Registration", description: "Open a Summit attendance panel." },
+        { name: "time", label: "UTC Timer", description: "Post a live Discord countdown." },
+        { name: "remind", label: "Event Reminder", description: "Queue a reminder for an alliance event." },
+        { name: "checkin", label: "Daily Check-In", description: "Post the daily member check-in button." },
+        { name: "absence", label: "Absence Notice", description: "Let members submit time-away notices." },
+        { name: "apply", label: "Alliance Application", description: "Open the alliance application form." },
+        { name: "complain", label: "Complaint", description: "Let members privately contact R4s." },
+        { name: "suggest", label: "Suggestion", description: "Let members send private suggestions." },
+        { name: "wiki-admin", label: "Wiki", description: "Post the Kella Wiki reader link." },
+        { name: "dashboard", label: "Dashboard Link", description: "Give members the Kella website link." }
+      ];
       const wikiMiscImages = ${JSON.stringify(wikiMiscImages)};
       const wikiHeroImages = ${JSON.stringify(wikiHeroImages)};
       const wikiMarkerImages = ${JSON.stringify(wikiMarkerImages)};
@@ -5451,11 +5482,24 @@ export function kellaDashboardHtml() {
               '<div class="card"><h3>Officer Roles</h3><p>Comma-separated Discord roles that can operate Kella.</p><input data-setting="officerRoles" data-admin-required value="' + escapeHtml((settings.officerRoles || []).join(", ")) + '"' + lockedAttr + ' /></div>' +
               '<div class="card"><h3>Enabled Modules</h3><p>' + dashboardModules.filter(function(module) { return moduleState(module.id); }).length + ' of ' + dashboardModules.length + ' modules enabled.</p><button class="secondary" data-link-button="/">Back to Modules</button></div>' +
             '</section>' +
+            renderCommandSettings(settings.disabledCommands || [], locked) +
             renderRosterUploadManager(uploads, locked);
           syncSettingsLock();
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load settings. ' + escapeHtml(error.message) + '</div>';
         }
+      }
+
+      function renderCommandSettings(disabledCommands, locked) {
+        const disabled = new Set(disabledCommands || []);
+        return '<section class="card command-settings"><div class="card-header"><div><h3>Discord Commands</h3><span class="muted">Choose which slash commands Kella will answer. Changes apply within about 30 seconds.</span></div></div>' +
+          '<div class="command-settings-grid">' +
+            dashboardCommands.map(function(command) {
+              const enabled = !disabled.has(command.name);
+              return '<div class="command-setting"><div><strong>/' + escapeHtml(command.name) + ' - ' + escapeHtml(command.label) + '</strong><small>' + escapeHtml(command.description) + '</small></div>' +
+                '<button class="switch ' + (enabled ? "on" : "") + '" type="button" data-action="toggle-command-setting" data-command-name="' + escapeHtml(command.name) + '" data-admin-required aria-pressed="' + (enabled ? "true" : "false") + '" aria-label="Toggle /' + escapeHtml(command.name) + '"' + (locked ? " disabled" : "") + '><i></i></button></div>';
+            }).join("") +
+          '</div></section>';
       }
 
       function syncSettingsLock() {
@@ -5486,7 +5530,11 @@ export function kellaDashboardHtml() {
             announcementChannel: value("announcementChannel"),
             attendanceChannel: value("attendanceChannel"),
             alertChannel: value("alertChannel"),
-            officerRoles: value("officerRoles").split(",").map(function(role) { return role.trim(); }).filter(Boolean)
+            officerRoles: value("officerRoles").split(",").map(function(role) { return role.trim(); }).filter(Boolean),
+            disabledCommands: Array.from(document.querySelectorAll("[data-command-name]"))
+              .filter(function(toggle) { return !toggle.classList.contains("on"); })
+              .map(function(toggle) { return toggle.getAttribute("data-command-name"); })
+              .filter(Boolean)
           }
         };
       }
@@ -6307,6 +6355,12 @@ export function kellaDashboardHtml() {
           await refreshComplaintsView();
         }, "Reply sent.");
         if (kind === "save-settings") withFeedback(action, async function() { await saveSettings(readSettingsForm()); }, "Settings saved.");
+        if (kind === "toggle-command-setting") {
+          const enabled = !action.classList.contains("on");
+          action.classList.toggle("on", enabled);
+          action.setAttribute("aria-pressed", enabled ? "true" : "false");
+          toast("/" + (action.getAttribute("data-command-name") || "command") + " will be " + (enabled ? "enabled" : "disabled") + " when you save settings.");
+        }
         if (kind === "refresh-roster-uploads") withFeedback(action, async function() {
           await loadRosterUploads(true);
           await renderSettings();

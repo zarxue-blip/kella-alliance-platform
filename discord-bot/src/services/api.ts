@@ -24,7 +24,28 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
   return (await response.json()) as T;
 }
 
+let commandSettingsCache: { disabledCommands: string[]; expiresAt: number } | null = null;
+
 export const api = {
+  async isCommandEnabled(commandName: string) {
+    if (!commandSettingsCache || commandSettingsCache.expiresAt <= Date.now()) {
+      try {
+        const query = new URLSearchParams(allianceContext()).toString();
+        const result = await request<{ disabledCommands?: string[] }>(
+          "GET",
+          `/bot/command-settings${query ? `?${query}` : ""}`
+        );
+        commandSettingsCache = {
+          disabledCommands: Array.isArray(result.disabledCommands) ? result.disabledCommands : [],
+          expiresAt: Date.now() + 30_000
+        };
+      } catch (error) {
+        console.warn("Could not refresh Kella command settings; leaving commands available.", error);
+        commandSettingsCache = { disabledCommands: [], expiresAt: Date.now() + 10_000 };
+      }
+    }
+    return !commandSettingsCache.disabledCommands.includes(commandName);
+  },
   shieldAlert(input: { officerDiscordId: string; officerName?: string; playerDiscordId: string; playerName?: string }) {
     return request("POST", "/bot/shield-alert", { ...allianceContext(), ...input });
   },

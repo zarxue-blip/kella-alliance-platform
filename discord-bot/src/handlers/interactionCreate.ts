@@ -67,6 +67,15 @@ async function replyError(interaction: Interaction, error: unknown) {
 export async function handleInteraction(interaction: Interaction) {
   try {
     if (interaction.isChatInputCommand()) {
+      const commandEnabled = await api.isCommandEnabled(interaction.commandName);
+      if (!commandEnabled) {
+        await interaction.reply({
+          ephemeral: true,
+          content: `/${interaction.commandName} is currently turned off by a Kella administrator.`
+        });
+        return;
+      }
+
       if (interaction.commandName === "complain") {
         const kind = interaction.options.getString("type") === "Suggestion" ? "Suggestion" : "Complaint";
         await submitComplaintFromCommand(interaction, kind);

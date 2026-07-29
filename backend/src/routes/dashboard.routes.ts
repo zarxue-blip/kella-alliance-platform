@@ -70,7 +70,7 @@ dashboardRouter.get("/complaints", authenticateDashboardAdmin, dashboardComplain
 dashboardRouter.patch("/complaints/:id/status", authenticateDashboardAdmin, dashboardComplaintStatusUpdate);
 dashboardRouter.post("/complaints/:id/reply", authenticateDashboardAdmin, dashboardComplaintReply);
 dashboardRouter.get("/settings", dashboardSettings);
-dashboardRouter.patch("/settings", dashboardSettingsUpdate);
+dashboardRouter.patch("/settings", authenticateDashboardAdmin, dashboardSettingsUpdate);
 dashboardRouter.get("/roots-reports", rootsReportList);
 dashboardRouter.post("/roots-reports/:id/send", authenticateDashboardAdmin, rootsReportSend);
 dashboardRouter.get("/roots-reports/:id", rootsReportDetails);

@@ -15,7 +15,8 @@ const allianceSchema = new Schema(
       attendanceChannel: { type: String, default: "" },
       alertChannel: { type: String, default: "" },
       officerRoles: { type: [String], default: ["Leader", "R4 Officer", "War Marshal", "Event Manager", "Recruiter"] },
-      moduleStates: { type: Map, of: Boolean, default: {} }
+      moduleStates: { type: Map, of: Boolean, default: {} },
+      disabledCommands: { type: [String], default: [] }
     }
   },
   { timestamps: true }
