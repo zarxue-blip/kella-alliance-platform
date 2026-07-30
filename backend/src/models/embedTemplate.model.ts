@@ -12,6 +12,9 @@ const embedTemplateSchema = new Schema(
     thumbnailUrl: { type: String, default: "" },
     footer: { type: String, default: "Sent by Kella" },
     roleMentionId: { type: String, default: "" },
+    buttonEnabled: { type: Boolean, default: false },
+    buttonLabel: { type: String, default: "" },
+    buttonUrl: { type: String, default: "" },
     createdBy: { type: String, default: "Dashboard" }
   },
   { timestamps: true }

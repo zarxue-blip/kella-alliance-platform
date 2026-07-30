@@ -13,6 +13,9 @@ interface EmbedInput {
 interface SendEmbedInput extends EmbedInput {
   channelId: string;
   roleMentionId?: string;
+  buttonEnabled?: boolean;
+  buttonLabel?: string;
+  buttonUrl?: string;
 }
 
 interface SendAttackInput {
@@ -25,6 +28,9 @@ interface SendMessageInput {
   channelId: string;
   content: string;
   roleMentionId?: string;
+  buttonEnabled?: boolean;
+  buttonLabel?: string;
+  buttonUrl?: string;
 }
 
 interface SendImageInput {
@@ -124,6 +130,23 @@ function embedPayload(input: EmbedInput) {
   };
 }
 
+function linkButtonComponents(input: { buttonEnabled?: boolean; buttonLabel?: string; buttonUrl?: string }) {
+  if (!input.buttonEnabled || !input.buttonLabel || !input.buttonUrl) return undefined;
+  return [
+    {
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: 5,
+          label: input.buttonLabel,
+          url: input.buttonUrl
+        }
+      ]
+    }
+  ];
+}
+
 export async function listDiscordTextChannels() {
   if (!env.DISCORD_GUILD_ID) throw new HttpError(503, "Discord guild id is not configured");
   const channels = await discordRequest<any[]>(`/guilds/${env.DISCORD_GUILD_ID}/channels`);
@@ -195,7 +218,8 @@ export async function sendDiscordEmbed(input: SendEmbedInput) {
     body: JSON.stringify({
       content: input.roleMentionId ? `<@&${input.roleMentionId}>` : undefined,
       allowed_mentions: input.roleMentionId ? { roles: [input.roleMentionId] } : { parse: [] },
-      embeds: [embedPayload(input)]
+      embeds: [embedPayload(input)],
+      components: linkButtonComponents(input)
     })
   });
 }
@@ -222,7 +246,8 @@ export async function sendDiscordMessage(input: SendMessageInput) {
     method: "POST",
     body: JSON.stringify({
       content: [roleMention, content].filter(Boolean).join("\n"),
-      allowed_mentions: input.roleMentionId ? { roles: [input.roleMentionId] } : { parse: [] }
+      allowed_mentions: input.roleMentionId ? { roles: [input.roleMentionId] } : { parse: [] },
+      components: linkButtonComponents(input)
     })
   });
 }

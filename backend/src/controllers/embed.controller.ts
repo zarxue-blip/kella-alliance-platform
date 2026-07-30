@@ -9,7 +9,7 @@ import { HttpError } from "../utils/httpError.js";
 
 const optionalUrl = z.union([z.string().url(), z.literal("")]).optional();
 
-const embedPayloadSchema = z.object({
+const embedPayloadShape = {
   channelId: z.string().min(1, "Channel ID is required"),
   title: z.string().max(256).optional().default(""),
   description: z.string().min(1, "Description is required").max(4000),
@@ -17,12 +17,31 @@ const embedPayloadSchema = z.object({
   imageUrl: optionalUrl,
   thumbnailUrl: optionalUrl,
   footer: z.string().max(2048).optional().default("Sent by Kella"),
-  roleMentionId: z.string().optional().default("")
-});
+  roleMentionId: z.string().optional().default(""),
+  buttonEnabled: z.boolean().optional().default(false),
+  buttonLabel: z.string().max(80).optional().default(""),
+  buttonUrl: z.union([z.string().url(), z.literal("")]).optional().default("")
+};
 
-const templateSchema = embedPayloadSchema.extend({
+function validateLinkButton(
+  body: { buttonEnabled?: boolean; buttonLabel?: string; buttonUrl?: string },
+  context: z.RefinementCtx
+) {
+  if (!body.buttonEnabled) return;
+  if (!body.buttonLabel?.trim()) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["buttonLabel"], message: "Button name is required" });
+  }
+  if (!/^https?:\/\//i.test(body.buttonUrl || "")) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["buttonUrl"], message: "Button link must start with http:// or https://" });
+  }
+}
+
+const embedPayloadSchema = z.object(embedPayloadShape).superRefine(validateLinkButton);
+
+const templateSchema = z.object({
+  ...embedPayloadShape,
   name: z.string().min(1).max(80)
-});
+}).superRefine(validateLinkButton);
 
 async function resolveAlliance() {
   const alliance =
@@ -57,7 +76,10 @@ export const embedTemplates = asyncHandler(async (_req, res) => {
       imageUrl: template.imageUrl,
       thumbnailUrl: template.thumbnailUrl,
       footer: template.footer,
-      roleMentionId: template.roleMentionId
+      roleMentionId: template.roleMentionId,
+      buttonEnabled: template.buttonEnabled,
+      buttonLabel: template.buttonLabel,
+      buttonUrl: template.buttonUrl
     }))
   });
 });
@@ -91,7 +113,10 @@ export const embedSend = asyncHandler(async (req, res) => {
     imageUrl: body.imageUrl || "",
     thumbnailUrl: body.thumbnailUrl || "",
     footer: body.footer || "Sent by Kella",
-    roleMentionId: body.roleMentionId || ""
+    roleMentionId: body.roleMentionId || "",
+    buttonEnabled: body.buttonEnabled,
+    buttonLabel: body.buttonEnabled ? body.buttonLabel.trim() : "",
+    buttonUrl: body.buttonEnabled ? body.buttonUrl : ""
   };
   const message = await sendDiscordEmbed(embedInput);
   const action = await KellaActionModel.create({
@@ -108,6 +133,9 @@ export const embedSend = asyncHandler(async (req, res) => {
       thumbnailUrl: embedInput.thumbnailUrl,
       footer: embedInput.footer,
       roleMentionId: embedInput.roleMentionId,
+      buttonEnabled: embedInput.buttonEnabled,
+      buttonLabel: embedInput.buttonLabel,
+      buttonUrl: embedInput.buttonUrl,
       messageId: message?.id,
       messageLink: env.DISCORD_GUILD_ID && message?.channel_id && message?.id
         ? `https://discord.com/channels/${env.DISCORD_GUILD_ID}/${message.channel_id}/${message.id}`

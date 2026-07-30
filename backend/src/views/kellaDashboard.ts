@@ -1857,6 +1857,23 @@ export function kellaDashboardHtml() {
       }
       .switch i { display: block; width: 20px; height: 20px; border-radius: 50%; background: #8c6b41; }
       .switch.on i { margin-left: auto; background: linear-gradient(135deg, #ffe88a, #b96b1c); box-shadow: 0 0 18px rgba(255, 214, 90, 0.42); }
+      .optional-link-button {
+        padding: 14px;
+        border: 1px solid rgba(92, 55, 18, 0.20);
+        border-radius: 8px;
+        background: rgba(255, 248, 218, 0.42);
+      }
+      .optional-link-button-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 12px;
+      }
+      .optional-link-button-head strong { display: block; }
+      .optional-link-button-head span { display: block; margin-top: 3px; color: var(--muted); font-size: 13px; }
+      .optional-link-button-fields { display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr); gap: 12px; }
+      .optional-link-button-fields input:disabled { opacity: 0.55; cursor: not-allowed; }
       .command-settings { margin-top: 18px; }
       .command-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
       .command-setting {
@@ -1986,6 +2003,19 @@ export function kellaDashboardHtml() {
       .preview .image { display: none; margin-top: 14px; width: 100%; border-radius: 8px; border: 1px solid var(--line); }
       .preview .thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); float: right; display: none; margin-left: 12px; }
       .preview footer { margin-top: 16px; color: var(--muted); font-size: 13px; }
+      .preview-link-button {
+        display: none;
+        width: fit-content;
+        margin-top: 14px;
+        padding: 9px 15px;
+        border-radius: 999px;
+        background: #5865f2;
+        color: white;
+        font: inherit;
+        font-weight: 900;
+        text-decoration: none;
+        pointer-events: none;
+      }
 
       .toast-stack { position: fixed; right: 18px; bottom: 18px; z-index: 30; display: grid; gap: 10px; width: min(380px, calc(100vw - 36px)); }
       .toast { border: 1px solid rgba(100, 62, 22, 0.40); background: #fff0c6; color: #241509; border-radius: 9px; padding: 13px 14px; box-shadow: 0 18px 40px rgba(0,0,0,0.35); font-weight: 750; }
@@ -2326,7 +2356,7 @@ export function kellaDashboardHtml() {
         .toolbar > label { flex: 1 1 150px; min-width: 0; }
         .card, .preview, .alliance-stats-card { padding: 16px; }
         .card-header { align-items: flex-start; flex-direction: column; gap: 10px; }
-        .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row, .command-board, .power-trend-row, .power-history-list, .interactive-chart, .attendance-summary-grid { grid-template-columns: 1fr; }
+        .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row, .command-board, .power-trend-row, .power-history-list, .interactive-chart, .attendance-summary-grid, .optional-link-button-fields { grid-template-columns: 1fr; }
         .upload-comparison-row { grid-template-columns: 1fr 1fr; }
         .trend-pill { justify-self: stretch; }
         .calendar-grid { grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 8px; }
@@ -5101,6 +5131,29 @@ export function kellaDashboardHtml() {
           '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Recent Sent Events</h3><button class="secondary" data-action="refresh-events">Refresh</button></div>' + renderRecentEvents(events) + '</section>';
       }
 
+      function optionalLinkButtonFields(scope) {
+        return '<div class="wide optional-link-button" data-link-button-settings="' + escapeHtml(scope) + '">' +
+          '<div class="optional-link-button-head"><div><strong>Add Link Button</strong><span>Optional button shown below the Discord message.</span></div>' +
+            '<button class="switch" type="button" data-action="toggle-message-link-button" data-button-scope="' + escapeHtml(scope) + '" aria-pressed="false" aria-label="Toggle link button"><i></i></button>' +
+          '</div><div class="optional-link-button-fields">' +
+            '<label>Button Name<input data-' + escapeHtml(scope) + '="buttonLabel" maxlength="80" placeholder="Open Registration" disabled /></label>' +
+            '<label>Button Link<input data-' + escapeHtml(scope) + '="buttonUrl" type="url" placeholder="https://..." disabled /></label>' +
+          '</div></div>';
+      }
+
+      function setOptionalLinkButtonState(scope, enabled) {
+        const panel = document.querySelector('[data-link-button-settings="' + scope + '"]');
+        const toggle = panel?.querySelector('[data-action="toggle-message-link-button"]');
+        if (!panel || !toggle) return;
+        toggle.classList.toggle("on", Boolean(enabled));
+        toggle.setAttribute("aria-pressed", enabled ? "true" : "false");
+        panel.querySelectorAll("input").forEach(function(input) { input.disabled = !enabled; });
+      }
+
+      function optionalLinkButtonEnabled(scope) {
+        return document.querySelector('[data-link-button-settings="' + scope + '"] [data-action="toggle-message-link-button"]')?.classList.contains("on") || false;
+      }
+
       async function chatToolContent() {
         let channelHtml = '<label>Discord Channel<input data-chat="channelManual" placeholder="Paste channel ID" /></label>';
         try {
@@ -5113,6 +5166,7 @@ export function kellaDashboardHtml() {
           channelHtml +
           '<label>Role Mention ID<input data-chat="roleMentionId" placeholder="Optional role ID" /></label>' +
           '<label class="wide">Message<textarea data-chat="message" placeholder="Type the message Kella should send..."></textarea></label>' +
+          optionalLinkButtonFields("chat") +
         '</div><p class="muted" style="margin-top:12px">This posts as the Kella bot account, not as your Discord user. Use it for normal alliance chat, reminders, and officer notes.</p></section>';
       }
 
@@ -5148,8 +5202,9 @@ export function kellaDashboardHtml() {
             '<label>Thumbnail URL<input data-embed="thumbnailUrl" placeholder="Optional thumbnail URL" /></label>' +
             '<label>Footer Text<input data-embed="footer" value="Sent by Kella" /></label>' +
             '<label>Mention Role<input data-embed="roleMentionId" placeholder="Optional role ID" /></label>' +
+            optionalLinkButtonFields("embed") +
           '</div></div>' +
-          '<aside class="preview" data-embed-preview><img class="thumb" data-preview-thumb alt="" /><h3 data-preview-title></h3><p data-preview-description></p><img class="image" data-preview-image alt="" /><footer data-preview-footer></footer></aside></section>';
+          '<aside class="preview" data-embed-preview><img class="thumb" data-preview-thumb alt="" /><h3 data-preview-title></h3><p data-preview-description></p><img class="image" data-preview-image alt="" /><a class="preview-link-button" data-preview-button></a><footer data-preview-footer></footer></aside></section>';
       }
 
       async function thumbnailToolContent() {
@@ -5382,7 +5437,10 @@ export function kellaDashboardHtml() {
         return {
           channelId: chatFormValue("channelId") || chatFormValue("channelManual"),
           roleMentionId: chatFormValue("roleMentionId"),
-          message: chatFormValue("message")
+          message: chatFormValue("message"),
+          buttonEnabled: optionalLinkButtonEnabled("chat"),
+          buttonLabel: chatFormValue("buttonLabel"),
+          buttonUrl: chatFormValue("buttonUrl")
         };
       }
 
@@ -5395,7 +5453,10 @@ export function kellaDashboardHtml() {
           imageUrl: embedFormValue("imageUrl"),
           thumbnailUrl: embedFormValue("thumbnailUrl"),
           footer: embedFormValue("footer"),
-          roleMentionId: embedFormValue("roleMentionId")
+          roleMentionId: embedFormValue("roleMentionId"),
+          buttonEnabled: optionalLinkButtonEnabled("embed"),
+          buttonLabel: embedFormValue("buttonLabel"),
+          buttonUrl: embedFormValue("buttonUrl")
         };
       }
 
@@ -5413,6 +5474,9 @@ export function kellaDashboardHtml() {
         image.src = payload.imageUrl || "";
         thumb.style.display = payload.thumbnailUrl ? "block" : "none";
         thumb.src = payload.thumbnailUrl || "";
+        const button = preview.querySelector("[data-preview-button]");
+        button.style.display = payload.buttonEnabled ? "inline-block" : "none";
+        button.textContent = payload.buttonLabel || "Open Link";
       }
 
       async function renderEmbedSender() {
@@ -5440,8 +5504,9 @@ export function kellaDashboardHtml() {
             '<label>Thumbnail URL<input data-embed="thumbnailUrl" placeholder="Optional thumbnail URL" /></label>' +
             '<label>Footer Text<input data-embed="footer" value="Sent by Kella" /></label>' +
             '<label>Mention Role<input data-embed="roleMentionId" placeholder="Optional role ID" /></label>' +
+            optionalLinkButtonFields("embed") +
           '</div></div>' +
-          '<aside class="preview" data-embed-preview><img class="thumb" data-preview-thumb alt="" /><h3 data-preview-title></h3><p data-preview-description></p><img class="image" data-preview-image alt="" /><footer data-preview-footer></footer></aside></section>';
+          '<aside class="preview" data-embed-preview><img class="thumb" data-preview-thumb alt="" /><h3 data-preview-title></h3><p data-preview-description></p><img class="image" data-preview-image alt="" /><a class="preview-link-button" data-preview-button></a><footer data-preview-footer></footer></aside></section>';
         updateEmbedPreview();
       }
 
@@ -5902,6 +5967,13 @@ export function kellaDashboardHtml() {
           await route();
         }, "Logged out.");
         if (kind === "copy-command") withFeedback(action, function() { return navigator.clipboard.writeText(action.getAttribute("data-value") || ""); }, "Command copied.");
+        if (kind === "toggle-message-link-button") {
+          const scope = action.getAttribute("data-button-scope") || "";
+          const enabled = !action.classList.contains("on");
+          setOptionalLinkButtonState(scope, enabled);
+          if (scope === "embed") updateEmbedPreview();
+          return;
+        }
         if (kind === "open-wiki-page") {
           const page = findWikiPageById(action.getAttribute("data-wiki-id") || "");
           if (page) openWikiPage(page);
@@ -6677,11 +6749,14 @@ export function kellaDashboardHtml() {
             imageUrl: template.imageUrl,
             thumbnailUrl: template.thumbnailUrl,
             footer: template.footer,
-            roleMentionId: template.roleMentionId
+            roleMentionId: template.roleMentionId,
+            buttonLabel: template.buttonLabel,
+            buttonUrl: template.buttonUrl
           }).forEach(function(entry) {
             const input = document.querySelector('[data-embed="' + entry[0] + '"]');
             if (input) input.value = entry[1] || "";
           });
+          setOptionalLinkButtonState("embed", Boolean(template.buttonEnabled));
           updateEmbedPreview();
         }
         if (event.target.matches("[data-complaint-image]")) {

@@ -107,7 +107,18 @@ const dmAlertToolSchema = z.object({
 const chatToolSchema = z.object({
   channelId: z.string().min(1, "Target channel is required"),
   message: z.string().min(1, "Message is required").max(1800),
-  roleMentionId: z.string().optional()
+  roleMentionId: z.string().optional(),
+  buttonEnabled: z.boolean().optional().default(false),
+  buttonLabel: z.string().max(80).optional().default(""),
+  buttonUrl: z.union([z.string().url(), z.literal("")]).optional().default("")
+}).superRefine((body, context) => {
+  if (!body.buttonEnabled) return;
+  if (!body.buttonLabel.trim()) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["buttonLabel"], message: "Button name is required" });
+  }
+  if (!/^https?:\/\//i.test(body.buttonUrl)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["buttonUrl"], message: "Button link must start with http:// or https://" });
+  }
 });
 
 const thumbnailToolSchema = z.object({
@@ -2571,7 +2582,10 @@ export const dashboardChatSend = asyncHandler(async (req, res) => {
   const messageInput = {
     channelId: body.channelId,
     content: body.message,
-    roleMentionId: body.roleMentionId || ""
+    roleMentionId: body.roleMentionId || "",
+    buttonEnabled: body.buttonEnabled,
+    buttonLabel: body.buttonEnabled ? body.buttonLabel.trim() : "",
+    buttonUrl: body.buttonEnabled ? body.buttonUrl : ""
   };
   const message = await sendDiscordMessage(messageInput);
   const action = await KellaActionModel.create({
@@ -2583,6 +2597,9 @@ export const dashboardChatSend = asyncHandler(async (req, res) => {
     payload: {
       message: messageInput.content,
       roleMentionId: messageInput.roleMentionId,
+      buttonEnabled: messageInput.buttonEnabled,
+      buttonLabel: messageInput.buttonLabel,
+      buttonUrl: messageInput.buttonUrl,
       messageId: message?.id,
       channelId: message?.channel_id,
       messageLink: discordMessageLink(message)
