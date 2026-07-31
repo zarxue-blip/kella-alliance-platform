@@ -1,5 +1,6 @@
 const navItems = [
   { path: "/", icon: "/assets/icons/dashboard.png", label: "Dashboard" },
+  { path: "/buff-schedule", icon: "/assets/buffs/buff-schedule.png", label: "Buff Schedule" },
   { path: "/wiki", icon: "/assets/icons/embed-sender.png", label: "Wiki" },
   { path: "/members", icon: "/assets/icons/members.png", label: "Members" },
   { path: "/attendance", icon: "/assets/icons/events.png", label: "Attendance" },
@@ -247,9 +248,9 @@ export function kellaDashboardHtml() {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Kella Dashboard</title>
-    <link rel="icon" type="image/png" href="/assets/kellacoin.png?v=4" />
-    <link rel="shortcut icon" type="image/png" href="/assets/kellacoin.png?v=4" />
-    <link rel="apple-touch-icon" href="/assets/kellacoin.png?v=4" />
+    <link rel="icon" type="image/png" href="/assets/kella-favicon.png?v=1" />
+    <link rel="shortcut icon" type="image/png" href="/assets/kella-favicon.png?v=1" />
+    <link rel="apple-touch-icon" href="/assets/kella-logo.png?v=1" />
     <link rel="stylesheet" href="/assets/thumbnail-editor.css?v=3" />
     <style>
       @font-face {
@@ -541,7 +542,7 @@ export function kellaDashboardHtml() {
       .wiki-search-row input {
         width: 100%;
         min-height: 46px;
-        border-radius: 14px;
+        border-radius: 50%;
         border: 1px solid rgba(121, 82, 33, 0.32);
         background: rgba(255, 248, 221, 0.78);
         color: #2f1b09;
@@ -1067,6 +1068,50 @@ export function kellaDashboardHtml() {
         font-weight: 900;
         text-align: center;
       }
+
+      .buff-schedule-shell { display: grid; gap: 16px; }
+      .buff-notice, .buff-footer {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px 18px;
+        border: 1px solid rgba(143, 95, 28, 0.28);
+        border-radius: 10px;
+        background: rgba(255, 250, 226, 0.68);
+      }
+      .buff-notice img, .buff-footer img { width: 38px; height: 38px; object-fit: contain; flex: 0 0 auto; }
+      .buff-notice strong, .buff-footer strong { display: block; margin-bottom: 3px; color: #70400d; }
+      .buff-week { overflow: hidden; padding: 0; }
+      .buff-week-heading, .buff-day-row {
+        display: grid;
+        grid-template-columns: 140px minmax(260px, 1fr) minmax(280px, 0.9fr);
+        align-items: center;
+        gap: 20px;
+      }
+      .buff-week-heading {
+        padding: 13px 22px;
+        color: #75512b;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border-bottom: 1px solid rgba(143, 95, 28, 0.25);
+      }
+      .buff-day-row { position: relative; min-height: 112px; padding: 14px 22px; border-bottom: 1px solid rgba(143, 95, 28, 0.19); }
+      .buff-day-row:last-child { border-bottom: 0; }
+      .buff-day-row.is-today { background: linear-gradient(90deg, rgba(117, 183, 91, 0.2), rgba(255, 250, 226, 0.18)); box-shadow: inset 5px 0 #62a54d; }
+      .buff-day-name { display: flex; align-items: center; gap: 9px; font: 800 18px Georgia, serif; color: #34210f; }
+      .buff-today { padding: 4px 8px; border-radius: 999px; background: #dff1d2; color: #39762e; font: 800 9px Arial, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; }
+      .buff-current { display: grid; grid-template-columns: 76px 1fr; align-items: center; gap: 14px; min-width: 0; }
+      .buff-icon { width: 72px; height: 72px; object-fit: contain; filter: drop-shadow(0 5px 7px rgba(75, 45, 10, 0.2)); }
+      .buff-current h3 { margin: 0 0 4px; color: #2f702e; font-size: 19px; }
+      .buff-current p { margin: 0; color: #725837; font-size: 13px; line-height: 1.45; }
+      .buff-note { display: block; margin-top: 6px; color: #c36516; font-size: 11px; font-weight: 800; }
+      .buff-admin-setting { display: grid; gap: 8px; }
+      .buff-admin-setting select, .buff-admin-setting input { width: 100%; margin: 0; }
+      .buff-admin-setting select { min-height: 46px; font-weight: 800; }
+      .buff-readonly { justify-self: start; padding: 8px 12px; border-radius: 999px; background: rgba(206, 151, 42, 0.13); color: #795119; font-size: 12px; font-weight: 800; }
+      .buff-updated { text-align: right; color: #876a43; font-size: 12px; }
       .wiki-misc-panel--artifact {
         width: min(470px, calc(100vw - 36px));
         max-height: min(520px, 72vh);
@@ -2278,6 +2323,7 @@ export function kellaDashboardHtml() {
         .event-calendar .calendar-day,
         .attendance-calendar-card .event-calendar .calendar-day { min-height: 150px; }
         .command-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .buff-week-heading, .buff-day-row { grid-template-columns: 110px minmax(230px, 1fr) minmax(220px, 0.8fr); gap: 14px; }
       }
       @media (max-width: 780px) {
         body { background-attachment: scroll; }
@@ -2302,7 +2348,7 @@ export function kellaDashboardHtml() {
           border-bottom: 1px solid rgba(255, 214, 90, 0.28);
         }
         .brand { margin-bottom: 10px; padding: 0 2px; }
-        .brand-logo { width: 42px; height: 42px; border-radius: 12px; }
+        .brand-logo { width: 42px; height: 42px; border-radius: 50%; }
         .brand strong { font-size: 14px; }
         .brand span { font-size: 10px; }
         nav {
@@ -2356,6 +2402,11 @@ export function kellaDashboardHtml() {
         .toolbar > label { flex: 1 1 150px; min-width: 0; }
         .card, .preview, .alliance-stats-card { padding: 16px; }
         .card-header { align-items: flex-start; flex-direction: column; gap: 10px; }
+        .buff-week-heading { display: none; }
+        .buff-day-row { grid-template-columns: 1fr; gap: 12px; padding: 18px; }
+        .buff-current { grid-template-columns: 64px 1fr; }
+        .buff-icon { width: 60px; height: 60px; }
+        .buff-updated { text-align: left; }
         .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row, .command-board, .power-trend-row, .power-history-list, .interactive-chart, .attendance-summary-grid, .optional-link-button-fields { grid-template-columns: 1fr; }
         .upload-comparison-row { grid-template-columns: 1fr 1fr; }
         .trend-pill { justify-self: stretch; }
@@ -2419,7 +2470,7 @@ export function kellaDashboardHtml() {
     <div class="shell">
       <aside class="sidebar">
         <div class="brand">
-          <img class="brand-logo" src="/assets/kellacoin.png" alt="Kella logo" />
+          <img class="brand-logo" src="/assets/kella-logo.png?v=1" alt="Kella logo" />
           <div>
             <strong>KELLA</strong>
             <span>Call of Dragons tools</span>
@@ -2435,7 +2486,7 @@ export function kellaDashboardHtml() {
       <main>
         <header class="topbar">
           <div class="guild">
-            <img class="avatar-img" id="guildAvatar" src="/assets/kellacoin.png" alt="Kella logo" />
+            <img class="avatar-img" id="guildAvatar" src="/assets/kella-logo.png?v=1" alt="Kella logo" />
             <div>
               <h1 id="guildName">Kella</h1>
               <span class="muted" id="guildTagline">Command Center</span>
@@ -2467,7 +2518,7 @@ export function kellaDashboardHtml() {
     </div>
     <div id="avatarCropper" class="avatar-cropper" aria-hidden="true"></div>
     <div id="toasts" class="toast-stack" aria-live="polite"></div>
-    <a class="kofi-tip" href="https://ko-fi.com/exuz19" target="_blank" rel="noreferrer"><img src="/assets/kellacoin.png" alt="" />Tip Me</a>
+    <a class="kofi-tip" href="https://ko-fi.com/exuz19" target="_blank" rel="noreferrer"><img src="/assets/kella-logo.png?v=1" alt="" />Tip Me</a>
     <script src="/assets/thumbnail-editor.js?v=3"></script>
     <script>
       const app = document.getElementById("app");
@@ -2475,7 +2526,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1 };
+      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1 };
       const WIKI_CUSTOM_IMAGE_KEY = "kellaWikiCustomImages";
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
@@ -2493,6 +2544,22 @@ export function kellaDashboardHtml() {
         { name: "suggest", label: "Suggestion", description: "Let members send private suggestions." },
         { name: "wiki-admin", label: "Wiki", description: "Post the Kella Wiki reader link." },
         { name: "dashboard", label: "Dashboard Link", description: "Give members the Kella website link." }
+      ];
+      const buffTypes = {
+        Gathering: { label: "Gathering Boost", icon: "/assets/buffs/gathering.png", description: "Increase gathering speed and resource collection rate." },
+        Research: { label: "Research Speed", icon: "/assets/buffs/research.png", description: "Reduce research time and speed up technology development." },
+        Training: { label: "Troop Training", icon: "/assets/buffs/training.png", description: "Reduce training time and speed up troop recruitment." },
+        Construction: { label: "Construction Speed", icon: "/assets/buffs/construction.png", description: "Reduce building time for alliance development." },
+        Healing: { label: "Healing Speed", icon: "/assets/buffs/healing.png", description: "Recover wounded troops faster and return to battle." }
+      };
+      const defaultBuffSchedule = [
+        { day: "Monday", buff: "Gathering", note: "" },
+        { day: "Tuesday", buff: "Research", note: "" },
+        { day: "Wednesday", buff: "Gathering", note: "" },
+        { day: "Thursday", buff: "Research", note: "" },
+        { day: "Friday", buff: "Gathering", note: "" },
+        { day: "Saturday", buff: "Training", note: "War time: may be changed" },
+        { day: "Sunday", buff: "Research", note: "War time: may be changed" }
       ];
       const wikiMiscImages = ${JSON.stringify(wikiMiscImages)};
       const wikiHeroImages = ${JSON.stringify(wikiHeroImages)};
@@ -3544,6 +3611,12 @@ export function kellaDashboardHtml() {
           applyGuildHeader(state.settings);
         }
         return state.settings;
+      }
+
+      async function loadBuffSchedule(force = false) {
+        if (state.buffSchedule && !force) return state.buffSchedule;
+        state.buffSchedule = await fetchJson("/api/dashboard/buff-schedule");
+        return state.buffSchedule;
       }
 
       async function loadChannels() {
@@ -4732,6 +4805,58 @@ export function kellaDashboardHtml() {
         }
       }
 
+      function buffScheduleRows(schedule) {
+        const today = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "long" }).format(new Date());
+        const editable = hasAdminAccess();
+        return (schedule.days || defaultBuffSchedule).map(function(item) {
+          const type = buffTypes[item.buff] || buffTypes.Gathering;
+          const options = Object.keys(buffTypes).map(function(key) {
+            return '<option value="' + escapeHtml(key) + '"' + (key === item.buff ? " selected" : "") + '>' + escapeHtml(buffTypes[key].label) + '</option>';
+          }).join("");
+          const adminSetting = editable
+            ? '<div class="buff-admin-setting"><select data-buff-day-select data-buff-day="' + escapeHtml(item.day) + '">' + options + '</select><input data-buff-day-note data-buff-day="' + escapeHtml(item.day) + '" value="' + escapeHtml(item.note || "") + '" placeholder="Optional note" maxlength="160" /></div>'
+            : '<span class="buff-readonly">Weekly schedule</span>';
+          return '<article class="buff-day-row' + (item.day === today ? " is-today" : "") + '" data-buff-row data-buff-day="' + escapeHtml(item.day) + '">' +
+            '<div class="buff-day-name">' + escapeHtml(item.day) + (item.day === today ? '<span class="buff-today">Today</span>' : '') + '</div>' +
+            '<div class="buff-current"><img class="buff-icon" data-buff-icon src="' + escapeHtml(type.icon) + '" alt="" /><div><h3 data-buff-label>' + escapeHtml(type.label) + '</h3><p data-buff-description>' + escapeHtml(type.description) + '</p><span class="buff-note" data-buff-note' + (item.note ? "" : ' hidden') + '>' + escapeHtml(item.note || "") + '</span></div></div>' +
+            adminSetting +
+          '</article>';
+        }).join("");
+      }
+
+      function readBuffScheduleForm() {
+        return Array.from(document.querySelectorAll("[data-buff-row]")).map(function(row) {
+          return {
+            day: row.getAttribute("data-buff-day") || "",
+            buff: row.querySelector("[data-buff-day-select]")?.value || "Gathering",
+            note: row.querySelector("[data-buff-day-note]")?.value.trim() || ""
+          };
+        });
+      }
+
+      async function renderBuffSchedule() {
+        skeleton("Loading weekly buff schedule...");
+        try {
+          const schedule = await loadBuffSchedule();
+          const actions = hasAdminAccess()
+            ? '<button class="secondary" type="button" data-action="reset-buff-schedule">Reset to Default</button><button class="primary" type="button" data-action="save-buff-schedule">Save Schedule</button>'
+            : "";
+          const updated = schedule.updatedAt
+            ? 'Last saved ' + formatDateTime(schedule.updatedAt) + ' by ' + escapeHtml(schedule.updatedBy || "Kella officer")
+            : "Using Kella's recommended weekly schedule";
+          app.innerHTML =
+            pageHeader("Weekly Buff Schedule", "The real alliance buff plan for every day of the week.", actions) +
+            '<div class="buff-schedule-shell">' +
+              '<section class="buff-notice"><img src="/assets/buffs/buff-schedule.png" alt="" /><div><strong>War Time Override</strong><span>Saturday and Sunday buffs may change when alliance strategy requires it.</span></div></section>' +
+              '<section class="card buff-week"><div class="buff-week-heading"><span>Day of week</span><span>Current buff</span><span>' + (hasAdminAccess() ? "Admin setting" : "Schedule") + '</span></div>' + buffScheduleRows(schedule) + '</section>' +
+              '<div class="buff-footer"><img src="/assets/buffs/buff-schedule.png" alt="" /><div><strong>Call of Dragons server time - UTC</strong><span>Buffs repeat weekly and the next day begins at 00:00 UTC.</span></div></div>' +
+              '<div class="buff-updated">' + updated + '</div>' +
+            '</div>';
+        } catch (error) {
+          app.innerHTML = '<div class="error">Could not load the buff schedule. ' + escapeHtml(error.message) + '</div>';
+        }
+      }
+
       function renderDashboardData(summary, members = [], events = []) {
         const dashboardActions = hasAdminAccess()
           ? '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-link-button="/tools">Open Tools</button>'
@@ -5850,6 +5975,7 @@ export function kellaDashboardHtml() {
         }
         setActiveNav();
         if (path === "/") return renderDashboard();
+        if (path === "/buff-schedule") return renderBuffSchedule();
         if (path === "/wiki") return renderWiki();
         if (path.startsWith("/wiki/")) return renderWiki(path.slice("/wiki/".length));
         if (path === "/profile") return renderProfile();
@@ -5972,6 +6098,19 @@ export function kellaDashboardHtml() {
           const enabled = !action.classList.contains("on");
           setOptionalLinkButtonState(scope, enabled);
           if (scope === "embed") updateEmbedPreview();
+          return;
+        }
+        if (kind === "save-buff-schedule") withFeedback(action, async function() {
+          const result = await sendJson("PUT", "/api/dashboard/buff-schedule", { days: readBuffScheduleForm() }, true);
+          state.buffSchedule = result;
+          await renderBuffSchedule();
+          return "Weekly buff schedule saved.";
+        }, "Weekly buff schedule saved.");
+        if (kind === "reset-buff-schedule") {
+          if (!window.confirm("Reset all seven days to Kella's recommended schedule? Save afterward to keep it.")) return;
+          state.buffSchedule = { days: defaultBuffSchedule.map(function(item) { return { ...item }; }), updatedAt: null, updatedBy: "Unsaved reset" };
+          renderBuffSchedule();
+          toast("Defaults restored. Click Save Schedule to keep them.");
           return;
         }
         if (kind === "open-wiki-page") {
@@ -6732,6 +6871,17 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("change", async function(event) {
+        if (event.target.matches("[data-buff-day-select]")) {
+          const row = event.target.closest("[data-buff-row]");
+          const type = buffTypes[event.target.value] || buffTypes.Gathering;
+          const icon = row?.querySelector("[data-buff-icon]");
+          const label = row?.querySelector("[data-buff-label]");
+          const description = row?.querySelector("[data-buff-description]");
+          if (icon) icon.src = type.icon;
+          if (label) label.textContent = type.label;
+          if (description) description.textContent = type.description;
+          return;
+        }
         if (applyWikiInlineStyleChange(event.target)) return;
         if (applyWikiBlockStyleChange(event.target)) return;
         if (event.target.matches("[data-tool-select]")) {
@@ -6810,6 +6960,14 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("input", async function(event) {
+        if (event.target.matches("[data-buff-day-note]")) {
+          const note = event.target.closest("[data-buff-row]")?.querySelector("[data-buff-note]");
+          if (note) {
+            note.textContent = event.target.value;
+            note.hidden = !event.target.value.trim();
+          }
+          return;
+        }
         if (event.target.matches("[data-wiki-asset-search]")) {
           hydrateWikiAssetPanel(event.target.closest("[data-wiki-asset-panel]"));
           filterWikiAssetPanel(event.target);

@@ -3,6 +3,7 @@ import sanitizeHtml from "sanitize-html";
 import { z } from "zod";
 import { env } from "../config/env.js";
 import { AllianceModel } from "../models/alliance.model.js";
+import { BuffScheduleModel, buffScheduleDays, buffScheduleTypes } from "../models/buffSchedule.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { UserModel } from "../models/user.model.js";
@@ -15,6 +16,33 @@ import type { AuthenticatedRequest } from "../middleware/auth.js";
 
 const rootsSlots = ["14UTC", "20UTC"] as const;
 const rootsStatuses = ["Available", "Absent", "Not Sure"] as const;
+const defaultBuffSchedule = [
+  { day: "Monday", buff: "Gathering", note: "" },
+  { day: "Tuesday", buff: "Research", note: "" },
+  { day: "Wednesday", buff: "Gathering", note: "" },
+  { day: "Thursday", buff: "Research", note: "" },
+  { day: "Friday", buff: "Gathering", note: "" },
+  { day: "Saturday", buff: "Training", note: "War time: may be changed" },
+  { day: "Sunday", buff: "Research", note: "War time: may be changed" }
+] as const;
+
+const buffScheduleSchema = z.object({
+  days: z
+    .array(
+      z.object({
+        day: z.enum(buffScheduleDays),
+        buff: z.enum(buffScheduleTypes),
+        note: z.string().trim().max(160).optional().default("")
+      })
+    )
+    .length(7)
+    .superRefine((days, context) => {
+      const uniqueDays = new Set(days.map((item) => item.day));
+      if (uniqueDays.size !== buffScheduleDays.length) {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: "Schedule must include every day exactly once" });
+      }
+    })
+});
 type DashboardAction = {
   _id: { toString(): string };
   type?: string;
@@ -2807,4 +2835,33 @@ export const rootsReportSend = asyncHandler(async (req, res) => {
     payload: { messageId: message?.id, channelId: message?.channel_id }
   });
   res.status(201).json({ message, action });
+});
+
+export const dashboardBuffSchedule = asyncHandler(async (_req, res) => {
+  const allianceId = await resolveAllianceId();
+  const schedule = allianceId ? ((await BuffScheduleModel.findOne({ allianceId }).lean()) as any) : null;
+  res.json({
+    days: schedule?.days?.length ? schedule.days : defaultBuffSchedule,
+    updatedAt: schedule?.updatedAt || null,
+    updatedBy: schedule?.updatedBy || "Kella defaults"
+  });
+});
+
+export const dashboardBuffScheduleUpdate = asyncHandler(async (req: AuthenticatedRequest, res) => {
+  const body = buffScheduleSchema.parse(req.body);
+  const allianceId = await resolveAllianceId();
+  if (!allianceId) throw new HttpError(404, "Alliance not found");
+
+  const byDay = new Map(body.days.map((item) => [item.day, item]));
+  const days = buffScheduleDays.map((day) => byDay.get(day));
+  if (days.some((item) => !item)) throw new HttpError(400, "Schedule must include every day exactly once");
+
+  const updatedBy = req.user?.discordId || "Dashboard";
+  const schedule = (await BuffScheduleModel.findOneAndUpdate(
+    { allianceId },
+    { $set: { days, updatedBy } },
+    { upsert: true, new: true, runValidators: true }
+  ).lean()) as any;
+
+  res.json({ days: schedule?.days || days, updatedAt: schedule?.updatedAt, updatedBy });
 });
