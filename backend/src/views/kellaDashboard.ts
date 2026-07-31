@@ -4847,9 +4847,9 @@ export function kellaDashboardHtml() {
           app.innerHTML =
             pageHeader("Weekly Buff Schedule", "The real alliance buff plan for every day of the week.", actions) +
             '<div class="buff-schedule-shell">' +
-              '<section class="buff-notice"><img src="/assets/buffs/buff-schedule.png" alt="" /><div><strong>War Time Override</strong><span>Saturday and Sunday buffs may change when alliance strategy requires it.</span></div></section>' +
+              '<section class="buff-notice"><img src="/assets/buffs/buff-schedule.png" alt="" /><div><strong>War Time Override</strong><span>Buffs may change when alliance strategy requires it.</span></div></section>' +
               '<section class="card buff-week"><div class="buff-week-heading"><span>Day of week</span><span>Current buff</span><span>' + (hasAdminAccess() ? "Admin setting" : "Schedule") + '</span></div>' + buffScheduleRows(schedule) + '</section>' +
-              '<div class="buff-footer"><img src="/assets/buffs/buff-schedule.png" alt="" /><div><strong>Call of Dragons server time - UTC</strong><span>Buffs repeat weekly and the next day begins at 00:00 UTC.</span></div></div>' +
+              '<div class="buff-footer"><img src="/assets/buffs/buff-schedule.png" alt="" /><div><strong>Call of Dragons server time - UTC</strong><span>Buffs scheduled at 14:00 UTC. (time may change depends on situation)</span></div></div>' +
               '<div class="buff-updated">' + updated + '</div>' +
             '</div>';
         } catch (error) {
