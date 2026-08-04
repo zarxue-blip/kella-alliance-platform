@@ -1745,10 +1745,6 @@ export function kellaDashboardHtml() {
       .radar-dot { fill: #ff7658; stroke: #fff0c7; stroke-width: 2; }
       .radar-label { fill: #604523; font-size: 13px; font-weight: 900; }
       .radar-value { fill: #9a4b28; font-size: 10px; font-weight: 900; }
-      .profile-ranking-details { margin-top: 14px; }
-      .profile-ranking-details > summary { min-height: 44px; }
-      .profile-ranking-body { padding: 0 12px 14px; }
-      .profile-ranking-body .metric-selector { margin-top: 2px; }
       .profile-radar-controls { display: grid; gap: 10px; margin-top: 10px; }
       .profile-radar-controls details { margin: 0; }
       .profile-radar-controls .metric-picker { padding-top: 2px; }
@@ -3411,8 +3407,9 @@ export function kellaDashboardHtml() {
           if (metricKey === "power") return currentPowerValue(member);
           return Number(latestStatPoint(member, metricKey).value || 0);
         }
-        const target = new Date(dateKey + "T23:59:59.999Z").getTime();
-        const history = normalizeStatHistory(member, metricKey).filter(function(point) { return point.date.getTime() <= target; });
+        const history = normalizeStatHistory(member, metricKey).filter(function(point) {
+          return point.date.toISOString().slice(0, 10) === dateKey;
+        });
         if (history.length) return Number(history[history.length - 1].value || 0);
         return 0;
       }
@@ -3503,19 +3500,7 @@ export function kellaDashboardHtml() {
       }
 
       function memberPowerChart(member) {
-        const metric = currentStatMetric();
-        const history = normalizeStatHistory(member, metric.key);
-        const delta = statDelta(member, metric.key);
-        return memberSeasonRadar(member) +
-          '<details class="metric-selector profile-ranking-details"><summary><span class="metric-selector-label">Ranking &amp; history</span><span class="metric-selector-value">' + escapeHtml(metric.label) + '</span></summary>' +
-            '<div class="profile-ranking-body"><div class="metric-picker" role="group" aria-label="Choose profile stat history">' + statMetricOptions.map(function(option) {
-              return '<button class="metric-button ' + (option.key === metric.key ? "active" : "") + '" type="button" data-action="set-stats-metric" data-metric="' + escapeHtml(option.key) + '">' + escapeHtml(option.label) + '</button>';
-            }).join("") + '</div>' +
-              '<section class="member-power-chart"><div class="member-power-chart-head"><div><h4>' + escapeHtml(metric.label) + ' History</h4><p>' + escapeHtml(statTrendMeta(history)) + '</p></div><span class="trend-pill ' + trendClass(delta) + '">' + escapeHtml(formatDelta(delta)) + '</span></div>' +
-                interactiveStatChart(member, history, metric) +
-              '</section>' +
-            '</div>' +
-          '</details>';
+        return memberSeasonRadar(member);
       }
 
       function accountRelationshipSection(member) {
@@ -6422,6 +6407,9 @@ export function kellaDashboardHtml() {
       }
 
       document.addEventListener("click", function(event) {
+        document.querySelectorAll(".profile-radar-controls details[open]").forEach(function(panel) {
+          if (!panel.contains(event.target)) panel.removeAttribute("open");
+        });
         if (event.target.closest("[data-mobile-nav-toggle]")) {
           toggleMobileNav();
           return;
@@ -6754,8 +6742,14 @@ export function kellaDashboardHtml() {
             selected.push(metricKey);
           }
           state.profileRadarMetrics[String(member.id || "profile")] = selected;
-          if (memberModal?.classList.contains("open")) openMemberModal(member);
-          else if (location.pathname === "/profile") renderProfile();
+          if (memberModal?.classList.contains("open")) {
+            openMemberModal(member);
+            memberModalContent?.querySelector(".profile-radar-controls details")?.setAttribute("open", "");
+          } else if (location.pathname === "/profile") {
+            Promise.resolve(renderProfile()).then(function() {
+              app.querySelector(".profile-radar-controls details")?.setAttribute("open", "");
+            });
+          }
           return;
         }
         if (kind === "set-profile-radar-date") {
