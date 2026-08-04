@@ -1754,6 +1754,20 @@ export function kellaDashboardHtml() {
       .profile-radar-date { flex: 0 0 auto; min-width: 54px; min-height: 34px; border-radius: 999px; padding: 6px 11px; font-size: 10px; font-weight: 900; cursor: pointer; pointer-events: auto; touch-action: manipulation; }
       .profile-radar-date:hover, .profile-radar-date:focus-visible { border-color: #bd7618; box-shadow: 0 5px 12px rgba(115, 67, 15, 0.18); outline: none; }
       .profile-radar-date.active { background: linear-gradient(180deg, #fff3a2, #d88a20); border-color: #94500a; color: #201006; box-shadow: 0 0 0 3px rgba(255, 224, 87, 0.76), 0 7px 16px rgba(116, 67, 13, 0.30); animation: snapshot-selected 280ms ease-out; }
+      .profile-radar-date-select-shell { display: none; }
+      .profile-radar-date-select {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid rgba(134, 81, 20, 0.42);
+        border-radius: 10px;
+        padding: 9px 38px 9px 12px;
+        background: linear-gradient(180deg, #fff4ce, #e9c77f);
+        color: #3f260e;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 900;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 5px 14px rgba(101, 61, 16, 0.12);
+      }
       .profile-edit-button { margin-top: 9px; min-height: 30px; padding: 5px 11px; font-size: 11px; }
       .admin-profile-editor { position: fixed; inset: 0; z-index: 4; display: none; align-items: center; justify-content: center; padding: 24px; }
       .admin-profile-editor.open { display: flex; }
@@ -2613,8 +2627,10 @@ export function kellaDashboardHtml() {
         .radar-label { font-size: 12px; }
         .radar-value { font-size: 9px; }
         .profile-radar-snapshots-label { text-align: left; padding-left: 2px; }
-        .profile-radar-dates { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; overscroll-behavior-x: contain; padding: 5px 4px 11px; scroll-snap-type: x proximity; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
-        .profile-radar-date { min-width: 58px; min-height: 38px; scroll-snap-align: start; }
+        .profile-radar-dates { display: none; }
+        .profile-radar-date-select-shell { display: grid; gap: 5px; }
+        .profile-radar-date-select-shell span { color: #76532f; font-size: 10px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
+        .profile-radar-date-select:focus { border-color: #a85f0d; outline: 3px solid rgba(255, 211, 67, 0.52); }
         .modal-close { top: 10px; right: 10px; }
         .wiki-builder-toolbar .muted { flex-basis: 100%; }
         .wiki-search-row { grid-template-columns: 1fr; }
@@ -3507,10 +3523,38 @@ export function kellaDashboardHtml() {
         const dateButtons = availableDates.map(function(date) {
           return '<button class="secondary profile-radar-date ' + (date === selectedDate ? "active" : "") + '" type="button" data-action="set-profile-radar-date" data-member-id="' + escapeHtml(memberId) + '" data-radar-date="' + escapeHtml(date) + '" aria-pressed="' + String(date === selectedDate) + '" title="Show stats from ' + escapeHtml(formatDate(new Date(date + "T00:00:00Z"))) + '">' + escapeHtml(compactDate(new Date(date + "T00:00:00Z"))) + '</button>';
         }).join("");
+        const dateOptions = availableDates.map(function(date) {
+          return '<option value="' + escapeHtml(date) + '" ' + (date === selectedDate ? "selected" : "") + '>' + escapeHtml(formatDate(new Date(date + "T00:00:00Z"))) + '</option>';
+        }).join("");
         return '<section class="profile-season-card"><div class="profile-season-head"><h4>Current Season</h4><p>' + escapeHtml(selectedDate ? "Roster snapshot " + formatDate(new Date(selectedDate + "T00:00:00Z")) : "Compared with the current alliance roster") + '</p></div>' +
           '<svg class="profile-radar" viewBox="0 0 560 348" role="img" aria-label="Current season player statistics radar chart">' + rings + spokes + '<polygon class="radar-area" points="' + areaPoints.join(' ') + '"></polygon>' + dots + labels + '</svg>' +
           '<div class="profile-radar-controls"><details class="metric-selector"><summary><span class="metric-selector-label">Radar stats</span><span class="metric-selector-value">' + axes.length + ' selected</span></summary><div class="metric-picker">' + metricButtons + '</div></details>' +
-          (dateButtons ? '<div class="profile-radar-snapshots"><span class="profile-radar-snapshots-label">Roster snapshot</span><div class="profile-radar-dates" aria-label="Choose roster snapshot date">' + dateButtons + '</div></div>' : '') + '</div></section>';
+          (dateButtons ? '<div class="profile-radar-snapshots"><span class="profile-radar-snapshots-label">Roster snapshot</span><label class="profile-radar-date-select-shell"><span>Selected date</span><select class="profile-radar-date-select" data-radar-date-select data-member-id="' + escapeHtml(memberId) + '" aria-label="Choose roster snapshot date">' + dateOptions + '</select></label><div class="profile-radar-dates" aria-label="Choose roster snapshot date">' + dateButtons + '</div></div>' : '') + '</div></section>';
+      }
+
+      function refreshMemberSeasonRadar(member) {
+        if (!member) return;
+        const modalIsOpen = Boolean(memberModal?.classList.contains("open"));
+        const root = modalIsOpen ? memberModalContent : app;
+        const current = root?.querySelector(".profile-season-card");
+        if (!current) {
+          if (modalIsOpen) openMemberModal(member);
+          else if (location.pathname === "/profile") renderProfile();
+          return;
+        }
+        const panel = modalIsOpen ? memberModal?.querySelector(".member-modal-panel") : null;
+        const scrollTop = panel?.scrollTop || 0;
+        current.outerHTML = memberSeasonRadar(member);
+        if (panel) requestAnimationFrame(function() { panel.scrollTop = scrollTop; });
+      }
+
+      function selectProfileRadarDate(memberId, date) {
+        const parsed = date ? new Date(date + "T00:00:00Z") : null;
+        if (!parsed || !Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) return;
+        const member = (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || findMemberById(memberId) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
+        if (!member) return;
+        state.profileRadarDates[String(member.id || "profile")] = date;
+        refreshMemberSeasonRadar(member);
       }
 
       function memberPowerChart(member) {
@@ -6444,11 +6488,7 @@ export function kellaDashboardHtml() {
           event.preventDefault();
           const memberId = radarDateAction.getAttribute("data-member-id") || "";
           const date = radarDateAction.getAttribute("data-radar-date") || "";
-          const member = (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || findMemberById(memberId) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
-          if (!member || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)) return;
-          state.profileRadarDates[String(member.id || "profile")] = date;
-          if (memberModal?.classList.contains("open")) openMemberModal(member);
-          else if (location.pathname === "/profile") renderProfile();
+          selectProfileRadarDate(memberId, date);
           return;
         }
 
@@ -6771,12 +6811,11 @@ export function kellaDashboardHtml() {
           }
           state.profileRadarMetrics[String(member.id || "profile")] = selected;
           if (memberModal?.classList.contains("open")) {
-            openMemberModal(member);
+            refreshMemberSeasonRadar(member);
             memberModalContent?.querySelector(".profile-radar-controls details")?.setAttribute("open", "");
           } else if (location.pathname === "/profile") {
-            Promise.resolve(renderProfile()).then(function() {
-              app.querySelector(".profile-radar-controls details")?.setAttribute("open", "");
-            });
+            refreshMemberSeasonRadar(member);
+            app.querySelector(".profile-radar-controls details")?.setAttribute("open", "");
           }
           return;
         }
@@ -7383,6 +7422,10 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("change", async function(event) {
+        if (event.target.matches("[data-radar-date-select]")) {
+          selectProfileRadarDate(event.target.getAttribute("data-member-id") || "", event.target.value || "");
+          return;
+        }
         if (event.target.matches("[data-buff-day-select]")) {
           const row = event.target.closest("[data-buff-row]");
           const type = buffTypes[event.target.value] || buffTypes.Gathering;
