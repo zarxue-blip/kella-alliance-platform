@@ -4606,15 +4606,16 @@ export function kellaDashboardHtml() {
         const isImage = /^image\\/(png|jpe?g|webp)$/i.test(file.type);
         const isVideo = /^video\\/(mp4|webm)$/i.test(file.type);
         if (!isImage && !isVideo) throw new Error("Wiki media must be PNG, JPG, WEBP, MP4, or WEBM.");
-        const maxSize = isVideo ? 6 * 1024 * 1024 : 3 * 1024 * 1024;
-        if (file.size > maxSize) throw new Error(isVideo ? "Wiki video is too large. Please use a video under 6 MB." : "Wiki image is too large. Please use a picture under 3 MB.");
+        if (isImage) return compressWikiImageFile(file, 1920, 1_900_000);
+        const maxSize = 6 * 1024 * 1024;
+        if (file.size > maxSize) throw new Error("Wiki video is too large. Please use a video under 6 MB.");
         return "data:" + file.type + ";base64," + arrayBufferToBase64(await file.arrayBuffer());
       }
 
-      async function wikiImageFileDataUrl(file) {
+      function wikiImageFileDataUrl(file) {
         if (!/^image\\/(png|jpe?g|webp)$/i.test(file.type)) throw new Error("Wiki image must be PNG, JPG, or WEBP.");
-        if (file.size > 5 * 1024 * 1024) throw new Error("Stock image is too large. Please use a picture under 5 MB.");
-        return "data:" + file.type + ";base64," + arrayBufferToBase64(await file.arrayBuffer());
+        if (file.size > 30 * 1024 * 1024) throw new Error("Image is too large. Please use a picture under 30 MB.");
+        return URL.createObjectURL(file);
       }
 
       function loadWikiImageElement(src) {
@@ -4626,23 +4627,39 @@ export function kellaDashboardHtml() {
         });
       }
 
+      async function compressWikiImageFile(file, maxSide, maxDataUrlLength) {
+        const src = wikiImageFileDataUrl(file);
+        try {
+          const image = await loadWikiImageElement(src);
+          const naturalWidth = image.naturalWidth || image.width || maxSide;
+          const naturalHeight = image.naturalHeight || image.height || maxSide;
+          let scale = Math.min(1, maxSide / Math.max(naturalWidth, naturalHeight));
+          let quality = 0.88;
+          let result = "";
+          for (let attempt = 0; attempt < 8; attempt += 1) {
+            const width = Math.max(1, Math.round(naturalWidth * scale));
+            const height = Math.max(1, Math.round(naturalHeight * scale));
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const context = canvas.getContext("2d");
+            if (!context) throw new Error("Your browser could not resize this image.");
+            context.clearRect(0, 0, width, height);
+            context.drawImage(image, 0, 0, width, height);
+            result = canvas.toDataURL("image/webp", quality);
+            if (result.length <= maxDataUrlLength) return result;
+            if (quality > 0.58) quality -= 0.1;
+            else scale *= 0.78;
+          }
+          if (result && result.length <= 4_000_000) return result;
+          throw new Error("This image could not be reduced enough. Please choose a smaller picture.");
+        } finally {
+          URL.revokeObjectURL(src);
+        }
+      }
+
       async function readWikiStockImageFile(file) {
-        const src = await wikiImageFileDataUrl(file);
-        const image = await loadWikiImageElement(src);
-        const maxSide = 384;
-        const naturalWidth = image.naturalWidth || image.width || maxSide;
-        const naturalHeight = image.naturalHeight || image.height || maxSide;
-        const scale = Math.min(1, maxSide / Math.max(naturalWidth, naturalHeight));
-        const width = Math.max(1, Math.round(naturalWidth * scale));
-        const height = Math.max(1, Math.round(naturalHeight * scale));
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const context = canvas.getContext("2d");
-        if (!context) return src;
-        context.clearRect(0, 0, width, height);
-        context.drawImage(image, 0, 0, width, height);
-        return canvas.toDataURL("image/webp", 0.86);
+        return compressWikiImageFile(file, 512, 550_000);
       }
 
       function wikiStockImageLabel(filename) {
