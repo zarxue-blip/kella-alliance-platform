@@ -6233,7 +6233,7 @@ export function kellaDashboardHtml() {
           syncWikiTextFromDom();
           state.selectedWikiBlockId = "";
           state.wikiTextSelection = null;
-          refreshWikiBuilder();
+          refreshWikiSelection();
           return;
         }
         if (wikiBlock && document.querySelector("[data-wiki-editor]")) {
@@ -6241,7 +6241,7 @@ export function kellaDashboardHtml() {
           if (String(state.selectedWikiBlockId) !== String(wikiBlockIdValue)) {
             syncWikiTextFromDom();
             state.selectedWikiBlockId = wikiBlockIdValue;
-            refreshWikiBuilder();
+            refreshWikiSelection();
           }
           if (!event.target.closest("[data-wiki-text-content]") && !event.target.closest("[data-action]")) return;
         }
