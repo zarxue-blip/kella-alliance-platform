@@ -1457,6 +1457,36 @@ export function kellaDashboardHtml() {
         text-align: center;
         text-transform: uppercase;
       }
+      .wiki-tag-filters,
+      .wiki-card-tags,
+      .wiki-editor-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .wiki-tag-filters { margin-top: 12px; }
+      .wiki-tag-button,
+      .wiki-tag-chip {
+        min-height: 32px;
+        border: 1px solid rgba(121, 82, 33, 0.28);
+        border-radius: 999px;
+        padding: 6px 12px;
+        background: rgba(255, 248, 221, 0.72);
+        color: #68491f;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .wiki-tag-button.active,
+      .wiki-editor-tags .wiki-tag-button.selected {
+        border-color: #d19a23;
+        background: linear-gradient(180deg, #ffe88a, #e7ad2f);
+        color: #3d2509;
+        box-shadow: 0 4px 12px rgba(157, 99, 14, 0.2);
+      }
+      .wiki-card-tags { margin: 10px 0; }
+      .wiki-tag-chip { min-height: 0; padding: 4px 9px; background: rgba(238, 201, 116, 0.45); }
+      .wiki-tags-field small { display: block; margin-top: 6px; color: #76572f; }
+      .wiki-editor-tags { margin-top: 9px; }
       .calendar-day {
         min-height: 122px;
         border: 1px solid rgba(92, 55, 18, 0.18);
@@ -2642,7 +2672,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1 };
+      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1 };
       const WIKI_CUSTOM_IMAGE_KEY = "kellaWikiCustomImages";
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
@@ -4366,8 +4396,12 @@ export function kellaDashboardHtml() {
         const shareAction = shareSlug
           ? '<button class="secondary wiki-share-button" type="button" data-action="share-wiki-page" data-wiki-slug="' + escapeHtml(shareSlug) + '" aria-label="Share ' + escapeHtml(page.title || "wiki page") + '"><span aria-hidden="true">&#8599;</span> Share</button>'
           : "";
+        const tags = Array.isArray(page.tags) ? page.tags : [];
+        const tagChips = tags.length
+          ? '<div class="wiki-card-tags">' + tags.map(function(tag) { return '<span class="wiki-tag-chip">' + escapeHtml(tag) + '</span>'; }).join("") + '</div>'
+          : "";
         return '<article class="card wiki-card">' +
-          '<div>' + wikiImageHtml(page, "wiki-thumb") + '<h3>' + escapeHtml(page.title || "Kella Wiki") + '</h3><span class="muted">By ' + escapeHtml(page.author || page.createdBy || "Kella Officer") + '</span><p>' + escapeHtml(wikiExcerpt(page)) + '</p></div>' +
+          '<div>' + wikiImageHtml(page, "wiki-thumb") + '<h3>' + escapeHtml(page.title || "Kella Wiki") + '</h3><span class="muted">By ' + escapeHtml(page.author || page.createdBy || "Kella Officer") + '</span>' + tagChips + '<p>' + escapeHtml(wikiExcerpt(page)) + '</p></div>' +
           '<div class="toolbar"><button class="primary" type="button" data-action="open-wiki-page" data-wiki-id="' + escapeHtml(page.id) + '">Read</button>' + shareAction + editAction + deleteAction + '</div>' +
           '<span class="muted">Updated ' + formatDateTime(page.updatedAt || page.createdAt) + (hasWikiEditAccess() ? " - " + escapeHtml(page.status || "Published") : "") + '</span>' +
         '</article>';
@@ -4384,6 +4418,7 @@ export function kellaDashboardHtml() {
           page?.body,
           page?.richTextHtml,
           page?.author,
+          Array.isArray(page?.tags) ? page.tags.join(" ") : "",
           page?.createdBy,
           page?.slug,
           wikiExcerpt(page),
@@ -4402,25 +4437,55 @@ export function kellaDashboardHtml() {
           .trim();
       }
 
-      function filteredWikiPages(pages, query) {
+      function normalizedWikiTag(value) {
+        return String(value || "").trim().toLowerCase();
+      }
+
+      function wikiTags(pages) {
+        const tags = new Map();
+        (pages || []).forEach(function(page) {
+          (Array.isArray(page.tags) ? page.tags : []).forEach(function(rawTag) {
+            const tag = String(rawTag || "").trim();
+            const key = normalizedWikiTag(tag);
+            if (tag && !tags.has(key)) tags.set(key, tag);
+          });
+        });
+        return Array.from(tags.values()).sort(function(a, b) { return a.localeCompare(b); });
+      }
+
+      function filteredWikiPages(pages, query, activeTag = state.wikiTag) {
         const terms = normalizeWikiSearchText(query).split(" ").filter(Boolean);
-        if (!terms.length) return pages || [];
         return (pages || []).filter(function(page) {
+          const matchesTag = !activeTag || (Array.isArray(page.tags) ? page.tags : []).some(function(tag) {
+            return normalizedWikiTag(tag) === normalizedWikiTag(activeTag);
+          });
           const searchable = wikiSearchText(page);
-          return terms.every(function(term) { return searchable.includes(term); });
+          return matchesTag && terms.every(function(term) { return searchable.includes(term); });
         });
       }
 
       function wikiResultsHtml(pages, query) {
         const matches = filteredWikiPages(pages, query);
         if (!pages.length) return empty("No wiki pages yet. Admins can create the first guide from this page.");
-        if (!matches.length) return empty("No wiki pages match that search.");
+        if (!matches.length) return empty("No wiki pages match the selected tag and search.");
         return matches.map(wikiCard).join("");
       }
 
       function wikiSearchCountText(pages, query) {
         const matches = filteredWikiPages(pages, query);
-        return String(query || "").trim() ? matches.length + " found" : (pages || []).length + " pages";
+        return String(query || "").trim() || state.wikiTag ? matches.length + " found" : (pages || []).length + " pages";
+      }
+
+      function wikiTagFiltersHtml(pages) {
+        const activeTag = state.wikiTag || "";
+        const tags = wikiTags(pages);
+        if (!tags.length) return "";
+        return '<div class="wiki-tag-filters" data-wiki-tag-filters>' +
+          '<button class="wiki-tag-button' + (!activeTag ? " active" : "") + '" type="button" data-action="filter-wiki-tag" data-wiki-tag="">All</button>' +
+          tags.map(function(tag) {
+            return '<button class="wiki-tag-button' + (normalizedWikiTag(tag) === normalizedWikiTag(activeTag) ? " active" : "") + '" type="button" data-action="filter-wiki-tag" data-wiki-tag="' + escapeHtml(tag) + '">' + escapeHtml(tag) + '</button>';
+          }).join("") +
+        '</div>';
       }
 
       function renderWikiLibrary(pages) {
@@ -4429,7 +4494,7 @@ export function kellaDashboardHtml() {
           '<div class="wiki-search-row">' +
             '<input type="search" data-wiki-search value="' + escapeHtml(query) + '" placeholder="Search wiki guides, events, rules, heroes..." aria-label="Search wiki pages" autocomplete="off" spellcheck="false" />' +
             '<span class="wiki-search-count" data-wiki-search-count>' + escapeHtml(wikiSearchCountText(pages, query)) + '</span>' +
-          '</div>' +
+          '</div>' + wikiTagFiltersHtml(pages) +
         '</section>' +
         '<section class="wiki-grid" data-wiki-results>' + wikiResultsHtml(pages, query) + '</section>';
       }
@@ -4563,6 +4628,14 @@ export function kellaDashboardHtml() {
         state.wikiBlocks = defaultWikiBlocks(editing);
         state.selectedWikiBlockId = state.wikiBlocks[0]?.id || "";
         const title = editing.id ? "Edit Wiki Page" : "Create Wiki Page";
+        const selectedTags = Array.isArray(editing.tags) ? editing.tags : [];
+        const existingTags = wikiTags(state.wiki || []);
+        const tagSuggestions = existingTags.length
+          ? '<div class="wiki-editor-tags">' + existingTags.map(function(tag) {
+              const selected = selectedTags.some(function(item) { return normalizedWikiTag(item) === normalizedWikiTag(tag); });
+              return '<button class="wiki-tag-button' + (selected ? " selected" : "") + '" type="button" data-action="toggle-wiki-editor-tag" data-wiki-tag="' + escapeHtml(tag) + '">' + escapeHtml(tag) + '</button>';
+            }).join("") + '</div>'
+          : "";
         return '<section class="card wiki-editor" data-wiki-editor>' +
           '<div class="card-header"><div><h3>' + title + '</h3></div><div class="toolbar"><button class="secondary" type="button" data-action="clear-wiki-form">New Page</button><button class="primary" type="button" data-action="save-wiki-page">' + (editing.id ? "Save Changes" : "Publish Wiki") + '</button></div></div>' +
           '<input type="hidden" data-wiki="id" value="' + escapeHtml(editing.id || "") + '" />' +
@@ -4571,6 +4644,7 @@ export function kellaDashboardHtml() {
           '<div class="form-grid">' +
             '<label>Title<input data-wiki="title" maxlength="120" placeholder="Roots of War Guide" value="' + escapeHtml(editing.title || "") + '" /></label>' +
             '<label>Author<input data-wiki="author" maxlength="120" placeholder="Officer name" value="' + escapeHtml(editing.author || state.auth?.user?.displayName || state.auth?.user?.username || "") + '" /></label>' +
+            '<label class="wide wiki-tags-field">Tags<input data-wiki="tags" maxlength="380" placeholder="Pets, Heroes, Roots of War" value="' + escapeHtml(selectedTags.join(", ")) + '" /><small>Separate tags with commas, or select an existing tag.</small>' + tagSuggestions + '</label>' +
             '<label>Status<select data-wiki="status"><option value="Published"' + optionSelected("Published", editing.status || "Published") + '>Published</option><option value="Draft"' + optionSelected("Draft", editing.status || "Published") + '>Draft</option></select></label>' +
           '</div>' +
           renderWikiInspectorHtml() +
@@ -4598,6 +4672,7 @@ export function kellaDashboardHtml() {
           id: value("id"),
           title,
           author,
+          tags: value("tags").split(",").map(function(tag) { return tag.trim(); }).filter(Boolean).slice(0, 12),
           status: value("status") || "Published"
         };
       }
@@ -6423,6 +6498,26 @@ export function kellaDashboardHtml() {
         if (kind === "upload-wiki-stock-image") {
           state.wikiStockUploadKind = action.getAttribute("data-wiki-stock-kind") || "misc";
           document.querySelector("[data-wiki-stock-image]")?.click();
+          return;
+        }
+        if (kind === "filter-wiki-tag") {
+          state.wikiTag = action.getAttribute("data-wiki-tag") || "";
+          document.querySelectorAll("[data-action='filter-wiki-tag']").forEach(function(button) {
+            button.classList.toggle("active", normalizedWikiTag(button.getAttribute("data-wiki-tag")) === normalizedWikiTag(state.wikiTag));
+          });
+          refreshWikiResults();
+          return;
+        }
+        if (kind === "toggle-wiki-editor-tag") {
+          const input = document.querySelector('[data-wiki="tags"]');
+          if (!input) return;
+          const tag = String(action.getAttribute("data-wiki-tag") || "").trim();
+          const tags = String(input.value || "").split(",").map(function(item) { return item.trim(); }).filter(Boolean);
+          const index = tags.findIndex(function(item) { return normalizedWikiTag(item) === normalizedWikiTag(tag); });
+          if (index >= 0) tags.splice(index, 1);
+          else if (tag && tags.length < 12) tags.push(tag);
+          input.value = tags.join(", ");
+          action.classList.toggle("selected", index < 0);
           return;
         }
         if (kind === "add-wiki-asset-image") {

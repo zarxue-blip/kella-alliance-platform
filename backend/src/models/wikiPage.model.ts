@@ -40,6 +40,7 @@ const wikiPageSchema = new Schema(
     allianceId: { type: Schema.Types.ObjectId, ref: "Alliance", required: true, index: true },
     title: { type: String, required: true, trim: true, maxlength: 120 },
     author: { type: String, default: "Kella Officer", trim: true, maxlength: 120 },
+    tags: { type: [{ type: String, trim: true, maxlength: 30 }], default: [] },
     slug: { type: String, required: true, trim: true, lowercase: true, maxlength: 100 },
     body: { type: String, required: true, trim: true, maxlength: 500000 },
     imageDataUrl: { type: String, default: "" },
@@ -55,6 +56,7 @@ const wikiPageSchema = new Schema(
 
 wikiPageSchema.index({ allianceId: 1, slug: 1 }, { unique: true });
 wikiPageSchema.index({ allianceId: 1, status: 1, updatedAt: -1 });
+wikiPageSchema.index({ allianceId: 1, tags: 1 });
 
 export type WikiPageDocument = InferSchemaType<typeof wikiPageSchema>;
 export const WikiPageModel = model<any>("WikiPage", wikiPageSchema);

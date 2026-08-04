@@ -245,6 +245,7 @@ const wikiBlockSchema = z.object({
 const wikiPageCreateSchema = z.object({
   title: z.string().min(1, "Wiki title is required").max(120),
   author: z.string().min(1, "Author is required").max(120),
+  tags: z.array(z.string().trim().min(1).max(30)).max(12).optional(),
   body: z.string().min(1, "Wiki text is required").max(500000),
   imageDataUrl: wikiImageSchema,
   fontFamily: z.enum(wikiFontFamilies).default("serif"),
@@ -536,6 +537,7 @@ function wikiPageDto(page: any) {
     id: page._id.toString(),
     title: page.title || "Untitled Wiki",
     author: page.author || page.createdBy || "Kella Officer",
+    tags: normalizeWikiTags(page.tags),
     slug: page.slug || "",
     body: page.body || "",
     imageDataUrl: page.imageDataUrl || "",
@@ -548,6 +550,20 @@ function wikiPageDto(page: any) {
     createdAt: page.createdAt,
     updatedAt: page.updatedAt
   };
+}
+
+function normalizeWikiTags(values: unknown) {
+  if (!Array.isArray(values)) return [];
+  const seen = new Set<string>();
+  return values.reduce<string[]>((tags, value) => {
+    const tag = String(value || "").trim().replace(/\s+/g, " ").slice(0, 30);
+    const key = tag.toLowerCase();
+    if (tag && !seen.has(key) && tags.length < 12) {
+      seen.add(key);
+      tags.push(tag);
+    }
+    return tags;
+  }, []);
 }
 
 function discordMessageLink(message?: any) {
@@ -2302,6 +2318,7 @@ export const dashboardWikiCreate = asyncHandler(async (req, res) => {
     allianceId,
     title,
     author: body.author.trim(),
+    tags: normalizeWikiTags(body.tags),
     slug: await uniqueWikiSlug(allianceId || "", title),
     body: textBody,
     imageDataUrl: blockImage || body.imageDataUrl || "",
@@ -2326,6 +2343,7 @@ export const dashboardWikiUpdate = asyncHandler(async (req, res) => {
     update.slug = await uniqueWikiSlug(allianceId || "", title, req.params.id);
   }
   if (body.author !== undefined) update.author = body.author.trim();
+  if (body.tags !== undefined) update.tags = normalizeWikiTags(body.tags);
   if (body.body !== undefined) update.body = body.body.trim();
   if (body.imageDataUrl !== undefined) update.imageDataUrl = body.imageDataUrl || "";
   if (body.fontFamily !== undefined) update.fontFamily = body.fontFamily;
