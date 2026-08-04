@@ -309,6 +309,7 @@ export function kellaDashboardHtml() {
         min-width: 0;
         overflow-x: hidden;
       }
+      body.mobile-nav-open { overflow: hidden; }
 
       button, input, select, textarea { font: inherit; }
       button { cursor: pointer; }
@@ -524,6 +525,7 @@ export function kellaDashboardHtml() {
         background: linear-gradient(180deg, rgba(255, 246, 211, 0.98), rgba(228, 179, 89, 0.72));
       }
       .feedback-top-button img { filter: drop-shadow(0 4px 7px rgba(106, 61, 18, 0.22)); }
+      .mobile-nav-toggle, .mobile-nav-backdrop { display: none; }
       .wiki-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -1426,6 +1428,18 @@ export function kellaDashboardHtml() {
       .bar { height: 7px; background: rgba(76, 47, 18, 0.20); border-radius: 999px; overflow: hidden; }
       .bar i { display: block; height: 100%; background: linear-gradient(90deg, #9b4d1e, var(--gold)); }
       .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
+      .calendar-weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 8px;
+        color: #725736;
+        font-size: 11px;
+        font-weight: 1000;
+        letter-spacing: 0.06em;
+        text-align: center;
+        text-transform: uppercase;
+      }
       .calendar-day {
         min-height: 122px;
         border: 1px solid rgba(92, 55, 18, 0.18);
@@ -2339,63 +2353,94 @@ export function kellaDashboardHtml() {
           overflow: visible;
         }
         .shell > aside {
-          position: sticky;
+          position: fixed;
           top: 0;
-          z-index: 20;
-          min-height: auto;
-          padding: 10px 12px 11px;
-          border-right: 0;
-          border-bottom: 1px solid rgba(255, 214, 90, 0.28);
+          bottom: 0;
+          left: 0;
+          z-index: 60;
+          width: min(82vw, 310px);
+          height: 100dvh;
+          max-height: 100dvh;
+          min-height: 100dvh;
+          overflow-y: auto;
+          padding: 18px 14px;
+          border-right: 1px solid rgba(255, 214, 90, 0.34);
+          transform: translateX(-105%);
+          transition: transform 220ms ease;
+          box-shadow: 22px 0 54px rgba(0, 0, 0, 0.42);
         }
-        .brand { margin-bottom: 10px; padding: 0 2px; }
+        .shell > aside.open { transform: translateX(0); }
+        .mobile-nav-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 55;
+          border: 0;
+          background: rgba(13, 8, 4, 0.58);
+          backdrop-filter: blur(3px);
+        }
+        .mobile-nav-backdrop.open { display: block; }
+        .brand { margin-bottom: 18px; padding: 0 2px; }
         .brand-logo { width: 42px; height: 42px; border-radius: 50%; }
         .brand strong { font-size: 14px; }
         .brand span { font-size: 10px; }
         nav {
-          display: flex;
-          gap: 8px;
-          overflow-x: auto;
-          padding: 2px 2px 7px;
-          margin: 0 -2px;
-          scroll-snap-type: x proximity;
-          -webkit-overflow-scrolling: touch;
+          display: grid;
+          gap: 7px;
+          overflow-y: auto;
+          padding: 0 2px 18px;
         }
         nav a {
-          flex: 0 0 auto;
-          min-height: 42px;
-          max-width: 172px;
-          padding: 8px 10px;
-          font-size: 13px;
-          scroll-snap-align: start;
+          width: 100%;
+          min-height: 48px;
+          max-width: none;
+          padding: 9px 11px;
+          font-size: 14px;
         }
-        nav a.active, nav a:hover { transform: translateY(-1px); }
+        nav a.active, nav a:hover { transform: translateX(2px); }
         .nav-icon { width: 26px; height: 26px; }
         .side-spacer, .side-footer { display: none; }
         .content { padding: 18px 12px 92px; }
-        .hero, .topbar { grid-template-columns: 1fr; display: grid; align-items: start; }
+        .hero { grid-template-columns: 1fr; display: grid; align-items: start; }
         .topbar {
           position: sticky;
-          top: 112px;
-          z-index: 18;
-          padding: 12px;
-          gap: 12px;
+          top: 0;
+          z-index: 40;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          min-height: 64px;
+          padding: 8px 10px;
+          gap: 8px;
           box-shadow: 0 8px 20px rgba(67, 37, 10, 0.12);
         }
-        .guild { gap: 10px; }
+        .guild { gap: 8px; flex: 1 1 auto; }
+        .mobile-nav-toggle {
+          width: 42px;
+          height: 42px;
+          flex: 0 0 42px;
+          display: grid;
+          place-items: center;
+          border: 1px solid rgba(109, 69, 25, 0.30);
+          border-radius: 10px;
+          background: rgba(255, 244, 205, 0.78);
+          color: #3b220c;
+          font-size: 22px;
+          line-height: 1;
+        }
         .guild .avatar-img { width: 40px; height: 40px; }
+        .guild .muted { display: none; }
         h1 { font-size: 21px; line-height: 1.05; }
         h2 { font-size: 28px; line-height: 1.08; }
         h3 { font-size: 18px; }
         .hero { gap: 13px; margin-bottom: 18px; }
         .hero p { line-height: 1.5; }
-        .top-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .top-actions .server-clock { flex: 1 1 100%; justify-items: start; }
-        .top-actions .server-clock,
-        .auth-pill { grid-column: 1 / -1; width: 100%; justify-items: start; }
-        .top-actions .auth-button,
-        .profile-top-button { width: 100%; min-width: 0; justify-content: center; }
-        .profile-top-button { padding-right: 9px; }
-        .profile-top-button em { white-space: normal; }
+        .top-actions { width: auto; flex: 0 0 auto; display: flex; gap: 6px; }
+        .top-actions .server-clock, .auth-pill, [data-profile-button] { display: none !important; }
+        .top-actions .auth-button, .profile-top-button { width: auto; min-width: 42px; min-height: 42px; justify-content: center; }
+        .feedback-top-button { min-width: 42px; padding: 4px; }
+        .feedback-top-button img { width: 30px; height: 30px; }
+        .feedback-top-button span { display: none; }
+        [data-auth-login], [data-auth-logout] { padding: 0 10px; }
         .toolbar { width: 100%; gap: 8px; }
         .toolbar > button,
         .toolbar > a,
@@ -2410,11 +2455,18 @@ export function kellaDashboardHtml() {
         .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row, .command-board, .power-trend-row, .power-history-list, .interactive-chart, .attendance-summary-grid, .optional-link-button-fields { grid-template-columns: 1fr; }
         .upload-comparison-row { grid-template-columns: 1fr 1fr; }
         .trend-pill { justify-self: stretch; }
-        .calendar-grid { grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 8px; }
-        .calendar-day { min-height: 128px; padding: 9px; }
+        .calendar-weekdays { gap: 3px; margin-bottom: 5px; font-size: 10px; }
+        .calendar-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+        .calendar-day { min-height: 68px; padding: 5px 3px; border-radius: 8px; gap: 3px; text-align: center; }
         .event-calendar .calendar-day,
-        .attendance-calendar-card .event-calendar .calendar-day { min-height: 142px; }
-        .calendar-entry { white-space: normal; }
+        .attendance-calendar-card .event-calendar .calendar-day { min-height: 68px; }
+        .calendar-day-top { justify-content: center; }
+        .calendar-day strong { font-size: 15px; }
+        .calendar-day em { display: none; }
+        .calendar-day-list { display: flex; justify-content: center; align-items: center; gap: 3px; overflow: hidden; }
+        .calendar-entry { width: 6px; height: 6px; min-width: 6px; border: 0; border-radius: 50%; padding: 0; background: #b3262f; color: transparent; font-size: 0; }
+        .calendar-entry small, .calendar-empty { display: none; }
+        .calendar-more { font-size: 9px; line-height: 1; }
         .metric-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
         .metric-button { min-height: 36px; padding: 5px 6px; font-size: 9px; }
         table { min-width: 680px; }
@@ -2442,17 +2494,16 @@ export function kellaDashboardHtml() {
         .kofi-tip { right: 14px; bottom: 14px; padding: 9px 13px 9px 9px; }
       }
       @media (max-width: 520px) {
-        .shell > aside { padding: 9px 10px 10px; }
-        .topbar { top: 105px; }
-        .top-actions { grid-template-columns: 1fr; }
+        .shell > aside { padding: 16px 12px; }
+        .topbar { top: 0; }
         .profile-top-button, .auth-button { min-height: 42px; }
         .stats, .quick-grid { gap: 10px; }
         .stat strong { font-size: 23px; }
         .overview-panel { min-height: 220px; padding: 17px; }
-        .calendar-grid { grid-template-columns: 1fr; }
+        .calendar-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
         .calendar-day,
         .event-calendar .calendar-day,
-        .attendance-calendar-card .event-calendar .calendar-day { min-height: 116px; }
+        .attendance-calendar-card .event-calendar .calendar-day { min-height: 58px; }
         .metric-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .member-cell { min-width: 190px; }
         table { min-width: 620px; }
@@ -2486,6 +2537,7 @@ export function kellaDashboardHtml() {
       <main>
         <header class="topbar">
           <div class="guild">
+            <button class="mobile-nav-toggle" type="button" data-mobile-nav-toggle aria-label="Open navigation" aria-expanded="false">☰</button>
             <img class="avatar-img" id="guildAvatar" src="/assets/kella-logo.png?v=1" alt="Kella logo" />
             <div>
               <h1 id="guildName">Kella</h1>
@@ -2509,6 +2561,7 @@ export function kellaDashboardHtml() {
         </div>
       </main>
     </div>
+    <button class="mobile-nav-backdrop" type="button" data-mobile-nav-close aria-label="Close navigation"></button>
     <div id="memberModal" class="member-modal" aria-hidden="true">
       <div class="member-modal-backdrop" data-member-modal-close></div>
       <section class="member-modal-panel" role="dialog" aria-modal="true" aria-labelledby="memberModalTitle">
@@ -3431,7 +3484,7 @@ export function kellaDashboardHtml() {
 
       function calendarDetailCard(item) {
         const eventActions = item.eventId
-          ? '<p><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(item.eventId) + '">View Attendance</button>' + (hasAdminAccess() ? '<button class="danger" type="button" data-action="delete-event" data-event-id="' + escapeHtml(item.eventId) + '" style="margin-left:8px">Delete Event</button>' : '') + '</p>'
+          ? (hasAdminAccess() ? '<p><button class="danger" type="button" data-action="delete-event" data-event-id="' + escapeHtml(item.eventId) + '">Delete Event</button></p>' : '')
           : '';
         return '<article class="calendar-detail-card">' +
           '<span class="badge warn">' + escapeHtml(item.kind || "Detail") + '</span>' +
@@ -3470,7 +3523,7 @@ export function kellaDashboardHtml() {
         if (!events.length) return "";
         return '<div class="calendar-detail-list">' +
           events.map(function(event) {
-            return '<article class="calendar-detail-card"><div class="card-header"><div><span class="badge warn">Event</span><h3>' + escapeHtml(event.title || "Alliance Event") + '</h3><span class="activity-time">' + formatUtcDateTime(event.startsAt) + '</span></div><div class="toolbar"><button class="secondary" type="button" data-link-button="/attendance/' + escapeHtml(event.id || "") + '">Full View</button>' + (hasAdminAccess() ? '<button class="danger" type="button" data-action="delete-event" data-event-id="' + escapeHtml(event.id || "") + '">Delete</button>' : '') + '</div></div><p>' + escapeHtml(event.description || "No description added.") + '</p>' + renderAttendanceGroups(event) + '</article>';
+            return '<article class="calendar-detail-card"><div class="card-header"><div><span class="badge warn">Event</span><h3>' + escapeHtml(event.title || "Alliance Event") + '</h3><span class="activity-time">' + formatUtcDateTime(event.startsAt) + '</span></div>' + (hasAdminAccess() ? '<div class="toolbar"><button class="danger" type="button" data-action="delete-event" data-event-id="' + escapeHtml(event.id || "") + '">Delete</button></div>' : '') + '</div><p>' + escapeHtml(event.description || "No description added.") + '</p>' + renderAttendanceGroups(event) + '</article>';
           }).join("") +
         '</div>';
       }
@@ -3879,7 +3932,8 @@ export function kellaDashboardHtml() {
       }
 
       function renderEventsCalendar(events) {
-        return '<div class="calendar-grid event-calendar">' + currentMonthDays().map(function(date) {
+        const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        return '<div class="calendar-weekdays" aria-hidden="true">' + weekdays.map(function(day) { return '<span>' + day + '</span>'; }).join("") + '</div><div class="calendar-grid event-calendar">' + currentMonthDays().map(function(date) {
           const key = dayKey(date);
           return renderCalendarCell(date, "events", eventsForDay(events, key).map(eventDetailItem));
         }).join("") + '</div>';
@@ -4862,8 +4916,8 @@ export function kellaDashboardHtml() {
           ? '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-link-button="/tools">Open Tools</button>'
           : "";
         const eventActions = hasAdminAccess()
-          ? '<button class="secondary" data-link-button="/attendance">Attendance</button><button class="primary" data-link-button="/tools">Create Event</button>'
-          : '<button class="secondary" data-link-button="/attendance">Attendance</button>';
+          ? '<button class="primary" data-link-button="/tools">Create Event</button>'
+          : '';
         app.innerHTML =
           pageHeader("Dashboard", "A cleaner command room for events, power, and member activity.", dashboardActions) +
           '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events. Click any day to view event attendance.</span></div><div class="toolbar">' + eventActions + '</div></div>' + renderEventsCalendar(events) + '</section>' +
@@ -6001,10 +6055,40 @@ export function kellaDashboardHtml() {
 
       function navigate(path) {
         history.pushState({}, "", path);
+        closeMobileNav();
         route();
       }
 
+      function closeMobileNav() {
+        const sidebar = document.querySelector(".sidebar");
+        const backdrop = document.querySelector("[data-mobile-nav-close]");
+        const toggle = document.querySelector("[data-mobile-nav-toggle]");
+        sidebar?.classList.remove("open");
+        backdrop?.classList.remove("open");
+        toggle?.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("mobile-nav-open");
+      }
+
+      function toggleMobileNav() {
+        const sidebar = document.querySelector(".sidebar");
+        const backdrop = document.querySelector("[data-mobile-nav-close]");
+        const toggle = document.querySelector("[data-mobile-nav-toggle]");
+        const opening = !sidebar?.classList.contains("open");
+        sidebar?.classList.toggle("open", opening);
+        backdrop?.classList.toggle("open", opening);
+        toggle?.setAttribute("aria-expanded", String(opening));
+        document.body.classList.toggle("mobile-nav-open", opening);
+      }
+
       document.addEventListener("click", function(event) {
+        if (event.target.closest("[data-mobile-nav-toggle]")) {
+          toggleMobileNav();
+          return;
+        }
+        if (event.target.closest("[data-mobile-nav-close]")) {
+          closeMobileNav();
+          return;
+        }
         const modalClose = event.target.closest("[data-member-modal-close]");
         if (modalClose) {
           closeMemberModal();
