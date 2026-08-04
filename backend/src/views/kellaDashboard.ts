@@ -1728,7 +1728,7 @@ export function kellaDashboardHtml() {
         margin-top: 18px;
         border: 1px solid rgba(106, 63, 20, 0.24);
         border-radius: 12px;
-        padding: 16px;
+        padding: clamp(14px, 3vw, 22px);
         background:
           radial-gradient(circle at 50% 42%, rgba(255, 201, 111, 0.30), transparent 48%),
           linear-gradient(180deg, rgba(255, 244, 207, 0.84), rgba(237, 203, 137, 0.72));
@@ -1737,7 +1737,7 @@ export function kellaDashboardHtml() {
       .profile-season-head { text-align: center; margin-bottom: 6px; }
       .profile-season-head h4 { margin: 0; font-size: 20px; }
       .profile-season-head p { margin: 3px 0 0; color: #76532f; font-size: 12px; font-weight: 800; }
-      .profile-radar { display: block; width: min(100%, 520px); height: auto; margin: 0 auto; overflow: visible; }
+      .profile-radar { display: block; width: min(100%, 640px); height: auto; margin: 2px auto 0; overflow: visible; }
       .radar-ring { fill: none; stroke: rgba(112, 72, 31, 0.22); stroke-width: 1; }
       .radar-axis { stroke: rgba(112, 72, 31, 0.22); stroke-width: 1; }
       .radar-area { fill: rgba(255, 91, 67, 0.57); stroke: #e65e40; stroke-width: 2.5; }
@@ -1748,9 +1748,12 @@ export function kellaDashboardHtml() {
       .profile-radar-controls { display: grid; gap: 10px; margin-top: 10px; }
       .profile-radar-controls details { margin: 0; }
       .profile-radar-controls .metric-picker { padding-top: 2px; }
-      .profile-radar-dates { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
-      .profile-radar-date { min-height: 30px; border-radius: 999px; padding: 5px 10px; font-size: 10px; font-weight: 900; }
-      .profile-radar-date.active { background: linear-gradient(180deg, #ffec83, #c6791a); color: #201006; }
+      .profile-radar-snapshots { display: grid; gap: 7px; min-width: 0; }
+      .profile-radar-snapshots-label { color: #76532f; font-size: 10px; font-weight: 900; letter-spacing: 0.08em; text-align: center; text-transform: uppercase; }
+      .profile-radar-dates { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; min-width: 0; }
+      .profile-radar-date { flex: 0 0 auto; min-width: 54px; min-height: 34px; border-radius: 999px; padding: 6px 11px; font-size: 10px; font-weight: 900; cursor: pointer; pointer-events: auto; touch-action: manipulation; }
+      .profile-radar-date:hover, .profile-radar-date:focus-visible { border-color: #bd7618; box-shadow: 0 5px 12px rgba(115, 67, 15, 0.18); outline: none; }
+      .profile-radar-date.active { background: linear-gradient(180deg, #ffec83, #c6791a); border-color: #a85f0d; color: #201006; box-shadow: 0 0 0 2px rgba(255, 237, 137, 0.7), 0 6px 14px rgba(116, 67, 13, 0.24); }
       .profile-edit-button { margin-top: 9px; min-height: 30px; padding: 5px 11px; font-size: 11px; }
       .admin-profile-editor { position: fixed; inset: 0; z-index: 4; display: none; align-items: center; justify-content: center; padding: 24px; }
       .admin-profile-editor.open { display: flex; }
@@ -2603,6 +2606,14 @@ export function kellaDashboardHtml() {
         .member-modal-panel { width: 100%; max-height: calc(100vh - 24px); border-radius: 14px 14px 0 0; padding: 18px; }
         .member-profile-hero { grid-template-columns: 1fr; text-align: center; padding-right: 0; justify-items: center; }
         .profile-stats { grid-template-columns: 1fr; }
+        .profile-season-card { margin-inline: -4px; padding: 14px 10px; }
+        .profile-season-head h4 { font-size: 19px; }
+        .profile-radar { width: 100%; max-width: 520px; }
+        .radar-label { font-size: 12px; }
+        .radar-value { font-size: 9px; }
+        .profile-radar-snapshots-label { text-align: left; padding-left: 2px; }
+        .profile-radar-dates { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; padding: 3px 2px 9px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+        .profile-radar-date { min-width: 58px; min-height: 38px; scroll-snap-align: start; }
         .modal-close { top: 10px; right: 10px; }
         .wiki-builder-toolbar .muted { flex-basis: 100%; }
         .wiki-search-row { grid-template-columns: 1fr; }
@@ -2707,7 +2718,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1 };
+      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1 };
       const WIKI_CUSTOM_IMAGE_KEY = "kellaWikiCustomImages";
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
@@ -3444,10 +3455,10 @@ export function kellaDashboardHtml() {
         const availableDates = profileRadarDateOptions(member);
         const selectedDate = state.profileRadarDates[memberId] || availableDates[availableDates.length - 1] || "";
         const roster = allRosterMembers().filter(isAllowedStatsAlliance);
-        const centerX = 260;
-        const centerY = 170;
-        const radius = 112;
-        const labelRadius = 148;
+        const centerX = 280;
+        const centerY = 190;
+        const radius = axes.length > 7 ? 122 : 138;
+        const labelRadius = axes.length > 7 ? 164 : 178;
         const angleFor = function(index) { return -Math.PI / 2 + (Math.PI * 2 * index) / axes.length; };
         const pointAt = function(distance, index) {
           const angle = angleFor(index);
@@ -3491,12 +3502,12 @@ export function kellaDashboardHtml() {
           return '<button class="metric-button ' + (selected ? "active" : "") + '" type="button" data-action="toggle-profile-radar-metric" data-member-id="' + escapeHtml(memberId) + '" data-metric="' + escapeHtml(option.key) + '">' + escapeHtml(option.label) + '</button>';
         }).join("");
         const dateButtons = availableDates.map(function(date) {
-          return '<button class="secondary profile-radar-date ' + (date === selectedDate ? "active" : "") + '" type="button" data-action="set-profile-radar-date" data-member-id="' + escapeHtml(memberId) + '" data-radar-date="' + escapeHtml(date) + '">' + escapeHtml(compactDate(new Date(date + "T00:00:00Z"))) + '</button>';
+          return '<button class="secondary profile-radar-date ' + (date === selectedDate ? "active" : "") + '" type="button" data-action="set-profile-radar-date" data-member-id="' + escapeHtml(memberId) + '" data-radar-date="' + escapeHtml(date) + '" aria-pressed="' + String(date === selectedDate) + '" title="Show stats from ' + escapeHtml(formatDate(new Date(date + "T00:00:00Z"))) + '">' + escapeHtml(compactDate(new Date(date + "T00:00:00Z"))) + '</button>';
         }).join("");
         return '<section class="profile-season-card"><div class="profile-season-head"><h4>Current Season</h4><p>' + escapeHtml(selectedDate ? "Roster snapshot " + formatDate(new Date(selectedDate + "T00:00:00Z")) : "Compared with the current alliance roster") + '</p></div>' +
-          '<svg class="profile-radar" viewBox="0 0 520 340" role="img" aria-label="Current season player statistics radar chart">' + rings + spokes + '<polygon class="radar-area" points="' + areaPoints.join(' ') + '"></polygon>' + dots + labels + '</svg>' +
+          '<svg class="profile-radar" viewBox="0 0 560 380" role="img" aria-label="Current season player statistics radar chart">' + rings + spokes + '<polygon class="radar-area" points="' + areaPoints.join(' ') + '"></polygon>' + dots + labels + '</svg>' +
           '<div class="profile-radar-controls"><details class="metric-selector"><summary><span class="metric-selector-label">Radar stats</span><span class="metric-selector-value">' + axes.length + ' selected</span></summary><div class="metric-picker">' + metricButtons + '</div></details>' +
-          (dateButtons ? '<div class="profile-radar-dates" aria-label="Choose roster snapshot date">' + dateButtons + '</div>' : '') + '</div></section>';
+          (dateButtons ? '<div class="profile-radar-snapshots"><span class="profile-radar-snapshots-label">Roster snapshot</span><div class="profile-radar-dates" aria-label="Choose roster snapshot date">' + dateButtons + '</div></div>' : '') + '</div></section>';
       }
 
       function memberPowerChart(member) {
@@ -3660,6 +3671,7 @@ export function kellaDashboardHtml() {
 
       function openMemberModal(member) {
         if (!member || !memberModal || !memberModalContent) return;
+        state.openMember = member;
         memberModalContent.dataset.memberId = member.id || "";
         const displayName = memberDisplayName(member);
         const gameName = member.ign || displayName;
@@ -6724,7 +6736,7 @@ export function kellaDashboardHtml() {
         if (kind === "toggle-profile-radar-metric") {
           const memberId = action.getAttribute("data-member-id") || "";
           const metricKey = action.getAttribute("data-metric") || "";
-          const member = findMemberById(memberId) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
+          const member = findMemberById(memberId) || (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
           if (!member || !statMetricOptions.some(function(metric) { return metric.key === metricKey; })) return;
           const selected = profileRadarMetrics(member).slice();
           const index = selected.indexOf(metricKey);
@@ -6755,7 +6767,7 @@ export function kellaDashboardHtml() {
         if (kind === "set-profile-radar-date") {
           const memberId = action.getAttribute("data-member-id") || "";
           const date = action.getAttribute("data-radar-date") || "";
-          const member = findMemberById(memberId) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
+          const member = findMemberById(memberId) || (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
           if (!member || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
           state.profileRadarDates[String(member.id || "profile")] = date;
           if (memberModal?.classList.contains("open")) openMemberModal(member);
