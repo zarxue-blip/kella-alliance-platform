@@ -3129,7 +3129,9 @@ export function kellaDashboardHtml() {
 
       function allRosterMembers() {
         const byId = new Map();
-        (state.allMembers || []).concat(state.members || [], state.dashboardMembers || []).forEach(function(member) {
+        // Compact dashboard rows intentionally omit most history. Add them first so
+        // full member/profile responses replace them when the same player exists.
+        (state.dashboardMembers || []).concat(state.members || [], state.allMembers || [], state.profile ? [state.profile] : []).forEach(function(member) {
           if (member?.id) byId.set(String(member.id), member);
         });
         return Array.from(byId.values());
@@ -3456,9 +3458,9 @@ export function kellaDashboardHtml() {
         const selectedDate = state.profileRadarDates[memberId] || availableDates[availableDates.length - 1] || "";
         const roster = allRosterMembers().filter(isAllowedStatsAlliance);
         const centerX = 280;
-        const centerY = 190;
-        const radius = axes.length > 7 ? 122 : 138;
-        const labelRadius = axes.length > 7 ? 164 : 178;
+        const centerY = 174;
+        const radius = axes.length > 7 ? 112 : 126;
+        const labelRadius = axes.length > 7 ? 148 : 160;
         const angleFor = function(index) { return -Math.PI / 2 + (Math.PI * 2 * index) / axes.length; };
         const pointAt = function(distance, index) {
           const angle = angleFor(index);
@@ -3505,7 +3507,7 @@ export function kellaDashboardHtml() {
           return '<button class="secondary profile-radar-date ' + (date === selectedDate ? "active" : "") + '" type="button" data-action="set-profile-radar-date" data-member-id="' + escapeHtml(memberId) + '" data-radar-date="' + escapeHtml(date) + '" aria-pressed="' + String(date === selectedDate) + '" title="Show stats from ' + escapeHtml(formatDate(new Date(date + "T00:00:00Z"))) + '">' + escapeHtml(compactDate(new Date(date + "T00:00:00Z"))) + '</button>';
         }).join("");
         return '<section class="profile-season-card"><div class="profile-season-head"><h4>Current Season</h4><p>' + escapeHtml(selectedDate ? "Roster snapshot " + formatDate(new Date(selectedDate + "T00:00:00Z")) : "Compared with the current alliance roster") + '</p></div>' +
-          '<svg class="profile-radar" viewBox="0 0 560 380" role="img" aria-label="Current season player statistics radar chart">' + rings + spokes + '<polygon class="radar-area" points="' + areaPoints.join(' ') + '"></polygon>' + dots + labels + '</svg>' +
+          '<svg class="profile-radar" viewBox="0 0 560 348" role="img" aria-label="Current season player statistics radar chart">' + rings + spokes + '<polygon class="radar-area" points="' + areaPoints.join(' ') + '"></polygon>' + dots + labels + '</svg>' +
           '<div class="profile-radar-controls"><details class="metric-selector"><summary><span class="metric-selector-label">Radar stats</span><span class="metric-selector-value">' + axes.length + ' selected</span></summary><div class="metric-picker">' + metricButtons + '</div></details>' +
           (dateButtons ? '<div class="profile-radar-snapshots"><span class="profile-radar-snapshots-label">Roster snapshot</span><div class="profile-radar-dates" aria-label="Choose roster snapshot date">' + dateButtons + '</div></div>' : '') + '</div></section>';
       }
