@@ -544,7 +544,7 @@ export function kellaDashboardHtml() {
       .wiki-search-row input {
         width: 100%;
         min-height: 46px;
-        border-radius: 50%;
+        border-radius: 8px;
         border: 1px solid rgba(121, 82, 33, 0.32);
         background: rgba(255, 248, 221, 0.78);
         color: #2f1b09;
@@ -4372,24 +4372,38 @@ export function kellaDashboardHtml() {
       function wikiSearchText(page) {
         const blockText = Array.isArray(page?.blocks)
           ? page.blocks.map(function(block) {
-              return [block.text, block.label, block.caption].filter(Boolean).join(" ");
+              return [block.text, block.richTextHtml, block.label, block.caption].filter(Boolean).join(" ");
             }).join(" ")
           : "";
-        return [
+        return normalizeWikiSearchText([
           page?.title,
           page?.body,
+          page?.richTextHtml,
           page?.author,
+          page?.createdBy,
+          page?.slug,
           wikiExcerpt(page),
           blockText,
           page?.status
-        ].filter(Boolean).join(" ").toLowerCase();
+        ].filter(Boolean).join(" "));
+      }
+
+      function normalizeWikiSearchText(value) {
+        return String(value || "")
+          .replace(/<[^>]*>/g, " ")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, " ")
+          .trim();
       }
 
       function filteredWikiPages(pages, query) {
-        const term = String(query || "").trim().toLowerCase();
-        if (!term) return pages || [];
+        const terms = normalizeWikiSearchText(query).split(" ").filter(Boolean);
+        if (!terms.length) return pages || [];
         return (pages || []).filter(function(page) {
-          return wikiSearchText(page).includes(term);
+          const searchable = wikiSearchText(page);
+          return terms.every(function(term) { return searchable.includes(term); });
         });
       }
 
@@ -4409,7 +4423,7 @@ export function kellaDashboardHtml() {
         const query = state.wikiSearch || "";
         return '<section class="card wiki-search-card">' +
           '<div class="wiki-search-row">' +
-            '<input data-wiki-search value="' + escapeHtml(query) + '" placeholder="Search wiki guides, events, rules, heroes..." aria-label="Search wiki pages" />' +
+            '<input type="search" data-wiki-search value="' + escapeHtml(query) + '" placeholder="Search wiki guides, events, rules, heroes..." aria-label="Search wiki pages" autocomplete="off" spellcheck="false" />' +
             '<span class="wiki-search-count" data-wiki-search-count>' + escapeHtml(wikiSearchCountText(pages, query)) + '</span>' +
           '</div>' +
         '</section>' +
