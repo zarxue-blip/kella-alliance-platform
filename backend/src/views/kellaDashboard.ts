@@ -603,6 +603,8 @@ export function kellaDashboardHtml() {
       }
       .wiki-canvas-wrap {
         overflow: auto;
+        scrollbar-gutter: stable both-edges;
+        box-sizing: border-box;
         border-radius: 18px;
         width: min(850px, 100%);
         max-height: min(1080px, calc(100vh - 300px));
@@ -641,6 +643,8 @@ export function kellaDashboardHtml() {
         min-height: 240px;
         overflow-x: auto;
         overflow-y: hidden;
+        scrollbar-gutter: stable both-edges;
+        box-sizing: border-box;
         overscroll-behavior-x: contain;
         overscroll-behavior-y: auto;
         touch-action: pan-y pinch-zoom;
