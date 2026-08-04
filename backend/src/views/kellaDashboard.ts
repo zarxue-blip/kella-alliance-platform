@@ -1724,6 +1724,30 @@ export function kellaDashboardHtml() {
         color: #201006;
         box-shadow: 0 0 18px rgba(255, 214, 90, 0.36), inset 0 1px 0 rgba(255,255,255,0.55);
       }
+      .profile-season-card {
+        margin-top: 18px;
+        border: 1px solid rgba(106, 63, 20, 0.24);
+        border-radius: 12px;
+        padding: 16px;
+        background:
+          radial-gradient(circle at 50% 42%, rgba(255, 201, 111, 0.30), transparent 48%),
+          linear-gradient(180deg, rgba(255, 244, 207, 0.84), rgba(237, 203, 137, 0.72));
+        overflow: hidden;
+      }
+      .profile-season-head { text-align: center; margin-bottom: 6px; }
+      .profile-season-head h4 { margin: 0; font-size: 20px; }
+      .profile-season-head p { margin: 3px 0 0; color: #76532f; font-size: 12px; font-weight: 800; }
+      .profile-radar { display: block; width: min(100%, 520px); height: auto; margin: 0 auto; overflow: visible; }
+      .radar-ring { fill: none; stroke: rgba(112, 72, 31, 0.22); stroke-width: 1; }
+      .radar-axis { stroke: rgba(112, 72, 31, 0.22); stroke-width: 1; }
+      .radar-area { fill: rgba(255, 91, 67, 0.57); stroke: #e65e40; stroke-width: 2.5; }
+      .radar-dot { fill: #ff7658; stroke: #fff0c7; stroke-width: 2; }
+      .radar-label { fill: #604523; font-size: 13px; font-weight: 900; }
+      .radar-value { fill: #9a4b28; font-size: 10px; font-weight: 900; }
+      .profile-ranking-details { margin-top: 14px; }
+      .profile-ranking-details > summary { min-height: 44px; }
+      .profile-ranking-body { padding: 0 12px 14px; }
+      .profile-ranking-body .metric-selector { margin-top: 2px; }
       .power-list { display: grid; gap: 12px; }
       .power-trend-row {
         width: 100%;
@@ -3367,14 +3391,80 @@ export function kellaDashboardHtml() {
         return statTrendMeta(history.map(function(point) { return { date: point.date, value: point.power }; }));
       }
 
+      function memberMetricValue(member, metricKey) {
+        if (metricKey === "power") return currentPowerValue(member);
+        return Number(latestStatPoint(member, metricKey).value || 0);
+      }
+
+      function memberSeasonRadar(member) {
+        const axes = [
+          { key: "merits", label: "Merits" },
+          { key: "behemothRaidWins", label: "Behemoths" },
+          { key: "resourcesGathered", label: "Gathering" },
+          { key: "honourKills", label: "Peacekeeping" },
+          { key: "unitsHealed", label: "Healing" },
+          { key: "buildingPower", label: "Engineering" }
+        ];
+        const roster = allRosterMembers().filter(isAllowedStatsAlliance);
+        const centerX = 260;
+        const centerY = 170;
+        const radius = 112;
+        const labelRadius = 148;
+        const angleFor = function(index) { return -Math.PI / 2 + (Math.PI * 2 * index) / axes.length; };
+        const pointAt = function(distance, index) {
+          const angle = angleFor(index);
+          return { x: centerX + Math.cos(angle) * distance, y: centerY + Math.sin(angle) * distance };
+        };
+        const maxima = axes.map(function(axis) {
+          return Math.max(1, ...roster.map(function(item) { return memberMetricValue(item, axis.key); }));
+        });
+        const values = axes.map(function(axis) { return memberMetricValue(member, axis.key); });
+        const scores = values.map(function(value, index) {
+          return Math.max(0.08, Math.min(1, value / maxima[index]));
+        });
+        const rings = [0.25, 0.5, 0.75, 1].map(function(scale) {
+          return '<polygon class="radar-ring" points="' + axes.map(function(_axis, index) {
+            const point = pointAt(radius * scale, index);
+            return point.x.toFixed(1) + ',' + point.y.toFixed(1);
+          }).join(' ') + '"></polygon>';
+        }).join('');
+        const spokes = axes.map(function(_axis, index) {
+          const point = pointAt(radius, index);
+          return '<line class="radar-axis" x1="' + centerX + '" y1="' + centerY + '" x2="' + point.x.toFixed(1) + '" y2="' + point.y.toFixed(1) + '"></line>';
+        }).join('');
+        const areaPoints = axes.map(function(_axis, index) {
+          const point = pointAt(radius * scores[index], index);
+          return point.x.toFixed(1) + ',' + point.y.toFixed(1);
+        });
+        const dots = areaPoints.map(function(point) {
+          const parts = point.split(',');
+          return '<circle class="radar-dot" cx="' + parts[0] + '" cy="' + parts[1] + '" r="4"></circle>';
+        }).join('');
+        const labels = axes.map(function(axis, index) {
+          const point = pointAt(labelRadius, index);
+          const anchor = Math.abs(point.x - centerX) < 20 ? 'middle' : point.x < centerX ? 'end' : 'start';
+          const valueY = point.y + (point.y < centerY ? 13 : -13);
+          return '<text class="radar-label" x="' + point.x.toFixed(1) + '" y="' + point.y.toFixed(1) + '" text-anchor="' + anchor + '">' + escapeHtml(axis.label) + '</text>' +
+            '<text class="radar-value" x="' + point.x.toFixed(1) + '" y="' + valueY.toFixed(1) + '" text-anchor="' + anchor + '">' + escapeHtml(formatCompactNumber(values[index])) + '</text>';
+        }).join('');
+        return '<section class="profile-season-card"><div class="profile-season-head"><h4>Current Season</h4><p>Compared with the current alliance roster</p></div>' +
+          '<svg class="profile-radar" viewBox="0 0 520 340" role="img" aria-label="Current season player statistics radar chart">' + rings + spokes + '<polygon class="radar-area" points="' + areaPoints.join(' ') + '"></polygon>' + dots + labels + '</svg></section>';
+      }
+
       function memberPowerChart(member) {
         const metric = currentStatMetric();
         const history = normalizeStatHistory(member, metric.key);
         const delta = statDelta(member, metric.key);
-        return '<section class="member-power-chart"><div class="member-power-chart-head"><div><h4>' + escapeHtml(metric.label) + ' History</h4><p>' + escapeHtml(statTrendMeta(history)) + '</p></div><span class="trend-pill ' + trendClass(delta) + '">' + escapeHtml(formatDelta(delta)) + '</span></div>' +
-          statMetricPicker() +
-          interactiveStatChart(member, history, metric) +
-          '</section>';
+        return memberSeasonRadar(member) +
+          '<details class="metric-selector profile-ranking-details"><summary><span class="metric-selector-label">Ranking &amp; history</span><span class="metric-selector-value">' + escapeHtml(metric.label) + '</span></summary>' +
+            '<div class="profile-ranking-body"><div class="metric-picker" role="group" aria-label="Choose profile stat history">' + statMetricOptions.map(function(option) {
+              return '<button class="metric-button ' + (option.key === metric.key ? "active" : "") + '" type="button" data-action="set-stats-metric" data-metric="' + escapeHtml(option.key) + '">' + escapeHtml(option.label) + '</button>';
+            }).join("") + '</div>' +
+              '<section class="member-power-chart"><div class="member-power-chart-head"><div><h4>' + escapeHtml(metric.label) + ' History</h4><p>' + escapeHtml(statTrendMeta(history)) + '</p></div><span class="trend-pill ' + trendClass(delta) + '">' + escapeHtml(formatDelta(delta)) + '</span></div>' +
+                interactiveStatChart(member, history, metric) +
+              '</section>' +
+            '</div>' +
+          '</details>';
       }
 
       function accountRelationshipSection(member) {
