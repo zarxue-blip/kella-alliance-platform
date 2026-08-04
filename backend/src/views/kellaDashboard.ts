@@ -1600,11 +1600,57 @@ export function kellaDashboardHtml() {
         gap: 10px;
       }
       .alliance-stats-card { padding: 24px; }
+      .metric-selector {
+        margin: 0 0 16px;
+        border: 1px solid rgba(106, 63, 20, 0.22);
+        border-radius: 10px;
+        background: rgba(255, 247, 219, 0.48);
+        overflow: hidden;
+      }
+      .metric-selector summary {
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        color: #4d260f;
+        cursor: pointer;
+        list-style: none;
+        font-weight: 900;
+      }
+      .metric-selector summary::-webkit-details-marker { display: none; }
+      .metric-selector summary::after {
+        content: "+";
+        margin-left: auto;
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(198, 121, 26, 0.14);
+        font-size: 20px;
+        line-height: 1;
+      }
+      .metric-selector[open] summary::after { content: "−"; }
+      .metric-selector-label {
+        color: #76532f;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .metric-selector-value {
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #ffec83, #c6791a);
+        color: #201006;
+        font-size: 11px;
+        text-transform: uppercase;
+      }
       .metric-picker {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
         gap: 7px;
-        margin: 0 0 16px;
+        padding: 0 12px 12px;
       }
       .metric-button {
         min-height: 38px;
@@ -3141,9 +3187,10 @@ export function kellaDashboardHtml() {
       }
 
       function statMetricPicker() {
-        return '<div class="metric-picker" role="group" aria-label="Choose stat graph">' + statMetricOptions.map(function(metric) {
+        const selectedMetric = currentStatMetric();
+        return '<details class="metric-selector"><summary><span class="metric-selector-label">Ranking metric</span><span class="metric-selector-value">' + escapeHtml(selectedMetric.label) + '</span></summary><div class="metric-picker" role="group" aria-label="Choose stat graph">' + statMetricOptions.map(function(metric) {
           return '<button class="metric-button ' + (metric.key === currentStatMetric().key ? "active" : "") + '" type="button" data-action="set-stats-metric" data-metric="' + escapeHtml(metric.key) + '">' + escapeHtml(metric.label) + '</button>';
-        }).join("") + '</div>';
+        }).join("") + '</div></details>';
       }
 
       function sparklineSvg(history, height) {
@@ -4921,7 +4968,7 @@ export function kellaDashboardHtml() {
         app.innerHTML =
           pageHeader("Dashboard", "A cleaner command room for events, power, and member activity.", dashboardActions) +
           '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events. Click any day to view event attendance.</span></div><div class="toolbar">' + eventActions + '</div></div>' + renderEventsCalendar(events) + '</section>' +
-          '<section class="card alliance-stats-card"><div class="card-header"><div><h3>Alliance Stats</h3><span class="muted">Top 50 rows follow the stat button you choose. Power uses current Power from the uploaded Excel file.</span></div><button class="secondary" data-link-button="/members">Members</button></div>' + renderPowerBoard(members) + '</section>';
+          '<section class="card alliance-stats-card"><div class="card-header"><div><h3>Members Stats</h3><span class="muted">Top 50 ranking graph based on the selected stat from your latest roster uploads.</span></div></div>' + renderPowerBoard(members) + '</section>';
       }
 
       async function renderDashboard() {
