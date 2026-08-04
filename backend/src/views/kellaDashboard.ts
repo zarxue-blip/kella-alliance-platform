@@ -6436,6 +6436,19 @@ export function kellaDashboardHtml() {
           return;
         }
 
+        const radarDateAction = event.target.closest('[data-action="set-profile-radar-date"]');
+        if (radarDateAction) {
+          event.preventDefault();
+          const memberId = radarDateAction.getAttribute("data-member-id") || "";
+          const date = radarDateAction.getAttribute("data-radar-date") || "";
+          const member = (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || findMemberById(memberId) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
+          if (!member || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+          state.profileRadarDates[String(member.id || "profile")] = date;
+          if (memberModal?.classList.contains("open")) openMemberModal(member);
+          else if (location.pathname === "/profile") renderProfile();
+          return;
+        }
+
         const link = event.target.closest("[data-link]");
         if (link) {
           event.preventDefault();
@@ -6762,16 +6775,6 @@ export function kellaDashboardHtml() {
               app.querySelector(".profile-radar-controls details")?.setAttribute("open", "");
             });
           }
-          return;
-        }
-        if (kind === "set-profile-radar-date") {
-          const memberId = action.getAttribute("data-member-id") || "";
-          const date = action.getAttribute("data-radar-date") || "";
-          const member = findMemberById(memberId) || (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
-          if (!member || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
-          state.profileRadarDates[String(member.id || "profile")] = date;
-          if (memberModal?.classList.contains("open")) openMemberModal(member);
-          else if (location.pathname === "/profile") renderProfile();
           return;
         }
         if (kind === "set-stats-metric") {
