@@ -2534,6 +2534,7 @@ export function kellaDashboardHtml() {
           Fast tools for Roots, alerts, embeds, and officer reports.
         </div>
       </aside>
+      <button class="mobile-nav-backdrop" type="button" data-mobile-nav-close aria-label="Close navigation"></button>
       <main>
         <header class="topbar">
           <div class="guild">
@@ -2561,7 +2562,6 @@ export function kellaDashboardHtml() {
         </div>
       </main>
     </div>
-    <button class="mobile-nav-backdrop" type="button" data-mobile-nav-close aria-label="Close navigation"></button>
     <div id="memberModal" class="member-modal" aria-hidden="true">
       <div class="member-modal-backdrop" data-member-modal-close></div>
       <section class="member-modal-panel" role="dialog" aria-modal="true" aria-labelledby="memberModalTitle">
