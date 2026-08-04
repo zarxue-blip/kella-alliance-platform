@@ -13,7 +13,7 @@ export const wikiFontFamilies = [
 ] as const;
 export const wikiFontSizes = ["small", "medium", "large", "xlarge"] as const;
 export const wikiStatuses = ["Published", "Draft"] as const;
-export const wikiBlockTypes = ["text", "image"] as const;
+export const wikiBlockTypes = ["text", "image", "video"] as const;
 export const wikiAlignments = ["left", "center", "right"] as const;
 
 const wikiBlockSchema = new Schema(

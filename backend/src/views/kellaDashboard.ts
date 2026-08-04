@@ -748,6 +748,19 @@ export function kellaDashboardHtml() {
         pointer-events: none;
         box-shadow: 0 10px 24px rgba(68, 39, 13, 0.20);
       }
+      .wiki-video-block {
+        padding: 8px;
+        background: rgba(255, 246, 211, 0.28);
+      }
+      .wiki-video-block video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        border-radius: 10px;
+        background: #1f160d;
+        box-shadow: 0 10px 24px rgba(68, 39, 13, 0.20);
+      }
       .wiki-drag-handle,
       .wiki-resize-handle,
       .wiki-delete-block-button {
@@ -4081,9 +4094,9 @@ export function kellaDashboardHtml() {
       }
 
       function sanitizeWikiBlock(block) {
-        const type = block?.type === "image" ? "image" : "text";
-        const minWidth = type === "image" ? 24 : 80;
-        const minHeight = type === "image" ? 24 : 48;
+        const type = block?.type === "video" ? "video" : block?.type === "image" ? "image" : "text";
+        const minWidth = type === "text" ? 80 : 24;
+        const minHeight = type === "text" ? 48 : 24;
         const width = wikiClamp(block?.width, minWidth, WIKI_PAGE_WIDTH - 40);
         const height = wikiClamp(block?.height, minHeight, WIKI_MAX_PAGE_HEIGHT);
         const x = wikiClamp(block?.x, 0, WIKI_PAGE_WIDTH - width);
@@ -4141,7 +4154,7 @@ export function kellaDashboardHtml() {
       }
 
       function selectedWikiBlock() {
-        return state.wikiBlocks.find(function(block) { return String(block.id) === String(state.selectedWikiBlockId); }) || state.wikiBlocks[0] || null;
+        return state.wikiBlocks.find(function(block) { return String(block.id) === String(state.selectedWikiBlockId); }) || null;
       }
 
       function lastWikiTextBlock() {
@@ -4253,9 +4266,15 @@ export function kellaDashboardHtml() {
       function renderWikiBlockHtml(rawBlock, editable) {
         const block = sanitizeWikiBlock(rawBlock);
         const selected = editable && String(block.id) === String(state.selectedWikiBlockId);
-        const classes = "wiki-block " + (block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (selected ? " selected" : "");
+        const classes = "wiki-block " + (block.type === "video" ? "wiki-video-block" : block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (selected ? " selected" : "");
         const handles = wikiBlockHandlesHtml(editable, block.id);
         const addText = wikiInlineAddTextHtml(editable, block);
+        if (block.type === "video") {
+          const video = block.imageDataUrl
+            ? '<video src="' + escapeHtml(block.imageDataUrl) + '" controls preload="metadata"></video>'
+            : '<div class="empty">Choose a video.</div>';
+          return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + video + handles + '</div>';
+        }
         if (block.type === "image") {
           const image = block.imageDataUrl
             ? '<img src="' + escapeHtml(block.imageDataUrl) + '" alt="Wiki image" />'
@@ -4272,9 +4291,15 @@ export function kellaDashboardHtml() {
       function renderWikiBlockEditorHtml(rawBlock, editable) {
         const block = sanitizeWikiBlock(rawBlock);
         const selected = editable && String(block.id) === String(state.selectedWikiBlockId);
-        const classes = "wiki-block " + (block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (selected ? " selected" : "");
+        const classes = "wiki-block " + (block.type === "video" ? "wiki-video-block" : block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (selected ? " selected" : "");
         const handles = wikiBlockHandlesHtml(editable, block.id);
         const addText = wikiInlineAddTextHtml(editable, block);
+        if (block.type === "video") {
+          const video = block.imageDataUrl
+            ? '<video src="' + escapeHtml(block.imageDataUrl) + '" controls preload="metadata"></video>'
+            : '<div class="empty">Choose a video.</div>';
+          return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + video + handles + '</div>';
+        }
         if (block.type === "image") {
           const image = block.imageDataUrl
             ? '<img src="' + escapeHtml(block.imageDataUrl) + '" alt="Wiki image" />'
@@ -4483,7 +4508,7 @@ export function kellaDashboardHtml() {
             renderWikiAssetPickerHtml("Misc", wikiMiscImages, "misc") +
           '</div>' +
           '<div class="wiki-add-block-row">' +
-            '<button class="secondary" type="button" data-action="add-wiki-image">Add Picture</button>' +
+            '<button class="secondary" type="button" data-action="add-wiki-image">Upload Picture or Video</button>' +
           '</div>' +
         '</div>';
       }
@@ -4507,7 +4532,7 @@ export function kellaDashboardHtml() {
               '<label>Selection Size<select data-wiki-inline-style="fontSize"><option value="16">16</option><option value="18">18</option><option value="20">20</option><option value="24" selected>24</option><option value="28">28</option><option value="32">32</option><option value="36">36</option><option value="40">40</option><option value="48">48</option></select></label>' +
               '<label class="wiki-color-control">Selection Color<input class="wiki-color-wheel" type="color" data-wiki-inline-style="color" value="' + escapeHtml(block.color) + '" /></label>' +
             '</div></div>'
-          : '<div class="wiki-style-controls wiki-style-controls--picture"><button class="secondary" type="button" data-action="change-wiki-image">Change Picture</button></div>';
+          : '<div class="wiki-style-controls wiki-style-controls--picture"><button class="secondary" type="button" data-action="change-wiki-image">Change ' + (block.type === "video" ? "Video" : "Picture") + '</button></div>';
         return '<section class="wiki-inspector" data-wiki-inspector>' +
           '<div class="wiki-style-head"><h4>Style</h4></div>' +
           textControls +
@@ -4523,7 +4548,7 @@ export function kellaDashboardHtml() {
         return '<section class="card wiki-editor" data-wiki-editor>' +
           '<div class="card-header"><div><h3>' + title + '</h3></div><div class="toolbar"><button class="secondary" type="button" data-action="clear-wiki-form">New Page</button><button class="primary" type="button" data-action="save-wiki-page">' + (editing.id ? "Save Changes" : "Publish Wiki") + '</button></div></div>' +
           '<input type="hidden" data-wiki="id" value="' + escapeHtml(editing.id || "") + '" />' +
-          '<input type="file" data-wiki-block-image accept="image/png,image/jpeg,image/webp" style="display:none" />' +
+          '<input type="file" data-wiki-block-image accept="image/png,image/jpeg,image/webp,video/mp4,video/webm" style="display:none" />' +
           '<input type="file" data-wiki-stock-image accept="image/png,image/jpeg,image/webp" style="display:none" />' +
           '<div class="form-grid">' +
             '<label>Title<input data-wiki="title" maxlength="120" placeholder="Roots of War Guide" value="' + escapeHtml(editing.title || "") + '" /></label>' +
@@ -4560,8 +4585,11 @@ export function kellaDashboardHtml() {
       }
 
       async function readWikiImageFile(file) {
-        if (!/^image\\/(png|jpe?g|webp)$/i.test(file.type)) throw new Error("Wiki image must be PNG, JPG, or WEBP.");
-        if (file.size > 3 * 1024 * 1024) throw new Error("Wiki image is too large. Please use a picture under 3 MB.");
+        const isImage = /^image\\/(png|jpe?g|webp)$/i.test(file.type);
+        const isVideo = /^video\\/(mp4|webm)$/i.test(file.type);
+        if (!isImage && !isVideo) throw new Error("Wiki media must be PNG, JPG, WEBP, MP4, or WEBM.");
+        const maxSize = isVideo ? 6 * 1024 * 1024 : 3 * 1024 * 1024;
+        if (file.size > maxSize) throw new Error(isVideo ? "Wiki video is too large. Please use a video under 6 MB." : "Wiki image is too large. Please use a picture under 3 MB.");
         return "data:" + file.type + ";base64," + arrayBufferToBase64(await file.arrayBuffer());
       }
 
@@ -4826,9 +4854,10 @@ export function kellaDashboardHtml() {
       function insertWikiImageBlock(src, x, y) {
         if (!src) return;
         syncWikiTextFromDom();
+        const mediaType = /^data:video\\//i.test(src) ? "video" : "image";
         const block = sanitizeWikiBlock({
           id: wikiBlockId(),
-          type: "image",
+          type: mediaType,
           imageDataUrl: src,
           x: wikiClamp(Number.isFinite(x) ? x : 150, 0, WIKI_PAGE_WIDTH - 220),
           y: wikiClamp(Number.isFinite(y) ? y : 170 + (state.wikiBlocks.length * 24), 0, WIKI_MAX_PAGE_HEIGHT - 220),
@@ -6173,6 +6202,14 @@ export function kellaDashboardHtml() {
         if (!wikiAssetPicker) closeWikiAssetPanels();
 
         const wikiBlock = event.target.closest("[data-wiki-block]");
+        const wikiCanvas = event.target.closest("[data-wiki-canvas]");
+        if (!wikiBlock && wikiCanvas && document.querySelector("[data-wiki-editor]")) {
+          syncWikiTextFromDom();
+          state.selectedWikiBlockId = "";
+          state.wikiTextSelection = null;
+          refreshWikiBuilder();
+          return;
+        }
         if (wikiBlock && document.querySelector("[data-wiki-editor]")) {
           const wikiBlockIdValue = wikiBlock.getAttribute("data-wiki-block") || "";
           if (String(state.selectedWikiBlockId) !== String(wikiBlockIdValue)) {
@@ -6347,18 +6384,14 @@ export function kellaDashboardHtml() {
         }
         if (kind === "add-wiki-asset-image") {
           const src = action.getAttribute("data-wiki-asset-image") || "";
-          if (insertWikiInlineImage(src)) {
-            toast("Image inserted into the text box.", "success");
-          } else {
-            insertWikiImageBlock(src);
-            toast("Image added to the wiki page.", "success");
-          }
+          insertWikiImageBlock(src);
+          toast("Image added to the wiki canvas.", "success");
           return;
         }
         if (kind === "change-wiki-image") {
           const block = selectedWikiBlock();
-          if (!block || block.type !== "image") {
-            toast("Select a picture block first.", "error");
+          if (!block || !["image", "video"].includes(block.type)) {
+            toast("Select a picture or video block first.", "error");
             return;
           }
           state.wikiImageTarget = block.id;
@@ -7052,24 +7085,19 @@ export function kellaDashboardHtml() {
             const imageDataUrl = await readWikiImageFile(file);
             syncWikiTextFromDom();
             const targetId = state.wikiImageTarget || "";
-            const existing = state.wikiBlocks.find(function(block) { return block.id === targetId && block.type === "image"; });
+            const mediaType = /^data:video\\//i.test(imageDataUrl) ? "video" : "image";
+            const existing = state.wikiBlocks.find(function(block) { return block.id === targetId && ["image", "video"].includes(block.type); });
             if (existing) {
+              existing.type = mediaType;
               existing.imageDataUrl = imageDataUrl;
               state.selectedWikiBlockId = existing.id;
-            } else if (insertWikiInlineImage(imageDataUrl)) {
-              state.wikiImageTarget = "";
-              event.target.value = "";
-              toast("Picture inserted where you were typing.", "success");
-              return;
             } else {
-              const block = sanitizeWikiBlock({ id: wikiBlockId(), type: "image", imageDataUrl, x: 130, y: 160 + (state.wikiBlocks.length * 24), width: 420, height: 260 });
-              state.wikiBlocks.push(block);
-              state.selectedWikiBlockId = block.id;
+              insertWikiImageBlock(imageDataUrl);
             }
             event.target.value = "";
             state.wikiImageTarget = "";
             refreshWikiBuilder();
-            toast("Picture added to the page.", "success");
+            toast(mediaType === "video" ? "Video added to the wiki canvas." : "Picture added to the wiki canvas.", "success");
           } catch (error) {
             toast(error.message || "Could not add that picture.", "error");
           }

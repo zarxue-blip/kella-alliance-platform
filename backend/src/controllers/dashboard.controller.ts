@@ -214,12 +214,24 @@ const wikiImageSchema = z
   }, "Wiki image must be PNG, JPG, WEBP, or a Kella wiki asset.").optional())
   .optional();
 
+const wikiMediaSchema = z
+  .preprocess((value) => {
+    if (typeof value !== "string") return undefined;
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }, z.string().max(8_500_000, "Wiki media is too large. Please use a smaller file.").refine((value) => {
+    const isUploadedMedia = /^data:(image\/(png|jpe?g|webp)|video\/(mp4|webm));base64,/i.test(value);
+    const isKellaAsset = /^\/assets\/wiki-(misc|heroes|markers|artifacts|pets)\/[a-z0-9._/-]+\.(png|jpe?g|webp)$/i.test(value);
+    return isUploadedMedia || isKellaAsset;
+  }, "Wiki media must be PNG, JPG, WEBP, MP4, WEBM, or a Kella wiki asset.").optional())
+  .optional();
+
 const wikiBlockSchema = z.object({
   id: z.string().min(1).max(80),
   type: z.enum(wikiBlockTypes),
   text: z.string().max(500000).optional().default(""),
   richTextHtml: z.string().max(500000).optional().default(""),
-  imageDataUrl: wikiImageSchema,
+  imageDataUrl: wikiMediaSchema,
   x: z.coerce.number().min(0).max(760).default(90),
   y: z.coerce.number().min(0).max(50000).default(90),
   width: z.coerce.number().min(24).max(760).default(320),
@@ -465,7 +477,7 @@ function wikiBlocksDto(page: any) {
   if (blocks.length) {
     return blocks.map((block: any) => ({
       id: block.id || new Types.ObjectId().toString(),
-      type: block.type === "image" ? "image" : "text",
+      type: block.type === "video" ? "video" : block.type === "image" ? "image" : "text",
       text: block.text || "",
       richTextHtml: safeWikiRichTextHtml(block.richTextHtml),
       imageDataUrl: block.imageDataUrl || "",
