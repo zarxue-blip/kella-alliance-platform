@@ -6384,8 +6384,12 @@ export function kellaDashboardHtml() {
         }
         if (kind === "add-wiki-asset-image") {
           const src = action.getAttribute("data-wiki-asset-image") || "";
-          insertWikiImageBlock(src);
-          toast("Image added to the wiki canvas.", "success");
+          if (insertWikiInlineImage(src)) {
+            toast("Image inserted beside your text.", "success");
+          } else {
+            insertWikiImageBlock(src);
+            toast("Image added to the wiki canvas.", "success");
+          }
           return;
         }
         if (kind === "change-wiki-image") {
