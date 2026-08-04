@@ -1753,7 +1753,7 @@ export function kellaDashboardHtml() {
       .profile-radar-dates { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; min-width: 0; }
       .profile-radar-date { flex: 0 0 auto; min-width: 54px; min-height: 34px; border-radius: 999px; padding: 6px 11px; font-size: 10px; font-weight: 900; cursor: pointer; pointer-events: auto; touch-action: manipulation; }
       .profile-radar-date:hover, .profile-radar-date:focus-visible { border-color: #bd7618; box-shadow: 0 5px 12px rgba(115, 67, 15, 0.18); outline: none; }
-      .profile-radar-date.active { background: linear-gradient(180deg, #ffec83, #c6791a); border-color: #a85f0d; color: #201006; box-shadow: 0 0 0 2px rgba(255, 237, 137, 0.7), 0 6px 14px rgba(116, 67, 13, 0.24); }
+      .profile-radar-date.active { background: linear-gradient(180deg, #fff3a2, #d88a20); border-color: #94500a; color: #201006; box-shadow: 0 0 0 3px rgba(255, 224, 87, 0.76), 0 7px 16px rgba(116, 67, 13, 0.30); animation: snapshot-selected 280ms ease-out; }
       .profile-edit-button { margin-top: 9px; min-height: 30px; padding: 5px 11px; font-size: 11px; }
       .admin-profile-editor { position: fixed; inset: 0; z-index: 4; display: none; align-items: center; justify-content: center; padding: 24px; }
       .admin-profile-editor.open { display: flex; }
@@ -1762,6 +1762,7 @@ export function kellaDashboardHtml() {
       .admin-profile-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
       .admin-profile-editor-avatar { display: flex; justify-content: center; margin-bottom: 12px; }
       @keyframes radar-grow { from { opacity: 0.2; transform: scale(0.55); } to { opacity: 1; transform: scale(1); } }
+      @keyframes snapshot-selected { from { transform: scale(0.88); } 65% { transform: scale(1.08); } to { transform: scale(1); } }
       .power-list { display: grid; gap: 12px; }
       .power-trend-row {
         width: 100%;
@@ -2606,13 +2607,13 @@ export function kellaDashboardHtml() {
         .member-modal-panel { width: 100%; max-height: calc(100vh - 24px); border-radius: 14px 14px 0 0; padding: 18px; }
         .member-profile-hero { grid-template-columns: 1fr; text-align: center; padding-right: 0; justify-items: center; }
         .profile-stats { grid-template-columns: 1fr; }
-        .profile-season-card { margin-inline: -4px; padding: 14px 10px; }
+        .profile-season-card { margin-inline: -8px; padding: 14px 8px; border-radius: 10px; }
         .profile-season-head h4 { font-size: 19px; }
-        .profile-radar { width: 100%; max-width: 520px; }
+        .profile-radar { width: calc(100% + 4px); max-width: 520px; margin-inline: -2px; }
         .radar-label { font-size: 12px; }
         .radar-value { font-size: 9px; }
         .profile-radar-snapshots-label { text-align: left; padding-left: 2px; }
-        .profile-radar-dates { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; padding: 3px 2px 9px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+        .profile-radar-dates { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; overscroll-behavior-x: contain; padding: 5px 4px 11px; scroll-snap-type: x proximity; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
         .profile-radar-date { min-width: 58px; min-height: 38px; scroll-snap-align: start; }
         .modal-close { top: 10px; right: 10px; }
         .wiki-builder-toolbar .muted { flex-basis: 100%; }
@@ -6444,7 +6445,7 @@ export function kellaDashboardHtml() {
           const memberId = radarDateAction.getAttribute("data-member-id") || "";
           const date = radarDateAction.getAttribute("data-radar-date") || "";
           const member = (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || findMemberById(memberId) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
-          if (!member || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+          if (!member || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)) return;
           state.profileRadarDates[String(member.id || "profile")] = date;
           if (memberModal?.classList.contains("open")) openMemberModal(member);
           else if (location.pathname === "/profile") renderProfile();
