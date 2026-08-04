@@ -1285,7 +1285,7 @@ export function kellaDashboardHtml() {
       @media (max-width: 940px) {
         .wiki-builder { grid-template-columns: 1fr; }
         .wiki-canvas-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .wiki-page-canvas { width: 720px; max-width: none; }
+        .wiki-page-canvas { width: 760px; max-width: none; }
       }
       .content { padding: 24px 20px 28px; min-width: 0; }
       .guild { display: flex; align-items: center; gap: 14px; }
@@ -2543,7 +2543,7 @@ export function kellaDashboardHtml() {
         .wiki-search-row { grid-template-columns: 1fr; }
         .wiki-search-count { text-align: left; }
         .wiki-canvas-wrap { width: 100%; max-height: none; padding: 12px; margin: 0 -4px; }
-        .wiki-page-canvas { width: 720px; max-width: none; }
+        .wiki-page-canvas { width: 760px; max-width: none; }
         .wiki-reader { width: 100%; min-width: 0; overflow: hidden; }
         .wiki-reader-stage { width: 100%; overflow-x: auto; overflow-y: hidden; }
         .wiki-inspector { top: 236px; padding: 10px; max-height: calc(100vh - 250px); overflow: auto; }
@@ -2572,7 +2572,7 @@ export function kellaDashboardHtml() {
         table { min-width: 620px; }
         .power-sparkline { height: 86px; }
         .interactive-chart .power-sparkline { height: 180px; }
-        .wiki-page-canvas { width: 680px; }
+        .wiki-page-canvas { width: 760px; }
         .wiki-reader-toolbar { justify-content: center; }
         .wiki-misc-panel { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         .kofi-tip { gap: 0; padding: 8px; font-size: 0; }
@@ -4713,6 +4713,14 @@ export function kellaDashboardHtml() {
         }
         if (inspector) inspector.outerHTML = renderWikiInspectorHtml();
         requestAnimationFrame(autoFitWikiTextBlocksFromDom);
+      }
+
+      function refreshWikiSelection() {
+        document.querySelectorAll("[data-wiki-block]").forEach(function(node) {
+          node.classList.toggle("selected", node.getAttribute("data-wiki-block") === state.selectedWikiBlockId);
+        });
+        const inspector = document.querySelector("[data-wiki-inspector]");
+        if (inspector) inspector.outerHTML = renderWikiInspectorHtml();
       }
 
       function wikiBlockElement(id) {
@@ -6978,7 +6986,7 @@ export function kellaDashboardHtml() {
           baseWidth: block.width,
           baseHeight: block.height
         };
-        refreshWikiBuilder();
+        refreshWikiSelection();
         event.preventDefault();
       });
 
@@ -7034,9 +7042,13 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("mouseup", function() {
-        if (!state.wikiDrag) return;
+        const drag = state.wikiDrag;
+        if (!drag) return;
         state.wikiDrag = null;
-        refreshWikiBuilder();
+        const block = state.wikiBlocks.find(function(item) { return item.id === drag.id; });
+        if (block) updateWikiBlockElement(block);
+        resizeWikiPageToContent();
+        refreshWikiSelection();
       });
 
       document.addEventListener("keydown", function(event) {
