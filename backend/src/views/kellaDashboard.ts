@@ -1734,9 +1734,48 @@ export function kellaDashboardHtml() {
           linear-gradient(180deg, rgba(255, 244, 207, 0.84), rgba(237, 203, 137, 0.72));
         overflow: hidden;
       }
-      .profile-season-head { text-align: center; margin-bottom: 6px; }
+      .profile-season-topbar {
+        display: grid;
+        grid-template-columns: minmax(132px, 1fr) auto minmax(132px, 1fr);
+        align-items: start;
+        gap: 12px;
+        min-width: 0;
+      }
+      .profile-season-head { grid-column: 2; text-align: center; margin-bottom: 6px; }
       .profile-season-head h4 { margin: 0; font-size: 20px; }
       .profile-season-head p { margin: 3px 0 0; color: #76532f; font-size: 12px; font-weight: 800; }
+      .profile-graph-toggle {
+        grid-column: 3;
+        justify-self: end;
+        display: inline-grid;
+        grid-template-columns: 30px auto 32px;
+        align-items: center;
+        gap: 7px;
+        min-height: 42px;
+        max-width: 168px;
+        border: 1px solid rgba(122, 73, 18, 0.34);
+        border-radius: 999px;
+        padding: 5px 8px 5px 5px;
+        background: linear-gradient(180deg, rgba(255, 246, 211, 0.96), rgba(224, 188, 115, 0.92));
+        color: #4d2a12;
+        box-shadow: 0 5px 14px rgba(95, 54, 13, 0.14), inset 0 1px 0 rgba(255,255,255,0.72);
+        cursor: pointer;
+        transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+      }
+      .profile-graph-toggle:hover, .profile-graph-toggle:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(177, 105, 14, 0.72);
+        box-shadow: 0 8px 18px rgba(95, 54, 13, 0.20), 0 0 0 3px rgba(255, 220, 94, 0.24);
+        outline: none;
+      }
+      .profile-graph-toggle img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+      .profile-graph-toggle-copy { display: grid; gap: 1px; min-width: 0; text-align: left; line-height: 1.05; }
+      .profile-graph-toggle-copy strong { font-size: 10px; white-space: nowrap; }
+      .profile-graph-toggle-copy small { color: #7c5732; font-size: 9px; font-weight: 800; }
+      .profile-graph-switch { position: relative; width: 32px; height: 18px; border-radius: 999px; background: rgba(89, 55, 23, 0.25); box-shadow: inset 0 1px 3px rgba(65, 35, 10, 0.24); transition: background 160ms ease; }
+      .profile-graph-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 50%; background: #fff4cf; box-shadow: 0 1px 4px rgba(59, 29, 5, 0.34); transition: transform 180ms ease; }
+      .profile-graph-toggle.active .profile-graph-switch { background: linear-gradient(90deg, #b66e12, #f0b93e); }
+      .profile-graph-toggle.active .profile-graph-switch::after { transform: translateX(14px); }
       .profile-radar { display: block; width: min(100%, 640px); height: auto; margin: 2px auto 0; overflow: visible; }
       .radar-ring { fill: none; stroke: rgba(112, 72, 31, 0.22); stroke-width: 1; }
       .radar-axis { stroke: rgba(112, 72, 31, 0.22); stroke-width: 1; }
@@ -1768,6 +1807,23 @@ export function kellaDashboardHtml() {
         font-weight: 900;
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 5px 14px rgba(101, 61, 16, 0.12);
       }
+      .profile-trend-chart { display: grid; gap: 10px; width: min(100%, 640px); margin: 4px auto 0; }
+      .profile-trend-summary { display: flex; align-items: end; justify-content: space-between; gap: 12px; padding: 0 24px; color: #684420; }
+      .profile-trend-summary span { display: grid; gap: 1px; }
+      .profile-trend-summary small { color: #8a633d; font-size: 10px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
+      .profile-trend-summary strong { font-size: clamp(20px, 4vw, 30px); }
+      .profile-trend-change { border-radius: 999px; padding: 6px 11px; background: rgba(110, 72, 31, 0.09); font-size: 12px; font-weight: 900; }
+      .profile-trend-change.positive { background: rgba(76, 151, 77, 0.16); color: #246834; }
+      .profile-trend-change.negative { background: rgba(181, 65, 52, 0.13); color: #9c3329; }
+      .profile-trend-svg { display: block; width: 100%; height: auto; overflow: visible; }
+      .profile-trend-grid { stroke: rgba(112, 72, 31, 0.17); stroke-width: 1; }
+      .profile-trend-axis-label { fill: #8a633d; font-size: 10px; font-weight: 800; }
+      .profile-trend-area { fill: url(#profileTrendFill); }
+      .profile-trend-line { fill: none; stroke: #aa5b18; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+      .profile-trend-dot { fill: #f3b73f; stroke: #77400e; stroke-width: 2; cursor: pointer; transition: r 140ms ease, fill 140ms ease; }
+      .profile-trend-dot:hover { r: 6; fill: #fff0a4; }
+      .profile-trend-dot.active { fill: #ff6b4c; stroke: #fff1c1; stroke-width: 3; animation: snapshot-selected 280ms ease-out; }
+      .profile-trend-empty { display: grid; place-items: center; min-height: 230px; border: 1px dashed rgba(106, 63, 20, 0.28); border-radius: 12px; color: #7b5b38; font-weight: 800; text-align: center; }
       .profile-edit-button { margin-top: 9px; min-height: 30px; padding: 5px 11px; font-size: 11px; }
       .admin-profile-editor { position: fixed; inset: 0; z-index: 4; display: none; align-items: center; justify-content: center; padding: 24px; }
       .admin-profile-editor.open { display: flex; }
@@ -2622,10 +2678,20 @@ export function kellaDashboardHtml() {
         .member-profile-hero { grid-template-columns: 1fr; text-align: center; padding-right: 0; justify-items: center; }
         .profile-stats { grid-template-columns: 1fr; }
         .profile-season-card { margin-inline: -8px; padding: 14px 8px; border-radius: 10px; }
+        .profile-season-topbar { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 0 2px; }
+        .profile-season-head { grid-column: 1; text-align: left; margin-bottom: 0; }
         .profile-season-head h4 { font-size: 19px; }
+        .profile-season-head p { font-size: 10px; }
+        .profile-graph-toggle { grid-column: 2; grid-template-columns: 28px auto 30px; gap: 5px; min-height: 40px; max-width: 154px; padding: 5px 7px 5px 5px; }
+        .profile-graph-toggle img { width: 28px; height: 28px; }
+        .profile-graph-toggle-copy strong { font-size: 9px; }
+        .profile-graph-toggle-copy small { font-size: 8px; }
         .profile-radar { width: calc(100% + 4px); max-width: 520px; margin-inline: -2px; }
         .radar-label { font-size: 12px; }
         .radar-value { font-size: 9px; }
+        .profile-trend-summary { padding: 8px 8px 0; }
+        .profile-trend-summary strong { font-size: 22px; }
+        .profile-trend-svg { width: calc(100% + 2px); margin-inline: -1px; }
         .profile-radar-snapshots-label { text-align: left; padding-left: 2px; }
         .profile-radar-dates { display: none; }
         .profile-radar-date-select-shell { display: grid; gap: 5px; }
@@ -2735,7 +2801,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1 };
+      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1 };
       const WIKI_CUSTOM_IMAGE_KEY = "kellaWikiCustomImages";
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
@@ -3464,6 +3530,69 @@ export function kellaDashboardHtml() {
         return Array.isArray(saved) && saved.length >= 3 ? saved : defaults;
       }
 
+      function profileGraphMode(member) {
+        const mode = state.profileGraphModes[String(member?.id || "profile")];
+        return mode === "trend" ? "trend" : "radar";
+      }
+
+      function profilePowerTrend(member, selectedDate) {
+        const history = normalizeStatHistory(member, "power");
+        if (!history.length) {
+          return '<div class="profile-trend-empty">Power history will appear after two or more roster uploads.</div>';
+        }
+        const width = 560;
+        const height = 300;
+        const left = 58;
+        const right = 24;
+        const top = 30;
+        const bottom = 42;
+        const chartWidth = width - left - right;
+        const chartHeight = height - top - bottom;
+        const values = history.map(function(point) { return Number(point.value || 0); });
+        const rawMin = Math.min.apply(null, values);
+        const rawMax = Math.max.apply(null, values);
+        const padding = Math.max(1, (rawMax - rawMin) * 0.14, rawMax * 0.025);
+        const minValue = Math.max(0, rawMin - padding);
+        const maxValue = rawMax + padding;
+        const range = Math.max(1, maxValue - minValue);
+        const xFor = function(index) { return history.length === 1 ? left + chartWidth / 2 : left + (chartWidth * index) / (history.length - 1); };
+        const yFor = function(value) { return top + chartHeight - ((value - minValue) / range) * chartHeight; };
+        let selectedIndex = history.findIndex(function(point) { return point.date.toISOString().slice(0, 10) === selectedDate; });
+        if (selectedIndex < 0 && selectedDate) {
+          history.forEach(function(point, index) {
+            if (point.date.toISOString().slice(0, 10) <= selectedDate) selectedIndex = index;
+          });
+        }
+        if (selectedIndex < 0) selectedIndex = history.length - 1;
+        const points = history.map(function(point, index) { return { x: xFor(index), y: yFor(point.value), point: point, index: index }; });
+        const linePath = points.map(function(point, index) { return (index ? "L" : "M") + point.x.toFixed(1) + " " + point.y.toFixed(1); }).join(" ");
+        const areaPath = "M" + points[0].x.toFixed(1) + " " + (top + chartHeight).toFixed(1) + " " + points.map(function(point) { return "L" + point.x.toFixed(1) + " " + point.y.toFixed(1); }).join(" ") + " L" + points[points.length - 1].x.toFixed(1) + " " + (top + chartHeight).toFixed(1) + " Z";
+        const grid = [0, 0.25, 0.5, 0.75, 1].map(function(scale) {
+          const y = top + chartHeight * scale;
+          const value = maxValue - range * scale;
+          return '<line class="profile-trend-grid" x1="' + left + '" y1="' + y.toFixed(1) + '" x2="' + (width - right) + '" y2="' + y.toFixed(1) + '"></line>' +
+            '<text class="profile-trend-axis-label" x="' + (left - 8) + '" y="' + (y + 3).toFixed(1) + '" text-anchor="end">' + escapeHtml(formatCompactNumber(value)) + '</text>';
+        }).join("");
+        const labelIndexes = Array.from(new Set([0, selectedIndex, history.length - 1]));
+        const dateLabels = labelIndexes.map(function(index) {
+          const point = points[index];
+          const anchor = index === 0 ? "start" : index === history.length - 1 ? "end" : "middle";
+          return '<text class="profile-trend-axis-label" x="' + point.x.toFixed(1) + '" y="' + (height - 12) + '" text-anchor="' + anchor + '">' + escapeHtml(compactDate(point.point.date)) + '</text>';
+        }).join("");
+        const memberId = String(member?.id || "profile");
+        const dots = points.map(function(point) {
+          const date = point.point.date.toISOString().slice(0, 10);
+          return '<circle class="profile-trend-dot ' + (point.index === selectedIndex ? "active" : "") + '" cx="' + point.x.toFixed(1) + '" cy="' + point.y.toFixed(1) + '" r="' + (point.index === selectedIndex ? "6" : "4") + '" data-action="set-profile-radar-date" data-member-id="' + escapeHtml(memberId) + '" data-radar-date="' + escapeHtml(date) + '"><title>' + escapeHtml(formatDate(point.point.date) + ": " + formatCompactNumber(point.point.value)) + '</title></circle>';
+        }).join("");
+        const selectedPoint = history[selectedIndex];
+        const previousPoint = selectedIndex > 0 ? history[selectedIndex - 1] : null;
+        const change = previousPoint ? Number(selectedPoint.value || 0) - Number(previousPoint.value || 0) : 0;
+        const changeClass = change > 0 ? "positive" : change < 0 ? "negative" : "";
+        const changeLabel = previousPoint ? (change > 0 ? "+" : change < 0 ? "-" : "") + formatCompactNumber(Math.abs(change)) : "First upload";
+        return '<div class="profile-trend-chart"><div class="profile-trend-summary"><span><small>Power at selected snapshot</small><strong>' + escapeHtml(formatCompactNumber(selectedPoint.value)) + '</strong></span><span class="profile-trend-change ' + changeClass + '">' + escapeHtml(changeLabel) + '</span></div>' +
+          '<svg class="profile-trend-svg" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Player power trend across roster uploads"><defs><linearGradient id="profileTrendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f1b23d" stop-opacity="0.48"></stop><stop offset="100%" stop-color="#f1b23d" stop-opacity="0.04"></stop></linearGradient></defs>' + grid + '<path class="profile-trend-area" d="' + areaPath + '"></path><path class="profile-trend-line" d="' + linePath + '"></path>' + dots + dateLabels + '</svg></div>';
+      }
+
       function memberSeasonRadar(member) {
         const metricKeys = profileRadarMetrics(member);
         const axes = metricKeys.map(function(key) {
@@ -3473,6 +3602,7 @@ export function kellaDashboardHtml() {
         const memberId = String(member?.id || "profile");
         const availableDates = profileRadarDateOptions(member);
         const selectedDate = state.profileRadarDates[memberId] || availableDates[availableDates.length - 1] || "";
+        const graphMode = profileGraphMode(member);
         const roster = allRosterMembers().filter(isAllowedStatsAlliance);
         const centerX = 280;
         const centerY = 174;
@@ -3526,9 +3656,13 @@ export function kellaDashboardHtml() {
         const dateOptions = availableDates.map(function(date) {
           return '<option value="' + escapeHtml(date) + '" ' + (date === selectedDate ? "selected" : "") + '>' + escapeHtml(formatDate(new Date(date + "T00:00:00Z"))) + '</option>';
         }).join("");
-        return '<section class="profile-season-card"><div class="profile-season-head"><h4>Current Season</h4><p>' + escapeHtml(selectedDate ? "Roster snapshot " + formatDate(new Date(selectedDate + "T00:00:00Z")) : "Compared with the current alliance roster") + '</p></div>' +
-          '<svg class="profile-radar" viewBox="0 0 560 348" role="img" aria-label="Current season player statistics radar chart">' + rings + spokes + '<polygon class="radar-area" points="' + areaPoints.join(' ') + '"></polygon>' + dots + labels + '</svg>' +
-          '<div class="profile-radar-controls"><details class="metric-selector"><summary><span class="metric-selector-label">Radar stats</span><span class="metric-selector-value">' + axes.length + ' selected</span></summary><div class="metric-picker">' + metricButtons + '</div></details>' +
+        const graphToggle = '<button class="profile-graph-toggle ' + (graphMode === "trend" ? "active" : "") + '" type="button" data-action="toggle-profile-graph" data-member-id="' + escapeHtml(memberId) + '" aria-pressed="' + String(graphMode === "trend") + '" title="Switch to ' + (graphMode === "trend" ? "radar stats" : "power trend") + '"><img src="/assets/icons/change-graph.png?v=1" alt="" width="30" height="30" loading="lazy" decoding="async"><span class="profile-graph-toggle-copy"><strong>Change graph</strong><small>' + (graphMode === "trend" ? "Power trend" : "Radar stats") + '</small></span><span class="profile-graph-switch" aria-hidden="true"></span></button>';
+        const graph = graphMode === "trend"
+          ? profilePowerTrend(member, selectedDate)
+          : '<svg class="profile-radar" viewBox="0 0 560 348" role="img" aria-label="Current season player statistics radar chart">' + rings + spokes + '<polygon class="radar-area" points="' + areaPoints.join(' ') + '"></polygon>' + dots + labels + '</svg>';
+        const radarSelector = graphMode === "radar" ? '<details class="metric-selector"><summary><span class="metric-selector-label">Radar stats</span><span class="metric-selector-value">' + axes.length + ' selected</span></summary><div class="metric-picker">' + metricButtons + '</div></details>' : '';
+        return '<section class="profile-season-card"><div class="profile-season-topbar"><div class="profile-season-head"><h4>Current Season</h4><p>' + escapeHtml(selectedDate ? "Roster snapshot " + formatDate(new Date(selectedDate + "T00:00:00Z")) : "Compared with the current alliance roster") + '</p></div>' + graphToggle + '</div>' + graph +
+          '<div class="profile-radar-controls">' + radarSelector +
           (dateButtons ? '<div class="profile-radar-snapshots"><span class="profile-radar-snapshots-label">Roster snapshot</span><label class="profile-radar-date-select-shell"><span>Selected date</span><select class="profile-radar-date-select" data-radar-date-select data-member-id="' + escapeHtml(memberId) + '" aria-label="Choose roster snapshot date">' + dateOptions + '</select></label><div class="profile-radar-dates" aria-label="Choose roster snapshot date">' + dateButtons + '</div></div>' : '') + '</div></section>';
       }
 
@@ -6787,6 +6921,15 @@ export function kellaDashboardHtml() {
         }
         if (kind === "close-admin-profile-editor") {
           memberModalContent?.querySelector("[data-admin-profile-editor]")?.classList.remove("open");
+          return;
+        }
+        if (kind === "toggle-profile-graph") {
+          const memberId = action.getAttribute("data-member-id") || "";
+          const member = findMemberById(memberId) || (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
+          if (!member) return;
+          const key = String(member.id || "profile");
+          state.profileGraphModes[key] = profileGraphMode(member) === "trend" ? "radar" : "trend";
+          refreshMemberSeasonRadar(member);
           return;
         }
         if (kind === "toggle-profile-radar-metric") {
