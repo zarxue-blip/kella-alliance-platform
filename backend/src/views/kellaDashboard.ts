@@ -3,6 +3,7 @@ const navItems = [
   { path: "/buff-schedule", icon: "/assets/buffs/buff-schedule.png", label: "Buff Schedule" },
   { path: "/wiki", icon: "/assets/icons/embed-sender.png", label: "Wiki" },
   { path: "/members", icon: "/assets/icons/members.png", label: "Members" },
+  { path: "/training-tools", icon: "/assets/icons/training-tools.png", label: "Training Tools" },
   { path: "/attendance", icon: "/assets/icons/events.png", label: "Attendance" },
   { path: "/roots-of-war", icon: "/assets/icons/root-registration.png", label: "Roots of War", adminOnly: true },
   { path: "/tools", icon: "/assets/icons/events.png", label: "Tools", adminOnly: true },
@@ -1131,6 +1132,80 @@ export function kellaDashboardHtml() {
       .buff-admin-setting select { min-height: 46px; font-weight: 800; }
       .buff-readonly { justify-self: start; padding: 8px 12px; border-radius: 999px; background: rgba(206, 151, 42, 0.13); color: #795119; font-size: 12px; font-weight: 800; }
       .buff-updated { text-align: right; color: #876a43; font-size: 12px; }
+      .training-shell { display: grid; gap: 16px; }
+      .training-intro {
+        display: grid;
+        grid-template-columns: 84px minmax(0, 1fr);
+        gap: 18px;
+        align-items: center;
+        padding: 18px 20px;
+        border: 1px solid rgba(143, 95, 28, 0.28);
+        border-radius: 12px;
+        background: linear-gradient(110deg, rgba(255, 249, 224, 0.84), rgba(232, 195, 114, 0.48));
+      }
+      .training-intro img {
+        width: 76px;
+        height: 76px;
+        object-fit: contain;
+        filter: drop-shadow(0 8px 10px rgba(67, 37, 10, 0.24));
+      }
+      .training-intro strong { display: block; margin-bottom: 5px; color: #3d270f; font: 900 19px Georgia, serif; }
+      .training-intro span { color: #775735; line-height: 1.5; }
+      .training-mode-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        padding: 7px;
+        border: 1px solid rgba(143, 95, 28, 0.28);
+        border-radius: 12px;
+        background: rgba(238, 208, 143, 0.62);
+      }
+      .training-mode-button {
+        min-height: 48px;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        background: transparent;
+        color: #6b4a25;
+        font-weight: 950;
+      }
+      .training-mode-button:hover { border-color: rgba(172, 109, 22, 0.30); background: rgba(255, 249, 225, 0.55); }
+      .training-mode-button.active {
+        border-color: #c58619;
+        background: linear-gradient(180deg, #ffe99a, #df9f24);
+        color: #3e2609;
+        box-shadow: 0 9px 20px rgba(137, 79, 12, 0.22), inset 0 1px rgba(255,255,255,0.68);
+      }
+      .training-panel[hidden] { display: none; }
+      .training-calculator-card { padding: 20px; }
+      .training-panel-head { display: flex; align-items: start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+      .training-panel-head h3 { margin: 0 0 4px; }
+      .training-panel-head p { margin: 0; color: #7b5c38; line-height: 1.45; }
+      .training-input-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .training-time-grid { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+      .training-input-grid label, .training-time-grid label { display: grid; gap: 6px; color: #5e3c1c; font-size: 12px; font-weight: 900; }
+      .training-input-grid input, .training-input-grid select, .training-time-grid input { width: 100%; min-height: 46px; margin: 0; }
+      .training-troop-inputs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+      .training-troop-inputs label { display: grid; gap: 5px; min-width: 0; color: #5e3c1c; font-size: 11px; font-weight: 950; text-align: center; }
+      .training-troop-inputs input { width: 100%; min-height: 45px; margin: 0; text-align: center; }
+      .training-results { margin-top: 18px; }
+      .training-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 14px; }
+      .training-summary {
+        min-height: 82px;
+        padding: 13px 14px;
+        border: 1px solid rgba(143, 95, 28, 0.22);
+        border-radius: 10px;
+        background: rgba(255, 249, 224, 0.64);
+      }
+      .training-summary span { display: block; margin-bottom: 6px; color: #84633d; font-size: 10px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
+      .training-summary strong { color: #3a230d; font-size: 20px; line-height: 1.1; }
+      .training-table-wrap { overflow-x: auto; border: 1px solid rgba(143, 95, 28, 0.26); border-radius: 11px; }
+      .training-table { width: 100%; min-width: 570px; margin: 0; }
+      .training-table th { color: #73512c; background: rgba(219, 171, 75, 0.20); }
+      .training-table td, .training-table th { border-color: rgba(143, 95, 28, 0.18); }
+      .training-tier { display: flex; align-items: center; gap: 10px; font-weight: 950; }
+      .training-tier-badge { display: grid; width: 38px; height: 32px; place-items: center; border-radius: 8px; background: #f2cf7b; color: #623a0d; }
+      .training-note { margin: 12px 0 0; color: #806140; font-size: 12px; line-height: 1.5; }
+      .training-empty { padding: 28px 16px; color: #806140; text-align: center; font-weight: 800; }
       .wiki-misc-panel--artifact {
         width: min(470px, calc(100vw - 36px));
         max-height: min(520px, 72vh);
@@ -2654,6 +2729,11 @@ export function kellaDashboardHtml() {
         .buff-current { grid-template-columns: 64px 1fr; }
         .buff-icon { width: 60px; height: 60px; }
         .buff-updated { text-align: left; }
+        .training-intro { grid-template-columns: 62px 1fr; padding: 15px; }
+        .training-intro img { width: 58px; height: 58px; }
+        .training-time-grid, .training-troop-inputs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .training-troop-inputs label:last-child { grid-column: 1 / -1; }
+        .training-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .grid, .stats, .form-grid, .quick-grid, .overview-kpis, .time-row, .command-board, .power-trend-row, .power-history-list, .interactive-chart, .attendance-summary-grid, .optional-link-button-fields { grid-template-columns: 1fr; }
         .upload-comparison-row { grid-template-columns: 1fr 1fr; }
         .trend-pill { justify-self: stretch; }
@@ -2734,6 +2814,12 @@ export function kellaDashboardHtml() {
         .wiki-page-canvas { width: 760px; }
         .wiki-reader-toolbar { justify-content: center; }
         .wiki-misc-panel { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .training-mode-tabs { gap: 5px; padding: 5px; }
+        .training-mode-button { min-height: 42px; padding: 7px 5px; font-size: 11px; }
+        .training-input-grid { grid-template-columns: 1fr; }
+        .training-time-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .training-calculator-card { padding: 15px; }
+        .training-summary strong { font-size: 17px; }
         .kofi-tip { gap: 0; padding: 8px; font-size: 0; }
         .kofi-tip img { width: 32px; height: 32px; }
       }
@@ -2801,7 +2887,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1 };
+      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingSummary: "" };
       const WIKI_CUSTOM_IMAGE_KEY = "kellaWikiCustomImages";
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
@@ -2836,6 +2922,20 @@ export function kellaDashboardHtml() {
         { day: "Saturday", buff: "Training", note: "War time: may be changed" },
         { day: "Sunday", buff: "Research", note: "War time: may be changed" }
       ];
+      const trainingTierOrder = ["t3", "t4", "t5", "p34", "p45"];
+      const trainingTiers = {
+        t3: { label: "T3", seconds: 60, power: 20 },
+        t4: { label: "T4", seconds: 80, power: 40 },
+        t5: { label: "T5", seconds: 120, power: 100 },
+        p34: { label: "T3 to T4", seconds: 20, power: 20 },
+        p45: { label: "T4 to T5", seconds: 40, power: 60 }
+      };
+      const trainingEventScores = {
+        mge1: { label: "MGE Day 1", t3: 20, t4: 40, t5: 100, p34: 20, p45: 60 },
+        mge5: { label: "MGE Day 5", t3: 16, t4: 32, t5: 80, p34: 16, p45: 48 },
+        greatHeight: { label: "Great Height", t3: 3, t4: 4, t5: 10, p34: 1, p45: 6 },
+        preKvk: { label: "Pre-KVK", t3: 8, t4: 16, t5: 40, p34: 8, p45: 24 }
+      };
       const wikiMiscImages = ${JSON.stringify(wikiMiscImages)};
       const wikiHeroImages = ${JSON.stringify(wikiHeroImages)};
       const wikiMarkerImages = ${JSON.stringify(wikiMarkerImages)};
@@ -5430,6 +5530,193 @@ export function kellaDashboardHtml() {
         }
       }
 
+      function trainingValue(selector, fallback = 0) {
+        const value = Number(document.querySelector(selector)?.value ?? fallback);
+        return Number.isFinite(value) ? Math.max(0, value) : Math.max(0, fallback);
+      }
+
+      function trainingDuration(seconds) {
+        const totalMinutes = Math.max(0, Math.ceil(Number(seconds || 0) / 60));
+        const days = Math.floor(totalMinutes / 1440);
+        const hours = Math.floor((totalMinutes % 1440) / 60);
+        const minutes = totalMinutes % 60;
+        const parts = [];
+        if (days) parts.push(days + "d");
+        if (hours || days) parts.push(hours + "h");
+        parts.push(minutes + "m");
+        return parts.join(" ");
+      }
+
+      function trainingTierLabel(key) {
+        return trainingTiers[key]?.label || key;
+      }
+
+      function trainingTierCell(key) {
+        const tier = trainingTiers[key];
+        const badge = key.startsWith("p") ? "UP" : tier.label;
+        return '<span class="training-tier"><span class="training-tier-badge">' + escapeHtml(badge) + '</span>' + escapeHtml(tier.label) + '</span>';
+      }
+
+      function trainingSummaryCard(label, value) {
+        return '<div class="training-summary"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong></div>';
+      }
+
+      function trainingTroopInputs(scope) {
+        return '<div class="training-troop-inputs">' + trainingTierOrder.map(function(key) {
+          return '<label>' + escapeHtml(trainingTierLabel(key)) + '<input type="number" min="0" step="1" inputmode="numeric" value="0" data-training-input data-training-' + scope + '="' + key + '" /></label>';
+        }).join("") + '</div>';
+      }
+
+      function renderTrainingTools() {
+        const selected = ["points", "speedup", "power"].includes(state.trainingMode) ? state.trainingMode : "points";
+        state.trainingMode = selected;
+        const tabs = [
+          { id: "points", label: "Event Points" },
+          { id: "speedup", label: "Speedups" },
+          { id: "power", label: "Target Power" }
+        ].map(function(item) {
+          const active = item.id === selected;
+          return '<button class="training-mode-button' + (active ? ' active' : '') + '" type="button" role="tab" aria-selected="' + String(active) + '" data-action="training-mode" data-training-mode="' + item.id + '">' + item.label + '</button>';
+        }).join("");
+        const eventOptions = Object.entries(trainingEventScores).map(function(entry) {
+          return '<option value="' + entry[0] + '">' + escapeHtml(entry[1].label) + '</option>';
+        }).join("");
+        app.innerHTML =
+          pageHeader("Training Tools", "Plan troop training, event points, speedups, and power before spending your reserves.", '<button class="secondary" data-action="reset-training">Reset</button><button class="primary" data-action="copy-training-summary">Copy Results</button>') +
+          '<div class="training-shell">' +
+            '<section class="training-intro"><img src="/assets/icons/training-tools.png" alt="" /><div><strong>Commander Training Planner</strong><span>Calculations use Call of Dragons base troop times. Set your city training buff to match the value shown in game.</span></div></section>' +
+            '<div class="training-mode-tabs" role="tablist" aria-label="Training calculator mode">' + tabs + '</div>' +
+            '<section class="card training-calculator-card training-panel" data-training-panel="points"' + (selected === "points" ? '' : ' hidden') + '>' +
+              '<div class="training-panel-head"><div><h3>Event Points</h3><p>See how many troops and event points your available training time can produce.</p></div></div>' +
+              '<div class="training-input-grid"><div class="training-time-grid">' +
+                '<label>Days<input type="number" min="0" step="1" value="1" inputmode="numeric" data-training-input data-training-points="days" /></label>' +
+                '<label>Hours<input type="number" min="0" max="23" step="1" value="0" inputmode="numeric" data-training-input data-training-points="hours" /></label>' +
+                '<label>Minutes<input type="number" min="0" max="59" step="1" value="0" inputmode="numeric" data-training-input data-training-points="minutes" /></label>' +
+                '<label>Training Buff %<input type="number" min="0" step="1" value="75" inputmode="decimal" data-training-input data-training-points="buff" /></label>' +
+              '</div><label>Scoring Event<select data-training-input data-training-points="event">' + eventOptions + '</select></label></div>' +
+              '<div class="training-results"><div class="training-summary-grid" data-training-points-summary></div><div class="training-table-wrap"><table class="training-table"><thead><tr><th>Troop action</th><th>Units</th><th>Points each</th><th>Total points</th></tr></thead><tbody data-training-points-body></tbody></table></div></div>' +
+              '<p class="training-note">Upgrade rows require existing lower-tier troops. Results are estimates and round down to complete units.</p>' +
+            '</section>' +
+            '<section class="card training-calculator-card training-panel" data-training-panel="speedup"' + (selected === "speedup" ? '' : ' hidden') + '>' +
+              '<div class="training-panel-head"><div><h3>Speedup Planner</h3><p>Enter the troops you plan to train or upgrade and Kella will total the time and power.</p></div></div>' +
+              '<div class="training-input-grid"><label>Training Buff %<input type="number" min="0" step="1" value="75" inputmode="decimal" data-training-input data-training-speedup="buff" /></label><div class="wide">' + trainingTroopInputs("speedup") + '</div></div>' +
+              '<div class="training-results"><div class="training-summary-grid" data-training-speedup-summary></div><div class="training-table-wrap"><table class="training-table"><thead><tr><th>Troop action</th><th>Quantity</th><th>Base time</th><th>With buff</th><th>Power</th></tr></thead><tbody data-training-speedup-body></tbody></table></div></div>' +
+            '</section>' +
+            '<section class="card training-calculator-card training-panel" data-training-panel="power"' + (selected === "power" ? '' : ' hidden') + '>' +
+              '<div class="training-panel-head"><div><h3>Target Power</h3><p>Compare the units and time needed to reach a troop-power goal.</p></div></div>' +
+              '<div class="training-input-grid"><label>Target Power<input type="number" min="0" step="1000" value="100000" inputmode="numeric" data-training-input data-training-power="target" /></label><label>Training Buff %<input type="number" min="0" step="1" value="75" inputmode="decimal" data-training-input data-training-power="buff" /></label></div>' +
+              '<div class="training-results"><div class="training-summary-grid" data-training-power-summary></div><div class="training-table-wrap"><table class="training-table"><thead><tr><th>Troop action</th><th>Units needed</th><th>Power each</th><th>Speedup needed</th></tr></thead><tbody data-training-power-body></tbody></table></div></div>' +
+              '<p class="training-note">Target Power compares each option separately. Upgrade rows require the same number of existing lower-tier troops.</p>' +
+            '</section>' +
+          '</div>';
+        requestAnimationFrame(updateTrainingTools);
+      }
+
+      function setTrainingMode(mode) {
+        state.trainingMode = ["points", "speedup", "power"].includes(mode) ? mode : "points";
+        document.querySelectorAll("[data-training-mode]").forEach(function(button) {
+          const active = button.getAttribute("data-training-mode") === state.trainingMode;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-selected", String(active));
+        });
+        document.querySelectorAll("[data-training-panel]").forEach(function(panel) {
+          panel.hidden = panel.getAttribute("data-training-panel") !== state.trainingMode;
+        });
+        updateTrainingTools();
+      }
+
+      function updateTrainingPoints() {
+        const days = trainingValue('[data-training-points="days"]');
+        const hours = Math.min(23, trainingValue('[data-training-points="hours"]'));
+        const minutes = Math.min(59, trainingValue('[data-training-points="minutes"]'));
+        const buff = trainingValue('[data-training-points="buff"]');
+        const eventKey = document.querySelector('[data-training-points="event"]')?.value || "mge1";
+        const event = trainingEventScores[eventKey] || trainingEventScores.mge1;
+        const availableSeconds = ((days * 24 + hours) * 60 + minutes) * 60;
+        const multiplier = 1 + buff / 100;
+        const results = trainingTierOrder.map(function(key) {
+          const tier = trainingTiers[key];
+          const units = Math.floor((availableSeconds * multiplier) / tier.seconds);
+          return { key, units, score: event[key], total: units * event[key] };
+        });
+        const best = results.slice().sort(function(a, b) { return b.total - a.total; })[0];
+        const body = document.querySelector("[data-training-points-body]");
+        const summary = document.querySelector("[data-training-points-summary]");
+        if (body) body.innerHTML = results.map(function(result) {
+          return '<tr><td>' + trainingTierCell(result.key) + '</td><td>' + formatNumber(result.units) + '</td><td>' + formatNumber(result.score) + '</td><td><strong>' + formatNumber(result.total) + '</strong></td></tr>';
+        }).join("");
+        if (summary) summary.innerHTML =
+          trainingSummaryCard("Available time", trainingDuration(availableSeconds)) +
+          trainingSummaryCard("Training buff", formatNumber(buff) + "%") +
+          trainingSummaryCard("Event", event.label) +
+          trainingSummaryCard("Highest result", best ? formatNumber(best.total) + " pts" : "0 pts");
+        state.trainingSummary = "KELLA TRAINING - EVENT POINTS\\nEvent: " + event.label + "\\nAvailable time: " + trainingDuration(availableSeconds) + "\\nTraining buff: " + formatNumber(buff) + "%\\n\\n" + results.map(function(result) {
+          return trainingTierLabel(result.key) + ": " + formatNumber(result.units) + " units - " + formatNumber(result.total) + " points";
+        }).join("\\n");
+      }
+
+      function updateTrainingSpeedup() {
+        const buff = trainingValue('[data-training-speedup="buff"]');
+        const multiplier = 1 + buff / 100;
+        const results = trainingTierOrder.map(function(key) {
+          const quantity = Math.floor(trainingValue('[data-training-speedup="' + key + '"]'));
+          const tier = trainingTiers[key];
+          return { key, quantity, base: quantity * tier.seconds, adjusted: quantity * tier.seconds / multiplier, power: quantity * tier.power };
+        });
+        const total = results.reduce(function(value, result) {
+          value.quantity += result.quantity;
+          value.base += result.base;
+          value.adjusted += result.adjusted;
+          value.power += result.power;
+          return value;
+        }, { quantity: 0, base: 0, adjusted: 0, power: 0 });
+        const body = document.querySelector("[data-training-speedup-body]");
+        const summary = document.querySelector("[data-training-speedup-summary]");
+        if (body) body.innerHTML = results.map(function(result) {
+          return '<tr><td>' + trainingTierCell(result.key) + '</td><td>' + formatNumber(result.quantity) + '</td><td>' + trainingDuration(result.base) + '</td><td>' + trainingDuration(result.adjusted) + '</td><td>' + formatNumber(result.power) + '</td></tr>';
+        }).join("");
+        if (summary) summary.innerHTML =
+          trainingSummaryCard("Total troops", formatNumber(total.quantity)) +
+          trainingSummaryCard("Base time", trainingDuration(total.base)) +
+          trainingSummaryCard("Speedup needed", trainingDuration(total.adjusted)) +
+          trainingSummaryCard("Power gained", formatNumber(total.power));
+        state.trainingSummary = "KELLA TRAINING - SPEEDUP PLAN\\nTraining buff: " + formatNumber(buff) + "%\\nTotal troops: " + formatNumber(total.quantity) + "\\nSpeedup needed: " + trainingDuration(total.adjusted) + "\\nPower gained: " + formatNumber(total.power) + "\\n\\n" + results.filter(function(result) { return result.quantity > 0; }).map(function(result) {
+          return trainingTierLabel(result.key) + ": " + formatNumber(result.quantity) + " - " + trainingDuration(result.adjusted);
+        }).join("\\n");
+      }
+
+      function updateTrainingPower() {
+        const target = Math.floor(trainingValue('[data-training-power="target"]'));
+        const buff = trainingValue('[data-training-power="buff"]');
+        const multiplier = 1 + buff / 100;
+        const results = trainingTierOrder.map(function(key) {
+          const tier = trainingTiers[key];
+          const units = target ? Math.ceil(target / tier.power) : 0;
+          return { key, units, adjusted: units * tier.seconds / multiplier, power: units * tier.power };
+        });
+        const fastest = results.slice().sort(function(a, b) { return a.adjusted - b.adjusted; })[0];
+        const body = document.querySelector("[data-training-power-body]");
+        const summary = document.querySelector("[data-training-power-summary]");
+        if (body) body.innerHTML = results.map(function(result) {
+          return '<tr><td>' + trainingTierCell(result.key) + '</td><td>' + formatNumber(result.units) + '</td><td>' + formatNumber(trainingTiers[result.key].power) + '</td><td><strong>' + trainingDuration(result.adjusted) + '</strong></td></tr>';
+        }).join("");
+        if (summary) summary.innerHTML =
+          trainingSummaryCard("Target power", formatNumber(target)) +
+          trainingSummaryCard("Training buff", formatNumber(buff) + "%") +
+          trainingSummaryCard("Fastest option", fastest ? trainingTierLabel(fastest.key) : "-") +
+          trainingSummaryCard("Fastest time", fastest ? trainingDuration(fastest.adjusted) : "0m");
+        state.trainingSummary = "KELLA TRAINING - TARGET POWER\\nTarget: " + formatNumber(target) + " power\\nTraining buff: " + formatNumber(buff) + "%\\n\\n" + results.map(function(result) {
+          return trainingTierLabel(result.key) + ": " + formatNumber(result.units) + " units - " + trainingDuration(result.adjusted);
+        }).join("\\n");
+      }
+
+      function updateTrainingTools() {
+        if (location.pathname !== "/training-tools") return;
+        if (state.trainingMode === "speedup") return updateTrainingSpeedup();
+        if (state.trainingMode === "power") return updateTrainingPower();
+        updateTrainingPoints();
+      }
+
       function renderDashboardData(summary, members = [], events = []) {
         const dashboardActions = hasAdminAccess()
           ? '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-link-button="/tools">Open Tools</button>'
@@ -6549,6 +6836,7 @@ export function kellaDashboardHtml() {
         setActiveNav();
         if (path === "/") return renderDashboard();
         if (path === "/buff-schedule") return renderBuffSchedule();
+        if (path === "/training-tools") return renderTrainingTools();
         if (path === "/wiki") return renderWiki();
         if (path.startsWith("/wiki/")) return renderWiki(path.slice("/wiki/".length));
         if (path === "/profile") return renderProfile();
@@ -6734,6 +7022,24 @@ export function kellaDashboardHtml() {
           state.buffSchedule = { days: defaultBuffSchedule.map(function(item) { return { ...item }; }), updatedAt: null, updatedBy: "Unsaved reset" };
           renderBuffSchedule();
           toast("Defaults restored. Click Save Schedule to keep them.");
+          return;
+        }
+        if (kind === "training-mode") {
+          setTrainingMode(action.getAttribute("data-training-mode") || "points");
+          return;
+        }
+        if (kind === "reset-training") {
+          state.trainingMode = "points";
+          state.trainingSummary = "";
+          renderTrainingTools();
+          toast("Training calculator reset.");
+          return;
+        }
+        if (kind === "copy-training-summary") {
+          withFeedback(action, function() {
+            if (!state.trainingSummary) throw new Error("Enter training values first.");
+            return navigator.clipboard.writeText(state.trainingSummary);
+          }, "Training results copied.");
           return;
         }
         if (kind === "open-wiki-page") {
@@ -7565,6 +7871,10 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("change", async function(event) {
+        if (event.target.matches("[data-training-input]")) {
+          updateTrainingTools();
+          return;
+        }
         if (event.target.matches("[data-radar-date-select]")) {
           selectProfileRadarDate(event.target.getAttribute("data-member-id") || "", event.target.value || "");
           return;
@@ -7653,6 +7963,10 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("input", async function(event) {
+        if (event.target.matches("[data-training-input]")) {
+          updateTrainingTools();
+          return;
+        }
         if (event.target.matches("[data-buff-day-note]")) {
           const note = event.target.closest("[data-buff-row]")?.querySelector("[data-buff-note]");
           if (note) {
