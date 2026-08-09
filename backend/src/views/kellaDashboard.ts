@@ -2788,6 +2788,10 @@ export function kellaDashboardHtml() {
       .lord-research-tab.active { color: #f0d05b; box-shadow: inset 0 -2px #d0a500; }
       .lord-research-tab:hover { color: #f5df8c; background: rgba(208, 165, 0, .07); }
       .lord-research-hint { display: flex; align-items: center; justify-content: flex-end; margin-left: auto; padding: 0 16px; color: #7f827d; font-size: 11px; font-weight: 800; white-space: nowrap; }
+      .lord-research-zoom { display: flex; align-items: center; gap: 5px; padding-right: 10px; }
+      .lord-research-zoom button { min-width: 34px; min-height: 32px; padding: 4px 8px; border: 1px solid #544819; border-radius: 6px; background: #151717; color: #ead16e; font-weight: 1000; }
+      .lord-research-zoom button:hover { border-color: #b99318; background: #20211b; }
+      .lord-research-zoom-value { min-width: 52px !important; color: #efe2b8 !important; font-size: 10px !important; }
       .lord-research-summary { display: grid; grid-template-columns: minmax(210px, 1.35fr) repeat(4, minmax(92px, .7fr)); gap: 8px; padding: 11px 14px; border-bottom: 1px solid #263029; background: #08120d; }
       .lord-research-summary div { min-width: 0; padding: 10px 11px; border: 1px solid #294233; border-radius: 6px; background: linear-gradient(180deg, #0d1812, #0a120e); box-shadow: inset 0 1px rgba(255, 255, 255, .025); }
       .lord-research-summary span { display: block; color: #777f79; font-size: 9px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
@@ -2872,6 +2876,8 @@ export function kellaDashboardHtml() {
         .lord-research-tabs { min-height: 54px; }
         .lord-research-tab { min-width: 42%; }
         .lord-research-hint { display: none; }
+        .lord-research-tabs { flex-wrap: wrap; }
+        .lord-research-zoom { width: 100%; justify-content: flex-end; padding: 7px 10px; border-top: 1px solid #252728; }
         .lord-research-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .lord-research-summary div:first-child { grid-column: 1 / -1; }
         .lord-research-tree-scroll { min-height: 500px; max-height: 68vh; }
@@ -3182,7 +3188,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingTroopType: "cavalry", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "", lordTools: null, lordView: "overview", lordSearch: "", lordResearchTree: "economy", lordResearchSelected: "" };
+      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingTroopType: "cavalry", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "", lordTools: null, lordView: "overview", lordSearch: "", lordResearchTree: "economy", lordResearchSelected: "", lordResearchZoom: 0.6 };
       let lordResearchPan = null;
       let lordResearchBlockClickUntil = 0;
       const WIKI_CUSTOM_IMAGE_KEY = "kellaWikiCustomImages";
@@ -6426,7 +6432,7 @@ export function kellaDashboardHtml() {
           const level = lordResearchNodeLevel(data, node);
           return '<button class="lord-research-node ' + lordResearchTier(node) + (selectedId === node.id ? ' selected' : '') + '" style="left:' + (34 + node.col * colStep) + 'px;top:' + rowY[node.row] + 'px" type="button" data-action="lord-research-select" data-research-id="' + node.id + '" title="Left click adds a level. Right click removes one." aria-label="' + escapeHtml(node.name) + ', level ' + level + ' of ' + node.max + '"><span class="lord-research-node-art"><img src="/assets/research/' + tree + '/' + faction + '/' + node.id + '.png" alt="" loading="lazy" /><span class="lord-research-node-level">' + level + '/' + node.max + '</span></span><strong>' + escapeHtml(node.name) + '</strong></button>';
         }).join("");
-        return '<div class="lord-research-tree" style="width:' + treeWidth + 'px;height:' + treeHeight + 'px"><svg class="lord-research-lines" viewBox="0 0 ' + treeWidth + ' ' + treeHeight + '" aria-hidden="true">' + lines.join("") + '</svg>' + nodes + '</div>';
+        return '<div class="lord-research-tree" data-lord-research-tree-canvas style="width:' + treeWidth + 'px;height:' + treeHeight + 'px;zoom:' + state.lordResearchZoom + '"><svg class="lord-research-lines" viewBox="0 0 ' + treeWidth + ' ' + treeHeight + '" aria-hidden="true">' + lines.join("") + '</svg>' + nodes + '</div>';
       }
 
       function lordResearchPanel(data) {
@@ -6442,7 +6448,26 @@ export function kellaDashboardHtml() {
             '<label>Research speed %<input type="number" min="0" max="500" step="1" value="' + lordNumber(settings.speed) + '" data-lord-research-setting="speed" /></label>' +
             '<label>Alliance helps<input type="number" min="0" max="30" step="1" value="' + lordNumber(settings.helps) + '" data-lord-research-setting="helps" /></label>' +
             '<button class="lord-research-toggle' + (settings.heightsOfPower ? ' on' : '') + '" type="button" data-action="lord-research-event"><span>Heights of Power <b>+15%</b></span><i aria-hidden="true"></i></button></div>' +
-            '<main class="lord-research-main"><div class="lord-research-tabs"><button class="lord-research-tab' + (lordResearchTreeKey() === "economy" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="economy">Economy</button><button class="lord-research-tab' + (lordResearchTreeKey() === "military" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="military">Military</button><span class="lord-research-hint">Left click +1 &middot; Right click -1</span></div><div class="lord-research-summary" data-lord-research-summary>' + lordResearchSummaryHtml(data) + '</div><div class="lord-research-tree-scroll" data-lord-research-scroll tabindex="0" aria-label="' + treeLabel + ' research tree. Scroll horizontally and vertically to explore.">' + lordResearchTreeHtml(data) + '</div></main></div></section>';
+            '<main class="lord-research-main"><div class="lord-research-tabs"><button class="lord-research-tab' + (lordResearchTreeKey() === "economy" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="economy">Economy</button><button class="lord-research-tab' + (lordResearchTreeKey() === "military" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="military">Military</button><span class="lord-research-hint">Left click +1 &middot; Right click -1</span><span class="lord-research-zoom"><button type="button" data-action="lord-research-zoom" data-step="-0.1" aria-label="Zoom out">&minus;</button><button class="lord-research-zoom-value" type="button" data-action="lord-research-zoom-fit" aria-label="Fit research tree">Fit ' + Math.round(state.lordResearchZoom * 100) + '%</button><button type="button" data-action="lord-research-zoom" data-step="0.1" aria-label="Zoom in">+</button></span></div><div class="lord-research-summary" data-lord-research-summary>' + lordResearchSummaryHtml(data) + '</div><div class="lord-research-tree-scroll" data-lord-research-scroll tabindex="0" aria-label="' + treeLabel + ' research tree. Scroll horizontally and vertically to explore.">' + lordResearchTreeHtml(data) + '</div></main></div></section>';
+      }
+
+      function setLordResearchZoom(value) {
+        state.lordResearchZoom = Math.max(0.25, Math.min(1.4, Math.round(value * 20) / 20));
+        const canvas = document.querySelector("[data-lord-research-tree-canvas]");
+        if (canvas) canvas.style.zoom = String(state.lordResearchZoom);
+        const label = document.querySelector(".lord-research-zoom-value");
+        if (label) label.textContent = "Fit " + Math.round(state.lordResearchZoom * 100) + "%";
+      }
+
+      function fitLordResearchTree() {
+        const viewport = document.querySelector("[data-lord-research-scroll]");
+        const canvas = document.querySelector("[data-lord-research-tree-canvas]");
+        if (!viewport || !canvas) return;
+        const width = Number.parseFloat(canvas.style.width) || canvas.scrollWidth || 1;
+        const fit = Math.max(0.25, Math.min(1, (viewport.clientWidth - 12) / width));
+        setLordResearchZoom(Math.floor(fit * 20) / 20);
+        viewport.scrollLeft = 0;
+        viewport.scrollTop = 0;
       }
 
       function refreshLordResearchWorkspace() {
@@ -6563,6 +6588,9 @@ export function kellaDashboardHtml() {
             (researchOnly ? '' : '<div class="lord-navigation"><nav class="lord-tabs" aria-label="Commander shortcuts">' + views.filter(function(item) { return featuredViews.includes(item.id); }).map(function(item) { return '<button class="lord-tab' + (item.id === state.lordView ? ' active' : '') + '" type="button" data-action="lord-view" data-lord-view="' + item.id + '">' + item.label + '</button>'; }).join("") + '</nav><select class="lord-view-select" data-lord-view-select aria-label="Choose commander tool">' + views.map(function(item) { return '<option value="' + item.id + '"' + (item.id === state.lordView ? ' selected' : '') + '>' + item.label + '</option>'; }).join("") + '</select></div>') +
             (panels[state.lordView] || lordOverview)(data) +
           '</div>';
+        if (state.lordView === "research") {
+          requestAnimationFrame(function() { fitLordResearchTree(); });
+        }
       }
 
       function updateLordCalculatorResults() {
@@ -8169,7 +8197,8 @@ export function kellaDashboardHtml() {
 
       document.addEventListener("pointerdown", function(event) {
         const viewport = event.target.closest?.("[data-lord-research-scroll]");
-        if (!viewport || event.button !== 0 || event.pointerType === "touch") return;
+        const researchNode = event.target.closest?.('[data-action="lord-research-select"]');
+        if (!viewport || researchNode || event.button !== 0 || event.pointerType === "touch") return;
         lordResearchPan = {
           viewport: viewport,
           pointerId: event.pointerId,
@@ -8318,6 +8347,14 @@ export function kellaDashboardHtml() {
           const search = document.querySelector("[data-lord-search]");
           if (search) search.value = "";
           document.querySelectorAll("[data-lord-catalog-item]").forEach(function(card) { card.classList.remove("hidden"); });
+          return;
+        }
+        if (kind === "lord-research-zoom") {
+          setLordResearchZoom(state.lordResearchZoom + lordNumber(action.getAttribute("data-step")));
+          return;
+        }
+        if (kind === "lord-research-zoom-fit") {
+          fitLordResearchTree();
           return;
         }
         if (kind === "lord-research-select") {
