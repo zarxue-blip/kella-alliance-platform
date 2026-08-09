@@ -2755,12 +2755,68 @@ export function kellaDashboardHtml() {
       .lord-calc-results div { min-width: 0; padding: 10px; border: 1px solid rgba(119, 77, 26, 0.18); border-radius: 7px; background: rgba(239, 216, 160, 0.44); }
       .lord-calc-results span { display: block; color: var(--muted); font-size: 9px; font-weight: 1000; text-transform: uppercase; }
       .lord-calc-results strong { display: block; margin-top: 4px; overflow-wrap: anywhere; }
-      .lord-research-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; }
-      .lord-research-card { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 10px; align-items: center; min-width: 0; padding: 11px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 249, 224, 0.72); }
-      .lord-research-card img { width: 58px; height: 58px; padding: 5px; object-fit: contain; border-radius: 8px; background: linear-gradient(145deg, #132039, #284d66); }
-      .lord-research-card strong { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .lord-research-card small { display: block; margin: 2px 0 7px; color: var(--muted); }
-      .lord-research-card input { min-width: 0; padding: 8px; }
+      .lord-research-workspace { overflow: hidden; border: 1px solid #4f421f; border-radius: 8px; background: #090b0d; color: #f4ead0; box-shadow: 0 20px 45px rgba(31, 18, 4, 0.22); }
+      .lord-research-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid #3d3929; background: linear-gradient(180deg, #151719, #0d0f11); }
+      .lord-research-head h3 { margin: 0; color: #f1dca6; font-size: 25px; font-weight: 800; letter-spacing: 0.02em; }
+      .lord-research-head p { margin: 4px 0 0; color: #8e8b82; font-size: 13px; }
+      .lord-research-reset { border-color: #9a7809; background: #121313; color: #efd351; }
+      .lord-research-layout { display: grid; grid-template-columns: 235px minmax(0, 1fr) 250px; min-height: 650px; }
+      .lord-research-settings, .lord-research-inspector { min-width: 0; padding: 16px; background: #111315; }
+      .lord-research-settings { border-right: 1px solid #333226; }
+      .lord-research-inspector { border-left: 1px solid #333226; }
+      .lord-research-panel-title { display: flex; align-items: center; gap: 9px; margin: 0 0 14px; color: #e9d392; font-size: 13px; font-weight: 1000; letter-spacing: 0.08em; text-transform: uppercase; }
+      .lord-research-panel-title::before { content: ""; width: 28px; height: 28px; border: 1px solid #705c1f; border-radius: 50%; background: radial-gradient(circle, #493b12, #18170e); }
+      .lord-research-settings-group { display: grid; gap: 10px; padding: 14px 0; border-top: 1px solid #2c2e2f; }
+      .lord-research-settings-group:first-of-type { border-top: 0; padding-top: 0; }
+      .lord-research-settings-group h4 { margin: 0; color: #ba941f; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+      .lord-research-settings label { display: grid; gap: 5px; color: #99978f; font-size: 11px; font-weight: 800; }
+      .lord-research-settings input, .lord-research-settings select { width: 100%; min-width: 0; min-height: 38px; padding: 8px 10px; border-color: #5b4b19; border-radius: 5px; background: #0b0d0f; color: #eee5ce; }
+      .lord-research-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 10px; border: 1px solid #5b4b19; border-radius: 6px; background: #111315; color: #d4c9ab; text-align: left; }
+      .lord-research-toggle i { position: relative; width: 35px; height: 19px; flex: 0 0 auto; border-radius: 999px; background: #343536; }
+      .lord-research-toggle i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 13px; height: 13px; border-radius: 50%; background: #aaa; transition: transform .18s ease, background .18s ease; }
+      .lord-research-toggle.on { border-color: #9b7b17; color: #f2d967; }
+      .lord-research-toggle.on i { background: #59490f; }
+      .lord-research-toggle.on i::after { transform: translateX(16px); background: #f0cc3e; }
+      .lord-research-main { display: grid; grid-template-rows: auto auto minmax(0, 1fr); min-width: 0; background: #060809; }
+      .lord-research-tabs { display: flex; align-items: stretch; min-height: 68px; border-bottom: 1px solid #343328; background: #0d0f11; }
+      .lord-research-tab { min-width: 180px; border: 0; border-right: 1px solid #252728; border-radius: 0; background: transparent; color: #9b9990; font-weight: 900; }
+      .lord-research-tab.active { color: #f0d05b; box-shadow: inset 0 -2px #d0a500; }
+      .lord-research-tab[disabled] { opacity: .42; cursor: not-allowed; }
+      .lord-research-summary { display: grid; grid-template-columns: minmax(180px, 1.3fr) repeat(4, minmax(74px, .7fr)); gap: 7px; padding: 10px 12px; border-bottom: 1px solid #263029; background: #09120d; }
+      .lord-research-summary div { min-width: 0; padding: 9px 10px; border: 1px solid #26362c; border-radius: 5px; background: #0c1410; }
+      .lord-research-summary span { display: block; color: #777f79; font-size: 9px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
+      .lord-research-summary strong { display: block; margin-top: 4px; color: #9bd6c1; font-size: 13px; overflow-wrap: anywhere; }
+      .lord-research-tree-scroll { position: relative; min-height: 500px; overflow: auto; overscroll-behavior: contain; scrollbar-color: #9b7712 #111; scrollbar-width: thin; touch-action: pan-x pan-y; }
+      .lord-research-tree { position: relative; width: 2050px; height: 500px; background-color: #06100b; background-image: radial-gradient(circle at 18% 35%, rgba(21, 77, 45, .32), transparent 25%), radial-gradient(circle at 74% 60%, rgba(22, 57, 43, .25), transparent 30%), linear-gradient(rgba(33, 72, 54, .08) 1px, transparent 1px), linear-gradient(90deg, rgba(33, 72, 54, .08) 1px, transparent 1px); background-size: auto, auto, 46px 46px, 46px 46px; }
+      .lord-research-lines { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; overflow: visible; }
+      .lord-research-line { fill: none; stroke: #21485b; stroke-width: 4; opacity: .8; }
+      .lord-research-line.done { stroke: #9a7d25; }
+      .lord-research-node { position: absolute; z-index: 2; display: grid; place-items: center; width: 92px; min-height: 108px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #d8d6cb; text-align: center; }
+      .lord-research-node:hover, .lord-research-node.selected { transform: translateY(-2px); filter: brightness(1.13); }
+      .lord-research-node.selected .lord-research-node-art { filter: drop-shadow(0 0 8px #efc631); }
+      .lord-research-node-art { position: relative; width: 72px; height: 72px; padding: 10px; background-position: center; background-repeat: no-repeat; background-size: contain; }
+      .lord-research-node.t1 .lord-research-node-art { background-image: url('/assets/research/ui/t1_bg.png'); }
+      .lord-research-node.t2 .lord-research-node-art { background-image: url('/assets/research/ui/t2_bg.png'); }
+      .lord-research-node.t3 .lord-research-node-art { background-image: url('/assets/research/ui/t3_bg.png'); }
+      .lord-research-node.t4 .lord-research-node-art { background-image: url('/assets/research/ui/t4_bg.png'); }
+      .lord-research-node-art img { width: 100%; height: 100%; object-fit: contain; }
+      .lord-research-node-level { position: absolute; right: 5px; bottom: 5px; min-width: 28px; padding: 2px 4px; border: 1px solid #6b6a65; border-radius: 999px; background: rgba(3, 4, 5, .88); color: #ece8dc; font-size: 9px; font-weight: 1000; }
+      .lord-research-node > strong { display: block; width: 102px; margin-top: -2px; font-size: 10px; line-height: 1.15; }
+      .lord-research-inspector-inner { display: grid; gap: 13px; }
+      .lord-research-selected { display: grid; justify-items: center; gap: 8px; padding: 15px; border: 1px solid #3f3b28; border-radius: 7px; background: #0c0e10; text-align: center; }
+      .lord-research-selected img { width: 82px; height: 82px; padding: 8px; object-fit: contain; background: url('/assets/research/ui/frame.png') center / contain no-repeat; }
+      .lord-research-selected h4 { margin: 0; color: #f0dfad; font-size: 17px; }
+      .lord-research-selected p { margin: 0; color: #8f8e88; font-size: 11px; }
+      .lord-research-level-controls { display: grid; grid-template-columns: 38px 1fr 38px; gap: 6px; width: 100%; }
+      .lord-research-level-controls button { min-height: 36px; padding: 5px; border-color: #594a1c; background: #181916; color: #eed160; }
+      .lord-research-level-controls strong { display: grid; place-items: center; border: 1px solid #3d3c31; border-radius: 5px; background: #080a0b; }
+      .lord-research-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+      .lord-research-actions button { min-height: 34px; padding: 6px; border-color: #594a1c; background: #151615; color: #d8c98f; font-size: 10px; }
+      .lord-research-costs { display: grid; gap: 6px; }
+      .lord-research-costs div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 9px; border: 1px solid #2c302c; border-radius: 5px; background: #0c0f0e; }
+      .lord-research-costs span { color: #8d8f8b; font-size: 10px; text-transform: uppercase; }
+      .lord-research-costs strong { color: #e6d9b7; font-size: 12px; }
+      .lord-research-empty { padding: 20px 8px; color: #85857f; font-size: 12px; text-align: center; }
       .lord-building-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
       .lord-building-card { display: grid; grid-template-columns: 50px minmax(0, 1fr) 86px; gap: 11px; align-items: center; padding: 13px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 249, 224, 0.72); }
       .lord-building-card img { width: 50px; height: 50px; object-fit: contain; }
@@ -2785,7 +2841,10 @@ export function kellaDashboardHtml() {
         .command-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .buff-week-heading, .buff-day-row { grid-template-columns: 110px minmax(230px, 1fr) minmax(220px, 0.8fr); gap: 14px; }
         .lord-grid, .lord-speedups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .lord-tool-grid, .lord-catalog, .lord-research-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .lord-tool-grid, .lord-catalog { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .lord-research-layout { grid-template-columns: 210px minmax(0, 1fr); }
+        .lord-research-inspector { grid-column: 1 / -1; border-top: 1px solid #333226; border-left: 0; }
+        .lord-research-inspector-inner { grid-template-columns: minmax(210px, .65fr) 1fr; }
         .lord-building-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
       @media (max-width: 780px) {
@@ -2794,7 +2853,20 @@ export function kellaDashboardHtml() {
         .lord-intro { grid-template-columns: 58px minmax(0, 1fr); }
         .lord-intro > img { width: 58px; height: 58px; }
         .lord-save-state { grid-column: 1 / -1; display: flex; justify-content: space-between; text-align: left; }
-        .lord-tool-grid, .lord-catalog, .lord-pairings, .lord-calc-grid, .lord-research-grid, .lord-building-grid { grid-template-columns: 1fr; }
+        .lord-tool-grid, .lord-catalog, .lord-pairings, .lord-calc-grid, .lord-building-grid { grid-template-columns: 1fr; }
+        .lord-research-head { align-items: flex-start; padding: 15px; }
+        .lord-research-head h3 { font-size: 21px; }
+        .lord-research-layout { display: block; min-height: 0; }
+        .lord-research-settings, .lord-research-inspector { border: 0; border-bottom: 1px solid #333226; }
+        .lord-research-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+        .lord-research-settings > .lord-research-panel-title { grid-column: 1 / -1; }
+        .lord-research-main { min-height: 590px; }
+        .lord-research-tabs { min-height: 54px; }
+        .lord-research-tab { min-width: 50%; }
+        .lord-research-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .lord-research-summary div:first-child { grid-column: 1 / -1; }
+        .lord-research-tree-scroll { min-height: 460px; }
+        .lord-research-inspector-inner { grid-template-columns: 1fr; }
         .lord-catalog-toolbar { grid-template-columns: 1fr; }
         .lord-tabs { margin-inline: -8px; border-radius: 0; }
         .shell {
@@ -3193,52 +3265,53 @@ export function kellaDashboardHtml() {
       const lordDecorationNames = ["Forest Guardian", "Celestial Tower", "Dragon Banner", "Spring Fountain", "Golden Tree", "Victory Monument", "Moonlit Garden", "Royal Library", "Ancient Obelisk", "Alliance Beacon", "War Drums", "Hall of Heroes"];
       const lordBuildingNames = ["City Hall", "Alliance Center", "Hall of Order", "Hospital", "Storehouse", "Scout Camp", "Barracks", "Stable", "Archery Range", "Mage Academy", "Engineering Workshop", "Research Center"];
       const lordResearchNodes = [
-        { id: "101", name: "Ore Prospecting", max: 1 },
-        { id: "102", name: "Gold Processing I", max: 5 },
-        { id: "103", name: "Forestry I", max: 5 },
-        { id: "104", name: "Gold Mining I", max: 5 },
-        { id: "105", name: "Architecture I", max: 5 },
-        { id: "106", name: "Logging Techniques I", max: 5 },
-        { id: "107", name: "Weak Points I", max: 5 },
-        { id: "108", name: "Container Upgrade I", max: 5 },
-        { id: "109", name: "Military Leadership I", max: 5 },
-        { id: "110", name: "Mana Prospecting", max: 1 },
-        { id: "111", name: "Stamina I", max: 5 },
-        { id: "112", name: "Breath Control I", max: 5 },
-        { id: "113", name: "Ironworking I", max: 5 },
-        { id: "114", name: "Scholarship I", max: 5 },
-        { id: "115", name: "Advanced Mana I", max: 5 },
-        { id: "116", name: "Rock Breaking I", max: 5 },
-        { id: "117", name: "Mana Harvesting I", max: 5 },
-        { id: "118", name: "Gold Processing II", max: 10 },
-        { id: "119", name: "Container Upgrade II", max: 10 },
-        { id: "120", name: "Forestry II", max: 10 },
-        { id: "121", name: "Ironworking II", max: 10 },
-        { id: "122", name: "Advanced Mana II", max: 10 },
-        { id: "123", name: "Gold Mining II", max: 10 },
-        { id: "124", name: "Architecture II", max: 10 },
-        { id: "125", name: "Logging Techniques II", max: 10 },
-        { id: "126", name: "Rock Breaking II", max: 10 },
-        { id: "127", name: "Supply Chains I", max: 10 },
-        { id: "128", name: "Mana Harvesting II", max: 10 },
-        { id: "129", name: "Weak Points II", max: 10 },
-        { id: "130", name: "Container Upgrade III", max: 10 },
-        { id: "131", name: "Stamina II", max: 10 },
-        { id: "132", name: "Military Leadership II", max: 10 },
-        { id: "133", name: "Breath Control II", max: 10 },
-        { id: "134", name: "Scholarship II", max: 10 },
-        { id: "135", name: "Gold Processing III", max: 10 },
-        { id: "136", name: "Forestry III", max: 10 },
-        { id: "137", name: "Ironworking III", max: 10 },
-        { id: "138", name: "Advanced Mana III", max: 10 },
-        { id: "139", name: "Gold Mining III", max: 10 },
-        { id: "140", name: "Logging Techniques III", max: 10 },
-        { id: "141", name: "Rock Breaking III", max: 10 },
-        { id: "142", name: "Mana Harvesting III", max: 10 },
-        { id: "143", name: "Land of Plenty", max: 10 },
-        { id: "144", name: "Supply Chains II", max: 10 },
-        { id: "145", name: "Gem Prospecting", max: 1 }
+        { id: "101", name: "Ore Prospecting", max: 1, col: 0, row: 1, requires: [] },
+        { id: "102", name: "Gold Processing I", max: 5, col: 1, row: 1, requires: ["101"] },
+        { id: "103", name: "Forestry I", max: 5, col: 1, row: 2, requires: ["101"] },
+        { id: "104", name: "Gold Mining I", max: 5, col: 2, row: 0, requires: ["102"] },
+        { id: "105", name: "Architecture I", max: 5, col: 2, row: 1, requires: ["102", "103"] },
+        { id: "106", name: "Logging Techniques I", max: 5, col: 2, row: 2, requires: ["103"] },
+        { id: "107", name: "Weak Points I", max: 5, col: 3, row: 0, requires: ["104"] },
+        { id: "108", name: "Container Upgrade I", max: 5, col: 3, row: 1, requires: ["105"] },
+        { id: "109", name: "Military Leadership I", max: 5, col: 3, row: 2, requires: ["106"] },
+        { id: "145", name: "Gem Prospecting", max: 1, col: 4, row: 0, requires: ["107"] },
+        { id: "110", name: "Mana Prospecting", max: 1, col: 4, row: 1, requires: ["108", "109"] },
+        { id: "111", name: "Stamina I", max: 5, col: 5, row: 0, requires: ["145"] },
+        { id: "112", name: "Breath Control I", max: 5, col: 5, row: 1, requires: ["110"] },
+        { id: "113", name: "Ironworking I", max: 5, col: 5, row: 2, requires: ["110"] },
+        { id: "114", name: "Scholarship I", max: 5, col: 6, row: 1, requires: ["111", "112"] },
+        { id: "115", name: "Advanced Mana I", max: 5, col: 6, row: 2, requires: ["113"] },
+        { id: "116", name: "Rock Breaking I", max: 5, col: 7, row: 0, requires: ["114"] },
+        { id: "117", name: "Mana Harvesting I", max: 5, col: 7, row: 2, requires: ["114", "115"] },
+        { id: "118", name: "Gold Processing II", max: 10, col: 8, row: 0, requires: ["116"] },
+        { id: "119", name: "Container Upgrade II", max: 10, col: 8, row: 1, requires: ["117"] },
+        { id: "120", name: "Forestry II", max: 10, col: 8, row: 2, requires: ["117"] },
+        { id: "121", name: "Ironworking II", max: 10, col: 9, row: 0, requires: ["118"] },
+        { id: "122", name: "Advanced Mana II", max: 10, col: 9, row: 2, requires: ["120"] },
+        { id: "123", name: "Gold Mining II", max: 10, col: 10, row: 0, requires: ["121"] },
+        { id: "124", name: "Architecture II", max: 10, col: 10, row: 1, requires: ["119"] },
+        { id: "125", name: "Logging Techniques II", max: 10, col: 10, row: 2, requires: ["122"] },
+        { id: "126", name: "Rock Breaking II", max: 10, col: 11, row: 0, requires: ["123"] },
+        { id: "127", name: "Supply Chains I", max: 10, col: 11, row: 1, requires: ["124"] },
+        { id: "128", name: "Mana Harvesting II", max: 10, col: 11, row: 2, requires: ["125"] },
+        { id: "129", name: "Weak Points II", max: 10, col: 12, row: 0, requires: ["126"] },
+        { id: "130", name: "Container Upgrade III", max: 10, col: 12, row: 1, requires: ["127"] },
+        { id: "131", name: "Stamina II", max: 10, col: 12, row: 2, requires: ["128"] },
+        { id: "132", name: "Military Leadership II", max: 10, col: 13, row: 0, requires: ["129"] },
+        { id: "133", name: "Breath Control II", max: 10, col: 13, row: 1, requires: ["130"] },
+        { id: "134", name: "Scholarship II", max: 10, col: 13, row: 2, requires: ["131"] },
+        { id: "135", name: "Gold Processing III", max: 10, col: 14, row: 0, requires: ["132"] },
+        { id: "136", name: "Forestry III", max: 10, col: 14, row: 1, requires: ["133"] },
+        { id: "137", name: "Ironworking III", max: 10, col: 14, row: 2, requires: ["134"] },
+        { id: "138", name: "Advanced Mana III", max: 10, col: 15, row: 0, requires: ["135"] },
+        { id: "139", name: "Gold Mining III", max: 10, col: 15, row: 1, requires: ["136"] },
+        { id: "140", name: "Logging Techniques III", max: 10, col: 15, row: 2, requires: ["137"] },
+        { id: "141", name: "Rock Breaking III", max: 10, col: 16, row: 0, requires: ["138"] },
+        { id: "142", name: "Mana Harvesting III", max: 10, col: 16, row: 1, requires: ["139"] },
+        { id: "143", name: "Land of Plenty", max: 10, col: 16, row: 2, requires: ["140"] },
+        { id: "144", name: "Supply Chains II", max: 10, col: 17, row: 1, requires: ["141", "142", "143"] }
       ];
+      const lordResearchCosts = {"101":{"seconds":35,"gold":100,"wood":100,"ore":0,"mana":0,"power":5},"102":{"seconds":7871,"gold":155000,"wood":155000,"ore":112500,"mana":0,"power":1491},"103":{"seconds":7871,"gold":155000,"wood":155000,"ore":112500,"mana":0,"power":1491},"104":{"seconds":8294,"gold":155000,"wood":155000,"ore":112500,"mana":0,"power":1519},"105":{"seconds":15812,"gold":310000,"wood":310000,"ore":232500,"mana":0,"power":3011},"106":{"seconds":8294,"gold":155000,"wood":155000,"ore":112500,"mana":0,"power":1519},"107":{"seconds":19765,"gold":310000,"wood":310000,"ore":232500,"mana":0,"power":3279},"108":{"seconds":16624,"gold":310000,"wood":310000,"ore":232500,"mana":0,"power":3066},"109":{"seconds":19765,"gold":310000,"wood":310000,"ore":232500,"mana":0,"power":3279},"145":{"seconds":2118,"gold":20000,"wood":20000,"ore":15000,"mana":0,"power":269},"110":{"seconds":2118,"gold":20000,"wood":20000,"ore":15000,"mana":0,"power":269},"111":{"seconds":42000,"gold":310000,"wood":310000,"ore":232500,"mana":232500,"power":5956},"112":{"seconds":42000,"gold":310000,"wood":310000,"ore":232500,"mana":232500,"power":5956},"113":{"seconds":42000,"gold":310000,"wood":310000,"ore":232500,"mana":232500,"power":5956},"114":{"seconds":42000,"gold":465000,"wood":465000,"ore":348750,"mana":348750,"power":7506},"115":{"seconds":42000,"gold":310000,"wood":310000,"ore":232500,"mana":232500,"power":5956},"116":{"seconds":75353,"gold":465000,"wood":465000,"ore":348750,"mana":348750,"power":9774},"117":{"seconds":75353,"gold":465000,"wood":465000,"ore":348750,"mana":348750,"power":9774},"118":{"seconds":114882,"gold":1789000,"wood":1789000,"ore":1341750,"mana":1341750,"power":25702},"119":{"seconds":114882,"gold":2288000,"wood":2288000,"ore":1716000,"mana":1716000,"power":30692},"120":{"seconds":114882,"gold":1789000,"wood":1789000,"ore":1341750,"mana":1341750,"power":25702},"121":{"seconds":114882,"gold":1789000,"wood":1789000,"ore":1341750,"mana":1341750,"power":25702},"122":{"seconds":114882,"gold":1789000,"wood":1789000,"ore":1341750,"mana":1341750,"power":25702},"123":{"seconds":960000,"gold":5680500,"wood":5680500,"ore":4282000,"mana":4282000,"power":122258},"124":{"seconds":1440000,"gold":11361000,"wood":11361000,"ore":8564000,"mana":8564000,"power":211876},"125":{"seconds":960000,"gold":5680500,"wood":5680500,"ore":4282000,"mana":4282000,"power":122258},"126":{"seconds":960000,"gold":5680500,"wood":5680500,"ore":4282000,"mana":4282000,"power":122258},"127":{"seconds":1440000,"gold":11361000,"wood":11361000,"ore":8564000,"mana":8564000,"power":211876},"128":{"seconds":960000,"gold":5680500,"wood":5680500,"ore":4282000,"mana":4282000,"power":122258},"129":{"seconds":1440000,"gold":11361000,"wood":11361000,"ore":8564000,"mana":8564000,"power":211876},"130":{"seconds":1920000,"gold":17044000,"wood":17044000,"ore":12783000,"mana":12783000,"power":301000},"131":{"seconds":1440000,"gold":11361000,"wood":11361000,"ore":8564000,"mana":8564000,"power":211876},"132":{"seconds":1440000,"gold":11361000,"wood":11361000,"ore":8564000,"mana":8564000,"power":211876},"133":{"seconds":1440000,"gold":11361000,"wood":11361000,"ore":8564000,"mana":8564000,"power":211876},"134":{"seconds":1920000,"gold":22685000,"wood":22685000,"ore":17041000,"mana":17041000,"power":357628},"135":{"seconds":1440000,"gold":17051000,"wood":17051000,"ore":12788250,"mana":12788250,"power":268430},"136":{"seconds":1440000,"gold":17051000,"wood":17051000,"ore":12788250,"mana":12788250,"power":268430},"137":{"seconds":1440000,"gold":17051000,"wood":17051000,"ore":12788250,"mana":12788250,"power":268430},"138":{"seconds":1440000,"gold":17051000,"wood":17051000,"ore":12788250,"mana":12788250,"power":268430},"139":{"seconds":1440000,"gold":22685000,"wood":22685000,"ore":17041000,"mana":17041000,"power":324988},"140":{"seconds":1440000,"gold":22685000,"wood":22685000,"ore":17041000,"mana":17041000,"power":324988},"141":{"seconds":1440000,"gold":22685000,"wood":22685000,"ore":17041000,"mana":17041000,"power":324988},"142":{"seconds":1440000,"gold":22685000,"wood":22685000,"ore":17041000,"mana":17041000,"power":324988},"143":{"seconds":1920000,"gold":45385000,"wood":45385000,"ore":34015000,"mana":34015000,"power":584220},"144":{"seconds":1920000,"gold":45385000,"wood":45385000,"ore":34015000,"mana":34015000,"power":584220}};
       const statMetricOptions = [
         { key: "power", label: "Power" },
         { key: "merits", label: "Merits" },
@@ -5946,6 +6019,17 @@ export function kellaDashboardHtml() {
           heroes: {},
           artifacts: {},
           research: {},
+          researchSettings: {
+            faction: "League of Order",
+            allianceCenter: 25,
+            speed: 70,
+            helps: 30,
+            heightsOfPower: false,
+            stockGold: 0,
+            stockWood: 0,
+            stockOre: 0,
+            stockMana: 0
+          },
           buildings: {},
           warPet: { pet: "", buildName: "", notes: "" },
           decorations: {},
@@ -6196,12 +6280,130 @@ export function kellaDashboardHtml() {
         }).join("") + '</div></section>';
       }
 
+      function lordResearchSettings(data) {
+        data.researchSettings = data.researchSettings || {};
+        const defaults = lordDefaultData().researchSettings;
+        Object.keys(defaults).forEach(function(key) {
+          if (typeof data.researchSettings[key] === "undefined") data.researchSettings[key] = defaults[key];
+        });
+        return data.researchSettings;
+      }
+
+      function lordResearchTier(node) {
+        if (node.col <= 4) return "t1";
+        if (node.col <= 9) return "t2";
+        if (node.col <= 13) return "t3";
+        return "t4";
+      }
+
+      function lordResearchNodeLevel(data, node) {
+        return Math.max(0, Math.min(node.max, Math.round(lordNumber(data.research?.[node.id]))));
+      }
+
+      function lordResearchTotals(data) {
+        const settings = lordResearchSettings(data);
+        const totals = { seconds: 0, gold: 0, wood: 0, ore: 0, mana: 0, power: 0 };
+        lordResearchNodes.forEach(function(node) {
+          const cost = lordResearchCosts[node.id] || {};
+          const remaining = Math.max(0, node.max - lordResearchNodeLevel(data, node)) / node.max;
+          Object.keys(totals).forEach(function(key) { totals[key] += lordNumber(cost[key]) * remaining; });
+        });
+        const eventSpeed = settings.heightsOfPower ? 15 : 0;
+        const speedMultiplier = 1 + ((lordNumber(settings.speed) + eventSpeed) / 100);
+        const helpReduction = Math.min(0.26, Math.max(0, lordNumber(settings.helps)) * (0.26 / 30));
+        totals.seconds = totals.seconds / speedMultiplier * (1 - helpReduction);
+        totals.goldLeft = Math.max(0, totals.gold - lordNumber(settings.stockGold));
+        totals.woodLeft = Math.max(0, totals.wood - lordNumber(settings.stockWood));
+        totals.oreLeft = Math.max(0, totals.ore - lordNumber(settings.stockOre));
+        totals.manaLeft = Math.max(0, totals.mana - lordNumber(settings.stockMana));
+        return totals;
+      }
+
+      function lordResearchSummaryHtml(data) {
+        const totals = lordResearchTotals(data);
+        return '<div><span>Speedups left</span><strong>' + trainingDuration(totals.seconds) + '</strong></div>' +
+          '<div><span>Gold left</span><strong>' + trainingCompactNumber(totals.goldLeft) + '</strong></div>' +
+          '<div><span>Wood left</span><strong>' + trainingCompactNumber(totals.woodLeft) + '</strong></div>' +
+          '<div><span>Ore left</span><strong>' + trainingCompactNumber(totals.oreLeft) + '</strong></div>' +
+          '<div><span>Mana left</span><strong>' + trainingCompactNumber(totals.manaLeft) + '</strong></div>';
+      }
+
+      function lordResearchDetailsHtml(data) {
+        const selectedId = String(state.lordResearchSelected || lordResearchNodes[0].id);
+        const node = lordResearchNodes.find(function(item) { return item.id === selectedId; }) || lordResearchNodes[0];
+        const level = lordResearchNodeLevel(data, node);
+        const remaining = Math.max(0, node.max - level) / node.max;
+        const cost = lordResearchCosts[node.id] || {};
+        const settings = lordResearchSettings(data);
+        const speedMultiplier = 1 + ((lordNumber(settings.speed) + (settings.heightsOfPower ? 15 : 0)) / 100);
+        const helpReduction = Math.min(0.26, Math.max(0, lordNumber(settings.helps)) * (0.26 / 30));
+        const adjustedSeconds = lordNumber(cost.seconds) * remaining / speedMultiplier * (1 - helpReduction);
+        return '<div class="lord-research-selected"><img src="/assets/research/economy/league_of_order/' + node.id + '.png" alt="" /><h4>' + escapeHtml(node.name) + '</h4><p>Economy research - Tier ' + lordResearchTier(node).slice(1) + '</p>' +
+          '<div class="lord-research-level-controls"><button type="button" data-action="lord-research-step" data-research-id="' + node.id + '" data-step="-1" aria-label="Decrease level">-</button><strong>' + level + ' / ' + node.max + '</strong><button type="button" data-action="lord-research-step" data-research-id="' + node.id + '" data-step="1" aria-label="Increase level">+</button></div>' +
+          '<div class="lord-research-actions"><button type="button" data-action="lord-research-max" data-research-id="' + node.id + '">Set max</button><button type="button" data-action="lord-research-reset-node" data-research-id="' + node.id + '">Reset node</button></div></div>' +
+          '<div class="lord-research-costs"><div><span>Adjusted time</span><strong>' + trainingDuration(adjustedSeconds) + '</strong></div><div><span>Power left</span><strong>' + trainingCompactNumber(lordNumber(cost.power) * remaining) + '</strong></div><div><span>Gold</span><strong>' + trainingCompactNumber(lordNumber(cost.gold) * remaining) + '</strong></div><div><span>Wood</span><strong>' + trainingCompactNumber(lordNumber(cost.wood) * remaining) + '</strong></div><div><span>Ore</span><strong>' + trainingCompactNumber(lordNumber(cost.ore) * remaining) + '</strong></div><div><span>Mana</span><strong>' + trainingCompactNumber(lordNumber(cost.mana) * remaining) + '</strong></div></div>';
+      }
+
+      function lordResearchTreeHtml(data) {
+        const nodeWidth = 92;
+        const nodeHeight = 108;
+        const colStep = 108;
+        const rowY = [45, 190, 335];
+        const nodeById = Object.fromEntries(lordResearchNodes.map(function(node) { return [node.id, node]; }));
+        const lines = [];
+        lordResearchNodes.forEach(function(node) {
+          node.requires.forEach(function(requiredId) {
+            const source = nodeById[requiredId];
+            if (!source) return;
+            const sx = 34 + source.col * colStep + nodeWidth;
+            const sy = rowY[source.row] + 40;
+            const tx = 34 + node.col * colStep;
+            const ty = rowY[node.row] + 40;
+            const mid = sx + Math.max(12, (tx - sx) / 2);
+            const done = lordResearchNodeLevel(data, source) >= source.max;
+            lines.push('<path class="lord-research-line' + (done ? ' done' : '') + '" data-research-source="' + source.id + '" d="M ' + sx + ' ' + sy + ' H ' + mid + ' V ' + ty + ' H ' + tx + '" />');
+          });
+        });
+        const selectedId = String(state.lordResearchSelected || lordResearchNodes[0].id);
+        const nodes = lordResearchNodes.map(function(node) {
+          const level = lordResearchNodeLevel(data, node);
+          return '<button class="lord-research-node ' + lordResearchTier(node) + (selectedId === node.id ? ' selected' : '') + '" style="left:' + (34 + node.col * colStep) + 'px;top:' + rowY[node.row] + 'px" type="button" data-action="lord-research-select" data-research-id="' + node.id + '" aria-label="' + escapeHtml(node.name) + ', level ' + level + ' of ' + node.max + '"><span class="lord-research-node-art"><img src="/assets/research/economy/league_of_order/' + node.id + '.png" alt="" loading="lazy" /><span class="lord-research-node-level">' + level + '/' + node.max + '</span></span><strong>' + escapeHtml(node.name) + '</strong></button>';
+        }).join("");
+        return '<div class="lord-research-tree"><svg class="lord-research-lines" viewBox="0 0 2050 500" aria-hidden="true">' + lines.join("") + '</svg>' + nodes + '</div>';
+      }
+
       function lordResearchPanel(data) {
-        const completed = lordResearchNodes.filter(function(node) { return lordNumber(data.research?.[node.id]) >= node.max; }).length;
-        return '<section class="lord-panel"><div class="lord-section-heading"><div><h3>League of Order Research</h3><p>Record economy research levels using the in-game artwork.</p></div><span>' + completed + ' / ' + lordResearchNodes.length + ' maxed</span></div><div class="lord-research-grid">' + lordResearchNodes.map(function(node) {
-          const level = Math.min(node.max, lordNumber(data.research?.[node.id]));
-          return '<label class="lord-research-card"><img src="/assets/research/economy/league_of_order/' + node.id + '.png" alt="" loading="lazy" /><span><strong>' + escapeHtml(node.name) + '</strong><small>Level ' + level + ' / ' + node.max + '</small><input type="number" min="0" max="' + node.max + '" step="1" value="' + level + '" data-lord-field="research.' + node.id + '" aria-label="' + escapeHtml(node.name) + ' level" /></span></label>';
-        }).join("") + '</div></section>';
+        const settings = lordResearchSettings(data);
+        const completed = lordResearchNodes.filter(function(node) { return lordResearchNodeLevel(data, node) >= node.max; }).length;
+        return '<section class="lord-research-workspace"><header class="lord-research-head"><div><h3>Research Calculator</h3><p>League of Order economy tree - ' + completed + ' of ' + lordResearchNodes.length + ' technologies completed</p></div><button class="lord-research-reset" type="button" data-action="lord-research-reset-all">Reset</button></header>' +
+          '<div class="lord-research-layout"><aside class="lord-research-settings"><h4 class="lord-research-panel-title">Settings</h4>' +
+            '<div class="lord-research-settings-group"><h4>City settings</h4><label>Faction<select data-lord-research-setting="faction"><option>League of Order</option><option disabled>Springwardens (assets needed)</option><option disabled>Wilderburg (assets needed)</option></select></label><label>Alliance Center<select data-lord-research-setting="allianceCenter">' + Array.from({ length: 25 }, function(_, index) { const level = index + 1; return '<option value="' + level + '"' + (level === lordNumber(settings.allianceCenter) ? ' selected' : '') + '>Level ' + level + '</option>'; }).join("") + '</select></label></div>' +
+            '<div class="lord-research-settings-group"><h4>Speed buffs</h4><label>Research speed %<input type="number" min="0" max="500" step="1" value="' + lordNumber(settings.speed) + '" data-lord-research-setting="speed" /></label><label>Alliance helps<input type="number" min="0" max="30" step="1" value="' + lordNumber(settings.helps) + '" data-lord-research-setting="helps" /></label><button class="lord-research-toggle' + (settings.heightsOfPower ? ' on' : '') + '" type="button" data-action="lord-research-event"><span>Heights of Power +15%</span><i></i></button></div>' +
+            '<div class="lord-research-settings-group"><h4>Resources owned</h4><label>Gold<input type="number" min="0" step="1000" value="' + lordNumber(settings.stockGold) + '" data-lord-research-setting="stockGold" /></label><label>Wood<input type="number" min="0" step="1000" value="' + lordNumber(settings.stockWood) + '" data-lord-research-setting="stockWood" /></label><label>Ore<input type="number" min="0" step="1000" value="' + lordNumber(settings.stockOre) + '" data-lord-research-setting="stockOre" /></label><label>Mana<input type="number" min="0" step="1000" value="' + lordNumber(settings.stockMana) + '" data-lord-research-setting="stockMana" /></label></div></aside>' +
+            '<main class="lord-research-main"><div class="lord-research-tabs"><button class="lord-research-tab active" type="button">Economy</button><button class="lord-research-tab" type="button" disabled title="Military research artwork was not included">Military</button></div><div class="lord-research-summary" data-lord-research-summary>' + lordResearchSummaryHtml(data) + '</div><div class="lord-research-tree-scroll" data-lord-research-scroll>' + lordResearchTreeHtml(data) + '</div></main>' +
+            '<aside class="lord-research-inspector"><h4 class="lord-research-panel-title">Calculator</h4><div class="lord-research-inspector-inner" data-lord-research-details>' + lordResearchDetailsHtml(data) + '</div></aside></div></section>';
+      }
+
+      function refreshLordResearchWorkspace() {
+        if (state.lordView !== "research") return;
+        const data = loadLordToolsData();
+        const summary = document.querySelector("[data-lord-research-summary]");
+        const details = document.querySelector("[data-lord-research-details]");
+        if (summary) summary.innerHTML = lordResearchSummaryHtml(data);
+        if (details) details.innerHTML = lordResearchDetailsHtml(data);
+        document.querySelectorAll("[data-action=lord-research-select]").forEach(function(button) {
+          const id = button.getAttribute("data-research-id") || "";
+          const node = lordResearchNodes.find(function(item) { return item.id === id; });
+          const level = node ? lordResearchNodeLevel(data, node) : 0;
+          button.classList.toggle("selected", id === String(state.lordResearchSelected || lordResearchNodes[0].id));
+          const badge = button.querySelector(".lord-research-node-level");
+          if (badge && node) badge.textContent = level + "/" + node.max;
+        });
+        document.querySelectorAll("[data-research-source]").forEach(function(path) {
+          const sourceId = path.getAttribute("data-research-source") || "";
+          const source = lordResearchNodes.find(function(item) { return item.id === sourceId; });
+          path.classList.toggle("done", Boolean(source && lordResearchNodeLevel(data, source) >= source.max));
+        });
       }
 
       function lordBuildingsPanel(data) {
@@ -6303,6 +6505,15 @@ export function kellaDashboardHtml() {
       function handleLordControl(target) {
         if (!target || !target.matches) return false;
         const value = target.type === "number" ? lordNumber(target.value) : target.value;
+        if (target.matches("[data-lord-research-setting]")) {
+          const key = target.getAttribute("data-lord-research-setting") || "";
+          const data = loadLordToolsData();
+          const settings = lordResearchSettings(data);
+          settings[key] = target.type === "number" ? lordNumber(value) : value;
+          saveLordToolsData(false);
+          refreshLordResearchWorkspace();
+          return true;
+        }
         if (target.matches("[data-lord-field]")) {
           lordSetPath(target.getAttribute("data-lord-field"), value);
           if (target.matches("[data-lord-pet-select]")) {
@@ -7970,6 +8181,44 @@ export function kellaDashboardHtml() {
           const search = document.querySelector("[data-lord-search]");
           if (search) search.value = "";
           document.querySelectorAll("[data-lord-catalog-item]").forEach(function(card) { card.classList.remove("hidden"); });
+          return;
+        }
+        if (kind === "lord-research-select") {
+          state.lordResearchSelected = action.getAttribute("data-research-id") || lordResearchNodes[0].id;
+          refreshLordResearchWorkspace();
+          return;
+        }
+        if (kind === "lord-research-step" || kind === "lord-research-max" || kind === "lord-research-reset-node") {
+          const nodeId = action.getAttribute("data-research-id") || "";
+          const node = lordResearchNodes.find(function(item) { return item.id === nodeId; });
+          if (!node) return;
+          const data = loadLordToolsData();
+          const current = lordResearchNodeLevel(data, node);
+          if (kind === "lord-research-step") data.research[nodeId] = Math.max(0, Math.min(node.max, current + lordNumber(action.getAttribute("data-step"))));
+          if (kind === "lord-research-max") data.research[nodeId] = node.max;
+          if (kind === "lord-research-reset-node") data.research[nodeId] = 0;
+          saveLordToolsData(false);
+          refreshLordResearchWorkspace();
+          return;
+        }
+        if (kind === "lord-research-event") {
+          const data = loadLordToolsData();
+          const settings = lordResearchSettings(data);
+          settings.heightsOfPower = !settings.heightsOfPower;
+          saveLordToolsData(false);
+          action.classList.toggle("on", settings.heightsOfPower);
+          refreshLordResearchWorkspace();
+          return;
+        }
+        if (kind === "lord-research-reset-all") {
+          if (!window.confirm("Reset every economy research level and calculator setting?")) return;
+          const data = loadLordToolsData();
+          data.research = {};
+          data.researchSettings = lordDefaultData().researchSettings;
+          state.lordResearchSelected = lordResearchNodes[0].id;
+          saveLordToolsData(false);
+          renderLordTools();
+          toast("Research calculator reset.");
           return;
         }
         if (kind === "lord-hero-max") {
