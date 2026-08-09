@@ -56,6 +56,7 @@ export function createApp() {
       "/wiki",
       "/wiki/:slug",
       "/members",
+      "/lord-tools",
       "/training-tools",
       "/roots-of-war",
       "/roots-registration",

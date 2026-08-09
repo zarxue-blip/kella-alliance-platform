@@ -3,6 +3,7 @@ const navItems = [
   { path: "/buff-schedule", icon: "/assets/buffs/buff-schedule.png", label: "Buff Schedule" },
   { path: "/wiki", icon: "/assets/icons/embed-sender.png", label: "Wiki" },
   { path: "/members", icon: "/assets/icons/members.png", label: "Members" },
+  { path: "/lord-tools", icon: "/assets/icons/lord-tools.svg", label: "My Lord" },
   { path: "/training-tools", icon: "/assets/icons/training-tools.png", label: "Training Tools" },
   { path: "/attendance", icon: "/assets/icons/events.png", label: "Attendance" },
   { path: "/roots-of-war", icon: "/assets/icons/root-registration.png", label: "Roots of War", adminOnly: true },
@@ -2693,6 +2694,82 @@ export function kellaDashboardHtml() {
         letter-spacing: 0.08em;
       }
 
+      .lord-tools-shell { display: grid; gap: 16px; }
+      .lord-intro { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 18px; align-items: center; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 247, 215, 0.74); }
+      .lord-intro > img { width: 76px; height: 76px; padding: 8px; object-fit: contain; border: 1px solid rgba(156, 100, 22, 0.34); border-radius: 50%; background: #16263e; }
+      .lord-intro h3 { margin: 0 0 5px; font-size: 25px; }
+      .lord-intro p { margin: 0; color: var(--muted); }
+      .lord-save-state { display: grid; gap: 4px; text-align: right; color: var(--muted); font-size: 12px; font-weight: 900; }
+      .lord-tabs { display: flex; gap: 7px; padding: 7px; overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: rgba(231, 207, 151, 0.56); scrollbar-width: thin; }
+      .lord-tab { flex: 0 0 auto; min-height: 40px; padding: 8px 13px; border: 1px solid rgba(122, 79, 27, 0.26); background: rgba(255, 249, 226, 0.82); color: #5b3817; font-size: 12px; font-weight: 1000; }
+      .lord-tab.active { border-color: #b4760f; background: #efbd3f; color: #291500; box-shadow: inset 0 1px rgba(255,255,255,0.55), 0 4px 12px rgba(124, 69, 8, 0.18); }
+      .lord-panel { display: grid; gap: 16px; }
+      .lord-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+      .lord-summary-card { min-width: 0; padding: 15px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 249, 224, 0.72); }
+      .lord-summary-card span { display: block; margin-bottom: 6px; color: var(--muted); font-size: 10px; font-weight: 1000; letter-spacing: 0.08em; text-transform: uppercase; }
+      .lord-summary-card strong { display: block; font-size: clamp(20px, 2.5vw, 30px); line-height: 1; overflow-wrap: anywhere; }
+      .lord-progress { height: 8px; margin-top: 12px; overflow: hidden; border-radius: 999px; background: rgba(107, 67, 23, 0.16); }
+      .lord-progress i { display: block; width: var(--lord-progress, 0%); height: 100%; border-radius: inherit; background: #c78414; transition: width 0.22s ease; }
+      .lord-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+      .lord-section-heading h3 { margin: 0; }
+      .lord-section-heading p { margin: 4px 0 0; color: var(--muted); }
+      .lord-tool-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+      .lord-tool-card { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; align-items: center; min-height: 118px; padding: 15px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 249, 224, 0.72); color: var(--text); text-align: left; }
+      .lord-tool-card:hover { border-color: #b77912; transform: translateY(-1px); }
+      .lord-tool-card img { width: 52px; height: 52px; object-fit: contain; }
+      .lord-tool-card strong { display: block; margin-bottom: 4px; font-size: 17px; }
+      .lord-tool-card span { color: var(--muted); font-size: 13px; line-height: 1.45; }
+      .lord-form { padding: 18px; }
+      .lord-form .form-grid { align-items: start; }
+      .lord-form label > small { display: block; margin-top: 5px; color: var(--muted); font-weight: 700; line-height: 1.35; }
+      .lord-table { min-width: 760px; }
+      .lord-table th:first-child, .lord-table td:first-child { position: sticky; left: 0; z-index: 1; background: #f1dba4; }
+      .lord-table input { min-width: 92px; text-align: right; }
+      .lord-speedups { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+      .lord-speedup-card { display: grid; gap: 7px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 249, 224, 0.72); }
+      .lord-speedup-card img { width: 46px; height: 46px; object-fit: contain; }
+      .lord-speedup-card input { font-size: 24px; font-weight: 1000; }
+      .lord-catalog-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 10px; align-items: center; }
+      .lord-catalog { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+      .lord-catalog-card { display: grid; gap: 11px; min-width: 0; padding: 13px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 249, 224, 0.72); }
+      .lord-catalog-card.hidden { display: none; }
+      .lord-catalog-head { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+      .lord-catalog-head img { width: 52px; height: 52px; border-radius: 7px; object-fit: cover; background: rgba(81, 48, 15, 0.1); }
+      .lord-catalog-head strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .lord-catalog-head small { color: var(--muted); }
+      .lord-catalog-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .lord-skill-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+      .lord-skill-row input { min-width: 0; padding: 8px 4px; text-align: center; }
+      .lord-pill { min-height: 34px; padding: 6px 10px; border: 1px solid rgba(115, 72, 24, 0.26); border-radius: 999px; background: rgba(239, 220, 174, 0.66); color: #68421c; font-size: 11px; font-weight: 1000; }
+      .lord-pill.on { border-color: #418857; background: #d9edc6; color: #1e6539; }
+      .lord-pairings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .lord-pair-card { padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 249, 224, 0.72); }
+      .lord-pair-card h4 { margin: 0 0 12px; font-size: 19px; }
+      .lord-pet-preview { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 18px; align-items: center; }
+      .lord-pet-preview img { width: 110px; height: 110px; object-fit: contain; }
+      .lord-calc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+      .lord-calc-card { padding: 17px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 249, 224, 0.72); }
+      .lord-calc-card h3 { margin: 0 0 4px; }
+      .lord-calc-card > p { margin: 0 0 14px; color: var(--muted); }
+      .lord-calc-results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+      .lord-calc-results div { min-width: 0; padding: 10px; border: 1px solid rgba(119, 77, 26, 0.18); border-radius: 7px; background: rgba(239, 216, 160, 0.44); }
+      .lord-calc-results span { display: block; color: var(--muted); font-size: 9px; font-weight: 1000; text-transform: uppercase; }
+      .lord-calc-results strong { display: block; margin-top: 4px; overflow-wrap: anywhere; }
+      .lord-research-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; }
+      .lord-research-card { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 10px; align-items: center; min-width: 0; padding: 11px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 249, 224, 0.72); }
+      .lord-research-card img { width: 58px; height: 58px; padding: 5px; object-fit: contain; border-radius: 8px; background: linear-gradient(145deg, #132039, #284d66); }
+      .lord-research-card strong { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .lord-research-card small { display: block; margin: 2px 0 7px; color: var(--muted); }
+      .lord-research-card input { min-width: 0; padding: 8px; }
+      .lord-building-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+      .lord-building-card { display: grid; grid-template-columns: 50px minmax(0, 1fr) 86px; gap: 11px; align-items: center; padding: 13px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 249, 224, 0.72); }
+      .lord-building-card img { width: 50px; height: 50px; object-fit: contain; }
+      .lord-building-card strong { display: block; }
+      .lord-building-card small { color: var(--muted); }
+      .lord-building-card input { min-width: 0; padding: 8px; text-align: center; }
+      .lord-active-decorations { color: #1f683e; font-size: 12px; font-weight: 1000; }
+      .lord-empty { grid-column: 1 / -1; }
+
       @media (max-width: 1120px) {
         .shell { width: min(100%, calc(100vw - 20px)); grid-template-columns: 220px minmax(0, 1fr); }
         .topbar { grid-template-columns: 1fr; align-items: start; }
@@ -2707,10 +2784,19 @@ export function kellaDashboardHtml() {
         .attendance-calendar-card .event-calendar .calendar-day { min-height: 150px; }
         .command-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .buff-week-heading, .buff-day-row { grid-template-columns: 110px minmax(230px, 1fr) minmax(220px, 0.8fr); gap: 14px; }
+        .lord-grid, .lord-speedups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .lord-tool-grid, .lord-catalog, .lord-research-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .lord-building-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
       @media (max-width: 780px) {
         body { background-attachment: scroll; }
         .command-settings-grid { grid-template-columns: 1fr; }
+        .lord-intro { grid-template-columns: 58px minmax(0, 1fr); }
+        .lord-intro > img { width: 58px; height: 58px; }
+        .lord-save-state { grid-column: 1 / -1; display: flex; justify-content: space-between; text-align: left; }
+        .lord-tool-grid, .lord-catalog, .lord-pairings, .lord-calc-grid, .lord-research-grid, .lord-building-grid { grid-template-columns: 1fr; }
+        .lord-catalog-toolbar { grid-template-columns: 1fr; }
+        .lord-tabs { margin-inline: -8px; border-radius: 0; }
         .shell {
           width: 100%;
           min-height: 100vh;
@@ -2924,6 +3010,15 @@ export function kellaDashboardHtml() {
         .training-mix-row > strong { grid-column: 1 / -1; }
         .training-plan-actions { align-items: stretch; flex-direction: column; }
         .training-plan-actions button { width: 100%; }
+        .lord-grid, .lord-speedups { grid-template-columns: 1fr 1fr; gap: 8px; }
+        .lord-summary-card { padding: 12px; }
+        .lord-summary-card strong { font-size: 19px; }
+        .lord-tool-card { min-height: 96px; grid-template-columns: 44px minmax(0, 1fr); padding: 12px; }
+        .lord-tool-card img { width: 44px; height: 44px; }
+        .lord-catalog-card, .lord-calc-card, .lord-pair-card { padding: 12px; }
+        .lord-calc-results { grid-template-columns: 1fr 1fr; }
+        .lord-pet-preview { grid-template-columns: 72px minmax(0, 1fr); }
+        .lord-pet-preview img { width: 72px; height: 72px; }
         .kofi-tip { gap: 0; padding: 8px; font-size: 0; }
         .kofi-tip img { width: 32px; height: 32px; }
       }
@@ -2991,8 +3086,9 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingTroopType: "cavalry", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "" };
+      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingTroopType: "cavalry", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "", lordTools: null, lordView: "overview", lordSearch: "" };
       const WIKI_CUSTOM_IMAGE_KEY = "kellaWikiCustomImages";
+      const LORD_TOOLS_KEY = "kellaLordToolsV1";
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
       const dashboardCommands = [
@@ -3092,6 +3188,57 @@ export function kellaDashboardHtml() {
       const wikiArtifactImages = ${JSON.stringify(wikiArtifactImages)};
       const wikiPetImages = ${JSON.stringify(wikiPetImages)};
       const thumbnailBackgrounds = ${JSON.stringify(thumbnailBackgrounds)};
+      const lordUnitTypes = ["Infantry", "Mage", "Marksman", "Cavalry", "Flying"];
+      const lordTiers = ["t1", "t2", "t3", "t4", "t5"];
+      const lordDecorationNames = ["Forest Guardian", "Celestial Tower", "Dragon Banner", "Spring Fountain", "Golden Tree", "Victory Monument", "Moonlit Garden", "Royal Library", "Ancient Obelisk", "Alliance Beacon", "War Drums", "Hall of Heroes"];
+      const lordBuildingNames = ["City Hall", "Alliance Center", "Hall of Order", "Hospital", "Storehouse", "Scout Camp", "Barracks", "Stable", "Archery Range", "Mage Academy", "Engineering Workshop", "Research Center"];
+      const lordResearchNodes = [
+        { id: "101", name: "Ore Prospecting", max: 1 },
+        { id: "102", name: "Gold Processing I", max: 5 },
+        { id: "103", name: "Forestry I", max: 5 },
+        { id: "104", name: "Gold Mining I", max: 5 },
+        { id: "105", name: "Architecture I", max: 5 },
+        { id: "106", name: "Logging Techniques I", max: 5 },
+        { id: "107", name: "Weak Points I", max: 5 },
+        { id: "108", name: "Container Upgrade I", max: 5 },
+        { id: "109", name: "Military Leadership I", max: 5 },
+        { id: "110", name: "Mana Prospecting", max: 1 },
+        { id: "111", name: "Stamina I", max: 5 },
+        { id: "112", name: "Breath Control I", max: 5 },
+        { id: "113", name: "Ironworking I", max: 5 },
+        { id: "114", name: "Scholarship I", max: 5 },
+        { id: "115", name: "Advanced Mana I", max: 5 },
+        { id: "116", name: "Rock Breaking I", max: 5 },
+        { id: "117", name: "Mana Harvesting I", max: 5 },
+        { id: "118", name: "Gold Processing II", max: 10 },
+        { id: "119", name: "Container Upgrade II", max: 10 },
+        { id: "120", name: "Forestry II", max: 10 },
+        { id: "121", name: "Ironworking II", max: 10 },
+        { id: "122", name: "Advanced Mana II", max: 10 },
+        { id: "123", name: "Gold Mining II", max: 10 },
+        { id: "124", name: "Architecture II", max: 10 },
+        { id: "125", name: "Logging Techniques II", max: 10 },
+        { id: "126", name: "Rock Breaking II", max: 10 },
+        { id: "127", name: "Supply Chains I", max: 10 },
+        { id: "128", name: "Mana Harvesting II", max: 10 },
+        { id: "129", name: "Weak Points II", max: 10 },
+        { id: "130", name: "Container Upgrade III", max: 10 },
+        { id: "131", name: "Stamina II", max: 10 },
+        { id: "132", name: "Military Leadership II", max: 10 },
+        { id: "133", name: "Breath Control II", max: 10 },
+        { id: "134", name: "Scholarship II", max: 10 },
+        { id: "135", name: "Gold Processing III", max: 10 },
+        { id: "136", name: "Forestry III", max: 10 },
+        { id: "137", name: "Ironworking III", max: 10 },
+        { id: "138", name: "Advanced Mana III", max: 10 },
+        { id: "139", name: "Gold Mining III", max: 10 },
+        { id: "140", name: "Logging Techniques III", max: 10 },
+        { id: "141", name: "Rock Breaking III", max: 10 },
+        { id: "142", name: "Mana Harvesting III", max: 10 },
+        { id: "143", name: "Land of Plenty", max: 10 },
+        { id: "144", name: "Supply Chains II", max: 10 },
+        { id: "145", name: "Gem Prospecting", max: 1 }
+      ];
       const statMetricOptions = [
         { key: "power", label: "Power" },
         { key: "merits", label: "Merits" },
@@ -5782,6 +5929,447 @@ export function kellaDashboardHtml() {
         }).join("") + '</div>';
       }
 
+      function lordDefaultData() {
+        const troops = {};
+        lordUnitTypes.forEach(function(unit) {
+          troops[unit] = {};
+          lordTiers.forEach(function(tier) { troops[unit][tier] = 0; });
+        });
+        const pairings = {};
+        ["Infantry", "Cavalry", "Marksman", "Mage"].forEach(function(unit) {
+          pairings[unit] = { mainHero: "", deputyHero: "", artifact: "", pet: "", notes: "" };
+        });
+        return {
+          identity: { name: "", server: "881", lordId: "", faction: "League of Order" },
+          troops,
+          speedups: { universal: 0, training: 0, building: 0, research: 0 },
+          heroes: {},
+          artifacts: {},
+          research: {},
+          buildings: {},
+          warPet: { pet: "", buildName: "", notes: "" },
+          decorations: {},
+          pairings,
+          calculators: {
+            researchHours: 24,
+            researchBuff: 20,
+            researchDays: 0,
+            buildingHours: 24,
+            buildingBuff: 20,
+            buildingDays: 0,
+            wounded: 100000,
+            woundedTier: "t4",
+            healingBuff: 20,
+            eventDays: 7,
+            dailyHours: 2
+          },
+          updatedAt: ""
+        };
+      }
+
+      function lordMerge(target, source) {
+        if (!source || typeof source !== "object") return target;
+        Object.keys(source).forEach(function(key) {
+          if (source[key] && typeof source[key] === "object" && !Array.isArray(source[key])) {
+            if (!target[key] || typeof target[key] !== "object") target[key] = {};
+            lordMerge(target[key], source[key]);
+          } else {
+            target[key] = source[key];
+          }
+        });
+        return target;
+      }
+
+      function loadLordToolsData() {
+        if (state.lordTools) return state.lordTools;
+        let saved = {};
+        try { saved = JSON.parse(localStorage.getItem(LORD_TOOLS_KEY) || "{}"); } catch (error) { saved = {}; }
+        state.lordTools = lordMerge(lordDefaultData(), saved);
+        if (!state.lordTools.identity.name && state.profile) {
+          state.lordTools.identity.name = state.profile.ign || memberDisplayName(state.profile) || "";
+          state.lordTools.identity.lordId = memberLordId(state.profile) || "";
+        }
+        return state.lordTools;
+      }
+
+      function saveLordToolsData(showMessage) {
+        const data = loadLordToolsData();
+        data.updatedAt = new Date().toISOString();
+        localStorage.setItem(LORD_TOOLS_KEY, JSON.stringify(data));
+        const status = document.querySelector("[data-lord-save-status]");
+        if (status) status.textContent = "Saved " + formatDateTime(data.updatedAt);
+        if (showMessage) toast("My Lord profile saved.");
+      }
+
+      function lordSetPath(path, value) {
+        const parts = String(path || "").split(".").filter(Boolean);
+        if (!parts.length) return;
+        let target = loadLordToolsData();
+        parts.forEach(function(part, index) {
+          if (index === parts.length - 1) target[part] = value;
+          else {
+            if (!target[part] || typeof target[part] !== "object") target[part] = {};
+            target = target[part];
+          }
+        });
+        saveLordToolsData(false);
+      }
+
+      function lordNumber(value) {
+        const parsed = Number(value || 0);
+        return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+      }
+
+      function lordAssetList(items) {
+        const seen = new Set();
+        return (items || []).filter(function(item) {
+          const name = String(item.label || "").replace(/\\s+Icon$/i, "").trim();
+          if (!name || /\\s+Icon$/i.test(String(item.label || "")) || seen.has(name.toLowerCase())) return false;
+          seen.add(name.toLowerCase());
+          item.lordName = name;
+          return true;
+        });
+      }
+
+      function lordHeroList() { return lordAssetList(wikiHeroImages); }
+      function lordArtifactList() { return lordAssetList(wikiArtifactImages); }
+      function lordPetList() { return lordAssetList(wikiPetImages); }
+
+      function lordSelectOptions(items, selected, placeholder) {
+        return '<option value="">' + escapeHtml(placeholder || "Choose") + '</option>' + items.map(function(item) {
+          const value = item.lordName || item.label || item;
+          return '<option value="' + escapeHtml(value) + '"' + (value === selected ? ' selected' : '') + '>' + escapeHtml(value) + '</option>';
+        }).join("");
+      }
+
+      function lordTroopTotal(data) {
+        return lordUnitTypes.reduce(function(total, unit) {
+          return total + lordTiers.reduce(function(unitTotal, tier) { return unitTotal + lordNumber(data.troops?.[unit]?.[tier]); }, 0);
+        }, 0);
+      }
+
+      function lordCollectionCount(collection) {
+        return Object.values(collection || {}).filter(function(item) { return lordNumber(item?.level) > 0 || item?.owned; }).length;
+      }
+
+      function lordCompletion(data) {
+        const checks = [
+          Boolean(data.identity.name && data.identity.lordId),
+          lordTroopTotal(data) > 0,
+          Object.values(data.speedups || {}).some(function(value) { return lordNumber(value) > 0; }),
+          lordCollectionCount(data.heroes) > 0,
+          lordCollectionCount(data.artifacts) > 0,
+          Object.values(data.research || {}).some(function(value) { return lordNumber(value) > 0; }),
+          Object.values(data.buildings || {}).some(function(value) { return lordNumber(value) > 0; }),
+          Boolean(data.warPet.pet),
+          lordCollectionCount(data.decorations) > 0,
+          Object.values(data.pairings || {}).some(function(item) { return Boolean(item.mainHero || item.deputyHero); })
+        ];
+        return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+      }
+
+      function lordSummaryText() {
+        const data = loadLordToolsData();
+        const activeDecorations = Object.entries(data.decorations || {}).filter(function(entry) { return entry[1]?.active; }).map(function(entry) { return entry[0]; });
+        const marches = Object.entries(data.pairings || {}).filter(function(entry) { return entry[1]?.mainHero; }).map(function(entry) {
+          return entry[0] + ": " + entry[1].mainHero + (entry[1].deputyHero ? " + " + entry[1].deputyHero : "");
+        });
+        return [
+          "KELLA - MY LORD",
+          data.identity.name || "Unnamed commander",
+          "Server " + (data.identity.server || "-") + " | Lord ID " + (data.identity.lordId || "-"),
+          "Troops: " + formatNumber(lordTroopTotal(data)),
+          "Heroes: " + lordCollectionCount(data.heroes) + " | Artifacts: " + lordCollectionCount(data.artifacts),
+          "Research nodes started: " + Object.values(data.research || {}).filter(function(value) { return lordNumber(value) > 0; }).length,
+          "Buildings tracked: " + Object.values(data.buildings || {}).filter(function(value) { return lordNumber(value) > 0; }).length,
+          "Speedups: " + formatNumber(Object.values(data.speedups || {}).reduce(function(sum, value) { return sum + lordNumber(value); }, 0)) + " days",
+          "Active decorations: " + (activeDecorations.join(", ") || "None"),
+          marches.length ? "Marches:\\n" + marches.join("\\n") : "Marches: None"
+        ].join("\\n");
+      }
+
+      function lordOverview(data) {
+        const heroes = lordCollectionCount(data.heroes);
+        const artifacts = lordCollectionCount(data.artifacts);
+        const speedups = Object.values(data.speedups || {}).reduce(function(total, value) { return total + lordNumber(value); }, 0);
+        const completion = lordCompletion(data);
+        const quickTools = [
+          { view: "troops", icon: "/assets/icons/training-tools.png", title: "Troop Ledger", text: "Record every troop type from T1 through T5." },
+          { view: "heroes", icon: lordHeroList()[0]?.src || "/assets/icons/members.png", title: "Hero Collection", text: "Track levels, stars, and all four skills." },
+          { view: "artifacts", icon: lordArtifactList()[0]?.src || "/assets/icons/settings.png", title: "Artifact Vault", text: "Track artifact levels and exemplar unlocks." },
+          { view: "research", icon: "/assets/research/economy/league_of_order/114.png", title: "Research Progress", text: "Track every League of Order economy research level." },
+          { view: "buildings", icon: "/assets/buffs/construction.png", title: "Building Levels", text: "Keep city and troop-building levels together." },
+          { view: "pairings", icon: "/assets/wiki-misc/img-planner-infantry.png", title: "March Pairings", text: "Build four reusable hero, pet, and artifact marches." },
+          { view: "calculators", icon: "/assets/icons/training-tools.png", title: "Planning Calculators", text: "Estimate research, buildings, healing, and event reserves." },
+          { path: "/training-tools", icon: "/assets/icons/training-tools.png", title: "Training Tools", text: "Open Kella's full troop and resource calculator." }
+        ];
+        return '<section class="lord-panel">' +
+          '<div class="lord-grid">' +
+            '<div class="lord-summary-card"><span>Profile complete</span><strong>' + completion + '%</strong><div class="lord-progress" style="--lord-progress:' + completion + '%"><i></i></div></div>' +
+            '<div class="lord-summary-card"><span>Total troops</span><strong>' + escapeHtml(trainingCompactNumber(lordTroopTotal(data))) + '</strong></div>' +
+            '<div class="lord-summary-card"><span>Owned collection</span><strong>' + formatNumber(heroes + artifacts) + '</strong></div>' +
+            '<div class="lord-summary-card"><span>Speedups</span><strong>' + escapeHtml(trainingCompactNumber(speedups)) + 'd</strong></div>' +
+          '</div>' +
+          '<div class="lord-section-heading"><div><h3>Commander tools</h3><p>Everything in one profile, without spreadsheet hopping.</p></div></div>' +
+          '<div class="lord-tool-grid">' + quickTools.map(function(item) {
+            const attr = item.path ? 'data-link-button="' + item.path + '"' : 'data-action="lord-view" data-lord-view="' + item.view + '"';
+            return '<button class="lord-tool-card" type="button" ' + attr + '><img src="' + escapeHtml(item.icon) + '" alt="" loading="lazy" /><span><strong>' + escapeHtml(item.title) + '</strong><span>' + escapeHtml(item.text) + '</span></span></button>';
+          }).join("") + '</div>' +
+        '</section>';
+      }
+
+      function lordIdentityPanel(data) {
+        const fields = [
+          { key: "name", label: "In-game name", placeholder: "Commander name" },
+          { key: "server", label: "Server", placeholder: "881" },
+          { key: "lordId", label: "Lord ID", placeholder: "Numeric player ID" },
+          { key: "faction", label: "Faction", placeholder: "League of Order" }
+        ];
+        return '<section class="card lord-form"><div class="lord-section-heading"><div><h3>Commander Identity</h3><p>Your Kella profile header and in-game identifiers.</p></div></div><div class="form-grid">' + fields.map(function(field) {
+          return '<label>' + field.label + '<input value="' + escapeHtml(data.identity[field.key] || "") + '" placeholder="' + escapeHtml(field.placeholder) + '" data-lord-field="identity.' + field.key + '" /></label>';
+        }).join("") + '</div></section>';
+      }
+
+      function lordTroopsPanel(data) {
+        return '<section class="card lord-form"><div class="lord-section-heading"><div><h3>Troop Ledger</h3><p>Enter current units by class and tier.</p></div><strong>' + formatNumber(lordTroopTotal(data)) + ' total</strong></div><div class="table-wrap"><table class="lord-table"><thead><tr><th>Unit Type</th>' + lordTiers.map(function(tier) { return '<th>' + tier.toUpperCase() + '</th>'; }).join("") + '<th>Total</th></tr></thead><tbody>' + lordUnitTypes.map(function(unit) {
+          const total = lordTiers.reduce(function(sum, tier) { return sum + lordNumber(data.troops?.[unit]?.[tier]); }, 0);
+          return '<tr><td><strong>' + unit + '</strong></td>' + lordTiers.map(function(tier) {
+            return '<td><input type="number" min="0" step="1" inputmode="numeric" value="' + lordNumber(data.troops?.[unit]?.[tier]) + '" data-lord-troop-unit="' + unit + '" data-lord-troop-tier="' + tier + '" /></td>';
+          }).join("") + '<td><strong>' + formatNumber(total) + '</strong></td></tr>';
+        }).join("") + '</tbody></table></div></section>';
+      }
+
+      function lordSpeedupsPanel(data) {
+        const types = [
+          { key: "universal", label: "Universal", icon: "/assets/icons/lord-tools.svg" },
+          { key: "training", label: "Training", icon: "/assets/buffs/training.png" },
+          { key: "building", label: "Building", icon: "/assets/buffs/construction.png" },
+          { key: "research", label: "Research", icon: "/assets/buffs/research.png" }
+        ];
+        return '<section class="lord-panel"><div class="lord-section-heading"><div><h3>Speedup Inventory</h3><p>Store totals in days. Calculators use these reserves.</p></div></div><div class="lord-speedups">' + types.map(function(item) {
+          return '<label class="lord-speedup-card"><img src="' + item.icon + '" alt="" /><strong>' + item.label + '</strong><input type="number" min="0" step="0.01" value="' + lordNumber(data.speedups[item.key]) + '" data-lord-field="speedups.' + item.key + '" /><small>days</small></label>';
+        }).join("") + '</div></section>';
+      }
+
+      function lordHeroesPanel(data) {
+        const heroes = lordHeroList();
+        return '<section class="lord-panel"><div class="lord-section-heading"><div><h3>Hero Collection</h3><p>Track level, stars, and skill progress.</p></div><span>' + lordCollectionCount(data.heroes) + ' owned</span></div><div class="lord-catalog-toolbar"><input type="search" value="' + escapeHtml(state.lordSearch || "") + '" placeholder="Search heroes..." data-lord-search="hero" /><button class="secondary" type="button" data-action="lord-clear-search">Clear</button></div><div class="lord-catalog" data-lord-catalog="hero">' + heroes.map(function(hero) {
+          const item = data.heroes[hero.lordName] || {};
+          const term = hero.lordName.toLowerCase();
+          const hidden = state.lordSearch && !term.includes(state.lordSearch.toLowerCase());
+          return '<article class="lord-catalog-card' + (hidden ? ' hidden' : '') + '" data-lord-catalog-item="' + escapeHtml(term) + '"><div class="lord-catalog-head"><img src="' + escapeHtml(hero.src) + '" alt="" loading="lazy" /><span><strong>' + escapeHtml(hero.lordName) + '</strong><small>Hero progress</small></span><button class="lord-pill" type="button" data-action="lord-hero-max" data-lord-name="' + escapeHtml(hero.lordName) + '">Max</button></div><div class="lord-catalog-fields"><label>Level<input type="number" min="0" max="60" value="' + lordNumber(item.level) + '" data-lord-hero="' + escapeHtml(hero.lordName) + '" data-lord-prop="level" /></label><label>Stars<input type="number" min="0" max="6" value="' + lordNumber(item.stars) + '" data-lord-hero="' + escapeHtml(hero.lordName) + '" data-lord-prop="stars" /></label></div><div class="lord-skill-row">' + [1,2,3,4].map(function(skill) { return '<input aria-label="Skill ' + skill + '" type="number" min="0" max="5" value="' + lordNumber(item["skill" + skill]) + '" data-lord-hero="' + escapeHtml(hero.lordName) + '" data-lord-prop="skill' + skill + '" />'; }).join("") + '</div></article>';
+        }).join("") + '</div></section>';
+      }
+
+      function lordArtifactsPanel(data) {
+        const artifacts = lordArtifactList();
+        return '<section class="lord-panel"><div class="lord-section-heading"><div><h3>Artifact Vault</h3><p>Record artifact level and exemplar status.</p></div><span>' + lordCollectionCount(data.artifacts) + ' owned</span></div><div class="lord-catalog-toolbar"><input type="search" value="' + escapeHtml(state.lordSearch || "") + '" placeholder="Search artifacts..." data-lord-search="artifact" /><button class="secondary" type="button" data-action="lord-clear-search">Clear</button></div><div class="lord-catalog" data-lord-catalog="artifact">' + artifacts.map(function(artifact) {
+          const item = data.artifacts[artifact.lordName] || {};
+          const term = artifact.lordName.toLowerCase();
+          const hidden = state.lordSearch && !term.includes(state.lordSearch.toLowerCase());
+          return '<article class="lord-catalog-card' + (hidden ? ' hidden' : '') + '" data-lord-catalog-item="' + escapeHtml(term) + '"><div class="lord-catalog-head"><img src="' + escapeHtml(artifact.src) + '" alt="" loading="lazy" /><span><strong>' + escapeHtml(artifact.lordName) + '</strong><small>Artifact progress</small></span><button class="lord-pill' + (item.exemplar ? ' on' : '') + '" type="button" data-action="lord-artifact-exemplar" data-lord-name="' + escapeHtml(artifact.lordName) + '">Exemplar</button></div><label>Level<input type="number" min="0" max="5" value="' + lordNumber(item.level) + '" data-lord-artifact="' + escapeHtml(artifact.lordName) + '" data-lord-prop="level" /></label></article>';
+        }).join("") + '</div></section>';
+      }
+
+      function lordWarPetPanel(data) {
+        const pets = lordPetList();
+        const selected = pets.find(function(item) { return item.lordName === data.warPet.pet; });
+        return '<section class="card lord-form"><div class="lord-section-heading"><div><h3>War Pet Build</h3><p>Keep your preferred pet and build notes with your commander profile.</p></div></div><div class="lord-pet-preview"><img src="' + escapeHtml(selected?.src || "/assets/icons/lord-tools.svg") + '" alt="" data-lord-pet-image /><div class="form-grid"><label>War Pet<select data-lord-field="warPet.pet" data-lord-pet-select>' + lordSelectOptions(pets, data.warPet.pet, "Choose a war pet") + '</select></label><label>Build name<input value="' + escapeHtml(data.warPet.buildName || "") + '" placeholder="PvP cavalry build" data-lord-field="warPet.buildName" /></label><label class="full">Build notes<textarea rows="5" placeholder="Talents, attributes, and intended march..." data-lord-field="warPet.notes">' + escapeHtml(data.warPet.notes || "") + '</textarea></label></div></div></section>';
+      }
+
+      function lordDecorationsPanel(data) {
+        const activeCount = Object.values(data.decorations || {}).filter(function(item) { return item?.active; }).length;
+        return '<section class="lord-panel"><div class="lord-section-heading"><div><h3>City Decorations</h3><p>Track levels and choose up to five active bonuses.</p></div><span class="lord-active-decorations" data-lord-active-count>' + activeCount + ' / 5 active</span></div><div class="lord-catalog">' + lordDecorationNames.map(function(name) {
+          const item = data.decorations[name] || {};
+          return '<article class="lord-catalog-card"><div class="lord-catalog-head"><img src="/assets/icons/dashboard.png" alt="" loading="lazy" /><span><strong>' + escapeHtml(name) + '</strong><small>City decoration</small></span><button class="lord-pill' + (item.active ? ' on' : '') + '" type="button" data-action="lord-decoration-active" data-lord-name="' + escapeHtml(name) + '">' + (item.active ? 'Active' : 'Inactive') + '</button></div><label>Level<input type="number" min="0" max="9" value="' + lordNumber(item.level) + '" data-lord-decoration="' + escapeHtml(name) + '" data-lord-prop="level" /></label></article>';
+        }).join("") + '</div></section>';
+      }
+
+      function lordPairingsPanel(data) {
+        const heroes = lordHeroList();
+        const artifacts = lordArtifactList();
+        const pets = lordPetList();
+        return '<section class="lord-panel"><div class="lord-section-heading"><div><h3>March Pairings</h3><p>Save a main hero, deputy, artifact, and pet for each combat class.</p></div></div><div class="lord-pairings">' + Object.entries(data.pairings || {}).map(function(entry) {
+          const unit = entry[0];
+          const pair = entry[1] || {};
+          return '<article class="lord-pair-card"><h4>' + escapeHtml(unit) + ' March</h4><div class="form-grid"><label>Main Hero<select data-lord-pair="' + unit + '" data-lord-prop="mainHero">' + lordSelectOptions(heroes, pair.mainHero, "Choose main hero") + '</select></label><label>Deputy Hero<select data-lord-pair="' + unit + '" data-lord-prop="deputyHero">' + lordSelectOptions(heroes, pair.deputyHero, "Choose deputy") + '</select></label><label>Artifact<select data-lord-pair="' + unit + '" data-lord-prop="artifact">' + lordSelectOptions(artifacts, pair.artifact, "Choose artifact") + '</select></label><label>War Pet<select data-lord-pair="' + unit + '" data-lord-prop="pet">' + lordSelectOptions(pets, pair.pet, "Choose pet") + '</select></label><label class="full">Notes<input value="' + escapeHtml(pair.notes || "") + '" placeholder="Purpose, formation, or swap..." data-lord-pair="' + unit + '" data-lord-prop="notes" /></label></div></article>';
+        }).join("") + '</div></section>';
+      }
+
+      function lordResearchPanel(data) {
+        const completed = lordResearchNodes.filter(function(node) { return lordNumber(data.research?.[node.id]) >= node.max; }).length;
+        return '<section class="lord-panel"><div class="lord-section-heading"><div><h3>League of Order Research</h3><p>Record economy research levels using the in-game artwork.</p></div><span>' + completed + ' / ' + lordResearchNodes.length + ' maxed</span></div><div class="lord-research-grid">' + lordResearchNodes.map(function(node) {
+          const level = Math.min(node.max, lordNumber(data.research?.[node.id]));
+          return '<label class="lord-research-card"><img src="/assets/research/economy/league_of_order/' + node.id + '.png" alt="" loading="lazy" /><span><strong>' + escapeHtml(node.name) + '</strong><small>Level ' + level + ' / ' + node.max + '</small><input type="number" min="0" max="' + node.max + '" step="1" value="' + level + '" data-lord-field="research.' + node.id + '" aria-label="' + escapeHtml(node.name) + ' level" /></span></label>';
+        }).join("") + '</div></section>';
+      }
+
+      function lordBuildingsPanel(data) {
+        const tracked = lordBuildingNames.filter(function(name) { return lordNumber(data.buildings?.[name]) > 0; }).length;
+        return '<section class="lord-panel"><div class="lord-section-heading"><div><h3>Building Levels</h3><p>Store the city levels used when planning upgrades and training.</p></div><span>' + tracked + ' tracked</span></div><div class="lord-building-grid">' + lordBuildingNames.map(function(name) {
+          const level = Math.min(25, lordNumber(data.buildings?.[name]));
+          return '<label class="lord-building-card"><img src="/assets/buffs/construction.png" alt="" loading="lazy" /><span><strong>' + escapeHtml(name) + '</strong><small>Level ' + level + ' / 25</small></span><input type="number" min="0" max="25" step="1" value="' + level + '" data-lord-field="buildings.' + escapeHtml(name) + '" aria-label="' + escapeHtml(name) + ' level" /></label>';
+        }).join("") + '</div></section>';
+      }
+
+      function lordAdjustedHours(hours, buff) {
+        return lordNumber(hours) / (1 + (lordNumber(buff) / 100));
+      }
+
+      function lordCalculatorValues(data) {
+        const calc = data.calculators || {};
+        const researchHours = lordAdjustedHours(calc.researchHours, calc.researchBuff);
+        const buildingHours = lordAdjustedHours(calc.buildingHours, calc.buildingBuff);
+        const wounded = lordNumber(calc.wounded);
+        const tierKey = ["t3", "t4", "t5"].includes(calc.woundedTier) ? calc.woundedTier : "t4";
+        const healingHours = lordAdjustedHours((wounded * (trainingTiers[tierKey]?.seconds || 80)) / 3600 / 2, calc.healingBuff);
+        const healingResources = trainingResourceTotals(tierKey, wounded, "cavalry");
+        const eventHours = lordNumber(calc.eventDays) * lordNumber(calc.dailyHours);
+        return { researchHours, buildingHours, healingHours, healingResources, eventHours };
+      }
+
+      function lordCalcResultsHtml(kind, data) {
+        const values = lordCalculatorValues(data);
+        if (kind === "research") return '<div><span>Adjusted time</span><strong data-lord-result="research-time">' + trainingDuration(values.researchHours * 3600) + '</strong></div><div><span>Research reserve</span><strong>' + trainingCompactNumber(data.speedups.research) + 'd</strong></div><div><span>Universal reserve</span><strong>' + trainingCompactNumber(data.speedups.universal) + 'd</strong></div>';
+        if (kind === "building") return '<div><span>Adjusted time</span><strong data-lord-result="building-time">' + trainingDuration(values.buildingHours * 3600) + '</strong></div><div><span>Building reserve</span><strong>' + trainingCompactNumber(data.speedups.building) + 'd</strong></div><div><span>Universal reserve</span><strong>' + trainingCompactNumber(data.speedups.universal) + 'd</strong></div>';
+        if (kind === "healing") return '<div><span>Estimated time</span><strong data-lord-result="healing-time">' + trainingDuration(values.healingHours * 3600) + '</strong></div><div><span>Ore</span><strong data-lord-result="healing-ore">' + trainingCompactNumber(values.healingResources.ore) + '</strong></div><div><span>Mana / Wood / Gold</span><strong data-lord-result="healing-other">' + trainingCompactNumber(values.healingResources.mana) + ' / ' + trainingCompactNumber(values.healingResources.wood) + ' / ' + trainingCompactNumber(values.healingResources.gold) + '</strong></div>';
+        return '<div><span>Planned activity</span><strong data-lord-result="event-time">' + trainingDuration(values.eventHours * 3600) + '</strong></div><div><span>All speedups</span><strong>' + trainingCompactNumber(Object.values(data.speedups || {}).reduce(function(sum, value) { return sum + lordNumber(value); }, 0)) + 'd</strong></div><div><span>Training reserve</span><strong>' + trainingCompactNumber(data.speedups.training) + 'd</strong></div>';
+      }
+
+      function lordCalculatorsPanel(data) {
+        const calc = data.calculators || {};
+        return '<section class="lord-panel"><div class="lord-section-heading"><div><h3>Commander Calculators</h3><p>Fast planning estimates using the profile values above.</p></div><button class="primary" type="button" data-link-button="/training-tools">Open Full Training Tools</button></div><div class="lord-calc-grid">' +
+          '<article class="lord-calc-card"><h3>Research Planner</h3><p>Apply your research speed and compare stored speedups.</p><div class="form-grid"><label>Base hours<input type="number" min="0" step="0.1" value="' + lordNumber(calc.researchHours) + '" data-lord-calc="researchHours" /></label><label>Research speed %<input type="number" min="0" step="1" value="' + lordNumber(calc.researchBuff) + '" data-lord-calc="researchBuff" /></label></div><div class="lord-calc-results">' + lordCalcResultsHtml("research", data) + '</div></article>' +
+          '<article class="lord-calc-card"><h3>Building Planner</h3><p>Estimate construction time after city speed bonuses.</p><div class="form-grid"><label>Base hours<input type="number" min="0" step="0.1" value="' + lordNumber(calc.buildingHours) + '" data-lord-calc="buildingHours" /></label><label>Building speed %<input type="number" min="0" step="1" value="' + lordNumber(calc.buildingBuff) + '" data-lord-calc="buildingBuff" /></label></div><div class="lord-calc-results">' + lordCalcResultsHtml("building", data) + '</div></article>' +
+          '<article class="lord-calc-card"><h3>Healing Estimator</h3><p>Estimate time and resources before a large hospital heal.</p><div class="form-grid"><label>Wounded units<input type="number" min="0" step="1" value="' + lordNumber(calc.wounded) + '" data-lord-calc="wounded" /></label><label>Tier<select data-lord-calc="woundedTier">' + ["t3", "t4", "t5"].map(function(tier) { return '<option value="' + tier + '"' + (tier === calc.woundedTier ? ' selected' : '') + '>' + tier.toUpperCase() + '</option>'; }).join("") + '</select></label><label>Healing speed %<input type="number" min="0" step="1" value="' + lordNumber(calc.healingBuff) + '" data-lord-calc="healingBuff" /></label></div><div class="lord-calc-results">' + lordCalcResultsHtml("healing", data) + '</div></article>' +
+          '<article class="lord-calc-card"><h3>Event Reserve</h3><p>Set a play window and compare it with all stored speedups.</p><div class="form-grid"><label>Event days<input type="number" min="0" step="1" value="' + lordNumber(calc.eventDays) + '" data-lord-calc="eventDays" /></label><label>Hours per day<input type="number" min="0" step="0.25" value="' + lordNumber(calc.dailyHours) + '" data-lord-calc="dailyHours" /></label></div><div class="lord-calc-results">' + lordCalcResultsHtml("event", data) + '</div></article>' +
+        '</div></section>';
+      }
+
+      function renderLordTools() {
+        const data = loadLordToolsData();
+        const views = [
+          { id: "overview", label: "Overview" },
+          { id: "identity", label: "Identity" },
+          { id: "troops", label: "Troops" },
+          { id: "speedups", label: "Speedups" },
+          { id: "heroes", label: "Heroes" },
+          { id: "artifacts", label: "Artifacts" },
+          { id: "research", label: "Research" },
+          { id: "buildings", label: "Buildings" },
+          { id: "warpet", label: "War Pet" },
+          { id: "decorations", label: "Decorations" },
+          { id: "pairings", label: "Pairings" },
+          { id: "calculators", label: "Calculators" }
+        ];
+        if (!views.some(function(item) { return item.id === state.lordView; })) state.lordView = "overview";
+        const panels = {
+          overview: lordOverview,
+          identity: lordIdentityPanel,
+          troops: lordTroopsPanel,
+          speedups: lordSpeedupsPanel,
+          heroes: lordHeroesPanel,
+          artifacts: lordArtifactsPanel,
+          research: lordResearchPanel,
+          buildings: lordBuildingsPanel,
+          warpet: lordWarPetPanel,
+          decorations: lordDecorationsPanel,
+          pairings: lordPairingsPanel,
+          calculators: lordCalculatorsPanel
+        };
+        const updated = data.updatedAt ? "Saved " + formatDateTime(data.updatedAt) : "Ready to save";
+        app.innerHTML =
+          pageHeader("My Lord", "Your private Call of Dragons commander planner, collection tracker, and calculator hub.", '<button class="secondary" type="button" data-action="copy-lord-summary">Copy Summary</button><button class="primary" type="button" data-action="save-lord-tools">Save</button>') +
+          '<div class="lord-tools-shell">' +
+            '<section class="lord-intro"><img src="/assets/icons/lord-tools.svg" alt="" /><div><h3>' + escapeHtml(data.identity.name || "Commander Profile") + '</h3><p>Server ' + escapeHtml(data.identity.server || "-") + ' · Lord ID ' + escapeHtml(data.identity.lordId || "Not set") + '</p></div><div class="lord-save-state"><span data-lord-save-status>' + escapeHtml(updated) + '</span><button class="ghost" type="button" data-action="reset-lord-tools">Reset profile</button></div></section>' +
+            '<nav class="lord-tabs" aria-label="My Lord sections">' + views.map(function(item) { return '<button class="lord-tab' + (item.id === state.lordView ? ' active' : '') + '" type="button" data-action="lord-view" data-lord-view="' + item.id + '">' + item.label + '</button>'; }).join("") + '</nav>' +
+            (panels[state.lordView] || lordOverview)(data) +
+          '</div>';
+      }
+
+      function updateLordCalculatorResults() {
+        if (state.lordView !== "calculators") return;
+        const data = loadLordToolsData();
+        const values = lordCalculatorValues(data);
+        const set = function(name, value) { const node = document.querySelector('[data-lord-result="' + name + '"]'); if (node) node.textContent = value; };
+        set("research-time", trainingDuration(values.researchHours * 3600));
+        set("building-time", trainingDuration(values.buildingHours * 3600));
+        set("healing-time", trainingDuration(values.healingHours * 3600));
+        set("healing-ore", trainingCompactNumber(values.healingResources.ore));
+        set("healing-other", trainingCompactNumber(values.healingResources.mana) + " / " + trainingCompactNumber(values.healingResources.wood) + " / " + trainingCompactNumber(values.healingResources.gold));
+        set("event-time", trainingDuration(values.eventHours * 3600));
+      }
+
+      function handleLordControl(target) {
+        if (!target || !target.matches) return false;
+        const value = target.type === "number" ? lordNumber(target.value) : target.value;
+        if (target.matches("[data-lord-field]")) {
+          lordSetPath(target.getAttribute("data-lord-field"), value);
+          if (target.matches("[data-lord-pet-select]")) {
+            const pet = lordPetList().find(function(item) { return item.lordName === target.value; });
+            const image = document.querySelector("[data-lord-pet-image]");
+            if (image) image.src = pet?.src || "/assets/icons/lord-tools.svg";
+          }
+          return true;
+        }
+        if (target.matches("[data-lord-troop-unit]")) {
+          const unit = target.getAttribute("data-lord-troop-unit") || "";
+          const tier = target.getAttribute("data-lord-troop-tier") || "";
+          const data = loadLordToolsData();
+          if (data.troops[unit] && lordTiers.includes(tier)) data.troops[unit][tier] = lordNumber(value);
+          saveLordToolsData(false);
+          return true;
+        }
+        if (target.matches("[data-lord-hero]")) {
+          const name = target.getAttribute("data-lord-hero") || "";
+          const prop = target.getAttribute("data-lord-prop") || "level";
+          const data = loadLordToolsData();
+          data.heroes[name] = data.heroes[name] || {};
+          data.heroes[name][prop] = lordNumber(value);
+          data.heroes[name].owned = Object.keys(data.heroes[name]).some(function(key) { return key !== "owned" && lordNumber(data.heroes[name][key]) > 0; });
+          saveLordToolsData(false);
+          return true;
+        }
+        if (target.matches("[data-lord-artifact]")) {
+          const name = target.getAttribute("data-lord-artifact") || "";
+          const prop = target.getAttribute("data-lord-prop") || "level";
+          const data = loadLordToolsData();
+          data.artifacts[name] = data.artifacts[name] || {};
+          data.artifacts[name][prop] = lordNumber(value);
+          data.artifacts[name].owned = lordNumber(data.artifacts[name].level) > 0 || Boolean(data.artifacts[name].exemplar);
+          saveLordToolsData(false);
+          return true;
+        }
+        if (target.matches("[data-lord-decoration]")) {
+          const name = target.getAttribute("data-lord-decoration") || "";
+          const prop = target.getAttribute("data-lord-prop") || "level";
+          const data = loadLordToolsData();
+          data.decorations[name] = data.decorations[name] || {};
+          data.decorations[name][prop] = lordNumber(value);
+          data.decorations[name].owned = lordNumber(data.decorations[name].level) > 0 || Boolean(data.decorations[name].active);
+          saveLordToolsData(false);
+          return true;
+        }
+        if (target.matches("[data-lord-pair]")) {
+          const unit = target.getAttribute("data-lord-pair") || "";
+          const prop = target.getAttribute("data-lord-prop") || "notes";
+          const data = loadLordToolsData();
+          data.pairings[unit] = data.pairings[unit] || {};
+          data.pairings[unit][prop] = value;
+          saveLordToolsData(false);
+          return true;
+        }
+        if (target.matches("[data-lord-calc]")) {
+          const key = target.getAttribute("data-lord-calc") || "";
+          const data = loadLordToolsData();
+          data.calculators[key] = target.type === "number" ? lordNumber(value) : value;
+          saveLordToolsData(false);
+          updateLordCalculatorResults();
+          return true;
+        }
+        return false;
+      }
+
       function renderTrainingTools() {
         const selected = ["points", "speedup", "power", "mixed"].includes(state.trainingMode) ? state.trainingMode : "points";
         state.trainingMode = selected;
@@ -7218,6 +7806,7 @@ export function kellaDashboardHtml() {
         setActiveNav();
         if (path === "/") return renderDashboard();
         if (path === "/buff-schedule") return renderBuffSchedule();
+        if (path === "/lord-tools") return renderLordTools();
         if (path === "/training-tools") return renderTrainingTools();
         if (path === "/wiki") return renderWiki();
         if (path.startsWith("/wiki/")) return renderWiki(path.slice("/wiki/".length));
@@ -7350,6 +7939,77 @@ export function kellaDashboardHtml() {
         const kind = action.getAttribute("data-action");
         if (kind === "discord-login") {
           window.location.href = "/api/auth/discord";
+          return;
+        }
+        if (kind === "lord-view") {
+          state.lordView = action.getAttribute("data-lord-view") || "overview";
+          state.lordSearch = "";
+          renderLordTools();
+          return;
+        }
+        if (kind === "save-lord-tools") {
+          saveLordToolsData(true);
+          return;
+        }
+        if (kind === "reset-lord-tools") {
+          if (!window.confirm("Reset your entire My Lord profile on this device?")) return;
+          localStorage.removeItem(LORD_TOOLS_KEY);
+          state.lordTools = lordDefaultData();
+          state.lordView = "overview";
+          state.lordSearch = "";
+          renderLordTools();
+          toast("My Lord profile reset.");
+          return;
+        }
+        if (kind === "copy-lord-summary") {
+          withFeedback(action, function() { return navigator.clipboard.writeText(lordSummaryText()); }, "Commander summary copied.");
+          return;
+        }
+        if (kind === "lord-clear-search") {
+          state.lordSearch = "";
+          const search = document.querySelector("[data-lord-search]");
+          if (search) search.value = "";
+          document.querySelectorAll("[data-lord-catalog-item]").forEach(function(card) { card.classList.remove("hidden"); });
+          return;
+        }
+        if (kind === "lord-hero-max") {
+          const name = action.getAttribute("data-lord-name") || "";
+          if (!name) return;
+          loadLordToolsData().heroes[name] = { level: 60, stars: 6, skill1: 5, skill2: 5, skill3: 5, skill4: 5, owned: true };
+          saveLordToolsData(false);
+          renderLordTools();
+          toast(name + " marked maxed.");
+          return;
+        }
+        if (kind === "lord-artifact-exemplar") {
+          const name = action.getAttribute("data-lord-name") || "";
+          if (!name) return;
+          const data = loadLordToolsData();
+          data.artifacts[name] = data.artifacts[name] || {};
+          data.artifacts[name].exemplar = !data.artifacts[name].exemplar;
+          data.artifacts[name].owned = true;
+          saveLordToolsData(false);
+          action.classList.toggle("on", Boolean(data.artifacts[name].exemplar));
+          return;
+        }
+        if (kind === "lord-decoration-active") {
+          const name = action.getAttribute("data-lord-name") || "";
+          if (!name) return;
+          const data = loadLordToolsData();
+          data.decorations[name] = data.decorations[name] || {};
+          const next = !data.decorations[name].active;
+          const activeCount = Object.values(data.decorations).filter(function(item) { return item?.active; }).length;
+          if (next && activeCount >= 5) {
+            toast("Only five decorations can be active.", "error");
+            return;
+          }
+          data.decorations[name].active = next;
+          data.decorations[name].owned = true;
+          saveLordToolsData(false);
+          action.classList.toggle("on", next);
+          action.textContent = next ? "Active" : "Inactive";
+          const count = document.querySelector("[data-lord-active-count]");
+          if (count) count.textContent = (next ? activeCount + 1 : Math.max(0, activeCount - 1)) + " / 5 active";
           return;
         }
         if (kind === "open-complaint-form") {
@@ -8279,6 +8939,7 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("change", async function(event) {
+        if (handleLordControl(event.target)) return;
         if (event.target.matches("[data-training-input]")) {
           if (event.target.matches("[data-training-mix-unit], [data-training-mix-range]")) syncTrainingMixedInput(event.target);
           updateTrainingTools();
@@ -8372,6 +9033,15 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("input", async function(event) {
+        if (event.target.matches("[data-lord-search]")) {
+          state.lordSearch = event.target.value || "";
+          const term = state.lordSearch.toLowerCase();
+          document.querySelectorAll("[data-lord-catalog-item]").forEach(function(card) {
+            card.classList.toggle("hidden", Boolean(term) && !String(card.getAttribute("data-lord-catalog-item") || "").includes(term));
+          });
+          return;
+        }
+        if (handleLordControl(event.target)) return;
         if (event.target.matches("[data-training-input]")) {
           if (event.target.matches("[data-training-mix-unit], [data-training-mix-range]")) syncTrainingMixedInput(event.target);
           updateTrainingTools();
