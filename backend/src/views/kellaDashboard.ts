@@ -2756,40 +2756,39 @@ export function kellaDashboardHtml() {
       .lord-calc-results div { min-width: 0; padding: 10px; border: 1px solid rgba(119, 77, 26, 0.18); border-radius: 7px; background: rgba(239, 216, 160, 0.44); }
       .lord-calc-results span { display: block; color: var(--muted); font-size: 9px; font-weight: 1000; text-transform: uppercase; }
       .lord-calc-results strong { display: block; margin-top: 4px; overflow-wrap: anywhere; }
-      .lord-research-workspace { overflow: hidden; border: 1px solid #4f421f; border-radius: 8px; background: #090b0d; color: #f4ead0; box-shadow: 0 20px 45px rgba(31, 18, 4, 0.22); }
-      .lord-research-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid #3d3929; background: linear-gradient(180deg, #151719, #0d0f11); }
+      .lord-research-workspace { overflow: hidden; border: 1px solid #5e4d1f; border-radius: 8px; background: #080a0b; color: #f4ead0; box-shadow: 0 22px 52px rgba(31, 18, 4, 0.28); }
+      .lord-research-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid #403a25; background: linear-gradient(180deg, #17191b, #0d0f11); }
       .lord-research-head h3 { margin: 0; color: #f1dca6; font-size: 25px; font-weight: 800; letter-spacing: 0.02em; }
       .lord-research-head p { margin: 4px 0 0; color: #8e8b82; font-size: 13px; }
-      .lord-research-reset { border-color: #9a7809; background: #121313; color: #efd351; }
-      .lord-research-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 650px; }
-      .lord-research-settings, .lord-research-inspector { min-width: 0; padding: 16px; background: #111315; }
-      .lord-research-settings { border-right: 1px solid #333226; }
+      .lord-research-reset { min-width: 76px; border-color: #9a7809; background: #121313; color: #efd351; }
+      .lord-research-layout { min-height: 650px; }
+      .lord-research-settings { display: grid; grid-template-columns: minmax(150px, .9fr) minmax(145px, 1.2fr) repeat(3, minmax(112px, .8fr)) minmax(165px, 1.15fr); gap: 10px; align-items: end; min-width: 0; padding: 14px 16px; border-bottom: 1px solid #393527; background: #111315; }
+      .lord-research-settings-heading { align-self: center; min-width: 0; }
+      .lord-research-settings-heading strong { display: block; color: #ead48d; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+      .lord-research-settings-heading small { display: block; margin-top: 4px; color: #777a76; font-size: 10px; line-height: 1.3; }
+      .lord-research-settings label { display: grid; gap: 5px; min-width: 0; color: #99978f; font-size: 10px; font-weight: 900; letter-spacing: .03em; text-transform: uppercase; }
+      .lord-research-settings input, .lord-research-settings select { width: 100%; min-width: 0; min-height: 40px; padding: 8px 10px; border-color: #5b4b19; border-radius: 5px; background: #0b0d0f; color: #eee5ce; }
       .lord-research-inspector { border-left: 1px solid #333226; }
       .lord-research-panel-title { display: flex; align-items: center; gap: 9px; margin: 0 0 14px; color: #e9d392; font-size: 13px; font-weight: 1000; letter-spacing: 0.08em; text-transform: uppercase; }
       .lord-research-panel-title::before { content: ""; width: 28px; height: 28px; border: 1px solid #705c1f; border-radius: 50%; background: radial-gradient(circle, #493b12, #18170e); }
-      .lord-research-settings-group { display: grid; gap: 10px; padding: 14px 0; border-top: 1px solid #2c2e2f; }
-      .lord-research-settings-group:first-of-type { border-top: 0; padding-top: 0; }
-      .lord-research-settings-group h4 { margin: 0; color: #ba941f; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
-      .lord-research-settings label { display: grid; gap: 5px; color: #99978f; font-size: 11px; font-weight: 800; }
-      .lord-research-settings input, .lord-research-settings select { width: 100%; min-width: 0; min-height: 38px; padding: 8px 10px; border-color: #5b4b19; border-radius: 5px; background: #0b0d0f; color: #eee5ce; }
-      .lord-research-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 10px; border: 1px solid #5b4b19; border-radius: 6px; background: #111315; color: #d4c9ab; text-align: left; }
+      .lord-research-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid #5b4b19; border-radius: 6px; background: #0b0d0f; color: #d4c9ab; text-align: left; }
       .lord-research-toggle i { position: relative; width: 35px; height: 19px; flex: 0 0 auto; border-radius: 999px; background: #343536; }
       .lord-research-toggle i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 13px; height: 13px; border-radius: 50%; background: #aaa; transition: transform .18s ease, background .18s ease; }
       .lord-research-toggle.on { border-color: #9b7b17; color: #f2d967; }
       .lord-research-toggle.on i { background: #59490f; }
       .lord-research-toggle.on i::after { transform: translateX(16px); background: #f0cc3e; }
       .lord-research-main { display: grid; grid-template-rows: auto auto minmax(0, 1fr); min-width: 0; background: #060809; }
-      .lord-research-tabs { display: flex; align-items: stretch; min-height: 68px; border-bottom: 1px solid #343328; background: #0d0f11; }
-      .lord-research-tab { min-width: 180px; border: 0; border-right: 1px solid #252728; border-radius: 0; background: transparent; color: #9b9990; font-weight: 900; }
+      .lord-research-tabs { display: flex; align-items: stretch; min-height: 58px; border-bottom: 1px solid #343328; background: #0d0f11; }
+      .lord-research-tab { min-width: 190px; border: 0; border-right: 1px solid #252728; border-radius: 0; background: transparent; color: #9b9990; font-weight: 900; }
       .lord-research-tab.active { color: #f0d05b; box-shadow: inset 0 -2px #d0a500; }
       .lord-research-tab:hover { color: #f5df8c; background: rgba(208, 165, 0, .07); }
       .lord-research-hint { display: flex; align-items: center; justify-content: flex-end; margin-left: auto; padding: 0 16px; color: #7f827d; font-size: 11px; font-weight: 800; white-space: nowrap; }
-      .lord-research-summary { display: grid; grid-template-columns: minmax(180px, 1.3fr) repeat(4, minmax(74px, .7fr)); gap: 7px; padding: 10px 12px; border-bottom: 1px solid #263029; background: #09120d; }
-      .lord-research-summary div { min-width: 0; padding: 9px 10px; border: 1px solid #26362c; border-radius: 5px; background: #0c1410; }
+      .lord-research-summary { display: grid; grid-template-columns: minmax(210px, 1.35fr) repeat(4, minmax(92px, .7fr)); gap: 8px; padding: 11px 14px; border-bottom: 1px solid #263029; background: #08120d; }
+      .lord-research-summary div { min-width: 0; padding: 10px 11px; border: 1px solid #294233; border-radius: 6px; background: linear-gradient(180deg, #0d1812, #0a120e); box-shadow: inset 0 1px rgba(255, 255, 255, .025); }
       .lord-research-summary span { display: block; color: #777f79; font-size: 9px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
-      .lord-research-summary strong { display: block; margin-top: 4px; color: #9bd6c1; font-size: 13px; overflow-wrap: anywhere; }
-      .lord-research-tree-scroll { position: relative; min-height: 500px; overflow: auto; overscroll-behavior: contain; scrollbar-color: #9b7712 #111; scrollbar-width: thin; touch-action: pan-x pan-y; }
-      .lord-research-tree { position: relative; min-width: 100%; background-color: #06100b; background-image: radial-gradient(circle at 18% 35%, rgba(21, 77, 45, .32), transparent 25%), radial-gradient(circle at 74% 60%, rgba(22, 57, 43, .25), transparent 30%), linear-gradient(rgba(33, 72, 54, .08) 1px, transparent 1px), linear-gradient(90deg, rgba(33, 72, 54, .08) 1px, transparent 1px); background-size: auto, auto, 46px 46px, 46px 46px; }
+      .lord-research-summary strong { display: block; margin-top: 4px; color: #9ee4ca; font-size: 14px; overflow-wrap: anywhere; }
+      .lord-research-tree-scroll { position: relative; min-height: 560px; max-height: min(74vh, 790px); overflow: auto; overscroll-behavior: contain; scrollbar-color: #b68c17 #111; scrollbar-width: thin; scrollbar-gutter: stable; touch-action: pan-x pan-y; }
+      .lord-research-tree { position: relative; min-width: 100%; background-color: #06100b; background-image: radial-gradient(circle at 18% 35%, rgba(21, 77, 45, .34), transparent 25%), radial-gradient(circle at 74% 60%, rgba(22, 57, 43, .27), transparent 30%), linear-gradient(rgba(33, 72, 54, .08) 1px, transparent 1px), linear-gradient(90deg, rgba(33, 72, 54, .08) 1px, transparent 1px); background-size: auto, auto, 46px 46px, 46px 46px; box-shadow: inset 0 18px 35px rgba(0, 0, 0, .2); }
       .lord-research-lines { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; overflow: visible; }
       .lord-research-line { fill: none; stroke: #21485b; stroke-width: 4; opacity: .8; }
       .lord-research-line.done { stroke: #9a7d25; }
@@ -2844,7 +2843,8 @@ export function kellaDashboardHtml() {
         .buff-week-heading, .buff-day-row { grid-template-columns: 110px minmax(230px, 1fr) minmax(220px, 0.8fr); gap: 14px; }
         .lord-grid, .lord-speedups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .lord-tool-grid, .lord-catalog { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .lord-research-layout { grid-template-columns: 200px minmax(0, 1fr); }
+        .lord-research-settings { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .lord-research-settings-heading { grid-column: 1 / -1; }
         .lord-building-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
       @media (max-width: 780px) {
@@ -2856,17 +2856,17 @@ export function kellaDashboardHtml() {
         .lord-tool-grid, .lord-catalog, .lord-pairings, .lord-calc-grid, .lord-building-grid { grid-template-columns: 1fr; }
         .lord-research-head { align-items: flex-start; padding: 15px; }
         .lord-research-head h3 { font-size: 21px; }
-        .lord-research-layout { display: block; min-height: 0; }
+        .lord-research-layout { min-height: 0; }
         .lord-research-settings, .lord-research-inspector { border: 0; border-bottom: 1px solid #333226; }
-        .lord-research-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
-        .lord-research-settings > .lord-research-panel-title { grid-column: 1 / -1; }
+        .lord-research-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; }
+        .lord-research-settings-heading { grid-column: 1 / -1; }
         .lord-research-main { min-height: 590px; }
         .lord-research-tabs { min-height: 54px; }
         .lord-research-tab { min-width: 42%; }
         .lord-research-hint { display: none; }
         .lord-research-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .lord-research-summary div:first-child { grid-column: 1 / -1; }
-        .lord-research-tree-scroll { min-height: 460px; }
+        .lord-research-tree-scroll { min-height: 500px; max-height: 68vh; }
         .lord-research-inspector-inner { grid-template-columns: 1fr; }
         .lord-catalog-toolbar { grid-template-columns: 1fr; }
         .lord-tabs { margin-inline: -8px; border-radius: 0; }
@@ -3053,6 +3053,18 @@ export function kellaDashboardHtml() {
       @media (max-width: 520px) {
         .shell > aside { padding: 16px 12px; }
         .topbar { top: 0; }
+        .lord-research-head { gap: 10px; padding: 13px 12px; }
+        .lord-research-head h3 { font-size: 19px; }
+        .lord-research-head p { font-size: 11px; line-height: 1.35; }
+        .lord-research-reset { min-width: 62px; padding: 8px; }
+        .lord-research-settings { grid-template-columns: 1fr; }
+        .lord-research-settings-heading { grid-column: auto; }
+        .lord-research-tabs { min-height: 50px; }
+        .lord-research-tab { min-width: 50%; padding-inline: 8px; }
+        .lord-research-summary { gap: 6px; padding: 9px; }
+        .lord-research-summary div { padding: 8px 9px; }
+        .lord-research-summary strong { font-size: 13px; }
+        .lord-research-tree-scroll { min-height: 470px; max-height: 65vh; }
         .profile-top-button, .auth-button { min-height: 42px; }
         .stats, .quick-grid { gap: 10px; }
         .stat strong { font-size: 23px; }
@@ -6401,11 +6413,13 @@ export function kellaDashboardHtml() {
         const factionLabels = { league_of_order: "League of Order", springwardens: "Springwardens", wilderburg: "Wilderburg" };
         const treeLabel = lordResearchTreeKey() === "military" ? "Military" : "Economy";
         return '<section class="lord-research-workspace"><header class="lord-research-head"><div><h3>Research Calculator</h3><p>' + escapeHtml(factionLabels[settings.faction] || factionLabels.league_of_order) + ' ' + treeLabel.toLowerCase() + ' tree - ' + completed + ' of ' + lordResearchNodes.length + ' technologies completed</p></div><button class="lord-research-reset" type="button" data-action="lord-research-reset-all">Reset</button></header>' +
-          '<div class="lord-research-layout"><aside class="lord-research-settings"><h4 class="lord-research-panel-title">Settings</h4>' +
-            '<div class="lord-research-settings-group"><h4>City settings</h4><label>Faction<select data-lord-research-setting="faction">' + Object.entries(factionLabels).map(function(entry) { return '<option value="' + entry[0] + '"' + (entry[0] === settings.faction ? ' selected' : '') + '>' + entry[1] + '</option>'; }).join("") + '</select></label><label>Alliance Center<select data-lord-research-setting="allianceCenter">' + Array.from({ length: 25 }, function(_, index) { const level = index + 1; return '<option value="' + level + '"' + (level === lordNumber(settings.allianceCenter) ? ' selected' : '') + '>Level ' + level + '</option>'; }).join("") + '</select></label></div>' +
-            '<div class="lord-research-settings-group"><h4>Speed buffs</h4><label>Research speed %<input type="number" min="0" max="500" step="1" value="' + lordNumber(settings.speed) + '" data-lord-research-setting="speed" /></label><label>Alliance helps<input type="number" min="0" max="30" step="1" value="' + lordNumber(settings.helps) + '" data-lord-research-setting="helps" /></label><button class="lord-research-toggle' + (settings.heightsOfPower ? ' on' : '') + '" type="button" data-action="lord-research-event"><span>Heights of Power +15%</span><i></i></button></div>' +
-            '</aside>' +
-            '<main class="lord-research-main"><div class="lord-research-tabs"><button class="lord-research-tab' + (lordResearchTreeKey() === "economy" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="economy">Economy</button><button class="lord-research-tab' + (lordResearchTreeKey() === "military" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="military">Military</button><span class="lord-research-hint">Left click +1 &middot; Right click -1</span></div><div class="lord-research-summary" data-lord-research-summary>' + lordResearchSummaryHtml(data) + '</div><div class="lord-research-tree-scroll" data-lord-research-scroll>' + lordResearchTreeHtml(data) + '</div></main></div></section>';
+          '<div class="lord-research-layout"><div class="lord-research-settings"><div class="lord-research-settings-heading"><strong>Calculator settings</strong><small>Set your city and active research bonuses.</small></div>' +
+            '<label>Faction<select data-lord-research-setting="faction">' + Object.entries(factionLabels).map(function(entry) { return '<option value="' + entry[0] + '"' + (entry[0] === settings.faction ? ' selected' : '') + '>' + entry[1] + '</option>'; }).join("") + '</select></label>' +
+            '<label>Alliance Center<select data-lord-research-setting="allianceCenter">' + Array.from({ length: 25 }, function(_, index) { const level = index + 1; return '<option value="' + level + '"' + (level === lordNumber(settings.allianceCenter) ? ' selected' : '') + '>Level ' + level + '</option>'; }).join("") + '</select></label>' +
+            '<label>Research speed %<input type="number" min="0" max="500" step="1" value="' + lordNumber(settings.speed) + '" data-lord-research-setting="speed" /></label>' +
+            '<label>Alliance helps<input type="number" min="0" max="30" step="1" value="' + lordNumber(settings.helps) + '" data-lord-research-setting="helps" /></label>' +
+            '<button class="lord-research-toggle' + (settings.heightsOfPower ? ' on' : '') + '" type="button" data-action="lord-research-event"><span>Heights of Power <b>+15%</b></span><i aria-hidden="true"></i></button></div>' +
+            '<main class="lord-research-main"><div class="lord-research-tabs"><button class="lord-research-tab' + (lordResearchTreeKey() === "economy" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="economy">Economy</button><button class="lord-research-tab' + (lordResearchTreeKey() === "military" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="military">Military</button><span class="lord-research-hint">Left click +1 &middot; Right click -1</span></div><div class="lord-research-summary" data-lord-research-summary>' + lordResearchSummaryHtml(data) + '</div><div class="lord-research-tree-scroll" data-lord-research-scroll tabindex="0" aria-label="' + treeLabel + ' research tree. Scroll horizontally and vertically to explore.">' + lordResearchTreeHtml(data) + '</div></main></div></section>';
       }
 
       function refreshLordResearchWorkspace() {
