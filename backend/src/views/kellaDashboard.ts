@@ -1228,7 +1228,7 @@ export function kellaDashboardHtml() {
       .training-resource-list { display: grid; grid-template-columns: repeat(4, minmax(72px, 1fr)); gap: 6px; min-width: 330px; }
       .training-resource {
         display: grid;
-        grid-template-columns: 8px 1fr;
+        grid-template-columns: 30px 1fr;
         gap: 1px 5px;
         align-items: center;
         padding: 7px 8px;
@@ -1236,13 +1236,9 @@ export function kellaDashboardHtml() {
         border-radius: 8px;
         background: rgba(255, 248, 221, 0.72);
       }
-      .training-resource i { grid-row: 1 / 3; width: 7px; height: 22px; border-radius: 99px; background: #8b755d; }
+      .training-resource img { grid-row: 1 / 3; width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(67, 41, 15, .24)); }
       .training-resource small { color: #80603a; font-size: 8px; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; }
       .training-resource strong { color: #43290f; font-size: 12px; }
-      .training-resource-ore i { background: #778797; }
-      .training-resource-mana i { background: #4f8fd5; }
-      .training-resource-wood i { background: #7f9a43; }
-      .training-resource-gold i { background: #d39a16; }
       .training-resource-summary {
         display: grid;
         grid-template-columns: minmax(170px, 0.7fr) minmax(420px, 1.7fr);
@@ -2752,10 +2748,12 @@ export function kellaDashboardHtml() {
       .lord-calc-card { padding: 17px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 249, 224, 0.72); }
       .lord-calc-card h3 { margin: 0 0 4px; }
       .lord-calc-card > p { margin: 0 0 14px; color: var(--muted); }
-      .lord-calc-results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+      .lord-calc-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 8px; margin-top: 12px; }
       .lord-calc-results div { min-width: 0; padding: 10px; border: 1px solid rgba(119, 77, 26, 0.18); border-radius: 7px; background: rgba(239, 216, 160, 0.44); }
       .lord-calc-results span { display: block; color: var(--muted); font-size: 9px; font-weight: 1000; text-transform: uppercase; }
       .lord-calc-results strong { display: block; margin-top: 4px; overflow-wrap: anywhere; }
+      .lord-calc-results .lord-calc-resource { display: grid; grid-template-columns: 34px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 8px; align-items: center; }
+      .lord-calc-resource img { grid-row: 1 / 3; width: 34px; height: 34px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(67, 41, 15, .24)); }
       .lord-research-workspace { overflow: hidden; border: 1px solid #5e4d1f; border-radius: 8px; background: #080a0b; color: #f4ead0; box-shadow: 0 22px 52px rgba(31, 18, 4, 0.28); }
       .lord-research-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid #403a25; background: linear-gradient(180deg, #17191b, #0d0f11); }
       .lord-research-head h3 { margin: 0; color: #f1dca6; font-size: 25px; font-weight: 800; letter-spacing: 0.02em; }
@@ -2787,7 +2785,10 @@ export function kellaDashboardHtml() {
       .lord-research-summary div { min-width: 0; padding: 10px 11px; border: 1px solid #294233; border-radius: 6px; background: linear-gradient(180deg, #0d1812, #0a120e); box-shadow: inset 0 1px rgba(255, 255, 255, .025); }
       .lord-research-summary span { display: block; color: #777f79; font-size: 9px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
       .lord-research-summary strong { display: block; margin-top: 4px; color: #9ee4ca; font-size: 14px; overflow-wrap: anywhere; }
-      .lord-research-tree-scroll { position: relative; min-height: 560px; max-height: min(74vh, 790px); overflow: auto; overscroll-behavior: contain; scrollbar-color: #b68c17 #111; scrollbar-width: thin; scrollbar-gutter: stable; touch-action: pan-x pan-y; }
+      .lord-research-summary .lord-research-resource { display: grid; grid-template-columns: 36px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 8px; align-items: center; }
+      .lord-research-resource img { grid-row: 1 / 3; width: 36px; height: 36px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .55)); }
+      .lord-research-tree-scroll { position: relative; min-height: 560px; max-height: min(74vh, 790px); overflow: auto; overscroll-behavior: contain; scrollbar-color: #b68c17 #111; scrollbar-width: thin; scrollbar-gutter: stable; touch-action: pan-x pan-y; cursor: grab; }
+      .lord-research-tree-scroll.is-dragging { cursor: grabbing; user-select: none; }
       .lord-research-tree { position: relative; min-width: 100%; background-color: #06100b; background-image: radial-gradient(circle at 18% 35%, rgba(21, 77, 45, .34), transparent 25%), radial-gradient(circle at 74% 60%, rgba(22, 57, 43, .27), transparent 30%), linear-gradient(rgba(33, 72, 54, .08) 1px, transparent 1px), linear-gradient(90deg, rgba(33, 72, 54, .08) 1px, transparent 1px); background-size: auto, auto, 46px 46px, 46px 46px; box-shadow: inset 0 18px 35px rgba(0, 0, 0, .2); }
       .lord-research-lines { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; overflow: visible; }
       .lord-research-line { fill: none; stroke: #21485b; stroke-width: 4; opacity: .8; }
@@ -3172,6 +3173,8 @@ export function kellaDashboardHtml() {
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
       const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingTroopType: "cavalry", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "", lordTools: null, lordView: "overview", lordSearch: "", lordResearchTree: "economy", lordResearchSelected: "" };
+      let lordResearchPan = null;
+      let lordResearchBlockClickUntil = 0;
       const WIKI_CUSTOM_IMAGE_KEY = "kellaWikiCustomImages";
       const LORD_TOOLS_KEY = "kellaLordToolsV1";
       const dashboardNavItems = ${JSON.stringify(navItems)};
@@ -3230,6 +3233,13 @@ export function kellaDashboardHtml() {
       };
       const trainingResourceOrder = ["ore", "mana", "wood", "gold"];
       const trainingResourceLabels = { ore: "Ore", mana: "Mana", wood: "Wood", gold: "Gold" };
+      const resourceIconPaths = {
+        ore: "/assets/resources/stone.png",
+        mana: "/assets/resources/mana.png",
+        wood: "/assets/resources/wood.png",
+        gold: "/assets/resources/gold.png",
+        gem: "/assets/resources/gem.png"
+      };
       const trainingResourceCosts = {
         t3: {
           infantry: { ore: 0, mana: 30, wood: 150, gold: 150 },
@@ -5989,7 +5999,7 @@ export function kellaDashboardHtml() {
 
       function trainingResourcesCell(resources) {
         return '<div class="training-resource-list">' + trainingResourceOrder.map(function(resource) {
-          return '<span class="training-resource training-resource-' + resource + '"><i></i><small>' + escapeHtml(trainingResourceLabels[resource]) + '</small><strong>' + trainingCompactValue(resources[resource]) + '</strong></span>';
+          return '<span class="training-resource training-resource-' + resource + '"><img src="' + resourceIconPaths[resource] + '" alt="" loading="lazy" /><small>' + escapeHtml(trainingResourceLabels[resource]) + '</small><strong>' + trainingCompactValue(resources[resource]) + '</strong></span>';
         }).join("") + '</div>';
       }
 
@@ -6363,11 +6373,14 @@ export function kellaDashboardHtml() {
         const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
         const exactDuration = days.toLocaleString() + 'd ' + hours + 'h ' + minutes + 'm ' + seconds + 's';
+        const resourceTotal = function(resource, value) {
+          return '<div class="lord-research-resource"><img src="' + resourceIconPaths[resource] + '" alt="" loading="lazy" /><span>' + trainingResourceLabels[resource] + ' left</span><strong>' + trainingCompactNumber(value) + '</strong></div>';
+        };
         return '<div><span>Speedups left</span><strong>' + exactDuration + '</strong></div>' +
-          '<div><span>Gold left</span><strong>' + trainingCompactNumber(totals.gold) + '</strong></div>' +
-          '<div><span>Wood left</span><strong>' + trainingCompactNumber(totals.wood) + '</strong></div>' +
-          '<div><span>Ore left</span><strong>' + trainingCompactNumber(totals.ore) + '</strong></div>' +
-          '<div><span>Mana left</span><strong>' + trainingCompactNumber(totals.mana) + '</strong></div>';
+          resourceTotal("gold", totals.gold) +
+          resourceTotal("wood", totals.wood) +
+          resourceTotal("ore", totals.ore) +
+          resourceTotal("mana", totals.mana);
       }
 
       function lordResearchTreeHtml(data) {
@@ -6469,9 +6482,12 @@ export function kellaDashboardHtml() {
 
       function lordCalcResultsHtml(kind, data) {
         const values = lordCalculatorValues(data);
+        const resourceResult = function(resource, value) {
+          return '<div class="lord-calc-resource"><img src="' + resourceIconPaths[resource] + '" alt="" loading="lazy" /><span>' + trainingResourceLabels[resource] + '</span><strong data-lord-result="healing-' + resource + '">' + trainingCompactNumber(value) + '</strong></div>';
+        };
         if (kind === "research") return '<div><span>Adjusted time</span><strong data-lord-result="research-time">' + trainingDuration(values.researchHours * 3600) + '</strong></div><div><span>Research reserve</span><strong>' + trainingCompactNumber(data.speedups.research) + 'd</strong></div><div><span>Universal reserve</span><strong>' + trainingCompactNumber(data.speedups.universal) + 'd</strong></div>';
         if (kind === "building") return '<div><span>Adjusted time</span><strong data-lord-result="building-time">' + trainingDuration(values.buildingHours * 3600) + '</strong></div><div><span>Building reserve</span><strong>' + trainingCompactNumber(data.speedups.building) + 'd</strong></div><div><span>Universal reserve</span><strong>' + trainingCompactNumber(data.speedups.universal) + 'd</strong></div>';
-        if (kind === "healing") return '<div><span>Estimated time</span><strong data-lord-result="healing-time">' + trainingDuration(values.healingHours * 3600) + '</strong></div><div><span>Ore</span><strong data-lord-result="healing-ore">' + trainingCompactNumber(values.healingResources.ore) + '</strong></div><div><span>Mana / Wood / Gold</span><strong data-lord-result="healing-other">' + trainingCompactNumber(values.healingResources.mana) + ' / ' + trainingCompactNumber(values.healingResources.wood) + ' / ' + trainingCompactNumber(values.healingResources.gold) + '</strong></div>';
+        if (kind === "healing") return '<div><span>Estimated time</span><strong data-lord-result="healing-time">' + trainingDuration(values.healingHours * 3600) + '</strong></div>' + trainingResourceOrder.map(function(resource) { return resourceResult(resource, values.healingResources[resource]); }).join("");
         return '<div><span>Planned activity</span><strong data-lord-result="event-time">' + trainingDuration(values.eventHours * 3600) + '</strong></div><div><span>All speedups</span><strong>' + trainingCompactNumber(Object.values(data.speedups || {}).reduce(function(sum, value) { return sum + lordNumber(value); }, 0)) + 'd</strong></div><div><span>Training reserve</span><strong>' + trainingCompactNumber(data.speedups.training) + 'd</strong></div>';
       }
 
@@ -6536,7 +6552,9 @@ export function kellaDashboardHtml() {
         set("building-time", trainingDuration(values.buildingHours * 3600));
         set("healing-time", trainingDuration(values.healingHours * 3600));
         set("healing-ore", trainingCompactNumber(values.healingResources.ore));
-        set("healing-other", trainingCompactNumber(values.healingResources.mana) + " / " + trainingCompactNumber(values.healingResources.wood) + " / " + trainingCompactNumber(values.healingResources.gold));
+        set("healing-mana", trainingCompactNumber(values.healingResources.mana));
+        set("healing-wood", trainingCompactNumber(values.healingResources.wood));
+        set("healing-gold", trainingCompactNumber(values.healingResources.gold));
         set("event-time", trainingDuration(values.eventHours * 3600));
       }
 
@@ -8114,6 +8132,45 @@ export function kellaDashboardHtml() {
         document.body.classList.toggle("mobile-nav-open", opening);
       }
 
+      function finishLordResearchPan(event) {
+        if (!lordResearchPan || (event && event.pointerId !== lordResearchPan.pointerId)) return;
+        const pan = lordResearchPan;
+        pan.viewport.classList.remove("is-dragging");
+        if (pan.moved) lordResearchBlockClickUntil = Date.now() + 250;
+        if (event && pan.viewport.hasPointerCapture?.(event.pointerId)) pan.viewport.releasePointerCapture(event.pointerId);
+        lordResearchPan = null;
+      }
+
+      document.addEventListener("pointerdown", function(event) {
+        const viewport = event.target.closest?.("[data-lord-research-scroll]");
+        if (!viewport || event.button !== 0 || event.pointerType === "touch") return;
+        lordResearchPan = {
+          viewport: viewport,
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          scrollLeft: viewport.scrollLeft,
+          scrollTop: viewport.scrollTop,
+          moved: false
+        };
+        viewport.setPointerCapture?.(event.pointerId);
+      });
+
+      document.addEventListener("pointermove", function(event) {
+        if (!lordResearchPan || event.pointerId !== lordResearchPan.pointerId) return;
+        const dx = event.clientX - lordResearchPan.startX;
+        const dy = event.clientY - lordResearchPan.startY;
+        if (!lordResearchPan.moved && Math.hypot(dx, dy) < 5) return;
+        lordResearchPan.moved = true;
+        lordResearchPan.viewport.classList.add("is-dragging");
+        lordResearchPan.viewport.scrollLeft = lordResearchPan.scrollLeft - dx;
+        lordResearchPan.viewport.scrollTop = lordResearchPan.scrollTop - dy;
+        event.preventDefault();
+      });
+
+      document.addEventListener("pointerup", finishLordResearchPan);
+      document.addEventListener("pointercancel", finishLordResearchPan);
+
       document.addEventListener("click", function(event) {
         document.querySelectorAll(".profile-radar-controls details[open]").forEach(function(panel) {
           if (!panel.contains(event.target)) panel.removeAttribute("open");
@@ -8237,6 +8294,7 @@ export function kellaDashboardHtml() {
           return;
         }
         if (kind === "lord-research-select") {
+          if (Date.now() < lordResearchBlockClickUntil) return;
           lordResearchCurrentNodes();
           state.lordResearchSelected = action.getAttribute("data-research-id") || lordResearchNodes[0].id;
           const node = lordResearchNodes.find(function(item) { return item.id === state.lordResearchSelected; });
