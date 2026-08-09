@@ -5,6 +5,7 @@ const navItems = [
   { path: "/buff-schedule", icon: "/assets/buffs/buff-schedule.png", label: "Buff Schedule" },
   { path: "/wiki", icon: "/assets/icons/embed-sender.png", label: "Wiki" },
   { path: "/members", icon: "/assets/icons/members.png", label: "Members" },
+  { path: "/research", icon: "/assets/buffs/research.png", label: "Research" },
   { path: "/training-tools", icon: "/assets/icons/training-tools.png", label: "Training Tools" },
   { path: "/attendance", icon: "/assets/icons/events.png", label: "Attendance" },
   { path: "/roots-of-war", icon: "/assets/icons/root-registration.png", label: "Roots of War", adminOnly: true },
@@ -2692,14 +2693,20 @@ export function kellaDashboardHtml() {
       }
 
       .lord-tools-shell { display: grid; gap: 16px; }
+      .profile-hub-nav { display: flex; gap: 8px; padding: 7px; overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: rgba(231, 207, 151, 0.52); scrollbar-width: thin; }
+      .profile-hub-nav button { flex: 0 0 auto; min-height: 42px; padding: 9px 15px; border: 1px solid rgba(122, 79, 27, 0.24); background: rgba(255, 249, 226, 0.82); color: #5b3817; font-size: 12px; font-weight: 1000; }
+      .profile-hub-nav button.active { border-color: #b4760f; background: linear-gradient(180deg, #f8d96c, #e9ad29); color: #291500; box-shadow: inset 0 1px rgba(255,255,255,0.62), 0 4px 12px rgba(124, 69, 8, 0.18); }
+      .profile-hub-nav + .two { margin-top: 16px; }
       .lord-intro { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 18px; align-items: center; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 247, 215, 0.74); }
       .lord-intro > img { width: 76px; height: 76px; padding: 8px; object-fit: contain; border: 1px solid rgba(156, 100, 22, 0.34); border-radius: 50%; background: #16263e; }
       .lord-intro h3 { margin: 0 0 5px; font-size: 25px; }
       .lord-intro p { margin: 0; color: var(--muted); }
       .lord-save-state { display: grid; gap: 4px; text-align: right; color: var(--muted); font-size: 12px; font-weight: 900; }
-      .lord-tabs { display: flex; gap: 7px; padding: 7px; overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: rgba(231, 207, 151, 0.56); scrollbar-width: thin; }
+      .lord-navigation { display: grid; grid-template-columns: minmax(0, 1fr) minmax(190px, 250px); gap: 10px; align-items: center; }
+      .lord-tabs { display: flex; gap: 7px; min-width: 0; padding: 7px; overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: rgba(231, 207, 151, 0.56); scrollbar-width: thin; }
       .lord-tab { flex: 0 0 auto; min-height: 40px; padding: 8px 13px; border: 1px solid rgba(122, 79, 27, 0.26); background: rgba(255, 249, 226, 0.82); color: #5b3817; font-size: 12px; font-weight: 1000; }
       .lord-tab.active { border-color: #b4760f; background: #efbd3f; color: #291500; box-shadow: inset 0 1px rgba(255,255,255,0.55), 0 4px 12px rgba(124, 69, 8, 0.18); }
+      .lord-view-select { min-height: 54px; border-color: rgba(139, 91, 23, 0.42); background: rgba(255, 249, 226, 0.9); color: #4f3014; font-weight: 1000; }
       .lord-panel { display: grid; gap: 16px; }
       .lord-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
       .lord-summary-card { min-width: 0; padding: 15px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 249, 224, 0.72); }
@@ -2870,7 +2877,10 @@ export function kellaDashboardHtml() {
         .lord-research-tree-scroll { min-height: 500px; max-height: 68vh; }
         .lord-research-inspector-inner { grid-template-columns: 1fr; }
         .lord-catalog-toolbar { grid-template-columns: 1fr; }
-        .lord-tabs { margin-inline: -8px; border-radius: 0; }
+        .profile-hub-nav { margin-inline: -4px; }
+        .lord-navigation { grid-template-columns: 1fr; }
+        .lord-tabs { display: none; }
+        .lord-view-select { min-height: 48px; }
         .shell {
           width: 100%;
           min-height: 100vh;
@@ -6501,8 +6511,17 @@ export function kellaDashboardHtml() {
         '</div></section>';
       }
 
-      function renderLordTools(embeddedInProfile) {
+      function profileHubNav(active) {
+        return '<nav class="profile-hub-nav" aria-label="Profile sections">' +
+          '<button class="' + (active === "profile" ? 'active' : '') + '" type="button" data-link-button="/profile">Player Card</button>' +
+          '<button class="' + (active === "commander" ? 'active' : '') + '" type="button" data-link-button="/profile?section=lord">Commander Tools</button>' +
+          '<button class="' + (active === "research" ? 'active' : '') + '" type="button" data-link-button="/research">Research</button>' +
+        '</nav>';
+      }
+
+      function renderLordTools(embeddedInProfile, forcedView) {
         const embedded = typeof embeddedInProfile === "boolean" ? embeddedInProfile : location.pathname === "/profile";
+        const researchOnly = forcedView === "research" || location.pathname === "/research";
         const data = loadLordToolsData();
         const views = [
           { id: "overview", label: "Overview" },
@@ -6518,6 +6537,7 @@ export function kellaDashboardHtml() {
           { id: "pairings", label: "Pairings" },
           { id: "calculators", label: "Calculators" }
         ];
+        if (forcedView && views.some(function(item) { return item.id === forcedView; })) state.lordView = forcedView;
         if (!views.some(function(item) { return item.id === state.lordView; })) state.lordView = "overview";
         const panels = {
           overview: lordOverview,
@@ -6534,11 +6554,13 @@ export function kellaDashboardHtml() {
           calculators: lordCalculatorsPanel
         };
         const updated = data.updatedAt ? "Saved " + formatDateTime(data.updatedAt) : "Ready to save";
+        const featuredViews = ["overview", "identity", "troops", "research", "calculators"];
         app.innerHTML =
-          pageHeader(embedded ? "My Profile" : "My Lord", "Your private Call of Dragons commander planner, collection tracker, and calculator hub.", (embedded ? '<button class="secondary" type="button" data-action="back-to-profile">Back to Profile</button>' : '') + '<button class="secondary" type="button" data-action="copy-lord-summary">Copy Summary</button><button class="primary" type="button" data-action="save-lord-tools">Save</button>') +
+          pageHeader(researchOnly ? "Research" : (embedded ? "Commander Hub" : "My Lord"), researchOnly ? "Plan economy and military research with your saved commander bonuses." : "A clean home for your commander, collections, progress, and planning tools.", '<button class="secondary" type="button" data-action="copy-lord-summary">Copy Summary</button><button class="primary" type="button" data-action="save-lord-tools">Save</button>') +
           '<div class="lord-tools-shell">' +
+            profileHubNav(researchOnly ? "research" : "commander") +
             '<section class="lord-intro"><img src="/assets/icons/lord-tools.svg" alt="" /><div><h3>' + escapeHtml(data.identity.name || "Commander Profile") + '</h3><p>Server ' + escapeHtml(data.identity.server || "-") + ' · Lord ID ' + escapeHtml(data.identity.lordId || "Not set") + '</p></div><div class="lord-save-state"><span data-lord-save-status>' + escapeHtml(updated) + '</span><button class="ghost" type="button" data-action="reset-lord-tools">Reset profile</button></div></section>' +
-            '<nav class="lord-tabs" aria-label="My Lord sections">' + views.map(function(item) { return '<button class="lord-tab' + (item.id === state.lordView ? ' active' : '') + '" type="button" data-action="lord-view" data-lord-view="' + item.id + '">' + item.label + '</button>'; }).join("") + '</nav>' +
+            (researchOnly ? '' : '<div class="lord-navigation"><nav class="lord-tabs" aria-label="Commander shortcuts">' + views.filter(function(item) { return featuredViews.includes(item.id); }).map(function(item) { return '<button class="lord-tab' + (item.id === state.lordView ? ' active' : '') + '" type="button" data-action="lord-view" data-lord-view="' + item.id + '">' + item.label + '</button>'; }).join("") + '</nav><select class="lord-view-select" data-lord-view-select aria-label="Choose commander tool">' + views.map(function(item) { return '<option value="' + item.id + '"' + (item.id === state.lordView ? ' selected' : '') + '>' + item.label + '</option>'; }).join("") + '</select></div>') +
             (panels[state.lordView] || lordOverview)(data) +
           '</div>';
       }
@@ -7004,8 +7026,10 @@ export function kellaDashboardHtml() {
       }
 
       async function renderProfile() {
-        if (new URLSearchParams(location.search).get("section") === "lord") {
-          return renderLordTools(true);
+        const profileParams = new URLSearchParams(location.search);
+        if (profileParams.get("section") === "lord") {
+          const requestedTool = profileParams.get("tool") || "";
+          return renderLordTools(true, requestedTool || undefined);
         }
         skeleton("Loading your profile...");
         const auth = await loadAuth(true);
@@ -7018,7 +7042,8 @@ export function kellaDashboardHtml() {
           const profile = await loadProfile(true);
           const displayName = memberDisplayName(profile);
           app.innerHTML =
-            pageHeader("My Profile", "Edit only your own IGN, timezone, country, and profile picture.", '<button class="secondary" data-action="open-my-lord">My Lord Tools</button><button class="primary" data-action="save-my-profile">Save Profile</button>') +
+            pageHeader("My Profile", "Your player card, Discord identity, and personal alliance progress.", '<button class="primary" data-action="save-my-profile">Save Profile</button>') +
+            profileHubNav("profile") +
             '<section class="two"><div class="card">' +
               '<div class="member-profile-hero">' +
                 memberAvatar(profile, "profile-avatar") +
@@ -8081,6 +8106,7 @@ export function kellaDashboardHtml() {
         if (path === "/") return renderDashboard();
         if (path === "/buff-schedule") return renderBuffSchedule();
         if (path === "/lord-tools") return navigate("/profile?section=lord");
+        if (path === "/research") return renderLordTools(true, "research");
         if (path === "/training-tools") return renderTrainingTools();
         if (path === "/wiki") return renderWiki();
         if (path.startsWith("/wiki/")) return renderWiki(path.slice("/wiki/".length));
@@ -8265,6 +8291,7 @@ export function kellaDashboardHtml() {
         if (kind === "lord-view") {
           state.lordView = action.getAttribute("data-lord-view") || "overview";
           state.lordSearch = "";
+          if (location.pathname === "/profile") history.replaceState({}, "", "/profile?section=lord&tool=" + encodeURIComponent(state.lordView));
           renderLordTools();
           return;
         }
@@ -9332,6 +9359,13 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("change", async function(event) {
+        if (event.target.matches("[data-lord-view-select]")) {
+          state.lordView = event.target.value || "overview";
+          state.lordSearch = "";
+          history.replaceState({}, "", "/profile?section=lord&tool=" + encodeURIComponent(state.lordView));
+          renderLordTools(true);
+          return;
+        }
         if (handleLordControl(event.target)) return;
         if (event.target.matches("[data-training-input]")) {
           if (event.target.matches("[data-training-mix-unit], [data-training-mix-range]")) syncTrainingMixedInput(event.target);
