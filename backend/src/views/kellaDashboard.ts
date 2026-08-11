@@ -2785,15 +2785,21 @@ export function kellaDashboardHtml() {
       .lord-research-toggle.on i { background: #59490f; }
       .lord-research-toggle.on i::after { transform: translateX(16px); background: #f0cc3e; }
       .lord-research-main { display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; background: #060809; }
+      body.lord-research-fullscreen-open { overflow: hidden; }
+      .lord-research-main.is-fullscreen, .lord-research-main:fullscreen { position: fixed; inset: 0; z-index: 10000; width: 100vw; height: 100dvh; min-height: 100vh; background: #060809; }
+      .lord-research-main.is-fullscreen .lord-research-tree-scroll, .lord-research-main:fullscreen .lord-research-tree-scroll { height: auto; min-height: 0; }
       .lord-research-tabs { display: flex; align-items: stretch; min-height: 52px; border-bottom: 1px solid #343328; background: #0d0f11; }
       .lord-research-tab { min-width: 142px; border: 0; border-right: 1px solid #252728; border-radius: 0; background: transparent; color: #9b9990; font-weight: 900; }
       .lord-research-tab.active { color: #f0d05b; box-shadow: inset 0 -2px #d0a500; }
       .lord-research-tab:hover { color: #f5df8c; background: rgba(208, 165, 0, .07); }
       .lord-research-hint { display: flex; align-items: center; justify-content: flex-end; margin-left: auto; padding: 0 16px; color: #7f827d; font-size: 11px; font-weight: 800; white-space: nowrap; }
-      .lord-research-zoom { display: flex; align-items: center; gap: 5px; padding-right: 10px; }
-      .lord-research-zoom button { min-width: 34px; min-height: 32px; padding: 4px 8px; border: 1px solid #544819; border-radius: 6px; background: #151717; color: #ead16e; font-weight: 1000; }
-      .lord-research-zoom button:hover { border-color: #b99318; background: #20211b; }
-      .lord-research-zoom-value { min-width: 52px !important; color: #efe2b8 !important; font-size: 10px !important; }
+      .lord-research-fullscreen-control { display: flex; align-items: center; padding-right: 10px; }
+      .lord-research-fullscreen-toggle { display: grid; place-items: center; width: 36px; min-width: 36px; height: 34px; padding: 0; border: 1px solid #544819; border-radius: 6px; background: #151717; color: #ead16e; }
+      .lord-research-fullscreen-toggle:hover { border-color: #b99318; background: #20211b; }
+      .lord-research-fullscreen-icon { position: relative; width: 16px; height: 16px; }
+      .lord-research-fullscreen-icon::before, .lord-research-fullscreen-icon::after { content: ""; position: absolute; inset: 0; background: linear-gradient(#ead16e, #ead16e) left top / 6px 2px no-repeat, linear-gradient(#ead16e, #ead16e) left top / 2px 6px no-repeat, linear-gradient(#ead16e, #ead16e) right top / 6px 2px no-repeat, linear-gradient(#ead16e, #ead16e) right top / 2px 6px no-repeat, linear-gradient(#ead16e, #ead16e) left bottom / 6px 2px no-repeat, linear-gradient(#ead16e, #ead16e) left bottom / 2px 6px no-repeat, linear-gradient(#ead16e, #ead16e) right bottom / 6px 2px no-repeat, linear-gradient(#ead16e, #ead16e) right bottom / 2px 6px no-repeat; }
+      .lord-research-main.is-fullscreen .lord-research-fullscreen-icon::before, .lord-research-main:fullscreen .lord-research-fullscreen-icon::before { transform: scale(.68); }
+      .lord-research-main.is-fullscreen .lord-research-fullscreen-icon::after, .lord-research-main:fullscreen .lord-research-fullscreen-icon::after { transform: scale(-1); }
       .lord-research-summary { position: absolute; z-index: 8; top: 12px; left: 12px; width: min(390px, calc(100% - 24px)); overflow: hidden; border: 1px solid #263b47; border-radius: 8px; background: rgba(5, 10, 20, .94); box-shadow: 0 10px 28px rgba(0, 0, 0, .4); backdrop-filter: blur(7px); }
       .lord-research-summary-title { padding: 10px 12px; border-bottom: 1px solid #26313c; color: #d5d6d4; font-size: 11px; font-weight: 1000; letter-spacing: .04em; }
       .lord-research-summary-speed, .lord-research-summary-resources { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 9px 12px; }
@@ -2819,11 +2825,13 @@ export function kellaDashboardHtml() {
       .lord-research-node.t2 .lord-research-node-art { background-image: url('/assets/research/ui/t2_bg.png'); }
       .lord-research-node.t3 .lord-research-node-art { background-image: url('/assets/research/ui/t3_bg.png'); }
       .lord-research-node.t4 .lord-research-node-art { background-image: url('/assets/research/ui/t4_bg.png'); }
-      .lord-research-node-art img { width: 100%; height: 100%; object-fit: contain; image-rendering: auto; transform: translateZ(0); backface-visibility: hidden; }
+      .lord-research-node.t5 .lord-research-node-art { background-image: url('/assets/research/ui/t5_bg.png'); }
+      .lord-research-node-art::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: url('/assets/research/ui/frame.png') center / contain no-repeat; }
+      .lord-research-node-art img { position: relative; z-index: 1; width: 100%; height: 100%; object-fit: contain; image-rendering: auto; transform: translateZ(0); backface-visibility: hidden; }
       .lord-research-node.available .lord-research-node-art { filter: brightness(.82) saturate(.92); }
       .lord-research-node.locked .lord-research-node-art { filter: brightness(.52) saturate(.55); opacity: .8; }
       .lord-research-node.locked > strong { color: #898b88; }
-      .lord-research-node-level { position: absolute; left: 50%; bottom: -3px; display: grid; place-items: center; width: 32px; min-width: 32px; height: 14px; padding: 0 2px; border: 1px solid #6b6a65; border-radius: 3px; background: rgba(3, 4, 5, .92); color: #ece8dc; font-size: 8px; line-height: 1; font-weight: 1000; transform: translateX(-50%); }
+      .lord-research-node-level { position: absolute; left: 50%; bottom: -3px; z-index: 3; display: grid; place-items: center; width: 32px; min-width: 32px; height: 14px; padding: 0 2px; border: 1px solid #6b6a65; border-radius: 3px; background: rgba(3, 4, 5, .92); color: #ece8dc; font-size: 8px; line-height: 1; font-weight: 1000; transform: translateX(-50%); }
       .lord-research-node > strong { display: -webkit-box; width: 84px; max-height: 24px; margin-top: 3px; overflow: hidden; color: #d8d6cb; font-family: system-ui, sans-serif; font-size: 10px; line-height: 12px; font-weight: 800; text-shadow: 0 1px 2px #000; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
       .lord-research-inspector-inner { display: grid; gap: 13px; }
       .lord-research-selected { display: grid; justify-items: center; gap: 8px; padding: 15px; border: 1px solid #3f3b28; border-radius: 7px; background: #0c0e10; text-align: center; }
@@ -2887,7 +2895,7 @@ export function kellaDashboardHtml() {
         .lord-research-tab { min-width: 42%; }
         .lord-research-hint { display: none; }
         .lord-research-tabs { flex-wrap: wrap; }
-        .lord-research-zoom { width: 100%; justify-content: flex-end; padding: 7px 10px; border-top: 1px solid #252728; }
+        .lord-research-fullscreen-control { margin-left: auto; padding: 7px 10px; }
         .lord-research-summary { top: 8px; left: 8px; width: min(370px, calc(100% - 16px)); }
         .lord-research-summary-title { padding: 8px 10px; }
         .lord-research-summary-speed, .lord-research-summary-resources { padding: 7px 10px; }
@@ -6365,7 +6373,8 @@ export function kellaDashboardHtml() {
         if (node.col <= 4) return "t1";
         if (node.col <= 9) return "t2";
         if (node.col <= 13) return "t3";
-        return "t4";
+        if (node.col <= 17) return "t4";
+        return "t5";
       }
 
       function lordResearchLevelKey(node) {
@@ -6513,14 +6522,42 @@ export function kellaDashboardHtml() {
             '<label>Alliance Center<select data-lord-research-setting="allianceCenter">' + Array.from({ length: 25 }, function(_, index) { const level = index + 1; return '<option value="' + level + '"' + (level === lordNumber(settings.allianceCenter) ? ' selected' : '') + '>Level ' + level + '</option>'; }).join("") + '</select></label>' +
             '<label>Research speed %<input type="number" min="0" max="500" step="1" value="' + lordNumber(settings.speed) + '" data-lord-research-setting="speed" /></label>' +
             '<button class="lord-research-toggle' + (settings.heightsOfPower ? ' on' : '') + '" type="button" data-action="lord-research-event"><span>Heights of Power <b>+15%</b></span><i aria-hidden="true"></i></button></div>' +
-            '<main class="lord-research-main"><div class="lord-research-tabs"><button class="lord-research-tab' + (lordResearchTreeKey() === "economy" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="economy">Economy</button><button class="lord-research-tab' + (lordResearchTreeKey() === "military" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="military">Military</button><span class="lord-research-hint">Click +1 &middot; Right click -1 &middot; Drag to move</span><span class="lord-research-zoom"><button type="button" data-action="lord-research-zoom" data-step="-0.1" aria-label="Zoom out">&minus;</button><button class="lord-research-zoom-value" type="button" data-action="lord-research-zoom-fit" aria-label="Fit research tree">Fit ' + Math.round(state.lordResearchZoom * 100) + '%</button><button type="button" data-action="lord-research-zoom" data-step="0.1" aria-label="Zoom in">+</button></span></div><div class="lord-research-tree-scroll" data-lord-research-scroll tabindex="0" aria-label="' + treeLabel + ' research tree. Drag to move and scroll or pinch to zoom."><div class="lord-research-summary" data-lord-research-summary>' + lordResearchSummaryHtml(data) + '</div>' + lordResearchTreeHtml(data) + '</div></main></div></section>';
+            '<main class="lord-research-main" data-lord-research-fullscreen><div class="lord-research-tabs"><button class="lord-research-tab' + (lordResearchTreeKey() === "economy" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="economy">Economy</button><button class="lord-research-tab' + (lordResearchTreeKey() === "military" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="military">Military</button><span class="lord-research-hint">Click +1 &middot; Right click -1 &middot; Drag to move</span><span class="lord-research-fullscreen-control"><button class="lord-research-fullscreen-toggle" type="button" data-action="lord-research-fullscreen" aria-label="Open research tree full screen" title="Full screen"><span class="lord-research-fullscreen-icon" aria-hidden="true"></span></button></span></div><div class="lord-research-tree-scroll" data-lord-research-scroll tabindex="0" aria-label="' + treeLabel + ' research tree. Drag to move and scroll or pinch to zoom."><div class="lord-research-summary" data-lord-research-summary>' + lordResearchSummaryHtml(data) + '</div>' + lordResearchTreeHtml(data) + '</div></main></div></section>';
       }
 
       function applyLordResearchTransform() {
         const canvas = document.querySelector("[data-lord-research-tree-canvas]");
         if (canvas) canvas.style.transform = 'translate3d(' + state.lordResearchPanX + 'px,' + state.lordResearchPanY + 'px,0) scale(' + state.lordResearchZoom + ')';
-        const label = document.querySelector(".lord-research-zoom-value");
-        if (label) label.textContent = "Fit " + Math.round(state.lordResearchZoom * 100) + "%";
+      }
+
+      function syncLordResearchFullscreenState(active) {
+        const target = document.querySelector("[data-lord-research-fullscreen]");
+        if (!target) return;
+        target.classList.toggle("is-fullscreen", active);
+        document.body.classList.toggle("lord-research-fullscreen-open", active);
+        const button = target.querySelector("[data-action=lord-research-fullscreen]");
+        if (button) {
+          button.setAttribute("aria-label", active ? "Exit research tree full screen" : "Open research tree full screen");
+          button.setAttribute("title", active ? "Exit full screen" : "Full screen");
+        }
+        requestAnimationFrame(function() { fitLordResearchTree(true); });
+      }
+
+      async function toggleLordResearchFullscreen() {
+        const target = document.querySelector("[data-lord-research-fullscreen]");
+        if (!target) return;
+        const active = target.classList.contains("is-fullscreen") || document.fullscreenElement === target;
+        if (active) {
+          if (document.fullscreenElement && document.exitFullscreen) {
+            try { await document.exitFullscreen(); } catch (_) { /* CSS fallback still closes below. */ }
+          }
+          syncLordResearchFullscreenState(false);
+          return;
+        }
+        syncLordResearchFullscreenState(true);
+        if (target.requestFullscreen) {
+          try { await target.requestFullscreen(); } catch (_) { /* Keep the iOS-compatible fixed-screen fallback. */ }
+        }
       }
 
       function setLordResearchZoom(value, clientX, clientY) {
@@ -8494,12 +8531,8 @@ export function kellaDashboardHtml() {
           document.querySelectorAll("[data-lord-catalog-item]").forEach(function(card) { card.classList.remove("hidden"); });
           return;
         }
-        if (kind === "lord-research-zoom") {
-          setLordResearchZoom(state.lordResearchZoom + lordNumber(action.getAttribute("data-step")));
-          return;
-        }
-        if (kind === "lord-research-zoom-fit") {
-          fitLordResearchTree();
+        if (kind === "lord-research-fullscreen") {
+          toggleLordResearchFullscreen();
           return;
         }
         if (kind === "lord-research-select") {
@@ -9731,6 +9764,14 @@ export function kellaDashboardHtml() {
 
       window.addEventListener("popstate", route);
       window.addEventListener("resize", fitWikiReader);
+      document.addEventListener("fullscreenchange", function() {
+        const target = document.querySelector("[data-lord-research-fullscreen]");
+        if (!target) {
+          document.body.classList.remove("lord-research-fullscreen-open");
+          return;
+        }
+        syncLordResearchFullscreenState(document.fullscreenElement === target);
+      });
       document.addEventListener("selectionchange", rememberWikiTextSelection);
       updateServerClock();
       setInterval(updateServerClock, 1000);
