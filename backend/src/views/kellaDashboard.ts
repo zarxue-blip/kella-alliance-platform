@@ -2809,19 +2809,22 @@ export function kellaDashboardHtml() {
       .lord-research-tree-scroll.is-dragging { cursor: grabbing; user-select: none; }
       .lord-research-tree { position: absolute; top: 0; left: 0; margin: 0; transform-origin: 0 0; will-change: transform; background: radial-gradient(ellipse at center, rgba(8, 52, 42, .2), transparent 70%); box-shadow: none; }
       .lord-research-lines { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; overflow: visible; }
-      .lord-research-line { fill: none; stroke: #24526a; stroke-width: 3; opacity: .82; }
-      .lord-research-line.done { stroke: #a48a35; filter: drop-shadow(0 0 2px rgba(228, 194, 74, .38)); }
-      .lord-research-node { position: absolute; z-index: 2; display: grid; place-items: center; width: 68px; min-height: 86px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #d8d6cb; text-align: center; }
-      .lord-research-node:hover, .lord-research-node.selected { transform: translateY(-2px); filter: brightness(1.13); }
-      .lord-research-node.selected .lord-research-node-art { filter: drop-shadow(0 0 8px #efc631); }
-      .lord-research-node-art { position: relative; width: 60px; height: 60px; padding: 7px; background-position: center; background-repeat: no-repeat; background-size: contain; }
+      .lord-research-line { fill: none; stroke: #3a6a7b; stroke-width: 2; opacity: .45; filter: drop-shadow(0 0 1px #1a3a4b); }
+      .lord-research-line.done { stroke: #d4a853; opacity: 1; filter: drop-shadow(0 0 2px rgba(212, 168, 83, .4)); }
+      .lord-research-node { position: absolute; z-index: 2; display: flex; flex-direction: column; align-items: center; width: 84px; min-height: 76px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #d8d6cb; text-align: center; }
+      .lord-research-node:hover, .lord-research-node.selected { transform: translateY(-2px); filter: brightness(1.12); }
+      .lord-research-node.selected .lord-research-node-art { filter: drop-shadow(0 0 7px #efc631); }
+      .lord-research-node-art { position: relative; width: 48px; height: 48px; padding: 4px; background-position: center; background-repeat: no-repeat; background-size: contain; }
       .lord-research-node.t1 .lord-research-node-art { background-image: url('/assets/research/ui/t1_bg.png'); }
       .lord-research-node.t2 .lord-research-node-art { background-image: url('/assets/research/ui/t2_bg.png'); }
       .lord-research-node.t3 .lord-research-node-art { background-image: url('/assets/research/ui/t3_bg.png'); }
       .lord-research-node.t4 .lord-research-node-art { background-image: url('/assets/research/ui/t4_bg.png'); }
       .lord-research-node-art img { width: 100%; height: 100%; object-fit: contain; image-rendering: auto; transform: translateZ(0); backface-visibility: hidden; }
-      .lord-research-node-level { position: absolute; right: 5px; bottom: 5px; min-width: 28px; padding: 2px 4px; border: 1px solid #6b6a65; border-radius: 999px; background: rgba(3, 4, 5, .88); color: #ece8dc; font-size: 9px; font-weight: 1000; }
-      .lord-research-node > strong { display: block; width: 96px; margin-top: -1px; font-size: 9px; line-height: 1.15; text-shadow: 0 1px 2px #000; }
+      .lord-research-node.available .lord-research-node-art { filter: brightness(.82) saturate(.92); }
+      .lord-research-node.locked .lord-research-node-art { filter: brightness(.52) saturate(.55); opacity: .8; }
+      .lord-research-node.locked > strong { color: #898b88; }
+      .lord-research-node-level { position: absolute; left: 50%; bottom: -3px; display: grid; place-items: center; width: 32px; min-width: 32px; height: 14px; padding: 0 2px; border: 1px solid #6b6a65; border-radius: 3px; background: rgba(3, 4, 5, .92); color: #ece8dc; font-size: 8px; line-height: 1; font-weight: 1000; transform: translateX(-50%); }
+      .lord-research-node > strong { display: -webkit-box; width: 84px; max-height: 24px; margin-top: 3px; overflow: hidden; color: #d8d6cb; font-family: system-ui, sans-serif; font-size: 10px; line-height: 12px; font-weight: 800; text-shadow: 0 1px 2px #000; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
       .lord-research-inspector-inner { display: grid; gap: 13px; }
       .lord-research-selected { display: grid; justify-items: center; gap: 8px; padding: 15px; border: 1px solid #3f3b28; border-radius: 7px; background: #0c0e10; text-align: center; }
       .lord-research-selected img { width: 82px; height: 82px; padding: 8px; object-fit: contain; background: url('/assets/research/ui/frame.png') center / contain no-repeat; }
@@ -6417,20 +6420,63 @@ export function kellaDashboardHtml() {
 
       function lordResearchTreeHtml(data) {
         lordResearchCurrentNodes();
-        const nodeWidth = 68;
-        const colStep = 96;
-        const rowStep = 100;
+        const iconSize = 48;
+        const nodeWidth = 84;
+        const colStep = 120;
+        const rowStep = 120;
+        const padding = 60;
+        const minCol = Math.min.apply(null, lordResearchNodes.map(function(node) { return node.col; }));
         const maxCol = Math.max.apply(null, lordResearchNodes.map(function(node) { return node.col; }));
+        const minRow = Math.min.apply(null, lordResearchNodes.map(function(node) { return node.row; }));
         const maxRow = Math.max.apply(null, lordResearchNodes.map(function(node) { return node.row; }));
-        const rowLane = function(row) { return row === 0 ? 1.5 : row - 1; };
-        const rowY = Array.from({ length: maxRow + 1 }, function(_, index) { return 104 + rowLane(index) * rowStep; });
-        const maxLane = Math.max.apply(null, lordResearchNodes.map(function(node) { return rowLane(node.row); }));
-        const treeWidth = Math.max(980, 92 + (maxCol + 1) * colStep);
-        const treeHeight = Math.max(540, 188 + (maxLane + 1) * rowStep);
+        const globalCenter = (minRow + maxRow) / 2;
+        const columnRows = {};
+        lordResearchNodes.forEach(function(node) {
+          if (!columnRows[node.col]) columnRows[node.col] = [];
+          columnRows[node.col].push(node.row);
+        });
+        const columnShift = {};
+        Object.keys(columnRows).forEach(function(column) {
+          const rows = columnRows[column];
+          const columnCenter = (Math.min.apply(null, rows) + Math.max.apply(null, rows)) / 2;
+          columnShift[column] = globalCenter - columnCenter;
+        });
+        const specialRowOffset = function(node) {
+          const id = lordNumber(node.id);
+          if (id === 110 || id === 145) return -0.5;
+          if (id === 225) return 0.5;
+          return 0;
+        };
+        const visualRow = function(node) {
+          return node.row + lordNumber(columnShift[node.col]) + specialRowOffset(node);
+        };
+        const visualRows = lordResearchNodes.map(visualRow);
+        const minVisualRow = Math.min.apply(null, visualRows);
+        const maxVisualRow = Math.max.apply(null, visualRows);
+        const treeWidth = ((maxCol - minCol) * colStep) + iconSize + (padding * 2);
+        const treeHeight = ((maxVisualRow - minVisualRow) * rowStep) + iconSize + (padding * 2);
+        const offsetX = padding - (minCol * colStep);
+        const offsetY = padding - (minVisualRow * rowStep);
+        const nodeCenter = function(node) {
+          return {
+            x: (node.col * colStep) + offsetX,
+            y: (visualRow(node) * rowStep) + offsetY
+          };
+        };
         const settings = lordResearchSettings(data);
         const faction = ["league_of_order", "springwardens", "wilderburg"].includes(settings.faction) ? settings.faction : "league_of_order";
         const tree = lordResearchTreeKey();
         const nodeById = Object.fromEntries(lordResearchNodes.map(function(node) { return [node.id, node]; }));
+        const nodeState = function(node) {
+          if (lordResearchNodeLevel(data, node) > 0) return "active";
+          const missingRequirement = node.requires.some(function(requirement) {
+            const requiredId = String(requirement.id || requirement);
+            const requiredLevel = lordNumber(requirement.level || nodeById[requiredId]?.max || 1);
+            const source = nodeById[requiredId];
+            return !source || lordResearchNodeLevel(data, source) < requiredLevel;
+          });
+          return missingRequirement ? "locked" : "available";
+        };
         const lines = [];
         lordResearchNodes.forEach(function(node) {
           node.requires.forEach(function(requirement) {
@@ -6438,19 +6484,19 @@ export function kellaDashboardHtml() {
             const requiredLevel = lordNumber(requirement.level || nodeById[requiredId]?.max || 1);
             const source = nodeById[requiredId];
             if (!source) return;
-            const sx = 28 + source.col * colStep + nodeWidth;
-            const sy = rowY[source.row] + 35;
-            const tx = 28 + node.col * colStep;
-            const ty = rowY[node.row] + 35;
-            const mid = sx + Math.max(12, (tx - sx) / 2);
-            const done = lordResearchNodeLevel(data, source) >= requiredLevel;
-            lines.push('<path class="lord-research-line' + (done ? ' done' : '') + '" data-research-source="' + source.id + '" data-research-required-level="' + requiredLevel + '" d="M ' + sx + ' ' + sy + ' H ' + mid + ' V ' + ty + ' H ' + tx + '" />');
+            const columnDistance = node.col - source.col;
+            if (columnDistance < 0 || columnDistance > 2) return;
+            const sourceCenter = nodeCenter(source);
+            const targetCenter = nodeCenter(node);
+            const done = lordResearchNodeLevel(data, source) > 0 && lordResearchNodeLevel(data, node) > 0;
+            lines.push('<path class="lord-research-line' + (done ? ' done' : '') + '" data-research-source="' + source.id + '" data-research-target="' + node.id + '" data-research-required-level="' + requiredLevel + '" d="M ' + sourceCenter.x + ' ' + sourceCenter.y + ' L ' + targetCenter.x + ' ' + targetCenter.y + '" />');
           });
         });
         const selectedId = String(state.lordResearchSelected || lordResearchNodes[0].id);
         const nodes = lordResearchNodes.map(function(node) {
           const level = lordResearchNodeLevel(data, node);
-          return '<button class="lord-research-node ' + lordResearchTier(node) + (selectedId === node.id ? ' selected' : '') + '" style="left:' + (28 + node.col * colStep) + 'px;top:' + rowY[node.row] + 'px" type="button" data-action="lord-research-select" data-research-id="' + node.id + '" title="Left click adds a level. Right click removes one." aria-label="' + escapeHtml(node.name) + ', level ' + level + ' of ' + node.max + '"><span class="lord-research-node-art"><img src="/assets/research/' + tree + '/' + faction + '/' + node.id + '.png" alt="" loading="eager" decoding="async" draggable="false" /><span class="lord-research-node-level">' + level + '/' + node.max + '</span></span><strong>' + escapeHtml(node.name) + '</strong></button>';
+          const center = nodeCenter(node);
+          return '<button class="lord-research-node ' + lordResearchTier(node) + ' ' + nodeState(node) + (selectedId === node.id ? ' selected' : '') + '" style="left:' + (center.x - (nodeWidth / 2)) + 'px;top:' + (center.y - (iconSize / 2)) + 'px" type="button" data-action="lord-research-select" data-research-id="' + node.id + '" title="Left click adds a level. Right click removes one." aria-label="' + escapeHtml(node.name) + ', level ' + level + ' of ' + node.max + '"><span class="lord-research-node-art"><img src="/assets/research/' + tree + '/' + faction + '/' + node.id + '.png" alt="" loading="eager" decoding="async" draggable="false" /><span class="lord-research-node-level">' + level + '/' + node.max + '</span></span><strong>' + escapeHtml(node.name) + '</strong></button>';
         }).join("");
         return '<div class="lord-research-tree" data-lord-research-tree-canvas style="width:' + treeWidth + 'px;height:' + treeHeight + 'px;transform:translate3d(' + state.lordResearchPanX + 'px,' + state.lordResearchPanY + 'px,0) scale(' + state.lordResearchZoom + ')"><svg class="lord-research-lines" viewBox="0 0 ' + treeWidth + ' ' + treeHeight + '" aria-hidden="true">' + lines.join("") + '</svg>' + nodes + '</div>';
       }
@@ -6480,7 +6526,7 @@ export function kellaDashboardHtml() {
       function setLordResearchZoom(value, clientX, clientY) {
         const viewport = document.querySelector("[data-lord-research-scroll]");
         const previous = state.lordResearchZoom || 0.6;
-        const next = Math.max(0.12, Math.min(1.8, Math.round(value * 100) / 100));
+        const next = Math.max(0.08, Math.min(1.8, Math.round(value * 100) / 100));
         if (viewport && previous > 0) {
           const rect = viewport.getBoundingClientRect();
           const anchorX = Number.isFinite(clientX) ? clientX - rect.left : rect.width / 2;
@@ -6500,12 +6546,11 @@ export function kellaDashboardHtml() {
         if (!viewport || !canvas) return;
         const width = Number.parseFloat(canvas.style.width) || canvas.scrollWidth || 1;
         const height = Number.parseFloat(canvas.style.height) || canvas.scrollHeight || 1;
-        const exactFit = Math.max(0.12, Math.min(1, Math.min((viewport.clientWidth - 28) / width, (viewport.clientHeight - 28) / height)));
-        const fit = preferReadable ? Math.max(0.58, exactFit) : exactFit;
+        const exactFit = Math.max(0.08, Math.min(1, Math.min((viewport.clientWidth - 40) / width, (viewport.clientHeight - 40) / height)));
+        const fit = Math.max(0.08, exactFit);
         state.lordResearchZoom = Math.floor(fit * 100) / 100;
-        const readableOverflow = preferReadable && fit > exactFit;
-        state.lordResearchPanX = readableOverflow ? 14 : Math.round((viewport.clientWidth - (width * state.lordResearchZoom)) / 2);
-        state.lordResearchPanY = Math.round((viewport.clientHeight - (height * state.lordResearchZoom)) / 2 + 24);
+        state.lordResearchPanX = Math.round((viewport.clientWidth - (width * state.lordResearchZoom)) / 2);
+        state.lordResearchPanY = Math.round((viewport.clientHeight - (height * state.lordResearchZoom)) / 2 + 18);
         applyLordResearchTransform();
       }
 
@@ -6513,6 +6558,7 @@ export function kellaDashboardHtml() {
         if (state.lordView !== "research") return;
         const data = loadLordToolsData();
         lordResearchCurrentNodes();
+        const nodeById = Object.fromEntries(lordResearchNodes.map(function(item) { return [item.id, item]; }));
         const summary = document.querySelector("[data-lord-research-summary]");
         if (summary) summary.innerHTML = lordResearchSummaryHtml(data);
         document.querySelectorAll("[data-action=lord-research-select]").forEach(function(button) {
@@ -6520,6 +6566,16 @@ export function kellaDashboardHtml() {
           const node = lordResearchNodes.find(function(item) { return item.id === id; });
           const level = node ? lordResearchNodeLevel(data, node) : 0;
           button.classList.toggle("selected", id === String(state.lordResearchSelected || lordResearchNodes[0].id));
+          if (node) {
+            const missingRequirement = node.requires.some(function(requirement) {
+              const requiredId = String(requirement.id || requirement);
+              const requiredLevel = lordNumber(requirement.level || nodeById[requiredId]?.max || 1);
+              const source = nodeById[requiredId];
+              return !source || lordResearchNodeLevel(data, source) < requiredLevel;
+            });
+            button.classList.remove("active", "available", "locked");
+            button.classList.add(level > 0 ? "active" : (missingRequirement ? "locked" : "available"));
+          }
           const badge = button.querySelector(".lord-research-node-level");
           if (badge && node) {
             badge.textContent = level + "/" + node.max;
@@ -6528,9 +6584,10 @@ export function kellaDashboardHtml() {
         });
         document.querySelectorAll("[data-research-source]").forEach(function(path) {
           const sourceId = path.getAttribute("data-research-source") || "";
-          const requiredLevel = lordNumber(path.getAttribute("data-research-required-level") || 1);
+          const targetId = path.getAttribute("data-research-target") || "";
           const source = lordResearchNodes.find(function(item) { return item.id === sourceId; });
-          path.classList.toggle("done", Boolean(source && lordResearchNodeLevel(data, source) >= requiredLevel));
+          const target = lordResearchNodes.find(function(item) { return item.id === targetId; });
+          path.classList.toggle("done", Boolean(source && target && lordResearchNodeLevel(data, source) > 0 && lordResearchNodeLevel(data, target) > 0));
         });
       }
 
