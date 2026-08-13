@@ -27,6 +27,15 @@ const defaultBuffSchedule = [
   { day: "Sunday", buff: "Research", note: "War time: may be changed" }
 ] as const;
 
+const realmBuffDiscordChannelId = "1537412848492355617";
+const realmBuffIcons: Record<(typeof buffScheduleTypes)[number], string> = {
+  Gathering: "/assets/buffs/gathering.png",
+  Research: "/assets/buffs/research.png",
+  Training: "/assets/buffs/training.png",
+  Construction: "/assets/buffs/construction.png",
+  Healing: "/assets/buffs/healing.png"
+};
+
 const buffScheduleSchema = z.object({
   days: z
     .array(
@@ -42,7 +51,30 @@ const buffScheduleSchema = z.object({
       if (uniqueDays.size !== buffScheduleDays.length) {
         context.addIssue({ code: z.ZodIssueCode.custom, message: "Schedule must include every day exactly once" });
       }
-    })
+    }),
+  sendToDiscord: z.boolean().optional().default(false)
+});
+
+const datedBuffSchema = z.object({
+  buff: z.enum(buffScheduleTypes),
+  timeUtc: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, "Time must use 24-hour UTC format"),
+  note: z.string().trim().max(160).optional().default(""),
+  sendToDiscord: z.boolean().optional().default(false)
+});
+
+const parseBuffDate = (value: string) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new HttpError(400, "Date must use YYYY-MM-DD format");
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) throw new HttpError(400, "Invalid calendar date");
+  return date;
+};
+
+const buffScheduleResponse = (schedule: any, fallbackDays: readonly any[] = defaultBuffSchedule) => ({
+  days: schedule?.days?.length ? schedule.days : fallbackDays,
+  datedBuffs: Array.isArray(schedule?.datedBuffs) ? schedule.datedBuffs : [],
+  updatedAt: schedule?.updatedAt || null,
+  updatedBy: schedule?.updatedBy || "Kella defaults",
+  lastPublishedAt: schedule?.lastPublishedAt || null
 });
 type DashboardAction = {
   _id: { toString(): string };
@@ -2930,12 +2962,7 @@ export const rootsReportSend = asyncHandler(async (req, res) => {
 export const dashboardBuffSchedule = asyncHandler(async (_req, res) => {
   const allianceId = await resolveAllianceId();
   const schedule = allianceId ? ((await BuffScheduleModel.findOne({ allianceId }).lean()) as any) : null;
-  res.json({
-    days: schedule?.days?.length ? schedule.days : defaultBuffSchedule,
-    updatedAt: schedule?.updatedAt || null,
-    updatedBy: schedule?.updatedBy || "Kella defaults",
-    lastPublishedAt: schedule?.lastPublishedAt || null
-  });
+  res.json(buffScheduleResponse(schedule));
 });
 
 export const dashboardBuffScheduleUpdate = asyncHandler(async (req: AuthenticatedRequest, res) => {
@@ -2949,22 +2976,19 @@ export const dashboardBuffScheduleUpdate = asyncHandler(async (req: Authenticate
 
   const updatedBy = req.user?.discordId || "Dashboard";
   const scheduleHash = createHash("sha256").update(JSON.stringify(days)).digest("hex");
-  const previous = (await BuffScheduleModel.findOne({ allianceId }).lean()) as any;
   const schedule = (await BuffScheduleModel.findOneAndUpdate(
     { allianceId },
     { $set: { days, updatedBy } },
     { upsert: true, new: true, runValidators: true }
   ).lean()) as any;
 
-  if (previous?.lastPublishedHash === scheduleHash) {
-    res.json({ days: schedule?.days || days, updatedAt: schedule?.updatedAt, updatedBy, discord: { ok: true, skipped: true }, message: "Schedule saved. Discord already has this exact schedule." });
+  if (!body.sendToDiscord) {
+    res.json({ ...buffScheduleResponse(schedule, days), discord: { ok: true, skipped: true }, message: "Schedule saved and calendar updated." });
     return;
   }
 
-  const alliance = (await AllianceModel.findById(allianceId).select("settings.announcementChannel").lean()) as any;
-  const channelId = String(alliance?.settings?.announcementChannel || "").trim();
-  if (!channelId) {
-    res.json({ days: schedule?.days || days, updatedAt: schedule?.updatedAt, updatedBy, discord: { ok: false, skipped: true }, warning: "Schedule saved, but no announcement channel is configured in Settings." });
+  if (schedule?.lastPublishedHash === scheduleHash) {
+    res.json({ ...buffScheduleResponse(schedule, days), discord: { ok: true, skipped: true }, message: "Schedule saved. Discord already has this exact schedule." });
     return;
   }
 
@@ -2986,15 +3010,78 @@ export const dashboardBuffScheduleUpdate = asyncHandler(async (req: Authenticate
 
   try {
     const message = await sendDiscordEmbed({
-      channelId,
+      channelId: realmBuffDiscordChannelId,
       title: "Realm Buff Schedule",
       description,
       color: "#d89a20",
       footer: "Kella - Call of Dragons server time (UTC)"
     });
     await BuffScheduleModel.updateOne({ allianceId }, { $set: { lastPublishedHash: scheduleHash, lastPublishedAt: new Date(), lastDiscordMessageId: message?.id || "" } });
-    res.json({ days: schedule?.days || days, updatedAt: schedule?.updatedAt, updatedBy, discord: { ok: true, messageId: message?.id }, message: "Schedule saved and published to Discord." });
+    res.json({ ...buffScheduleResponse(schedule, days), discord: { ok: true, messageId: message?.id }, message: "Schedule saved and published to Discord." });
   } catch (error) {
-    res.json({ days: schedule?.days || days, updatedAt: schedule?.updatedAt, updatedBy, discord: { ok: false, error: error instanceof Error ? error.message : String(error) }, warning: "Schedule saved, but Discord publishing failed." });
+    res.json({ ...buffScheduleResponse(schedule, days), discord: { ok: false, error: error instanceof Error ? error.message : String(error) }, warning: "Buff saved, but Discord announcement failed." });
   }
+});
+
+export const dashboardBuffDateUpdate = asyncHandler(async (req: AuthenticatedRequest, res) => {
+  const body = datedBuffSchema.parse(req.body);
+  const dateKey = String(req.params.date || "");
+  const date = parseBuffDate(dateKey);
+  const day = buffScheduleDays[(date.getUTCDay() + 6) % 7]!;
+  const allianceId = await resolveAllianceId();
+  if (!allianceId) throw new HttpError(404, "Alliance not found");
+
+  const updatedBy = req.user?.discordId || "Dashboard";
+  const existing = (await BuffScheduleModel.findOne({ allianceId }).lean()) as any;
+  const datedBuffs = (Array.isArray(existing?.datedBuffs) ? existing.datedBuffs : [])
+    .filter((item: any) => item.date !== dateKey)
+    .concat([{ date: dateKey, day, buff: body.buff, timeUtc: body.timeUtc, note: body.note, updatedBy, updatedAt: new Date() }])
+    .sort((left: any, right: any) => String(left.date).localeCompare(String(right.date)));
+  const schedule = (await BuffScheduleModel.findOneAndUpdate(
+    { allianceId },
+    { $set: { days: existing?.days?.length ? existing.days : defaultBuffSchedule, datedBuffs, updatedBy } },
+    { upsert: true, new: true, runValidators: true }
+  ).lean()) as any;
+
+  if (!body.sendToDiscord) {
+    res.json({ ...buffScheduleResponse(schedule), discord: { ok: true, skipped: true }, message: "Buff saved and calendar updated." });
+    return;
+  }
+
+  const publishHash = createHash("sha256").update(JSON.stringify({ date: dateKey, buff: body.buff, timeUtc: body.timeUtc, note: body.note })).digest("hex");
+  if (schedule?.lastPublishedHash === publishHash) {
+    res.json({ ...buffScheduleResponse(schedule), discord: { ok: true, skipped: true }, message: "Buff saved. Discord already has this exact announcement." });
+    return;
+  }
+
+  try {
+    const dayLabel = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "long" }).format(date);
+    const iconUrl = new URL(realmBuffIcons[body.buff], env.PUBLIC_APP_URL).toString();
+    const message = await sendDiscordEmbed({
+      channelId: realmBuffDiscordChannelId,
+      title: `Realm Buff: ${body.buff}`,
+      description: `**Buff:** ${body.buff}\n**Date:** ${dateKey}\n**Day:** ${dayLabel}\n**Time:** ${body.timeUtc} UTC${body.note ? `\n\n${body.note}` : ""}`,
+      color: "#d89a20",
+      thumbnailUrl: iconUrl,
+      footer: "Kella - Call of Dragons server time (UTC)"
+    });
+    await BuffScheduleModel.updateOne({ allianceId }, { $set: { lastPublishedHash: publishHash, lastPublishedAt: new Date(), lastDiscordMessageId: message?.id || "" } });
+    res.json({ ...buffScheduleResponse(schedule), discord: { ok: true, messageId: message?.id }, message: "Buff saved, calendar updated, and announcement sent." });
+  } catch (error) {
+    res.json({ ...buffScheduleResponse(schedule), discord: { ok: false, error: error instanceof Error ? error.message : String(error) }, warning: "Buff saved, but Discord announcement failed." });
+  }
+});
+
+export const dashboardBuffDateDelete = asyncHandler(async (req: AuthenticatedRequest, res) => {
+  const dateKey = String(req.params.date || "");
+  parseBuffDate(dateKey);
+  const allianceId = await resolveAllianceId();
+  if (!allianceId) throw new HttpError(404, "Alliance not found");
+  const updatedBy = req.user?.discordId || "Dashboard";
+  const schedule = (await BuffScheduleModel.findOneAndUpdate(
+    { allianceId },
+    { $pull: { datedBuffs: { date: dateKey } }, $set: { updatedBy } },
+    { new: true, runValidators: true }
+  ).lean()) as any;
+  res.json({ ...buffScheduleResponse(schedule), message: "Dated buff removed. The weekly schedule now applies." });
 });

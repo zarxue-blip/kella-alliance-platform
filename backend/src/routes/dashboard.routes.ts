@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   dashboardAlerts,
   dashboardBuffSchedule,
+  dashboardBuffDateDelete,
+  dashboardBuffDateUpdate,
   dashboardBuffScheduleUpdate,
   dashboardMembers,
   dashboardMemberCreate,
@@ -48,6 +50,8 @@ export const dashboardRouter = Router();
 dashboardRouter.get("/summary", dashboardSummary);
 dashboardRouter.get("/buff-schedule", dashboardBuffSchedule);
 dashboardRouter.put("/buff-schedule", authenticateDashboardAdmin, dashboardBuffScheduleUpdate);
+dashboardRouter.put("/buff-schedule/date/:date", authenticateDashboardAdmin, dashboardBuffDateUpdate);
+dashboardRouter.delete("/buff-schedule/date/:date", authenticateDashboardAdmin, dashboardBuffDateDelete);
 dashboardRouter.get("/members", dashboardMembers);
 dashboardRouter.post("/members", authenticateDashboardAdmin, dashboardMemberCreate);
 dashboardRouter.patch("/members/:id", authenticateDashboardAdmin, dashboardMemberUpdate);

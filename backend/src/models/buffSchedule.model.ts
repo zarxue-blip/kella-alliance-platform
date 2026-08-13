@@ -12,10 +12,24 @@ const buffScheduleDaySchema = new Schema(
   { _id: false }
 );
 
+const datedBuffSchema = new Schema(
+  {
+    date: { type: String, required: true, match: /^\d{4}-\d{2}-\d{2}$/ },
+    day: { type: String, enum: buffScheduleDays, required: true },
+    buff: { type: String, enum: buffScheduleTypes, required: true },
+    timeUtc: { type: String, required: true, default: "14:00", match: /^(?:[01]\d|2[0-3]):[0-5]\d$/ },
+    note: { type: String, default: "", trim: true, maxlength: 160 },
+    updatedBy: { type: String, default: "Dashboard", trim: true, maxlength: 120 },
+    updatedAt: { type: Date, default: Date.now }
+  },
+  { _id: false }
+);
+
 const buffScheduleSchema = new Schema(
   {
     allianceId: { type: Schema.Types.ObjectId, ref: "Alliance", required: true, unique: true, index: true },
     days: { type: [buffScheduleDaySchema], required: true },
+    datedBuffs: { type: [datedBuffSchema], default: [] },
     updatedBy: { type: String, default: "Dashboard", trim: true, maxlength: 120 },
     lastPublishedHash: { type: String, default: "", trim: true, maxlength: 80 },
     lastPublishedAt: { type: Date, default: undefined },

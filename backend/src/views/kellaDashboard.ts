@@ -728,7 +728,8 @@ export function kellaDashboardHtml() {
         max-height: 100%;
         min-height: 0;
         outline: none;
-        overflow: hidden;
+        overflow: auto;
+        overscroll-behavior: contain;
         overflow-wrap: anywhere;
         word-break: break-word;
         white-space: pre-wrap;
@@ -889,8 +890,8 @@ export function kellaDashboardHtml() {
         position: sticky;
         top: 10px;
         z-index: 16;
-        display: grid;
-        grid-template-columns: auto minmax(330px, 1fr) minmax(420px, 0.95fr);
+        display: flex;
+        flex-wrap: wrap;
         gap: 10px;
         align-items: stretch;
         border-radius: 18px;
@@ -901,8 +902,41 @@ export function kellaDashboardHtml() {
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.42);
       }
       .wiki-inspector--empty {
-        grid-template-columns: auto minmax(420px, 620px);
         justify-content: start;
+      }
+      .wiki-editor .wiki-inspector,
+      .wiki-editor .wiki-inspector button,
+      .wiki-editor .wiki-inspector input,
+      .wiki-editor .wiki-inspector select {
+        font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+      }
+      .wiki-control-group {
+        display: flex;
+        flex: 1 1 320px;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 7px;
+        min-width: 0;
+        padding: 8px;
+        border: 1px solid rgba(121, 82, 33, 0.16);
+        border-radius: 12px;
+        background: rgba(255, 248, 221, 0.42);
+      }
+      .wiki-control-group--assets { flex-basis: 430px; }
+      .wiki-control-label {
+        align-self: center;
+        color: #6b431c;
+        font-size: 11px;
+        font-weight: 1000;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .wiki-control-group label { min-width: 104px; flex: 1 1 108px; }
+      .wiki-control-group button { min-height: 36px; }
+      .wiki-shadow-button.active {
+        border-color: rgba(190, 123, 24, 0.78);
+        background: linear-gradient(180deg, #fff2b5, #e7b84e);
+        box-shadow: 0 3px 8px rgba(55, 32, 12, 0.32);
       }
       .wiki-inspector h4 {
         margin: 0;
@@ -1170,6 +1204,31 @@ export function kellaDashboardHtml() {
       .buff-admin-setting select { min-height: 46px; font-weight: 800; }
       .buff-readonly { justify-self: start; padding: 8px 12px; border-radius: 999px; background: rgba(206, 151, 42, 0.13); color: #795119; font-size: 12px; font-weight: 800; }
       .buff-updated { text-align: right; color: #876a43; font-size: 12px; }
+      .buff-publish-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        min-height: 38px;
+        padding: 6px 10px;
+        border: 1px solid rgba(143, 95, 28, 0.28);
+        border-radius: 999px;
+        background: rgba(255, 250, 226, 0.66);
+        color: #5d3d1b;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .buff-publish-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+      .buff-toggle-track { position: relative; width: 38px; height: 22px; flex: 0 0 auto; border-radius: 999px; background: #b9a78b; transition: background 150ms ease; }
+      .buff-toggle-track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff8df; box-shadow: 0 2px 5px rgba(64, 37, 11, 0.28); transition: transform 150ms ease; }
+      .buff-publish-toggle input:checked + .buff-toggle-track { background: linear-gradient(180deg, #e4ad2f, #b96d12); }
+      .buff-publish-toggle input:checked + .buff-toggle-track::after { transform: translateX(16px); }
+      .buff-publish-toggle input:focus-visible + .buff-toggle-track { outline: 2px solid #d59b25; outline-offset: 2px; }
+      .buff-date-list { display: grid; gap: 9px; }
+      .buff-date-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 13px; border: 1px solid rgba(143, 95, 28, 0.22); border-radius: 9px; background: rgba(255, 250, 226, 0.54); }
+      .buff-date-item img { width: 44px; height: 44px; object-fit: contain; }
+      .buff-date-item h4 { margin: 0 0 3px; }
+      .buff-date-item span { color: #76572f; font-size: 12px; }
       .training-shell { display: grid; gap: 16px; }
       .training-intro {
         display: grid;
@@ -1728,6 +1787,9 @@ export function kellaDashboardHtml() {
         white-space: nowrap;
       }
       .calendar-entry small { display: block; color: #6e512d; font-size: 10px; font-weight: 850; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
+      .calendar-entry.buff { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; column-gap: 6px; }
+      .calendar-entry.buff img { grid-row: 1 / span 2; width: 28px; height: 28px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(72, 42, 12, 0.20)); }
+      .calendar-entry.buff small { min-width: 0; }
       .calendar-empty { color: var(--muted); font-size: 12px; font-weight: 850; }
       .calendar-more { color: #7c4b08; font-size: 11px; font-weight: 1000; }
       .calendar-day.hot, .calendar-day.has-items { background: linear-gradient(180deg, rgba(255, 224, 109, 0.78), rgba(209, 142, 43, 0.50)); border-color: rgba(169, 99, 23, 0.40); }
@@ -3078,6 +3140,8 @@ export function kellaDashboardHtml() {
         .calendar-day-list { display: flex; justify-content: center; align-items: center; gap: 3px; overflow: hidden; }
         .calendar-entry { width: 6px; height: 6px; min-width: 6px; border: 0; border-radius: 50%; padding: 0; background: #b3262f; color: transparent; font-size: 0; }
         .calendar-entry small, .calendar-empty { display: none; }
+        .calendar-entry.buff { display: block; width: 26px; height: 26px; min-width: 26px; border-radius: 7px; background: rgba(255, 250, 226, 0.72); }
+        .calendar-entry.buff img { display: block; width: 24px; height: 24px; }
         .calendar-more { font-size: 9px; line-height: 1; }
         .metric-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
         .metric-button { min-height: 36px; padding: 5px 6px; font-size: 9px; }
@@ -3246,7 +3310,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingTroopType: "cavalry", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "", lordTools: null, lordView: "overview", lordSearch: "", lordResearchTree: "economy", lordResearchSelected: "", lordResearchZoom: 0.6, lordResearchPanX: 0, lordResearchPanY: 0 };
+      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiInteractionMode: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingTroopType: "cavalry", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "", lordTools: null, lordView: "overview", lordSearch: "", lordResearchTree: "economy", lordResearchSelected: "", lordResearchZoom: 0.6, lordResearchPanX: 0, lordResearchPanY: 0 };
       let lordResearchPan = null;
       let lordResearchPinch = null;
       const lordResearchPointers = new Map();
@@ -4526,7 +4590,7 @@ export function kellaDashboardHtml() {
           ? '<label data-calendar-channel-field hidden>Discord Channel<select data-calendar-event="channelId">' + channelOptions(state.settings?.settings?.attendanceChannel || state.settings?.settings?.announcementChannel || "") + '</select></label>'
           : '<label data-calendar-channel-field hidden>Discord Channel ID<input data-calendar-event="channelId" placeholder="Channel ID" /></label>';
         return '<section class="card calendar-create-card" style="margin-top:16px" data-calendar-event-form>' +
-          '<div class="card-header"><div><h3>Admin Event</h3><span class="muted">Save it to this calendar, with optional Discord publishing.</span></div><button class="primary" type="button" data-action="toggle-calendar-event-form" aria-expanded="false">+ Add Event</button></div>' +
+          '<div class="card-header"><div><h3>Admin Event</h3><span class="muted">Save it to this calendar, with optional Discord publishing.</span></div><button class="primary" type="button" data-action="toggle-calendar-event-form" aria-expanded="false">+ Event</button></div>' +
           '<div data-calendar-event-fields hidden>' +
             '<div class="form-grid">' +
               '<label>Event Name<input data-calendar-event="title" maxlength="120" placeholder="Alliance event" /></label>' +
@@ -4540,8 +4604,74 @@ export function kellaDashboardHtml() {
         '</section>';
       }
 
+      function buffScheduleDayName(key) {
+        const date = new Date(key + "T00:00:00Z");
+        return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "long" }).format(date);
+      }
+
+      function realmBuffForDate(key) {
+        const schedule = state.buffSchedule || {};
+        const override = (schedule.datedBuffs || []).find(function(item) { return item.date === key; });
+        const day = buffScheduleDayName(key);
+        const weekly = (schedule.days || defaultBuffSchedule).find(function(item) { return item.day === day; });
+        const saved = override || weekly;
+        if (!saved) return null;
+        const type = buffTypes[saved.buff] || buffTypes.Gathering;
+        return {
+          date: key,
+          day,
+          buff: saved.buff,
+          label: type.label,
+          icon: type.icon,
+          description: type.description,
+          timeUtc: override?.timeUtc || "14:00",
+          note: saved.note || "",
+          isOverride: Boolean(override),
+          updatedBy: override?.updatedBy || schedule.updatedBy || ""
+        };
+      }
+
+      function realmBuffCalendarItem(key) {
+        const buff = realmBuffForDate(key);
+        if (!buff) return null;
+        return {
+          kind: "Realm Buff",
+          title: buff.label,
+          meta: buff.timeUtc + " UTC",
+          description: buff.note || buff.description,
+          icon: buff.icon,
+          buffDate: key,
+          isOverride: buff.isOverride
+        };
+      }
+
+      function buffDiscordToggleHtml(attribute) {
+        return '<label class="buff-publish-toggle"><input type="checkbox" ' + attribute + ' /><span class="buff-toggle-track" aria-hidden="true"></span><span>Send to Discord</span></label>';
+      }
+
+      function calendarDayBuffForm(key) {
+        if (!hasAdminAccess()) return "";
+        const current = realmBuffForDate(key) || { buff: "Gathering", timeUtc: "14:00", note: "", isOverride: false };
+        const options = Object.keys(buffTypes).map(function(buff) {
+          return '<option value="' + escapeHtml(buff) + '"' + (buff === current.buff ? " selected" : "") + '>' + escapeHtml(buffTypes[buff].label) + '</option>';
+        }).join("");
+        return '<section class="card calendar-create-card" style="margin-top:16px" data-calendar-buff-form>' +
+          '<div class="card-header"><div><h3>Realm Buff</h3><span class="muted">Always saves to Kella and the calendar. Discord is optional.</span></div><button class="primary" type="button" data-action="toggle-calendar-buff-form" aria-expanded="false">+ Buff</button></div>' +
+          '<div data-calendar-buff-fields hidden>' +
+            '<div class="form-grid">' +
+              '<label>Buff<select data-calendar-buff="buff">' + options + '</select></label>' +
+              '<label>Selected Date<input data-calendar-buff="date" type="date" value="' + escapeHtml(key) + '" readonly /></label>' +
+              '<label>Time UTC<input data-calendar-buff="timeUtc" type="time" value="' + escapeHtml(current.timeUtc || "14:00") + '" /></label>' +
+              '<label>Note<input data-calendar-buff="note" maxlength="160" value="' + escapeHtml(current.note || "") + '" placeholder="Optional note" /></label>' +
+            '</div>' +
+            '<div class="toolbar" style="margin-top:12px">' + buffDiscordToggleHtml("data-calendar-buff-send-discord") + '<button class="primary" type="button" data-action="save-calendar-buff" data-calendar-date="' + escapeHtml(key) + '">Save Buff</button>' + (current.isOverride ? '<button class="danger" type="button" data-action="delete-calendar-buff" data-calendar-date="' + escapeHtml(key) + '">Remove Date Override</button>' : "") + '</div>' +
+          '</div>' +
+        '</section>';
+      }
+
       async function openCalendarDayModal(key, type) {
         if (!memberModal || !memberModalContent) return;
+        await loadBuffSchedule().catch(function() {});
         if (hasAdminAccess()) {
           await Promise.all([
             loadChannels().catch(function() { state.channels = []; }),
@@ -4551,9 +4681,11 @@ export function kellaDashboardHtml() {
         const date = new Date(key + "T00:00:00Z");
         const title = type === "events" ? "Attendance Calendar" : "Activity Calendar";
         const dayEvents = eventsForDay(state.events || [], key);
+        const buffItem = realmBuffCalendarItem(key);
         const items = type === "events"
           ? dayEvents.map(eventDetailItem)
           : calendarActivityItems(state.summary || {}, state.events || [], key);
+        if (buffItem) items.unshift(buffItem);
         const dateLabel = new Intl.DateTimeFormat("en", {
           timeZone: "UTC",
           weekday: "long",
@@ -4567,9 +4699,9 @@ export function kellaDashboardHtml() {
             '<div><span class="profile-kicker">' + escapeHtml(title) + '</span><h3 id="memberModalTitle">' + escapeHtml(dateLabel) + '</h3><div class="profile-subtitle">Call of Dragons server time - UTC</div></div>' +
           '</div>' +
           (type === "events"
-            ? (dayEvents.length ? calendarAttendanceSnapshot(dayEvents) : empty("No event recorded for this day yet."))
+            ? ((buffItem ? '<div class="calendar-detail-list">' + calendarDetailCard(buffItem) + '</div>' : "") + (dayEvents.length ? calendarAttendanceSnapshot(dayEvents) : empty("No event recorded for this day yet.")))
             : ((items.length ? '<div class="calendar-detail-list">' + items.map(calendarDetailCard).join("") + '</div>' : empty("No activity recorded for this day yet.")) + calendarAttendanceSnapshot(dayEvents))) +
-          calendarDayEventForm(key);
+          calendarDayEventForm(key) + calendarDayBuffForm(key);
         memberModal.classList.add("open");
         memberModal.setAttribute("aria-hidden", "false");
         document.body.classList.add("modal-open");
@@ -4845,6 +4977,13 @@ export function kellaDashboardHtml() {
           .sort(function(a, b) { return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(); });
       }
 
+      function calendarItemsForDay(events, key) {
+        const items = eventsForDay(events, key).map(eventDetailItem);
+        const buff = realmBuffCalendarItem(key);
+        if (buff) items.unshift(buff);
+        return items;
+      }
+
       function calendarActivityItems(summary, events, key) {
         const items = eventsForDay(events, key).map(eventDetailItem);
         if (summary.upcomingRoots && dayKey(summary.upcomingRoots.date) === key) {
@@ -4894,7 +5033,8 @@ export function kellaDashboardHtml() {
         const visible = items.slice(0, 3);
         const entries = visible.length
           ? visible.map(function(item) {
-              return '<span class="calendar-entry">' + escapeHtml(item.title) + '<small>' + escapeHtml(item.meta || item.kind || "") + '</small></span>';
+              const icon = item.icon ? '<img src="' + escapeHtml(item.icon) + '" alt="" />' : "";
+              return '<span class="calendar-entry' + (item.icon ? " buff" : "") + '">' + icon + '<span>' + escapeHtml(item.title) + '</span><small>' + escapeHtml(item.meta || item.kind || "") + '</small></span>';
             }).join("")
           : '<span class="calendar-empty">No event</span>';
         const more = items.length > visible.length ? '<span class="calendar-more">+' + (items.length - visible.length) + ' more</span>' : "";
@@ -4954,7 +5094,7 @@ export function kellaDashboardHtml() {
         const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         return '<div class="calendar-weekdays" aria-hidden="true">' + weekdays.map(function(day) { return '<span>' + day + '</span>'; }).join("") + '</div><div class="calendar-grid event-calendar">' + currentMonthDays().map(function(date) {
           const key = dayKey(date);
-          return renderCalendarCell(date, "events", eventsForDay(events, key).map(eventDetailItem));
+          return renderCalendarCell(date, "events", calendarItemsForDay(events, key));
         }).join("") + '</div>';
       }
 
@@ -5198,13 +5338,8 @@ export function kellaDashboardHtml() {
 
       function autoFitWikiTextBlock(block, contentNode) {
         if (!block || block.type !== "text" || !contentNode) return;
-        const blockEl = contentNode.closest("[data-wiki-block]");
-        const needed = wikiClamp(contentNode.scrollHeight + 30, 48, WIKI_MAX_PAGE_HEIGHT - block.y);
-        if (needed > block.height) {
-          block.height = needed;
-          if (blockEl) blockEl.style.height = block.height + "px";
-        }
-        resizeWikiPageToContent();
+        // Text scrolls inside its saved bounds. Geometry changes only through resize handles.
+        contentNode.style.overflow = "auto";
       }
 
       function autoFitWikiTextBlocksFromDom() {
@@ -5226,10 +5361,7 @@ export function kellaDashboardHtml() {
       }
 
       function wikiBlockStyle(block) {
-        const shadow = block.shadowEnabled
-          ? block.shadowOffsetX + "px " + block.shadowOffsetY + "px " + block.shadowBlur + "px " + wikiHexRgba(block.shadowColor, block.shadowOpacity)
-          : "none";
-        return "left:" + block.x + "px;top:" + block.y + "px;width:" + block.width + "px;height:" + block.height + "px;font-family:" + wikiFontCss(block.fontFamily) + ";font-size:" + block.fontSizePx + "px;color:" + block.color + ";text-align:" + block.align + ";z-index:" + block.zIndex + ";" + (block.type === "text" ? "text-shadow:" + shadow + ";" : "filter:" + (block.shadowEnabled ? "drop-shadow(" + shadow + ")" : "none") + ";");
+        return "left:" + block.x + "px;top:" + block.y + "px;width:" + block.width + "px;height:" + block.height + "px;font-family:" + wikiFontCss(block.fontFamily) + ";font-size:" + block.fontSizePx + "px;color:" + block.color + ";text-align:" + block.align + ";z-index:" + block.zIndex + ";";
       }
 
       function wikiHexRgba(hex, opacity) {
@@ -5241,7 +5373,11 @@ export function kellaDashboardHtml() {
       }
 
       function wikiMediaStyle(block) {
-        return "transform:translate(" + block.imagePositionX + "px," + block.imagePositionY + "px) scale(" + block.imageScale + ");";
+        return "transform:translate(" + block.imagePositionX + "px," + block.imagePositionY + "px) scale(" + block.imageScale + ");filter:" + (block.shadowEnabled ? "drop-shadow(2px 4px 6px rgba(0,0,0,0.45))" : "none") + ";";
+      }
+
+      function wikiTextContentStyle(block) {
+        return "text-shadow:" + (block.shadowEnabled ? "2px 3px 6px rgba(0,0,0,0.55)" : "none") + ";";
       }
 
       function wikiBlockStyleAttr(block) {
@@ -5283,7 +5419,7 @@ export function kellaDashboardHtml() {
           return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + image + handles + '</div>';
         }
         return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' +
-          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + wikiTextContentHtml(block.text || "Write here...", block.richTextHtml) + '</div>' +
+          '<div class="wiki-text-content" style="' + escapeHtml(wikiTextContentStyle(block)) + '" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + wikiTextContentHtml(block.text || "Write here...", block.richTextHtml) + '</div>' +
           addText +
           handles +
         '</div>';
@@ -5308,7 +5444,7 @@ export function kellaDashboardHtml() {
           return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + image + handles + '</div>';
         }
         return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' +
-          '<div class="wiki-text-content" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + wikiTextContentHtml(block.text || "Write here...", block.richTextHtml) + '</div>' +
+          '<div class="wiki-text-content" style="' + escapeHtml(wikiTextContentStyle(block)) + '" ' + (editable ? 'contenteditable="true" spellcheck="true" data-wiki-text-content' : "") + '>' + wikiTextContentHtml(block.text || "Write here...", block.richTextHtml) + '</div>' +
           addText +
           handles +
         '</div>';
@@ -5585,44 +5721,39 @@ export function kellaDashboardHtml() {
         }).join("");
       }
 
-      function wikiShadowControlsHtml(block) {
-        return '<details class="wiki-shadow-controls"' + (block.shadowEnabled ? " open" : "") + '><summary>Shadow</summary><div class="wiki-style-controls">' +
-          '<label class="wiki-toggle-field"><input type="checkbox" data-wiki-block-style="shadowEnabled"' + (block.shadowEnabled ? " checked" : "") + ' /> Enable</label>' +
-          '<label>Color<input class="wiki-color-wheel" type="color" data-wiki-block-style="shadowColor" value="' + escapeHtml(block.shadowColor) + '" /></label>' +
-          '<label>Blur<input type="range" min="0" max="100" step="1" data-wiki-block-style="shadowBlur" value="' + block.shadowBlur + '" /></label>' +
-          '<label>Opacity<input type="range" min="0" max="1" step="0.05" data-wiki-block-style="shadowOpacity" value="' + block.shadowOpacity + '" /></label>' +
-          '<label>X Offset<input type="number" min="-100" max="100" data-wiki-block-style="shadowOffsetX" value="' + block.shadowOffsetX + '" /></label>' +
-          '<label>Y Offset<input type="number" min="-100" max="100" data-wiki-block-style="shadowOffsetY" value="' + block.shadowOffsetY + '" /></label>' +
-        '</div></details>';
-      }
-
       function renderWikiInspectorHtml() {
         const block = selectedWikiBlock();
         if (!block) {
           return '<section class="wiki-inspector wiki-inspector--empty" data-wiki-inspector>' +
-            '<div class="wiki-style-head"><h4>Style</h4><p>Add blocks</p></div>' +
-            '<div class="wiki-style-actions">' + renderWikiAssetToolsHtml() + '</div>' +
+            '<div class="wiki-style-head"><h4>Style</h4></div>' +
+            '<div class="wiki-control-group wiki-control-group--assets">' + renderWikiAssetToolsHtml() + '</div>' +
           '</section>';
         }
         const textControls = block.type === "text"
-          ? '<div class="wiki-style-controls"><label>Selected Font<select data-wiki-inline-style="fontFamily">' + wikiFontOptionsHtml(block.fontFamily) + '</select></label>' +
-            '<label>Selected Size<select data-wiki-inline-style="fontSize">' + wikiSelectionSizeOptionsHtml(block.fontSizePx) + '</select></label>' +
-            '<label>Align<select data-wiki-block-style="align"><option value="left"' + optionSelected("left", block.align) + '>Left</option><option value="center"' + optionSelected("center", block.align) + '>Center</option><option value="right"' + optionSelected("right", block.align) + '>Right</option></select></label>' +
-            '<div class="wiki-inline-format" aria-label="Selected text formatting">' +
+          ? '<div class="wiki-control-group"><span class="wiki-control-label">Text</span>' +
               '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="bold" title="Bold selected text" aria-label="Bold selected text">B</button>' +
               '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="italic" title="Italic selected text" aria-label="Italic selected text">I</button>' +
               '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="underline" title="Underline selected text" aria-label="Underline selected text">U</button>' +
-              '<label class="wiki-color-control">Selection Color<input class="wiki-color-wheel" type="color" data-wiki-inline-style="color" value="' + escapeHtml(block.color) + '" /></label>' +
-            '</div></div>'
-          : '<div class="wiki-style-controls wiki-style-controls--picture"><button class="secondary" type="button" data-action="change-wiki-image">Change ' + (block.type === "video" ? "Video" : "Picture") + '</button>' +
+              '<button class="wiki-format-button wiki-shadow-button' + (block.shadowEnabled ? " active" : "") + '" type="button" data-action="toggle-wiki-shadow" aria-pressed="' + String(block.shadowEnabled) + '">Shadow</button>' +
+              '<label>Font<select data-wiki-inline-style="fontFamily">' + wikiFontOptionsHtml(block.fontFamily) + '</select></label>' +
+              '<label>Size<select data-wiki-inline-style="fontSize">' + wikiSelectionSizeOptionsHtml(block.fontSizePx) + '</select></label>' +
+              '<label>Align<select data-wiki-block-style="align"><option value="left"' + optionSelected("left", block.align) + '>Left</option><option value="center"' + optionSelected("center", block.align) + '>Center</option><option value="right"' + optionSelected("right", block.align) + '>Right</option></select></label>' +
+              '<label class="wiki-color-control">Color<input class="wiki-color-wheel" type="color" data-wiki-inline-style="color" value="' + escapeHtml(block.color) + '" /></label>' +
+            '</div>'
+          : '<div class="wiki-control-group"><span class="wiki-control-label">Media</span><button class="secondary" type="button" data-action="change-wiki-image">Change ' + (block.type === "video" ? "Video" : "Picture") + '</button>' +
+            '<button class="wiki-format-button wiki-shadow-button' + (block.shadowEnabled ? " active" : "") + '" type="button" data-action="toggle-wiki-shadow" aria-pressed="' + String(block.shadowEnabled) + '">Shadow</button>' +
             '<label>Crop X<input type="number" min="-2000" max="2000" data-wiki-block-style="imagePositionX" value="' + block.imagePositionX + '" /></label>' +
             '<label>Crop Y<input type="number" min="-2000" max="2000" data-wiki-block-style="imagePositionY" value="' + block.imagePositionY + '" /></label>' +
             '<label>Zoom<input type="range" min="0.1" max="8" step="0.05" data-wiki-block-style="imageScale" value="' + block.imageScale + '" /></label></div>';
         return '<section class="wiki-inspector" data-wiki-inspector>' +
           '<div class="wiki-style-head"><h4>Style</h4></div>' +
           textControls +
-          wikiShadowControlsHtml(block) +
-          '<div class="wiki-style-actions">' + renderWikiAssetToolsHtml() + '</div>' +
+          '<div class="wiki-control-group"><span class="wiki-control-label">Element</span>' +
+            '<button class="secondary" type="button" data-action="bring-wiki-forward">Bring Forward</button>' +
+            '<button class="secondary" type="button" data-action="duplicate-wiki-block">Duplicate</button>' +
+            '<button class="danger" type="button" data-action="delete-wiki-block" data-wiki-delete-block="' + escapeHtml(block.id) + '">Delete</button>' +
+          '</div>' +
+          '<div class="wiki-control-group wiki-control-group--assets">' + renderWikiAssetToolsHtml() + '</div>' +
         '</section>';
       }
 
@@ -5834,6 +5965,7 @@ export function kellaDashboardHtml() {
         const content = node.querySelector("[data-wiki-text-content]");
         if (content) {
           autoFitWikiTextBlock(block, content);
+          content.setAttribute("style", wikiTextContentStyle(block));
           node.setAttribute("style", wikiBlockStyle(block));
         }
       }
@@ -6105,12 +6237,23 @@ export function kellaDashboardHtml() {
         });
       }
 
+      function buffDatedOverridesHtml(schedule) {
+        const overrides = (schedule.datedBuffs || []).slice().sort(function(left, right) {
+          return String(left.date || "").localeCompare(String(right.date || ""));
+        });
+        if (!overrides.length) return "";
+        return '<section class="card"><div class="card-header"><div><h3>Date Overrides</h3><span class="muted">These dates replace the normal weekly buff and are shared with the Event Calendar.</span></div></div><div class="buff-date-list">' + overrides.map(function(item) {
+          const type = buffTypes[item.buff] || buffTypes.Gathering;
+          return '<article class="buff-date-item"><img src="' + escapeHtml(type.icon) + '" alt="" /><div><h4>' + escapeHtml(type.label) + '</h4><span>' + escapeHtml(item.date || "") + ' - ' + escapeHtml(item.day || "") + ' - ' + escapeHtml(item.timeUtc || "14:00") + ' UTC' + (item.note ? '<br>' + escapeHtml(item.note) : "") + '</span></div>' + (hasAdminAccess() ? '<button class="danger" type="button" data-action="delete-calendar-buff" data-calendar-date="' + escapeHtml(item.date || "") + '">Remove</button>' : "") + '</article>';
+        }).join("") + '</div></section>';
+      }
+
       async function renderBuffSchedule() {
         skeleton("Loading weekly buff schedule...");
         try {
           const schedule = await loadBuffSchedule();
           const actions = hasAdminAccess()
-            ? '<button class="secondary" type="button" data-action="reset-buff-schedule">Reset to Default</button><button class="primary" type="button" data-action="save-buff-schedule">Save Schedule</button>'
+            ? '<button class="secondary" type="button" data-action="reset-buff-schedule">Reset to Default</button>' + buffDiscordToggleHtml("data-buff-send-discord") + '<button class="primary" type="button" data-action="save-buff-schedule">Save Schedule</button>'
             : "";
           const updated = schedule.updatedAt
             ? 'Last saved ' + formatDateTime(schedule.updatedAt) + ' by ' + escapeHtml(schedule.updatedBy || "Kella officer")
@@ -6120,6 +6263,7 @@ export function kellaDashboardHtml() {
             '<div class="buff-schedule-shell">' +
               '<section class="buff-notice"><img src="/assets/buffs/buff-schedule.png" alt="" /><div><strong>War Time Override</strong><span>Buffs may change when alliance strategy requires it.</span></div></section>' +
               '<section class="card buff-week"><div class="buff-week-heading"><span>Day of week</span><span>Current buff</span><span>' + (hasAdminAccess() ? "Admin setting" : "Schedule") + '</span></div>' + buffScheduleRows(schedule) + '</section>' +
+              buffDatedOverridesHtml(schedule) +
               '<div class="buff-footer"><img src="/assets/buffs/buff-schedule.png" alt="" /><div><strong>Call of Dragons server time - UTC</strong><span>Buffs scheduled at 14:00 UTC. (time may change depends on situation)</span></div></div>' +
               '<div class="buff-updated">' + updated + '</div>' +
             '</div>';
@@ -7323,7 +7467,7 @@ export function kellaDashboardHtml() {
       async function renderDashboard() {
         skeleton("Loading dashboard...");
         try {
-          const results = await Promise.all([loadSummary(), loadSettings(), loadDashboardMembers(), loadDashboardEvents()]);
+          const results = await Promise.all([loadSummary(), loadSettings(), loadDashboardMembers(), loadDashboardEvents(), loadBuffSchedule()]);
           renderDashboardData(results[0], results[2], results[3]);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load dashboard data. ' + escapeHtml(error.message) + '</div>';
@@ -7619,7 +7763,8 @@ export function kellaDashboardHtml() {
       async function renderAttendance() {
         skeleton("Loading attendance...");
         try {
-          const events = await loadDashboardEvents();
+          const results = await Promise.all([loadDashboardEvents(), loadBuffSchedule()]);
+          const events = results[0];
           const actions = (hasAdminAccess() ? '<button class="secondary" data-link-button="/tools">Create Event</button>' : "") + '<button class="primary" data-action="refresh-events">Refresh</button>';
           app.innerHTML =
             pageHeader("Attendance Calendar", "Admin-friendly event attendance by UTC server day. Click any calendar day to see events and player responses.", actions) +
@@ -7701,7 +7846,8 @@ export function kellaDashboardHtml() {
         } catch {
           channelHtml = '<label>Discord Channel<input data-event="channelManual" placeholder="Paste channel ID or add Password in Settings" /></label>';
         }
-        const events = await loadDashboardEvents();
+        const results = await Promise.all([loadDashboardEvents(), loadBuffSchedule()]);
+        const events = results[0];
         return '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Create Event Embed</h3><span class="muted">Kella sends Attending, Absent, and Not Sure buttons automatically.</span></div><div class="toolbar"><span class="badge warn">24-hour UTC</span><button class="primary" data-action="send-event-embed">Send Event</button></div></div><div class="form-grid">' +
             channelHtml +
             '<label>Role Mention ID<input data-event="roleMentionId" placeholder="Optional role ID" /></label>' +
@@ -8840,10 +8986,11 @@ export function kellaDashboardHtml() {
           return;
         }
         if (kind === "save-buff-schedule") withFeedback(action, async function() {
-          const result = await sendJson("PUT", "/api/dashboard/buff-schedule", { days: readBuffScheduleForm() }, true);
+          const sendToDiscord = Boolean(document.querySelector("[data-buff-send-discord]")?.checked);
+          const result = await sendJson("PUT", "/api/dashboard/buff-schedule", { days: readBuffScheduleForm(), sendToDiscord }, true);
           state.buffSchedule = result;
           await renderBuffSchedule();
-          return result.warning || result.message || (result.discord?.skipped ? "Schedule is already current." : "Weekly buff schedule saved and published.");
+          return result.warning || result.message || "Weekly buff schedule saved.";
         }, "Weekly buff schedule saved.");
         if (kind === "reset-buff-schedule") {
           if (!window.confirm("Reset all seven days to Kella's recommended schedule? Save afterward to keep it.")) return;
@@ -9035,6 +9182,38 @@ export function kellaDashboardHtml() {
           }
           state.wikiImageTarget = block.id;
           document.querySelector("[data-wiki-block-image]")?.click();
+          return;
+        }
+        if (kind === "toggle-wiki-shadow") {
+          const block = selectedWikiBlock();
+          if (!block) return;
+          block.shadowEnabled = !block.shadowEnabled;
+          updateWikiBlockElement(block);
+          refreshWikiSelection();
+          return;
+        }
+        if (kind === "bring-wiki-forward") {
+          const block = selectedWikiBlock();
+          if (!block) return;
+          bringWikiBlockToFront(block.id);
+          (state.wikiBlocks || []).forEach(updateWikiBlockElement);
+          refreshWikiSelection();
+          return;
+        }
+        if (kind === "duplicate-wiki-block") {
+          const source = selectedWikiBlock();
+          if (!source) return;
+          syncWikiTextFromDom();
+          const duplicate = sanitizeWikiBlock({
+            ...source,
+            id: wikiBlockId(),
+            x: wikiClamp(source.x + 24, 0, WIKI_PAGE_WIDTH - source.width),
+            y: wikiClamp(source.y + 24, 0, WIKI_MAX_PAGE_HEIGHT - source.height),
+            zIndex: Math.max(0, ...(state.wikiBlocks || []).map(function(item) { return Number(item.zIndex || 0); })) + 1
+          });
+          state.wikiBlocks.push(duplicate);
+          state.selectedWikiBlockId = duplicate.id;
+          refreshWikiBuilder();
           return;
         }
         if (kind === "delete-wiki-block") {
@@ -9337,6 +9516,51 @@ export function kellaDashboardHtml() {
           if (willOpen) form.querySelector('[data-calendar-event="title"]')?.focus();
           return;
         }
+        if (kind === "toggle-calendar-buff-form") {
+          const form = action.closest("[data-calendar-buff-form]");
+          const fields = form?.querySelector("[data-calendar-buff-fields]");
+          if (!fields) return;
+          const willOpen = fields.hidden;
+          fields.hidden = !willOpen;
+          action.setAttribute("aria-expanded", String(willOpen));
+          action.textContent = willOpen ? "Close" : "+ Buff";
+          if (willOpen) form.querySelector('[data-calendar-buff="buff"]')?.focus();
+          return;
+        }
+        if (kind === "save-calendar-buff") withFeedback(action, async function() {
+          const form = action.closest("[data-calendar-buff-form]");
+          if (!form) throw new Error("Realm Buff form is missing.");
+          const value = function(name) {
+            return (form.querySelector('[data-calendar-buff="' + name + '"]')?.value || "").trim();
+          };
+          const date = value("date") || action.getAttribute("data-calendar-date") || "";
+          const buff = value("buff");
+          const timeUtc = value("timeUtc") || "14:00";
+          const note = value("note");
+          const sendToDiscord = Boolean(form.querySelector("[data-calendar-buff-send-discord]")?.checked);
+          if (!date || !buff) throw new Error("Choose a date and Realm Buff.");
+          const result = await sendJson("PUT", "/api/dashboard/buff-schedule/date/" + encodeURIComponent(date), { buff, timeUtc, note, sendToDiscord }, true);
+          state.buffSchedule = result;
+          if (location.pathname === "/") await renderDashboard();
+          else if (location.pathname === "/attendance") await renderAttendance();
+          else if (location.pathname === "/buff-schedule") await renderBuffSchedule();
+          else await renderTools("events");
+          if (location.pathname !== "/buff-schedule") await openCalendarDayModal(date, "events");
+          return result.warning || result.message || "Buff saved and calendar updated.";
+        }, "Buff saved and calendar updated.");
+        if (kind === "delete-calendar-buff") withFeedback(action, async function() {
+          const date = action.getAttribute("data-calendar-date") || "";
+          if (!date) throw new Error("Realm Buff date is missing.");
+          if (!window.confirm("Remove the Realm Buff override for " + date + "? The weekly schedule will apply again.")) return "Remove cancelled.";
+          const result = await sendJson("DELETE", "/api/dashboard/buff-schedule/date/" + encodeURIComponent(date), undefined, true);
+          state.buffSchedule = result;
+          if (location.pathname === "/") await renderDashboard();
+          else if (location.pathname === "/attendance") await renderAttendance();
+          else if (location.pathname === "/buff-schedule") await renderBuffSchedule();
+          else await renderTools("events");
+          if (location.pathname !== "/buff-schedule") await openCalendarDayModal(date, "events");
+          return result.message || "Dated buff removed.";
+        }, "Dated buff removed.");
         if (kind === "save-calendar-event") withFeedback(action, async function() {
           const form = action.closest("[data-calendar-event-form]");
           if (!form) throw new Error("Calendar event form is missing.");
@@ -9671,16 +9895,24 @@ export function kellaDashboardHtml() {
         if (!block) return;
         state.selectedWikiBlockId = id;
         const canvas = blockEl.closest("[data-wiki-canvas]");
-        const canvasScale = canvas?.offsetWidth ? WIKI_PAGE_WIDTH / canvas.offsetWidth : 1;
+        const scrollContainer = blockEl.closest(".wiki-canvas-wrap");
+        const canvasScaleX = canvas?.offsetWidth ? WIKI_PAGE_WIDTH / canvas.offsetWidth : 1;
+        const canvasScaleY = canvas?.offsetHeight ? wikiPageHeight(state.wikiBlocks || []) / canvas.offsetHeight : canvasScaleX;
+        const mode = isResize ? "resize-element" : isMediaCrop ? "move-image" : "move-element";
+        state.wikiInteractionMode = mode;
         state.wikiDrag = {
           id,
           pointerId: event.pointerId,
           pointerTarget: event.target,
-          mode: isResize ? "resize" : isMediaCrop ? "crop" : "move",
+          mode,
           corner: event.target.closest("[data-wiki-resize-handle]")?.getAttribute("data-resize-corner") || "se",
           startX: event.clientX,
           startY: event.clientY,
-          canvasScale,
+          canvasScaleX,
+          canvasScaleY,
+          scrollContainer,
+          startScrollLeft: scrollContainer?.scrollLeft || 0,
+          startScrollTop: scrollContainer?.scrollTop || 0,
           baseX: block.x,
           baseY: block.y,
           baseWidth: block.width,
@@ -9692,6 +9924,7 @@ export function kellaDashboardHtml() {
         (state.wikiBlocks || []).forEach(updateWikiBlockElement);
         refreshWikiSelection();
         event.preventDefault();
+        event.stopPropagation();
       });
 
       document.addEventListener("pointermove", function(event) {
@@ -9699,9 +9932,17 @@ export function kellaDashboardHtml() {
         if (!drag || drag.pointerId !== event.pointerId) return;
         const block = state.wikiBlocks.find(function(item) { return item.id === drag.id; });
         if (!block) return;
-        const dx = (event.clientX - drag.startX) * drag.canvasScale;
-        const dy = (event.clientY - drag.startY) * drag.canvasScale;
-        if (drag.mode === "resize") {
+        if (drag.mode === "move-image" && drag.scrollContainer) {
+          const bounds = drag.scrollContainer.getBoundingClientRect();
+          const edge = 54;
+          if (event.clientY < bounds.top + edge) drag.scrollContainer.scrollTop -= 14;
+          else if (event.clientY > bounds.bottom - edge) drag.scrollContainer.scrollTop += 14;
+        }
+        const scrollDx = (drag.scrollContainer?.scrollLeft || 0) - drag.startScrollLeft;
+        const scrollDy = (drag.scrollContainer?.scrollTop || 0) - drag.startScrollTop;
+        const dx = (event.clientX - drag.startX + scrollDx) * drag.canvasScaleX;
+        const dy = (event.clientY - drag.startY + scrollDy) * drag.canvasScaleY;
+        if (drag.mode === "resize-element") {
           const minWidth = block.type === "text" ? 80 : 24;
           const minHeight = block.type === "text" ? 48 : 24;
           let nextX = drag.baseX;
@@ -9734,26 +9975,40 @@ export function kellaDashboardHtml() {
           block.y = nextY;
           block.width = nextWidth;
           block.height = nextHeight;
-        } else if (drag.mode === "crop") {
+        } else if (drag.mode === "move-image") {
+          block.x = drag.baseX;
+          block.y = drag.baseY;
+          block.width = drag.baseWidth;
+          block.height = drag.baseHeight;
           block.imagePositionX = wikiClamp(drag.baseImageX + dx, -2000, 2000);
           block.imagePositionY = wikiClamp(drag.baseImageY + dy, -2000, 2000);
-        } else {
+        } else if (drag.mode === "move-element") {
           block.x = wikiClamp(drag.baseX + dx, 0, WIKI_PAGE_WIDTH - block.width);
           block.y = wikiClamp(drag.baseY + dy, 0, WIKI_MAX_PAGE_HEIGHT - block.height);
         }
         updateWikiBlockElement(block);
-        resizeWikiPageToContent();
+        if (drag.mode !== "move-image") resizeWikiPageToContent();
         event.preventDefault();
+        event.stopPropagation();
       });
 
       function finishWikiPointer(event) {
         const drag = state.wikiDrag;
         if (!drag || drag.pointerId !== event.pointerId) return;
         state.wikiDrag = null;
+        state.wikiInteractionMode = null;
         drag.pointerTarget?.releasePointerCapture?.(event.pointerId);
         const block = state.wikiBlocks.find(function(item) { return item.id === drag.id; });
-        if (block) updateWikiBlockElement(block);
-        resizeWikiPageToContent();
+        if (block) {
+          if (drag.mode === "move-image") {
+            block.x = drag.baseX;
+            block.y = drag.baseY;
+            block.width = drag.baseWidth;
+            block.height = drag.baseHeight;
+          }
+          updateWikiBlockElement(block);
+        }
+        if (drag.mode !== "move-image") resizeWikiPageToContent();
         refreshWikiSelection();
       }
 
