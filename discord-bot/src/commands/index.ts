@@ -6,6 +6,7 @@ import {
   ModalBuilder,
   PermissionFlagsBits,
   SlashCommandBuilder,
+  StringSelectMenuBuilder,
   TextInputBuilder,
   TextInputStyle
 } from "discord.js";
@@ -23,12 +24,34 @@ export interface BotCommand {
   execute(interaction: ChatInputCommandInteraction): Promise<void>;
 }
 
-function rootsButtons(reportId: string, slot: "14UTC" | "20UTC", label: string) {
+export function rootsPollButtons(reportId: string) {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setCustomId(`roots:${reportId}:${slot}:Available`).setLabel(`${label} Available`).setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(`roots:${reportId}:${slot}:Absent`).setLabel(`${label} Absent`).setStyle(ButtonStyle.Danger),
-    new ButtonBuilder().setCustomId(`roots:${reportId}:${slot}:Unsure`).setLabel(`${label} Unsure`).setStyle(ButtonStyle.Secondary)
+    new ButtonBuilder().setCustomId(`roots:${reportId}:14UTC:Available`).setLabel("14 UTC").setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(`roots:${reportId}:20UTC:Available`).setLabel("20 UTC").setStyle(ButtonStyle.Primary)
   );
+}
+
+export function rootsPollEmbed(eventDate: string) {
+  const unix = Math.floor(new Date(`${eventDate}T00:00:00.000Z`).getTime() / 1000);
+  return {
+    title: "ROOTS OF WAR REGISTRATION",
+    description: [`Date: <t:${unix}:D>`, "", "Choose the slot you can attend:", "14 UTC", "20 UTC"].join("\n"),
+    color: 0xfacc15,
+    footer: { text: "Choose one slot. Selecting again updates your answer." }
+  };
+}
+
+function rootsMonthMenu() {
+  const now = new Date();
+  const menu = new StringSelectMenuBuilder().setCustomId("roots-month").setPlaceholder("Choose a month");
+  for (let offset = 0; offset < 12; offset += 1) {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1));
+    menu.addOptions({
+      label: date.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" }),
+      value: `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`
+    });
+  }
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu);
 }
 
 function summitButtons() {
@@ -135,27 +158,35 @@ export const commands: BotCommand[] = [
     }
   },
   {
-    data: new SlashCommandBuilder().setName("roots").setDescription("Create Roots of War registration buttons."),
+    data: new SlashCommandBuilder().setName("roots").setDescription("Create a dated Roots of War registration."),
     async execute(interaction) {
-      const { session } = await api.rootsSession({
-        officerDiscordId: interaction.user.id,
-        officerName: interaction.user.username
-      });
       await interaction.reply({
-        embeds: [
-          {
-            title: "⚔ ROOTS OF WAR REGISTRATION",
-            description: "Select your availability.\n\n🕑 14:00 UTC\n⚔ Available\n❌ Absent\n❔ Not Sure\n\n🕗 20:00 UTC\n⚔ Available\n❌ Absent\n❔ Not Sure",
-            color: 0xfacc15
-          }
-        ],
-        components: [rootsButtons(session._id, "14UTC", "14 UTC"), rootsButtons(session._id, "20UTC", "20 UTC")]
+        ephemeral: true,
+        content: "Choose the Roots of War month.",
+        components: [rootsMonthMenu()]
       });
-      const message = await interaction.fetchReply();
-      await api.updateRootsSession(session._id, {
-        guildId: interaction.guildId ?? undefined,
-        channelId: message.channelId,
-        messageId: message.id
+    }
+  },
+  {
+    data: new SlashCommandBuilder().setName("rowlist").setDescription("Show the latest Roots of War attendance list."),
+    async execute(interaction) {
+      await interaction.deferReply();
+      const { report } = await api.latestRoots();
+      const groups = [
+        { label: "14 UTC", names: report.at14, count: report.total14 },
+        { label: "20 UTC", names: report.at20, count: report.total20 }
+      ];
+      const lines = groups.flatMap((group) => [
+        `**${group.label} (${group.count})**`,
+        group.names.length ? group.names.join(", ") : "No members yet.",
+        ""
+      ]);
+      await interaction.editReply({
+        embeds: [{
+          title: "ROOTS OF WAR LIST",
+          description: [`Date: ${report.eventDate}`, "", ...lines, `**Total: ${report.total}**`].join("\n"),
+          color: 0xfacc15
+        }]
       });
     }
   },
@@ -304,10 +335,12 @@ export const commands: BotCommand[] = [
           .setDescription("What are you sending?")
           .setRequired(false)
           .addChoices({ name: "Complaint", value: "Complaint" }, { name: "Suggestion", value: "Suggestion" })
-      ),
+      )
+      .addBooleanOption((option) => option.setName("anonymous").setDescription("Hide your identity from reviewers").setRequired(false)),
     async execute(interaction) {
       const kind = interaction.options.getString("type") || "Complaint";
-      const modal = new ModalBuilder().setCustomId(`complaint-modal:${kind}`).setTitle(`${kind} for Admins`);
+      const anonymous = interaction.options.getBoolean("anonymous") === true;
+      const modal = new ModalBuilder().setCustomId(`complaint-modal:${kind}:${anonymous ? "1" : "0"}`).setTitle(`${kind} for Admins`);
       modal.addComponents(
         new ActionRowBuilder<TextInputBuilder>().addComponents(
           new TextInputBuilder()
@@ -331,9 +364,11 @@ export const commands: BotCommand[] = [
           .setDescription("What should admins consider?")
           .setRequired(false)
           .setMaxLength(1800)
-      ),
+      )
+      .addBooleanOption((option) => option.setName("anonymous").setDescription("Hide your identity from reviewers").setRequired(false)),
     async execute(interaction) {
-      const modal = new ModalBuilder().setCustomId("complaint-modal:Suggestion").setTitle("Suggestion for Admins");
+      const anonymous = interaction.options.getBoolean("anonymous") === true;
+      const modal = new ModalBuilder().setCustomId(`complaint-modal:Suggestion:${anonymous ? "1" : "0"}`).setTitle("Suggestion for Admins");
       modal.addComponents(
         new ActionRowBuilder<TextInputBuilder>().addComponents(
           new TextInputBuilder()

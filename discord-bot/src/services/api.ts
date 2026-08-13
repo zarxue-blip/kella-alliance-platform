@@ -61,7 +61,7 @@ export const api = {
   rootsResponse(input: { discordId: string; displayName?: string; reportId?: string; slot: string; status: string }) {
     return request("POST", "/bot/roots/response", { ...allianceContext(), ...input });
   },
-  rootsSession(input: { officerDiscordId: string; officerName?: string }) {
+  rootsSession(input: { officerDiscordId: string; officerName?: string; eventDate: string }) {
     return request<{ session: { _id: string } }>("POST", "/bot/roots/session", { ...allianceContext(), ...input });
   },
   updateRootsSession(sessionId: string, input: { guildId?: string; channelId?: string; messageId?: string }) {
@@ -79,7 +79,22 @@ export const api = {
   application(input: { discordId: string; displayName?: string; ign: string; power: number; timezone: string; mainLegion: string }) {
     return request("POST", "/bot/application", { ...allianceContext(), ...input });
   },
-  complaint(input: { discordId: string; displayName?: string; kind: "Complaint" | "Suggestion"; message: string }) {
+  latestRoots() {
+    const query = new URLSearchParams(allianceContext()).toString();
+    return request<{
+      report: {
+        id: string;
+        eventDate: string;
+        messageLink: string;
+        at14: string[];
+        at20: string[];
+        total14: number;
+        total20: number;
+        total: number;
+      };
+    }>("GET", `/bot/roots/latest${query ? `?${query}` : ""}`);
+  },
+  complaint(input: { discordId: string; displayName?: string; kind: "Complaint" | "Suggestion"; message: string; anonymous?: boolean }) {
     return request("POST", "/bot/complaint", { ...allianceContext(), ...input });
   },
   members(query: string) {

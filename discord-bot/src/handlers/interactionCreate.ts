@@ -1,6 +1,10 @@
 import {
   ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  GuildMember,
   ModalBuilder,
+  StringSelectMenuBuilder,
   TextInputBuilder,
   TextInputStyle,
   type ChatInputCommandInteraction,
@@ -8,15 +12,16 @@ import {
 } from "discord.js";
 import { botName } from "@cod-amp/shared";
 import { api } from "../services/api.js";
-import { commandMap } from "../commands/index.js";
+import { commandMap, rootsPollButtons, rootsPollEmbed } from "../commands/index.js";
 
 function displayName(interaction: Interaction) {
-  return interaction.user.username;
+  return interaction.member instanceof GuildMember ? interaction.member.displayName : interaction.user.globalName || interaction.user.username;
 }
 
 async function showComplaintModal(interaction: ChatInputCommandInteraction) {
   const kind = interaction.options.getString("type") === "Suggestion" ? "Suggestion" : "Complaint";
-  const modal = new ModalBuilder().setCustomId(`complaint-modal:${kind}`).setTitle(`${kind} for Admins`);
+  const anonymous = interaction.options.getBoolean("anonymous") === true;
+  const modal = new ModalBuilder().setCustomId(`complaint-modal:${kind}:${anonymous ? "1" : "0"}`).setTitle(`${kind} for Admins`);
   modal.addComponents(
     new ActionRowBuilder<TextInputBuilder>().addComponents(
       new TextInputBuilder()
@@ -42,11 +47,47 @@ async function submitComplaintFromCommand(interaction: ChatInputCommandInteracti
     discordId: interaction.user.id,
     displayName: displayName(interaction),
     kind,
-    message
+    message,
+    anonymous: interaction.options.getBoolean("anonymous") === true
   });
   await interaction.editReply({
     content: `${botName} submitted your ${kind.toLowerCase()}. R4s will review it in the dashboard. Try not to refresh the drama every six minutes.`
   });
+}
+
+function rootsDayMenus(monthValue: string) {
+  const [year, month] = monthValue.split("-").map(Number);
+  const totalDays = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const menus: Array<ActionRowBuilder<StringSelectMenuBuilder>> = [];
+  for (let day = 1; day <= totalDays; day += 1) {
+    const group = day <= 16 ? 0 : 1;
+    if (!menus[group]) {
+      const range = group === 0 ? "1-16" : `17-${totalDays}`;
+      menus[group] = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId(`roots-day:${monthValue}:${group}`)
+          .setPlaceholder(`Choose day ${range}`)
+      );
+    }
+    const eventDate = `${monthValue}-${String(day).padStart(2, "0")}`;
+    menus[group].components[0].addOptions({
+      label: new Date(`${eventDate}T00:00:00.000Z`).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC"
+      }),
+      value: eventDate
+    });
+  }
+  return menus;
+}
+
+function rootsConfirmation(eventDate: string) {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder().setCustomId(`roots-confirm:${eventDate}`).setLabel("Confirm and Publish").setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId("roots-cancel").setLabel("Cancel").setStyle(ButtonStyle.Secondary)
+  );
 }
 
 async function replyError(interaction: Interaction, error: unknown) {
@@ -93,6 +134,54 @@ export async function handleInteraction(interaction: Interaction) {
         return;
       }
       await command.execute(interaction);
+      return;
+    }
+
+    if (interaction.isStringSelectMenu() && interaction.customId === "roots-month") {
+      const monthValue = interaction.values[0];
+      if (!monthValue) return;
+      await interaction.update({
+        content: "Choose the Roots of War day.",
+        components: rootsDayMenus(monthValue)
+      });
+      return;
+    }
+
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith("roots-day:")) {
+      const eventDate = interaction.values[0];
+      if (!eventDate) return;
+      const unix = Math.floor(new Date(`${eventDate}T00:00:00.000Z`).getTime() / 1000);
+      await interaction.update({
+        content: `Publish Roots of War registration for <t:${unix}:D>?`,
+        components: [rootsConfirmation(eventDate)]
+      });
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId === "roots-cancel") {
+      await interaction.update({ content: "Roots of War registration cancelled.", components: [] });
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId.startsWith("roots-confirm:")) {
+      const eventDate = interaction.customId.slice("roots-confirm:".length);
+      await interaction.deferUpdate();
+      const { session } = await api.rootsSession({
+        officerDiscordId: interaction.user.id,
+        officerName: displayName(interaction),
+        eventDate
+      });
+      if (!interaction.channel?.isSendable()) throw new Error("Kella cannot publish in this channel.");
+      const message = await interaction.channel.send({
+        embeds: [rootsPollEmbed(eventDate)],
+        components: [rootsPollButtons(session._id)]
+      });
+      await api.updateRootsSession(session._id, {
+        guildId: interaction.guildId ?? undefined,
+        channelId: message.channelId,
+        messageId: message.id
+      });
+      await interaction.editReply({ content: `Roots of War registration published for ${eventDate}.`, components: [] });
       return;
     }
 
@@ -162,14 +251,15 @@ export async function handleInteraction(interaction: Interaction) {
     }
 
     if (interaction.isModalSubmit() && interaction.customId.startsWith("complaint-modal:")) {
-      const [, rawKind] = interaction.customId.split(":");
+      const [, rawKind, anonymousValue] = interaction.customId.split(":");
       const kind = rawKind === "Suggestion" ? "Suggestion" : "Complaint";
       await interaction.deferReply({ ephemeral: true });
       await api.complaint({
         discordId: interaction.user.id,
         displayName: displayName(interaction),
         kind,
-        message: interaction.fields.getTextInputValue("message")
+        message: interaction.fields.getTextInputValue("message"),
+        anonymous: anonymousValue === "1"
       });
       await interaction.editReply({ content: `${botName} submitted your ${kind.toLowerCase()}. R4s will review it in the dashboard.` });
     }

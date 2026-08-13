@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Types } from "mongoose";
 import sanitizeHtml from "sanitize-html";
 import { z } from "zod";
@@ -167,15 +168,17 @@ const rootsReportSendSchema = z.object({
 
 const rootsCreateSchema = z.object({
   channelId: z.string().min(1, "Target channel is required"),
-  roleMentionId: z.string().optional()
+  roleMentionId: z.string().optional(),
+  eventDate: z.coerce.date().optional()
 });
 
 const eventCreateSchema = z.object({
-  channelId: z.string().min(1, "Target channel is required"),
+  channelId: z.string().optional().default(""),
   title: z.string().min(1, "Event title is required").max(120),
-  description: z.string().min(1, "Event description is required").max(1800),
+  description: z.string().max(1800).optional().default(""),
   startsAt: z.coerce.date(),
-  roleMentionId: z.string().optional()
+  roleMentionId: z.string().optional(),
+  publishToDiscord: z.boolean().optional().default(true)
 });
 
 const complaintStatusSchema = z.object({
@@ -193,6 +196,7 @@ const complaintCreateSchema = z.object({
   kind: z.enum(["Complaint", "Suggestion"]).default("Complaint"),
   title: z.string().min(1, "Title is required").max(140),
   description: z.string().min(1, "Description is required").max(1800),
+  anonymous: z.boolean().optional().default(false),
   imageDataUrl: z
     .preprocess((value) => {
       if (typeof value !== "string") return undefined;
@@ -238,8 +242,19 @@ const wikiBlockSchema = z.object({
   height: z.coerce.number().min(24).max(50000).default(180),
   fontFamily: z.enum(wikiFontFamilies).default("serif"),
   fontSize: z.enum(wikiFontSizes).default("medium"),
+  fontSizePx: z.coerce.number().min(8).max(240).optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#3f2a13"),
-  align: z.enum(wikiAlignments).default("center")
+  align: z.enum(wikiAlignments).default("center"),
+  imagePositionX: z.coerce.number().min(-2000).max(2000).default(0),
+  imagePositionY: z.coerce.number().min(-2000).max(2000).default(0),
+  imageScale: z.coerce.number().min(0.1).max(8).default(1),
+  shadowEnabled: z.boolean().default(false),
+  shadowBlur: z.coerce.number().min(0).max(100).default(12),
+  shadowOffsetX: z.coerce.number().min(-100).max(100).default(0),
+  shadowOffsetY: z.coerce.number().min(-100).max(100).default(6),
+  shadowOpacity: z.coerce.number().min(0).max(1).default(0.35),
+  shadowColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#000000"),
+  zIndex: z.coerce.number().int().min(0).max(500).default(0)
 });
 
 const wikiPageCreateSchema = z.object({
@@ -434,10 +449,13 @@ function safeWikiRichTextHtml(value: unknown) {
     allowedStyles: {
       span: {
         color: [/^#[0-9a-f]{6}$/i, /^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/i],
-        "font-size": [/^(14|16|18|20|24|28|32|36|40|48)px$/],
+        "font-size": [/^(?:[89]|[1-9]\d|1\d\d|2[0-3]\d|240)px$/],
         "font-weight": [/^(bold|[5-9]00)$/],
         "font-style": [/^italic$/],
-        "text-decoration": [/^underline$/]
+        "text-decoration": [/^underline$/],
+        "font-family": [
+          /^(Georgia|"Trebuchet MS"|"Segoe Script"|Consolas|"Copperplate Gothic Bold"|"Hero King"|"Dragon Force"|"Tribal Dragon")$/
+        ]
       }
     },
     allowedSchemesByTag: { img: ["data"] },
@@ -466,17 +484,27 @@ function safeWikiRichTextHtml(value: unknown) {
   });
 }
 
+function normalizeWikiBlockLayers<T extends { zIndex?: number }>(blocks: T[]) {
+  const ordered = blocks
+    .map((block, index) => ({ block, index, zIndex: Number.isFinite(block.zIndex) ? Number(block.zIndex) : index + 1 }))
+    .sort((left, right) => left.zIndex - right.zIndex || left.index - right.index);
+  ordered.forEach((entry, index) => {
+    entry.block.zIndex = index + 1;
+  });
+  return blocks;
+}
+
 function sanitizeWikiBlocks(blocks: any[]) {
-  return blocks.map((block) => ({
+  return normalizeWikiBlockLayers(blocks.map((block) => ({
     ...block,
     richTextHtml: block.type === "text" ? safeWikiRichTextHtml(block.richTextHtml) : ""
-  }));
+  })));
 }
 
 function wikiBlocksDto(page: any) {
   const blocks = Array.isArray(page.blocks) ? page.blocks : [];
   if (blocks.length) {
-    return blocks.map((block: any) => ({
+    return normalizeWikiBlockLayers(blocks.map((block: any) => ({
       id: block.id || new Types.ObjectId().toString(),
       type: block.type === "video" ? "video" : block.type === "image" ? "image" : "text",
       text: block.text || "",
@@ -488,9 +516,20 @@ function wikiBlocksDto(page: any) {
       height: Number.isFinite(block.height) ? block.height : 180,
       fontFamily: wikiFontFamilies.includes(block.fontFamily) ? block.fontFamily : page.fontFamily || "serif",
       fontSize: wikiFontSizes.includes(block.fontSize) ? block.fontSize : page.fontSize || "medium",
+      fontSizePx: Number.isFinite(block.fontSizePx) ? block.fontSizePx : undefined,
       color: /^#[0-9a-fA-F]{6}$/.test(block.color || "") ? block.color : "#3f2a13",
-      align: wikiAlignments.includes(block.align) ? block.align : "center"
-    }));
+      align: wikiAlignments.includes(block.align) ? block.align : "center",
+      imagePositionX: Number.isFinite(block.imagePositionX) ? block.imagePositionX : 0,
+      imagePositionY: Number.isFinite(block.imagePositionY) ? block.imagePositionY : 0,
+      imageScale: Number.isFinite(block.imageScale) ? block.imageScale : 1,
+      shadowEnabled: Boolean(block.shadowEnabled),
+      shadowBlur: Number.isFinite(block.shadowBlur) ? block.shadowBlur : 12,
+      shadowOffsetX: Number.isFinite(block.shadowOffsetX) ? block.shadowOffsetX : 0,
+      shadowOffsetY: Number.isFinite(block.shadowOffsetY) ? block.shadowOffsetY : 6,
+      shadowOpacity: Number.isFinite(block.shadowOpacity) ? block.shadowOpacity : 0.35,
+      shadowColor: /^#[0-9a-fA-F]{6}$/.test(block.shadowColor || "") ? block.shadowColor : "#000000",
+      zIndex: Number.isFinite(block.zIndex) ? block.zIndex : 0
+    })));
   }
 
   const legacyBlocks: any[] = [];
@@ -1558,7 +1597,7 @@ async function findOrCreateProfileMember(user: { id: string; discordId: string; 
           discordId: user.discordId,
           discordDisplayName: existing.discordDisplayName || displayName,
           discordUsername: existing.discordUsername || displayName,
-          discordAvatarUrl: existing.discordAvatarUrl || discordUserAvatarUrl(user.discordId, dbUser?.avatar)
+          discordAvatarUrl: discordUserAvatarUrl(user.discordId, dbUser?.avatar) || existing.discordAvatarUrl
         }
       },
       { new: true }
@@ -1989,28 +2028,41 @@ export const dashboardEventSend = asyncHandler(async (req, res) => {
   const startsAt = new Date(body.startsAt);
   if (Number.isNaN(startsAt.getTime())) throw new HttpError(400, "Event time is invalid");
 
-  const description = body.description.trim();
+  const description = body.description.trim() || "Alliance event scheduled by Kella.";
+  let channelId = body.channelId.trim();
+  if (body.publishToDiscord && !channelId && allianceId) {
+    const alliance = (await AllianceModel.findById(allianceId)
+      .select("settings.attendanceChannel settings.announcementChannel")
+      .lean()) as any;
+    channelId = String(alliance?.settings?.attendanceChannel || alliance?.settings?.announcementChannel || "").trim();
+  }
 
   const action = await KellaActionModel.create({
     allianceId,
     type: "event_created",
-    actorName: "Dashboard",
-    targetDiscordId: body.channelId,
+    actorName: dashboardActor(req),
+    targetDiscordId: channelId || undefined,
     eventType: body.title,
-    status: "Sending",
+    status: body.publishToDiscord ? "Sending" : "Calendar Only",
     payload: {
       title: body.title,
       description: body.description,
       startsAt: startsAt.toISOString(),
-      channelId: body.channelId,
-      roleMentionId: body.roleMentionId
+      channelId,
+      roleMentionId: body.roleMentionId,
+      publishToDiscord: body.publishToDiscord
     }
   });
+
+  if (!body.publishToDiscord) {
+    res.status(201).json({ event: action, discord: { ok: false, skipped: true }, message: "Event saved to the Kella calendar." });
+    return;
+  }
 
   try {
     const message = await sendEventAttendanceEmbed({
       eventId: action._id.toString(),
-      channelId: body.channelId,
+      channelId,
       roleMentionId: body.roleMentionId,
       title: body.title,
       description,
@@ -2026,21 +2078,25 @@ export const dashboardEventSend = asyncHandler(async (req, res) => {
           status: "Sent",
           "payload.messageId": message?.id,
           "payload.messageLink": discordMessageLink(message),
-          "payload.discordChannelId": message?.channel_id || body.channelId
+          "payload.discordChannelId": message?.channel_id || channelId
         }
       },
       { new: true }
     ).lean();
 
-    res.status(201).json({ event: updated || action, message });
+    res.status(201).json({ event: updated || action, message, discord: { ok: true } });
   } catch (error) {
-    await KellaActionModel.findByIdAndUpdate(action._id, {
+    const updated = await KellaActionModel.findByIdAndUpdate(action._id, {
       $set: {
-        status: "Failed",
+        status: "Calendar Saved - Discord Failed",
         "payload.error": error instanceof Error ? error.message : String(error)
       }
+    }, { new: true }).lean();
+    res.status(201).json({
+      event: updated || action,
+      discord: { ok: false, error: error instanceof Error ? error.message : String(error) },
+      warning: "Event saved to the Kella calendar, but Discord publishing failed."
     });
-    throw error;
   }
 });
 
@@ -2087,8 +2143,9 @@ export const dashboardComplaints = asyncHandler(async (_req, res) => {
       id: complaint._id.toString(),
       kind: complaint.eventType || complaint.payload?.kind || "Complaint",
       title: complaint.payload?.title || complaint.eventType || complaint.payload?.kind || "Complaint",
-      player: displayName(complaint),
-      discordId: complaint.actorDiscordId,
+      player: complaint.payload?.anonymous ? "Anonymous" : displayName(complaint),
+      discordId: complaint.payload?.anonymous ? "" : complaint.actorDiscordId,
+      anonymous: Boolean(complaint.payload?.anonymous),
       message: complaint.payload?.message || "",
       imageDataUrl: complaint.payload?.imageDataUrl || "",
       source: complaint.payload?.source || "discord",
@@ -2120,6 +2177,7 @@ export const dashboardComplaintCreate = asyncHandler(async (req, res) => {
       title: body.title.trim(),
       message: body.description.trim(),
       imageDataUrl: body.imageDataUrl || "",
+      anonymous: body.anonymous,
       source: "dashboard"
     }
   });
@@ -2200,6 +2258,7 @@ export const dashboardRootsCreate = asyncHandler(async (req, res) => {
     payload: {
       channelId: body.channelId,
       roleMentionId: body.roleMentionId,
+      eventDate: body.eventDate?.toISOString(),
       createdFromDashboard: true
     }
   });
@@ -2207,7 +2266,8 @@ export const dashboardRootsCreate = asyncHandler(async (req, res) => {
   const message = await sendRootsRegistration({
     channelId: body.channelId,
     roleMentionId: body.roleMentionId,
-    reportId: session._id.toString()
+    reportId: session._id.toString(),
+    eventDate: body.eventDate
   });
 
   const updated = await KellaActionModel.findByIdAndUpdate(
@@ -2243,7 +2303,7 @@ export const rootsReportList = asyncHandler(async (_req, res) => {
     const sessionResponses = responses.filter((response) => response.reportId === sessionId || (index === 0 && !response.reportId));
     return rootsSlots.map((slot) => ({
       id: reportId(sessionId, slot),
-      date: session.sentAt,
+      date: session.payload?.eventDate || session.sentAt,
       timeSlot: slotLabel(slot),
       createdBy: session.actorName || "Unknown Officer",
       messageLink: session.payload?.messageLink,
@@ -2279,7 +2339,7 @@ export const rootsReportDetails = asyncHandler(async (req, res) => {
   res.json({
     report: {
       id: reportId(sessionId, slot),
-      date: session.sentAt,
+      date: session.payload?.eventDate || session.sentAt,
       timeSlot: slotLabel(slot),
       slot,
       createdBy: session.actorName || "Unknown Officer",
@@ -2873,7 +2933,8 @@ export const dashboardBuffSchedule = asyncHandler(async (_req, res) => {
   res.json({
     days: schedule?.days?.length ? schedule.days : defaultBuffSchedule,
     updatedAt: schedule?.updatedAt || null,
-    updatedBy: schedule?.updatedBy || "Kella defaults"
+    updatedBy: schedule?.updatedBy || "Kella defaults",
+    lastPublishedAt: schedule?.lastPublishedAt || null
   });
 });
 
@@ -2887,11 +2948,53 @@ export const dashboardBuffScheduleUpdate = asyncHandler(async (req: Authenticate
   if (days.some((item) => !item)) throw new HttpError(400, "Schedule must include every day exactly once");
 
   const updatedBy = req.user?.discordId || "Dashboard";
+  const scheduleHash = createHash("sha256").update(JSON.stringify(days)).digest("hex");
+  const previous = (await BuffScheduleModel.findOne({ allianceId }).lean()) as any;
   const schedule = (await BuffScheduleModel.findOneAndUpdate(
     { allianceId },
     { $set: { days, updatedBy } },
     { upsert: true, new: true, runValidators: true }
   ).lean()) as any;
 
-  res.json({ days: schedule?.days || days, updatedAt: schedule?.updatedAt, updatedBy });
+  if (previous?.lastPublishedHash === scheduleHash) {
+    res.json({ days: schedule?.days || days, updatedAt: schedule?.updatedAt, updatedBy, discord: { ok: true, skipped: true }, message: "Schedule saved. Discord already has this exact schedule." });
+    return;
+  }
+
+  const alliance = (await AllianceModel.findById(allianceId).select("settings.announcementChannel").lean()) as any;
+  const channelId = String(alliance?.settings?.announcementChannel || "").trim();
+  if (!channelId) {
+    res.json({ days: schedule?.days || days, updatedAt: schedule?.updatedAt, updatedBy, discord: { ok: false, skipped: true }, warning: "Schedule saved, but no announcement channel is configured in Settings." });
+    return;
+  }
+
+  const dayIndex = new Map<string, number>(buffScheduleDays.map((day, index) => [day, index]));
+  const now = new Date();
+  const mondayOffset = (now.getUTCDay() + 6) % 7;
+  const currentMonday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - mondayOffset, 14, 0, 0));
+  const nextOccurrence = (day: string) => {
+    const target = new Date(currentMonday);
+    target.setUTCDate(target.getUTCDate() + Number(dayIndex.get(day) || 0));
+    if (target.getTime() < now.getTime()) target.setUTCDate(target.getUTCDate() + 7);
+    return target;
+  };
+  const description = (days as Array<{ day: string; buff: string; note?: string }>).map((item) => {
+    const target = nextOccurrence(item.day);
+    const unix = Math.floor(target.getTime() / 1000);
+    return `**${item.day} - ${item.buff}**\n<t:${unix}:D> at 14:00 UTC${item.note ? `\n${item.note}` : ""}`;
+  }).join("\n\n");
+
+  try {
+    const message = await sendDiscordEmbed({
+      channelId,
+      title: "Realm Buff Schedule",
+      description,
+      color: "#d89a20",
+      footer: "Kella - Call of Dragons server time (UTC)"
+    });
+    await BuffScheduleModel.updateOne({ allianceId }, { $set: { lastPublishedHash: scheduleHash, lastPublishedAt: new Date(), lastDiscordMessageId: message?.id || "" } });
+    res.json({ days: schedule?.days || days, updatedAt: schedule?.updatedAt, updatedBy, discord: { ok: true, messageId: message?.id }, message: "Schedule saved and published to Discord." });
+  } catch (error) {
+    res.json({ days: schedule?.days || days, updatedAt: schedule?.updatedAt, updatedBy, discord: { ok: false, error: error instanceof Error ? error.message : String(error) }, warning: "Schedule saved, but Discord publishing failed." });
+  }
 });

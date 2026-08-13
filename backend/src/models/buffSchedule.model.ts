@@ -16,7 +16,10 @@ const buffScheduleSchema = new Schema(
   {
     allianceId: { type: Schema.Types.ObjectId, ref: "Alliance", required: true, unique: true, index: true },
     days: { type: [buffScheduleDaySchema], required: true },
-    updatedBy: { type: String, default: "Dashboard", trim: true, maxlength: 120 }
+    updatedBy: { type: String, default: "Dashboard", trim: true, maxlength: 120 },
+    lastPublishedHash: { type: String, default: "", trim: true, maxlength: 80 },
+    lastPublishedAt: { type: Date, default: undefined },
+    lastDiscordMessageId: { type: String, default: "", trim: true, maxlength: 40 }
   },
   { timestamps: true }
 );

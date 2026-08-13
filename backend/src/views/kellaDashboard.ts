@@ -744,17 +744,31 @@ export function kellaDashboardHtml() {
         user-select: all;
       }
       .wiki-image-block {
-        padding: 8px;
+        padding: 0;
         background: rgba(255, 246, 211, 0.28);
+        touch-action: none;
       }
-      .wiki-image-block img {
+      .wiki-media-frame {
+        position: absolute;
+        inset: 8px;
+        overflow: hidden;
+        border-radius: 10px;
+        background: rgba(76, 47, 18, 0.08);
+      }
+      .wiki-image-block img[data-wiki-media] {
         width: 100%;
         height: 100%;
         object-fit: cover;
         display: block;
-        border-radius: 10px;
-        pointer-events: none;
-        box-shadow: 0 10px 24px rgba(68, 39, 13, 0.20);
+        max-width: none;
+        transform-origin: center;
+        cursor: grab;
+        user-select: none;
+        touch-action: none;
+        will-change: transform;
+      }
+      .wiki-image-block img[data-wiki-media]:active {
+        cursor: grabbing;
       }
       .wiki-video-block {
         padding: 8px;
@@ -925,8 +939,29 @@ export function kellaDashboardHtml() {
         border: 1px solid rgba(121, 82, 33, 0.16);
       }
       .wiki-style-controls--picture {
-        grid-template-columns: minmax(160px, 1fr);
+        grid-template-columns: repeat(3, minmax(92px, 1fr));
       }
+      .wiki-shadow-controls {
+        grid-column: 1 / -1;
+        border: 1px solid rgba(121, 82, 33, 0.18);
+        border-radius: 10px;
+        padding: 7px;
+        background: rgba(255, 250, 231, 0.44);
+      }
+      .wiki-shadow-controls summary {
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 1000;
+      }
+      .wiki-shadow-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(64px, 1fr));
+        gap: 6px;
+        margin-top: 7px;
+      }
+      .wiki-shadow-grid label { min-width: 0; }
+      .wiki-shadow-toggle { display: flex !important; align-items: center; gap: 7px; }
+      .wiki-shadow-toggle input { width: auto; }
       .wiki-inline-format {
         grid-column: 1 / -1;
         display: grid;
@@ -3606,7 +3641,7 @@ export function kellaDashboardHtml() {
 
       function memberAvatar(member, className) {
         const displayName = memberDisplayName(member);
-        const photoUrl = member?.profilePhotoUrl || member?.discordAvatarUrl;
+        const photoUrl = member?.discordAvatarUrl || member?.profilePhotoUrl;
         if (photoUrl) {
           return '<img class="' + className + '" src="' + escapeHtml(photoUrl) + '" alt="" loading="lazy" />';
         }
@@ -4042,7 +4077,7 @@ export function kellaDashboardHtml() {
           return Number(latestStatPoint(member, metricKey).value || 0);
         }
         const history = normalizeStatHistory(member, metricKey).filter(function(point) {
-          return point.date.toISOString().slice(0, 10) === dateKey;
+          return point.date.toISOString().slice(0, 10) <= dateKey;
         });
         if (history.length) return Number(history[history.length - 1].value || 0);
         return 0;
@@ -4156,8 +4191,8 @@ export function kellaDashboardHtml() {
         });
         const values = axes.map(function(axis) { return memberMetricValue(member, axis.key, selectedDate); });
         const scores = values.map(function(value, index) {
-          if (axes[index].key === "serverRank") return value > 0 ? Math.max(0.08, 1 - ((value - 1) / Math.max(1, maxima[index] - 1))) : 0.08;
-          return Math.max(0.08, Math.min(1, value / maxima[index]));
+          if (axes[index].key === "serverRank") return value > 0 ? Math.max(0, 1 - ((value - 1) / Math.max(1, maxima[index] - 1))) : 0;
+          return Math.max(0, Math.min(1, value / maxima[index]));
         });
         const rings = [0.25, 0.5, 0.75, 1].map(function(scale) {
           return '<polygon class="radar-ring" points="' + axes.map(function(_axis, index) {
@@ -4485,8 +4520,34 @@ export function kellaDashboardHtml() {
         '</div>';
       }
 
-      function openCalendarDayModal(key, type) {
+      function calendarDayEventForm(key) {
+        if (!hasAdminAccess()) return "";
+        const channelField = (state.channels || []).length
+          ? '<label data-calendar-channel-field hidden>Discord Channel<select data-calendar-event="channelId">' + channelOptions(state.settings?.settings?.attendanceChannel || state.settings?.settings?.announcementChannel || "") + '</select></label>'
+          : '<label data-calendar-channel-field hidden>Discord Channel ID<input data-calendar-event="channelId" placeholder="Channel ID" /></label>';
+        return '<section class="card calendar-create-card" style="margin-top:16px" data-calendar-event-form>' +
+          '<div class="card-header"><div><h3>Admin Event</h3><span class="muted">Save it to this calendar, with optional Discord publishing.</span></div><button class="primary" type="button" data-action="toggle-calendar-event-form" aria-expanded="false">+ Add Event</button></div>' +
+          '<div data-calendar-event-fields hidden>' +
+            '<div class="form-grid">' +
+              '<label>Event Name<input data-calendar-event="title" maxlength="120" placeholder="Alliance event" /></label>' +
+              '<label>Selected Date<input data-calendar-event="date" type="date" value="' + escapeHtml(key) + '" readonly /></label>' +
+              '<label>Time UTC<input data-calendar-event="time" type="time" value="14:00" /></label>' +
+              '<label>Publish Mode<select data-calendar-event="mode"><option value="calendar">Calendar Only</option><option value="discord">Publish to Discord</option></select></label>' +
+              channelField +
+            '</div>' +
+            '<div class="toolbar" style="margin-top:12px"><button class="primary" type="button" data-action="save-calendar-event" data-calendar-date="' + escapeHtml(key) + '">Save Event</button></div>' +
+          '</div>' +
+        '</section>';
+      }
+
+      async function openCalendarDayModal(key, type) {
         if (!memberModal || !memberModalContent) return;
+        if (hasAdminAccess()) {
+          await Promise.all([
+            loadChannels().catch(function() { state.channels = []; }),
+            loadSettings().catch(function() {})
+          ]);
+        }
         const date = new Date(key + "T00:00:00Z");
         const title = type === "events" ? "Attendance Calendar" : "Activity Calendar";
         const dayEvents = eventsForDay(state.events || [], key);
@@ -4507,7 +4568,8 @@ export function kellaDashboardHtml() {
           '</div>' +
           (type === "events"
             ? (dayEvents.length ? calendarAttendanceSnapshot(dayEvents) : empty("No event recorded for this day yet."))
-            : ((items.length ? '<div class="calendar-detail-list">' + items.map(calendarDetailCard).join("") + '</div>' : empty("No activity recorded for this day yet.")) + calendarAttendanceSnapshot(dayEvents)));
+            : ((items.length ? '<div class="calendar-detail-list">' + items.map(calendarDetailCard).join("") + '</div>' : empty("No activity recorded for this day yet.")) + calendarAttendanceSnapshot(dayEvents))) +
+          calendarDayEventForm(key);
         memberModal.classList.add("open");
         memberModal.setAttribute("aria-hidden", "false");
         document.body.classList.add("modal-open");
@@ -5010,9 +5072,36 @@ export function kellaDashboardHtml() {
           height,
           fontFamily: ["serif", "sans", "display", "script", "mono", "cod", "hero-king", "dragon-force", "tribal-dragon"].includes(block?.fontFamily) ? block.fontFamily : "serif",
           fontSize: ["small", "medium", "large", "xlarge"].includes(block?.fontSize) ? block.fontSize : "medium",
+          fontSizePx: wikiClamp(Number.isFinite(Number(block?.fontSizePx)) ? Number(block.fontSizePx) : wikiFontSizePx(block?.fontSize), 8, 240),
           color: /^#[0-9a-fA-F]{6}$/.test(block?.color || "") ? block.color : "#3f2a13",
-          align: ["left", "center", "right"].includes(block?.align) ? block.align : "center"
+          align: ["left", "center", "right"].includes(block?.align) ? block.align : "center",
+          imagePositionX: wikiClamp(Number.isFinite(Number(block?.imagePositionX)) ? Number(block.imagePositionX) : 0, -2000, 2000),
+          imagePositionY: wikiClamp(Number.isFinite(Number(block?.imagePositionY)) ? Number(block.imagePositionY) : 0, -2000, 2000),
+          imageScale: wikiClamp(Number.isFinite(Number(block?.imageScale)) ? Number(block.imageScale) : 1, 0.1, 8),
+          shadowEnabled: Boolean(block?.shadowEnabled),
+          shadowBlur: wikiClamp(Number.isFinite(Number(block?.shadowBlur)) ? Number(block.shadowBlur) : 12, 0, 100),
+          shadowOffsetX: wikiClamp(Number.isFinite(Number(block?.shadowOffsetX)) ? Number(block.shadowOffsetX) : 0, -100, 100),
+          shadowOffsetY: wikiClamp(Number.isFinite(Number(block?.shadowOffsetY)) ? Number(block.shadowOffsetY) : 6, -100, 100),
+          shadowOpacity: wikiClamp(Number.isFinite(Number(block?.shadowOpacity)) ? Number(block.shadowOpacity) : 0.35, 0, 1),
+          shadowColor: /^#[0-9a-fA-F]{6}$/.test(block?.shadowColor || "") ? block.shadowColor : "#3f2a13",
+          zIndex: wikiClamp(block?.zIndex || 1, 0, 500)
         };
+      }
+
+      function normalizeWikiLayers(blocks) {
+        return (blocks || []).slice().sort(function(a, b) {
+          const layerDifference = Number(a?.zIndex || 0) - Number(b?.zIndex || 0);
+          return layerDifference || String(a?.id || "").localeCompare(String(b?.id || ""));
+        }).map(function(block, index) {
+          return { ...sanitizeWikiBlock(block), zIndex: index + 1 };
+        });
+      }
+
+      function bringWikiBlockToFront(blockId) {
+        const block = (state.wikiBlocks || []).find(function(item) { return String(item.id) === String(blockId); });
+        if (!block) return;
+        block.zIndex = Math.max(0, ...(state.wikiBlocks || []).map(function(item) { return Number(item.zIndex || 0); })) + 1;
+        state.wikiBlocks = normalizeWikiLayers(state.wikiBlocks);
       }
 
       function wikiPageHeight(blocks) {
@@ -5035,7 +5124,7 @@ export function kellaDashboardHtml() {
 
       function defaultWikiBlocks(page) {
         const blocks = Array.isArray(page?.blocks) && page.blocks.length ? page.blocks.map(sanitizeWikiBlock) : [];
-        if (blocks.length) return blocks;
+        if (blocks.length) return normalizeWikiLayers(blocks);
         const fallback = [];
         if (page?.imageDataUrl) {
           fallback.push(sanitizeWikiBlock({ id: wikiBlockId(), type: "image", imageDataUrl: page.imageDataUrl, x: 150, y: 90, width: 460, height: 260 }));
@@ -5047,7 +5136,7 @@ export function kellaDashboardHtml() {
           fallback.push(sanitizeWikiBlock({ id: wikiBlockId(), type: "text", text: "Kella Tips & Tricks", x: 90, y: 90, width: 580, height: 92, fontFamily: "display", fontSize: "large", align: "center", color: "#3f2a13" }));
           fallback.push(sanitizeWikiBlock({ id: wikiBlockId(), type: "text", text: "Write the guide here. Drag blocks around, add pictures, and make it readable for the alliance.", x: 90, y: 220, width: 580, height: 160, fontFamily: "serif", fontSize: "medium", align: "center" }));
         }
-        return fallback;
+        return normalizeWikiLayers(fallback);
       }
 
       function selectedWikiBlock() {
@@ -5137,7 +5226,22 @@ export function kellaDashboardHtml() {
       }
 
       function wikiBlockStyle(block) {
-        return "left:" + block.x + "px;top:" + block.y + "px;width:" + block.width + "px;height:" + block.height + "px;font-family:" + wikiFontCss(block.fontFamily) + ";font-size:" + wikiFontSizePx(block.fontSize) + "px;color:" + block.color + ";text-align:" + block.align + ";";
+        const shadow = block.shadowEnabled
+          ? block.shadowOffsetX + "px " + block.shadowOffsetY + "px " + block.shadowBlur + "px " + wikiHexRgba(block.shadowColor, block.shadowOpacity)
+          : "none";
+        return "left:" + block.x + "px;top:" + block.y + "px;width:" + block.width + "px;height:" + block.height + "px;font-family:" + wikiFontCss(block.fontFamily) + ";font-size:" + block.fontSizePx + "px;color:" + block.color + ";text-align:" + block.align + ";z-index:" + block.zIndex + ";" + (block.type === "text" ? "text-shadow:" + shadow + ";" : "filter:" + (block.shadowEnabled ? "drop-shadow(" + shadow + ")" : "none") + ";");
+      }
+
+      function wikiHexRgba(hex, opacity) {
+        const value = String(hex || "#000000").replace("#", "");
+        const red = parseInt(value.slice(0, 2), 16) || 0;
+        const green = parseInt(value.slice(2, 4), 16) || 0;
+        const blue = parseInt(value.slice(4, 6), 16) || 0;
+        return "rgba(" + red + "," + green + "," + blue + "," + wikiClamp(opacity, 0, 1) + ")";
+      }
+
+      function wikiMediaStyle(block) {
+        return "transform:translate(" + block.imagePositionX + "px," + block.imagePositionY + "px) scale(" + block.imageScale + ");";
       }
 
       function wikiBlockStyleAttr(block) {
@@ -5168,13 +5272,13 @@ export function kellaDashboardHtml() {
         const addText = wikiInlineAddTextHtml(editable, block);
         if (block.type === "video") {
           const video = block.imageDataUrl
-            ? '<video src="' + escapeHtml(block.imageDataUrl) + '" controls preload="metadata"></video>'
+            ? '<div class="wiki-media-frame"><video data-wiki-media src="' + escapeHtml(block.imageDataUrl) + '" controls preload="metadata" style="' + escapeHtml(wikiMediaStyle(block)) + '"></video></div>'
             : '<div class="empty">Choose a video.</div>';
           return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + video + handles + '</div>';
         }
         if (block.type === "image") {
           const image = block.imageDataUrl
-            ? '<img src="' + escapeHtml(block.imageDataUrl) + '" alt="Wiki image" />'
+            ? '<div class="wiki-media-frame"><img data-wiki-media src="' + escapeHtml(block.imageDataUrl) + '" alt="Wiki image" style="' + escapeHtml(wikiMediaStyle(block)) + '" /></div>'
             : '<div class="empty">Choose an image.</div>';
           return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + image + handles + '</div>';
         }
@@ -5193,13 +5297,13 @@ export function kellaDashboardHtml() {
         const addText = wikiInlineAddTextHtml(editable, block);
         if (block.type === "video") {
           const video = block.imageDataUrl
-            ? '<video src="' + escapeHtml(block.imageDataUrl) + '" controls preload="metadata"></video>'
+            ? '<div class="wiki-media-frame"><video data-wiki-media src="' + escapeHtml(block.imageDataUrl) + '" controls preload="metadata" style="' + escapeHtml(wikiMediaStyle(block)) + '"></video></div>'
             : '<div class="empty">Choose a video.</div>';
           return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + video + handles + '</div>';
         }
         if (block.type === "image") {
           const image = block.imageDataUrl
-            ? '<img src="' + escapeHtml(block.imageDataUrl) + '" alt="Wiki image" />'
+            ? '<div class="wiki-media-frame"><img data-wiki-media src="' + escapeHtml(block.imageDataUrl) + '" alt="Wiki image" style="' + escapeHtml(wikiMediaStyle(block)) + '" /></div>'
             : '<div class="empty">Choose an image.</div>';
           return '<div class="' + classes + '" data-wiki-block="' + escapeHtml(block.id) + '" style="' + wikiBlockStyleAttr(block) + '">' + image + handles + '</div>';
         }
@@ -5459,6 +5563,39 @@ export function kellaDashboardHtml() {
         '</div>';
       }
 
+      function wikiFontOptionHtml(value, label, selected) {
+        return '<option value="' + value + '"' + optionSelected(value, selected) + '>' + label + '</option>';
+      }
+
+      function wikiFontOptionsHtml(selected) {
+        return wikiFontOptionHtml("serif", "Old paper serif", selected) +
+          wikiFontOptionHtml("sans", "Clean readable", selected) +
+          wikiFontOptionHtml("display", "Alliance title", selected) +
+          wikiFontOptionHtml("script", "Royal script", selected) +
+          wikiFontOptionHtml("cod", "Dragon title", selected) +
+          wikiFontOptionHtml("mono", "Tactical mono", selected) +
+          wikiFontOptionHtml("hero-king", "Hero King", selected) +
+          wikiFontOptionHtml("dragon-force", "Dragon Force", selected) +
+          wikiFontOptionHtml("tribal-dragon", "Tribal Dragon", selected);
+      }
+
+      function wikiSelectionSizeOptionsHtml(selected) {
+        return [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 96, 120, 160, 200, 240].map(function(size) {
+          return '<option value="' + size + '"' + optionSelected(String(size), String(selected || 24)) + '>' + size + ' px</option>';
+        }).join("");
+      }
+
+      function wikiShadowControlsHtml(block) {
+        return '<details class="wiki-shadow-controls"' + (block.shadowEnabled ? " open" : "") + '><summary>Shadow</summary><div class="wiki-style-controls">' +
+          '<label class="wiki-toggle-field"><input type="checkbox" data-wiki-block-style="shadowEnabled"' + (block.shadowEnabled ? " checked" : "") + ' /> Enable</label>' +
+          '<label>Color<input class="wiki-color-wheel" type="color" data-wiki-block-style="shadowColor" value="' + escapeHtml(block.shadowColor) + '" /></label>' +
+          '<label>Blur<input type="range" min="0" max="100" step="1" data-wiki-block-style="shadowBlur" value="' + block.shadowBlur + '" /></label>' +
+          '<label>Opacity<input type="range" min="0" max="1" step="0.05" data-wiki-block-style="shadowOpacity" value="' + block.shadowOpacity + '" /></label>' +
+          '<label>X Offset<input type="number" min="-100" max="100" data-wiki-block-style="shadowOffsetX" value="' + block.shadowOffsetX + '" /></label>' +
+          '<label>Y Offset<input type="number" min="-100" max="100" data-wiki-block-style="shadowOffsetY" value="' + block.shadowOffsetY + '" /></label>' +
+        '</div></details>';
+      }
+
       function renderWikiInspectorHtml() {
         const block = selectedWikiBlock();
         if (!block) {
@@ -5468,20 +5605,23 @@ export function kellaDashboardHtml() {
           '</section>';
         }
         const textControls = block.type === "text"
-          ? '<div class="wiki-style-controls"><label>Font<select data-wiki-block-style="fontFamily"><option value="serif"' + optionSelected("serif", block.fontFamily) + '>Old paper serif</option><option value="sans"' + optionSelected("sans", block.fontFamily) + '>Clean readable</option><option value="display"' + optionSelected("display", block.fontFamily) + '>Alliance title</option><option value="script"' + optionSelected("script", block.fontFamily) + '>Royal script</option><option value="cod"' + optionSelected("cod", block.fontFamily) + '>Dragon title</option><option value="mono"' + optionSelected("mono", block.fontFamily) + '>Tactical mono</option><option class="wiki-font-option-hero" value="hero-king"' + optionSelected("hero-king", block.fontFamily) + '>Hero King</option><option class="wiki-font-option-force" value="dragon-force"' + optionSelected("dragon-force", block.fontFamily) + '>Dragon Force</option><option class="wiki-font-option-tribal" value="tribal-dragon"' + optionSelected("tribal-dragon", block.fontFamily) + '>Tribal Dragon</option></select></label>' +
-            '<label>Block Size<select data-wiki-block-style="fontSize"><option value="small"' + optionSelected("small", block.fontSize) + '>Small</option><option value="medium"' + optionSelected("medium", block.fontSize) + '>Medium</option><option value="large"' + optionSelected("large", block.fontSize) + '>Large</option><option value="xlarge"' + optionSelected("xlarge", block.fontSize) + '>Extra Large</option></select></label>' +
+          ? '<div class="wiki-style-controls"><label>Selected Font<select data-wiki-inline-style="fontFamily">' + wikiFontOptionsHtml(block.fontFamily) + '</select></label>' +
+            '<label>Selected Size<select data-wiki-inline-style="fontSize">' + wikiSelectionSizeOptionsHtml(block.fontSizePx) + '</select></label>' +
             '<label>Align<select data-wiki-block-style="align"><option value="left"' + optionSelected("left", block.align) + '>Left</option><option value="center"' + optionSelected("center", block.align) + '>Center</option><option value="right"' + optionSelected("right", block.align) + '>Right</option></select></label>' +
             '<div class="wiki-inline-format" aria-label="Selected text formatting">' +
               '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="bold" title="Bold selected text" aria-label="Bold selected text">B</button>' +
               '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="italic" title="Italic selected text" aria-label="Italic selected text">I</button>' +
               '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="underline" title="Underline selected text" aria-label="Underline selected text">U</button>' +
-              '<label>Selection Size<select data-wiki-inline-style="fontSize"><option value="16">16</option><option value="18">18</option><option value="20">20</option><option value="24" selected>24</option><option value="28">28</option><option value="32">32</option><option value="36">36</option><option value="40">40</option><option value="48">48</option></select></label>' +
               '<label class="wiki-color-control">Selection Color<input class="wiki-color-wheel" type="color" data-wiki-inline-style="color" value="' + escapeHtml(block.color) + '" /></label>' +
             '</div></div>'
-          : '<div class="wiki-style-controls wiki-style-controls--picture"><button class="secondary" type="button" data-action="change-wiki-image">Change ' + (block.type === "video" ? "Video" : "Picture") + '</button></div>';
+          : '<div class="wiki-style-controls wiki-style-controls--picture"><button class="secondary" type="button" data-action="change-wiki-image">Change ' + (block.type === "video" ? "Video" : "Picture") + '</button>' +
+            '<label>Crop X<input type="number" min="-2000" max="2000" data-wiki-block-style="imagePositionX" value="' + block.imagePositionX + '" /></label>' +
+            '<label>Crop Y<input type="number" min="-2000" max="2000" data-wiki-block-style="imagePositionY" value="' + block.imagePositionY + '" /></label>' +
+            '<label>Zoom<input type="range" min="0.1" max="8" step="0.05" data-wiki-block-style="imageScale" value="' + block.imageScale + '" /></label></div>';
         return '<section class="wiki-inspector" data-wiki-inspector>' +
           '<div class="wiki-style-head"><h4>Style</h4></div>' +
           textControls +
+          wikiShadowControlsHtml(block) +
           '<div class="wiki-style-actions">' + renderWikiAssetToolsHtml() + '</div>' +
         '</section>';
       }
@@ -5644,7 +5784,8 @@ export function kellaDashboardHtml() {
         syncWikiTextFromDom();
         autoFitWikiTextBlocksFromDom();
         const values = readWikiFormValues();
-        const blocks = (state.wikiBlocks || []).map(sanitizeWikiBlock);
+        state.wikiBlocks = normalizeWikiLayers(state.wikiBlocks || []);
+        const blocks = state.wikiBlocks.map(sanitizeWikiBlock);
         const body = blocks.filter(function(block) { return block.type === "text"; }).map(function(block) { return (block.text || "").trim(); }).filter(Boolean).join("\\n\\n");
         const firstText = blocks.find(function(block) { return block.type === "text"; }) || {};
         const firstImage = blocks.find(function(block) { return block.type === "image" && block.imageDataUrl; }) || {};
@@ -5688,6 +5829,8 @@ export function kellaDashboardHtml() {
         const node = wikiBlockElement(block.id);
         if (!node) return;
         node.setAttribute("style", wikiBlockStyle(block));
+        const media = node.querySelector("[data-wiki-media]");
+        if (media) media.setAttribute("style", wikiMediaStyle(block));
         const content = node.querySelector("[data-wiki-text-content]");
         if (content) {
           autoFitWikiTextBlock(block, content);
@@ -5748,8 +5891,22 @@ export function kellaDashboardHtml() {
             : kind === "underline"
               ? document.createElement("u")
               : document.createElement("span");
-        if (kind === "fontSize") wrapper.style.fontSize = wikiClamp(value, 14, 48) + "px";
+        if (kind === "fontSize") wrapper.style.fontSize = wikiClamp(value, 8, 240) + "px";
         if (kind === "color" && /^#[0-9a-fA-F]{6}$/.test(value || "")) wrapper.style.color = value;
+        if (kind === "fontFamily") {
+          const familyNames = {
+            serif: "Georgia",
+            sans: '"Trebuchet MS"',
+            display: "Georgia",
+            script: '"Segoe Script"',
+            mono: "Consolas",
+            cod: '"Copperplate Gothic Bold"',
+            "hero-king": '"Hero King"',
+            "dragon-force": '"Dragon Force"',
+            "tribal-dragon": '"Tribal Dragon"'
+          };
+          wrapper.style.fontFamily = familyNames[value] || "Georgia";
+        }
         const fragment = restored.range.extractContents();
         wrapper.appendChild(fragment);
         restored.range.insertNode(wrapper);
@@ -5815,8 +5972,8 @@ export function kellaDashboardHtml() {
         if (!block) return true;
         syncWikiTextFromDom();
         const key = target.getAttribute("data-wiki-block-style");
-        const raw = target.value;
-        if (["x", "y", "width", "height"].includes(key)) {
+        const raw = target.type === "checkbox" ? target.checked : target.value;
+        if (["x", "y", "width", "height", "fontSizePx", "imagePositionX", "imagePositionY", "imageScale", "shadowBlur", "shadowOffsetX", "shadowOffsetY", "shadowOpacity", "zIndex"].includes(key)) {
           block[key] = Number(raw || 0);
         } else {
           block[key] = raw;
@@ -5843,7 +6000,8 @@ export function kellaDashboardHtml() {
           x: wikiClamp(Number.isFinite(x) ? x : 150, 0, WIKI_PAGE_WIDTH - 220),
           y: wikiClamp(Number.isFinite(y) ? y : 170 + (state.wikiBlocks.length * 24), 0, WIKI_MAX_PAGE_HEIGHT - 220),
           width: 220,
-          height: 220
+          height: 220,
+          zIndex: Math.max(0, ...(state.wikiBlocks || []).map(function(item) { return Number(item.zIndex || 0); })) + 1
         });
         state.wikiBlocks.push(block);
         state.selectedWikiBlockId = block.id;
@@ -5863,8 +6021,10 @@ export function kellaDashboardHtml() {
           height: 110,
           fontFamily: source?.fontFamily || "serif",
           fontSize: source?.fontSize || "medium",
+          fontSizePx: source?.fontSizePx || wikiFontSizePx(source?.fontSize || "medium"),
           align: source?.align || "center",
-          color: source?.color || "#3f2a13"
+          color: source?.color || "#3f2a13",
+          zIndex: Math.max(0, ...(state.wikiBlocks || []).map(function(item) { return Number(item.zIndex || 0); })) + 1
         });
         state.wikiBlocks.push(block);
         state.selectedWikiBlockId = block.id;
@@ -7751,6 +7911,7 @@ export function kellaDashboardHtml() {
                 '<label>Type<select data-complaint="kind"><option value="Complaint">Complaint</option><option value="Suggestion">Suggestion</option></select></label>' +
                 '<label>Title<input data-complaint="title" maxlength="140" placeholder="Short title" /></label>' +
                 '<label class="wide">Description<textarea data-complaint="description" maxlength="1800" placeholder="Tell the R4s what happened or what should improve."></textarea></label>' +
+                '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /> Submit anonymously to R4s</label>' +
                 '<label class="wide">Optional Picture<input type="file" data-complaint-image accept="image/png,image/jpeg,image/webp" /><span class="muted">Optional screenshot, under 3 MB.</span></label>' +
               '</div>' +
               '<div class="complaint-preview" data-complaint-image-preview>No picture selected.</div>' +
@@ -7769,6 +7930,7 @@ export function kellaDashboardHtml() {
             '<label>Type<select data-complaint="kind"><option value="Complaint">Complaint</option><option value="Suggestion">Suggestion</option></select></label>' +
             '<label>Title<input data-complaint="title" maxlength="140" placeholder="Short title" /></label>' +
             '<label class="wide">Description<textarea data-complaint="description" maxlength="1800" placeholder="Tell the R4s what happened or what should improve."></textarea></label>' +
+            '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /> Submit anonymously to R4s</label>' +
             '<label class="wide">Optional Picture<input type="file" data-complaint-image accept="image/png,image/jpeg,image/webp" /><span class="muted">Optional screenshot, under 3 MB.</span></label>' +
           '</div>' +
           '<div class="complaint-preview" data-complaint-image-preview>No picture selected.</div>' +
@@ -7782,7 +7944,7 @@ export function kellaDashboardHtml() {
           const auth = await loadAuth(true);
           const content = auth.authenticated
             ? complaintFormMarkup()
-            : '<section class="card complaint-form-card"><div class="card-header"><div><h3>Discord Login Required</h3><span class="muted">Login so R4s know who submitted the message.</span></div></div><p>Your complaint or suggestion stays private to alliance admins.</p><div class="toolbar"><button class="secondary" type="button" data-link-button="/">Back to Dashboard</button><button class="primary" type="button" data-action="discord-login">Login with Discord</button></div></section>';
+            : '<section class="card complaint-form-card"><div class="card-header"><div><h3>Discord Login Required</h3><span class="muted">Login confirms that you are an alliance member. You can still submit anonymously.</span></div></div><p>Your complaint or suggestion stays private to alliance admins.</p><div class="toolbar"><button class="secondary" type="button" data-link-button="/">Back to Dashboard</button><button class="primary" type="button" data-action="discord-login">Login with Discord</button></div></section>';
           app.innerHTML =
             pageHeader("Feedback", "Send a private complaint or suggestion to the R4 team.") +
             '<div class="feedback-page">' + content + '</div>';
@@ -7820,6 +7982,7 @@ export function kellaDashboardHtml() {
           kind: value("kind") || "Complaint",
           title,
           description,
+          anonymous: Boolean(root.querySelector('[data-complaint="anonymous"]')?.checked),
           imageDataUrl: await complaintImageDataUrl()
         };
       }
@@ -8458,7 +8621,8 @@ export function kellaDashboardHtml() {
 
         const calendarDay = event.target.closest("[data-calendar-day]");
         if (calendarDay) {
-          openCalendarDayModal(calendarDay.getAttribute("data-calendar-day"), calendarDay.getAttribute("data-calendar-type") || "activity");
+          openCalendarDayModal(calendarDay.getAttribute("data-calendar-day"), calendarDay.getAttribute("data-calendar-type") || "activity")
+            .catch(function(error) { toast(error.message || "Could not open that calendar day.", "error"); });
           return;
         }
 
@@ -8479,6 +8643,8 @@ export function kellaDashboardHtml() {
           if (String(state.selectedWikiBlockId) !== String(wikiBlockIdValue)) {
             syncWikiTextFromDom();
             state.selectedWikiBlockId = wikiBlockIdValue;
+            bringWikiBlockToFront(wikiBlockIdValue);
+            (state.wikiBlocks || []).forEach(updateWikiBlockElement);
             refreshWikiSelection();
           }
           if (!event.target.closest("[data-wiki-text-content]") && !event.target.closest("[data-action]")) return;
@@ -8677,7 +8843,7 @@ export function kellaDashboardHtml() {
           const result = await sendJson("PUT", "/api/dashboard/buff-schedule", { days: readBuffScheduleForm() }, true);
           state.buffSchedule = result;
           await renderBuffSchedule();
-          return "Weekly buff schedule saved.";
+          return result.warning || result.message || (result.discord?.skipped ? "Schedule is already current." : "Weekly buff schedule saved and published.");
         }, "Weekly buff schedule saved.");
         if (kind === "reset-buff-schedule") {
           if (!window.confirm("Reset all seven days to Kella's recommended schedule? Save afterward to keep it.")) return;
@@ -9160,6 +9326,44 @@ export function kellaDashboardHtml() {
             await renderTools("events");
           }
         }, "Events refreshed.");
+        if (kind === "toggle-calendar-event-form") {
+          const form = action.closest("[data-calendar-event-form]");
+          const fields = form?.querySelector("[data-calendar-event-fields]");
+          if (!fields) return;
+          const willOpen = fields.hidden;
+          fields.hidden = !willOpen;
+          action.setAttribute("aria-expanded", String(willOpen));
+          action.textContent = willOpen ? "Close" : "+ Add Event";
+          if (willOpen) form.querySelector('[data-calendar-event="title"]')?.focus();
+          return;
+        }
+        if (kind === "save-calendar-event") withFeedback(action, async function() {
+          const form = action.closest("[data-calendar-event-form]");
+          if (!form) throw new Error("Calendar event form is missing.");
+          const value = function(name) {
+            return (form.querySelector('[data-calendar-event="' + name + '"]')?.value || "").trim();
+          };
+          const title = value("title");
+          const date = value("date") || action.getAttribute("data-calendar-date") || "";
+          const time = value("time");
+          const publishToDiscord = value("mode") === "discord";
+          const channelId = value("channelId");
+          if (!title) throw new Error("Add an event name first.");
+          if (!date || !time) throw new Error("Choose a valid UTC date and time.");
+          const startsAt = new Date(date + "T" + time + ":00Z");
+          if (Number.isNaN(startsAt.getTime())) throw new Error("Event time is invalid.");
+          const result = await sendJson("POST", "/api/dashboard/events", {
+            title,
+            description: "",
+            startsAt: startsAt.toISOString(),
+            channelId,
+            publishToDiscord
+          }, true);
+          state.summary = null;
+          await loadDashboardEvents();
+          await openCalendarDayModal(date, "events");
+          return result.warning || result.message || (publishToDiscord ? "Event saved and published to Discord." : "Event saved to the calendar.");
+        }, "Event saved.");
         if (kind === "delete-event") withFeedback(action, async function() {
           const id = action.getAttribute("data-event-id") || "";
           const eventItem = (state.events || []).find(function(item) { return String(item.id) === String(id); });
@@ -9446,7 +9650,7 @@ export function kellaDashboardHtml() {
         document.execCommand("insertText", false, text);
       });
 
-      document.addEventListener("mousedown", function(event) {
+      document.addEventListener("pointerdown", function(event) {
         if (event.target.closest("[data-action='format-wiki-selection']")) {
           event.preventDefault();
           return;
@@ -9455,41 +9659,51 @@ export function kellaDashboardHtml() {
         if (!editor) return;
         if (event.target.closest("[data-action]")) return;
         const blockEl = event.target.closest("[data-wiki-block]");
-        if (!blockEl) return;
+        if (!blockEl || (event.pointerType === "mouse" && event.button !== 0)) return;
         const isResize = !!event.target.closest("[data-wiki-resize-handle]");
         const isDragHandle = !!event.target.closest("[data-wiki-drag-handle]");
-        const isImage = blockEl.classList.contains("wiki-image-block");
-        if (!isResize && !isDragHandle && !isImage) return;
+        const isMediaCrop = blockEl.classList.contains("wiki-image-block") && !!event.target.closest("[data-wiki-media]");
+        if (!isResize && !isDragHandle && !isMediaCrop) return;
         const id = blockEl.getAttribute("data-wiki-block") || "";
+        syncWikiTextFromDom();
+        bringWikiBlockToFront(id);
         const block = state.wikiBlocks.find(function(item) { return item.id === id; });
         if (!block) return;
-        syncWikiTextFromDom();
         state.selectedWikiBlockId = id;
+        const canvas = blockEl.closest("[data-wiki-canvas]");
+        const canvasScale = canvas?.offsetWidth ? WIKI_PAGE_WIDTH / canvas.offsetWidth : 1;
         state.wikiDrag = {
           id,
-          mode: isResize ? "resize" : "move",
+          pointerId: event.pointerId,
+          pointerTarget: event.target,
+          mode: isResize ? "resize" : isMediaCrop ? "crop" : "move",
           corner: event.target.closest("[data-wiki-resize-handle]")?.getAttribute("data-resize-corner") || "se",
           startX: event.clientX,
           startY: event.clientY,
+          canvasScale,
           baseX: block.x,
           baseY: block.y,
           baseWidth: block.width,
-          baseHeight: block.height
+          baseHeight: block.height,
+          baseImageX: block.imagePositionX,
+          baseImageY: block.imagePositionY
         };
+        event.target.setPointerCapture?.(event.pointerId);
+        (state.wikiBlocks || []).forEach(updateWikiBlockElement);
         refreshWikiSelection();
         event.preventDefault();
       });
 
-      document.addEventListener("mousemove", function(event) {
+      document.addEventListener("pointermove", function(event) {
         const drag = state.wikiDrag;
-        if (!drag) return;
+        if (!drag || drag.pointerId !== event.pointerId) return;
         const block = state.wikiBlocks.find(function(item) { return item.id === drag.id; });
         if (!block) return;
-        const dx = event.clientX - drag.startX;
-        const dy = event.clientY - drag.startY;
+        const dx = (event.clientX - drag.startX) * drag.canvasScale;
+        const dy = (event.clientY - drag.startY) * drag.canvasScale;
         if (drag.mode === "resize") {
-          const minWidth = block.type === "image" ? 24 : 80;
-          const minHeight = block.type === "image" ? 24 : 48;
+          const minWidth = block.type === "text" ? 80 : 24;
+          const minHeight = block.type === "text" ? 48 : 24;
           let nextX = drag.baseX;
           let nextY = drag.baseY;
           let nextWidth = drag.baseWidth;
@@ -9520,26 +9734,31 @@ export function kellaDashboardHtml() {
           block.y = nextY;
           block.width = nextWidth;
           block.height = nextHeight;
+        } else if (drag.mode === "crop") {
+          block.imagePositionX = wikiClamp(drag.baseImageX + dx, -2000, 2000);
+          block.imagePositionY = wikiClamp(drag.baseImageY + dy, -2000, 2000);
         } else {
           block.x = wikiClamp(drag.baseX + dx, 0, WIKI_PAGE_WIDTH - block.width);
           block.y = wikiClamp(drag.baseY + dy, 0, WIKI_MAX_PAGE_HEIGHT - block.height);
         }
-        Array.from(document.querySelectorAll("[data-wiki-block]")).forEach(function(node) {
-          if (node.getAttribute("data-wiki-block") === drag.id) node.setAttribute("style", wikiBlockStyle(block));
-        });
+        updateWikiBlockElement(block);
         resizeWikiPageToContent();
         event.preventDefault();
       });
 
-      document.addEventListener("mouseup", function() {
+      function finishWikiPointer(event) {
         const drag = state.wikiDrag;
-        if (!drag) return;
+        if (!drag || drag.pointerId !== event.pointerId) return;
         state.wikiDrag = null;
+        drag.pointerTarget?.releasePointerCapture?.(event.pointerId);
         const block = state.wikiBlocks.find(function(item) { return item.id === drag.id; });
         if (block) updateWikiBlockElement(block);
         resizeWikiPageToContent();
         refreshWikiSelection();
-      });
+      }
+
+      document.addEventListener("pointerup", finishWikiPointer);
+      document.addEventListener("pointercancel", finishWikiPointer);
 
       document.addEventListener("keydown", function(event) {
         if (event.key === "Escape" && avatarCropper?.classList.contains("open")) {
@@ -9600,6 +9819,12 @@ export function kellaDashboardHtml() {
           if (icon) icon.src = type.icon;
           if (label) label.textContent = type.label;
           if (description) description.textContent = type.description;
+          return;
+        }
+        if (event.target.matches('[data-calendar-event="mode"]')) {
+          const form = event.target.closest("[data-calendar-event-form]");
+          const channelField = form?.querySelector("[data-calendar-channel-field]");
+          if (channelField) channelField.hidden = event.target.value !== "discord";
           return;
         }
         if (applyWikiInlineStyleChange(event.target)) return;
@@ -9736,6 +9961,7 @@ export function kellaDashboardHtml() {
             autoFitWikiTextBlock(block, event.target);
           }
         }
+        if (applyWikiInlineStyleChange(event.target)) return;
         if (applyWikiBlockStyleChange(event.target)) return;
         if (event.target.matches("[data-embed]")) updateEmbedPreview();
         if (event.target.matches("[data-avatar-zoom]")) setAvatarZoom(event.target.value);

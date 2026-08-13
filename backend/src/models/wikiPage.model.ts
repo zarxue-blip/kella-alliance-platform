@@ -29,8 +29,19 @@ const wikiBlockSchema = new Schema(
     height: { type: Number, default: 180, min: 24, max: 50000 },
     fontFamily: { type: String, enum: wikiFontFamilies, default: "serif" },
     fontSize: { type: String, enum: wikiFontSizes, default: "medium" },
+    fontSizePx: { type: Number, min: 8, max: 240, default: undefined },
     color: { type: String, default: "#3f2a13", maxlength: 7 },
-    align: { type: String, enum: wikiAlignments, default: "center" }
+    align: { type: String, enum: wikiAlignments, default: "center" },
+    imagePositionX: { type: Number, default: 0, min: -2000, max: 2000 },
+    imagePositionY: { type: Number, default: 0, min: -2000, max: 2000 },
+    imageScale: { type: Number, default: 1, min: 0.1, max: 8 },
+    shadowEnabled: { type: Boolean, default: false },
+    shadowBlur: { type: Number, default: 12, min: 0, max: 100 },
+    shadowOffsetX: { type: Number, default: 0, min: -100, max: 100 },
+    shadowOffsetY: { type: Number, default: 6, min: -100, max: 100 },
+    shadowOpacity: { type: Number, default: 0.35, min: 0, max: 1 },
+    shadowColor: { type: String, default: "#000000", maxlength: 7 },
+    zIndex: { type: Number, default: 0, min: 0, max: 500 }
   },
   { _id: false }
 );

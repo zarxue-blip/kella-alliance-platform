@@ -239,20 +239,19 @@ export const botRootsResponse = asyncHandler(async (req, res) => {
           allianceId,
           type: "roots_response",
           reportId: body.reportId,
-          actorDiscordId: body.discordId,
-          slot: body.slot
+          actorDiscordId: body.discordId
         },
         {
           $setOnInsert: {
             allianceId,
             type: "roots_response",
             reportId: body.reportId,
-            actorDiscordId: body.discordId,
-            slot: body.slot
+            actorDiscordId: body.discordId
           },
           $set: {
             actorName: body.displayName,
             eventType: "Roots of War",
+            slot: body.slot,
             status: body.status,
             sentAt: new Date()
           }
@@ -275,7 +274,8 @@ export const botRootsSession = asyncHandler(async (req, res) => {
   const body = serviceContextSchema
     .extend({
       officerDiscordId: z.string(),
-      officerName: z.string().optional()
+      officerName: z.string().optional(),
+      eventDate: z.coerce.date()
     })
     .parse(req.body);
   const allianceId = await resolveAllianceId(body.allianceId);
@@ -284,7 +284,8 @@ export const botRootsSession = asyncHandler(async (req, res) => {
     actorDiscordId: body.officerDiscordId,
     actorName: body.officerName,
     eventType: "Roots of War",
-    status: "Open"
+    status: "Open",
+    payload: { eventDate: body.eventDate.toISOString() }
   });
   res.status(201).json({ session });
 });
@@ -401,7 +402,8 @@ export const botComplaint = asyncHandler(async (req, res) => {
       discordId: z.string(),
       displayName: z.string().optional(),
       kind: z.enum(["Complaint", "Suggestion"]).default("Complaint"),
-      message: z.string().min(1).max(1800)
+      message: z.string().min(1).max(1800),
+      anonymous: z.boolean().optional().default(false)
     })
     .parse(req.body);
   const allianceId = await resolveAllianceId(body.allianceId);
@@ -413,10 +415,42 @@ export const botComplaint = asyncHandler(async (req, res) => {
     status: "Pending",
     payload: {
       kind: body.kind,
-      message: body.message
+      message: body.message,
+      anonymous: body.anonymous
     }
   });
   res.status(201).json({ complaint });
+});
+
+export const botLatestRootsList = asyncHandler(async (req, res) => {
+  const query = serviceContextSchema.parse(req.query);
+  const allianceId = await resolveAllianceId(query.allianceId);
+  const session = (await KellaActionModel.findOne({ allianceId, type: "roots_registration" }).sort({ "payload.eventDate": -1, sentAt: -1 }).lean()) as any;
+  if (!session) throw new HttpError(404, "No Roots of War registration has been published yet");
+  const rawResponses = (await KellaActionModel.find({ allianceId, type: "roots_response", reportId: session._id.toString(), status: "Available" }).sort({ sentAt: -1 }).lean()) as any[];
+  const responseByMember = new Map<string, any>();
+  rawResponses.forEach((item) => {
+    const key = String(item.actorDiscordId || item.actorName || item._id);
+    if (!responseByMember.has(key)) responseByMember.set(key, item);
+  });
+  const responses = Array.from(responseByMember.values()).sort((left, right) =>
+    String(left.actorName || left.actorDiscordId || "").localeCompare(String(right.actorName || right.actorDiscordId || ""))
+  );
+  const names = (slot: "14UTC" | "20UTC") => responses.filter((item) => item.slot === slot).map((item) => item.actorName || item.actorDiscordId || "Unknown player");
+  const at14 = names("14UTC");
+  const at20 = names("20UTC");
+  res.json({
+    report: {
+      id: session._id.toString(),
+      eventDate: session.payload?.eventDate || session.sentAt,
+      messageLink: session.payload?.messageLink || "",
+      at14,
+      at20,
+      total14: at14.length,
+      total20: at20.length,
+      total: at14.length + at20.length
+    }
+  });
 });
 
 export const botEventReminder = asyncHandler(async (req, res) => {
