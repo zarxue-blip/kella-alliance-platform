@@ -4285,7 +4285,7 @@ export function kellaDashboardHtml() {
           return { x: centerX + Math.cos(angle) * distance, y: centerY + Math.sin(angle) * distance };
         };
         const maxima = axes.map(function(axis) {
-          return Math.max(1, ...roster.map(function(item) { return memberMetricValue(item, axis.key, selectedDate); }));
+          return Math.max(1, ...roster.map(function(item) { return memberMetricValue(item, axis.key); }));
         });
         const values = axes.map(function(axis) { return memberMetricValue(member, axis.key, selectedDate); });
         const scores = values.map(function(value, index) {
