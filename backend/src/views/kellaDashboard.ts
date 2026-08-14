@@ -711,6 +711,29 @@ export function kellaDashboardHtml() {
         border-color: rgba(170, 100, 11, 0.82);
         box-shadow: 0 0 0 4px rgba(255, 214, 90, 0.24);
       }
+      /* D: shadow as a non-clipped layer behind content — does not affect block dimensions */
+      .wiki-image-block.wiki-block--shadowed {
+        position: relative;
+        z-index: 0;
+      }
+      .wiki-image-block.wiki-block--shadowed::before {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+        z-index: 0;
+        pointer-events: none;
+      }
+      .wiki-image-block.wiki-block--shadowed .wiki-media-frame {
+        overflow: hidden;
+        position: relative;
+        z-index: 1;
+      }
+      /* D: text shadow — renders on the text element, does not change block dimensions */
+      .wiki-block--shadowed .wiki-text-content {
+        text-shadow: 2px 3px 6px rgba(0, 0, 0, 0.55);
+      }
       .wiki-text-block {
         display: flex;
         align-items: flex-start;
@@ -891,9 +914,8 @@ export function kellaDashboardHtml() {
         top: 10px;
         z-index: 16;
         display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
         border-radius: 18px;
         border: 1px solid rgba(121, 82, 33, 0.34);
         padding: 12px;
@@ -902,7 +924,8 @@ export function kellaDashboardHtml() {
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.42);
       }
       .wiki-inspector--empty {
-        justify-content: start;
+        flex-direction: column;
+        gap: 8px;
       }
       .wiki-editor .wiki-inspector,
       .wiki-editor .wiki-inspector button,
@@ -910,33 +933,58 @@ export function kellaDashboardHtml() {
       .wiki-editor .wiki-inspector select {
         font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
       }
-      .wiki-control-group {
+      /* F: new grouped inspector layout */
+      .wiki-inspector__group {
         display: flex;
-        flex: 1 1 320px;
-        flex-wrap: wrap;
-        align-items: end;
-        gap: 7px;
-        min-width: 0;
-        padding: 8px;
-        border: 1px solid rgba(121, 82, 33, 0.16);
-        border-radius: 12px;
-        background: rgba(255, 248, 221, 0.42);
+        flex-direction: column;
+        gap: 6px;
       }
-      .wiki-control-group--assets { flex-basis: 430px; }
-      .wiki-control-label {
-        align-self: center;
+      .wiki-inspector__group--assets {
+        flex-direction: column;
+      }
+      .wiki-inspector__header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+      }
+      .wiki-inspector__label {
         color: #6b431c;
         font-size: 11px;
         font-weight: 1000;
         letter-spacing: 0.08em;
         text-transform: uppercase;
+        white-space: nowrap;
       }
-      .wiki-control-group label { min-width: 104px; flex: 1 1 108px; }
-      .wiki-control-group button { min-height: 36px; }
-      .wiki-shadow-button.active {
-        border-color: rgba(190, 123, 24, 0.78);
-        background: linear-gradient(180deg, #fff2b5, #e7b84e);
-        box-shadow: 0 3px 8px rgba(55, 32, 12, 0.32);
+      .wiki-control-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        align-items: end;
+      }
+      .wiki-control-row label {
+        min-width: 80px;
+        flex: 1 1 100px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .wiki-control-row button { min-height: 36px; }
+      .wiki-control-row .wiki-format-button { min-width: 36px; }
+      .wiki-color-control input[type="color"] {
+        width: 36px;
+        height: 32px;
+        padding: 0;
+        border: 1px solid rgba(121, 82, 33, 0.32);
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+      }
+      .wiki-editor .wiki-inspector button,
+      .wiki-editor .wiki-inspector input,
+      .wiki-editor .wiki-inspector select,
+      .wiki-editor .wiki-inspector label {
+        font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
       }
       .wiki-inspector h4 {
         margin: 0;
@@ -944,36 +992,10 @@ export function kellaDashboardHtml() {
         font-size: 22px;
         line-height: 1;
       }
-      .wiki-style-head {
-        align-self: center;
-        display: grid;
-        gap: 2px;
-        min-width: 72px;
-      }
-      .wiki-style-head p {
-        display: block;
-        margin: 0;
-        color: #76552e;
-        font-size: 11px;
-        font-weight: 1000;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-      }
-      .wiki-style-note {
-        display: none;
-      }
-      .wiki-style-controls {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(72px, 1fr));
-        gap: 6px;
-        align-items: stretch;
-        padding: 8px;
-        border-radius: 14px;
-        background: rgba(255, 248, 221, 0.38);
-        border: 1px solid rgba(121, 82, 33, 0.16);
-      }
-      .wiki-style-controls--picture {
-        grid-template-columns: repeat(3, minmax(92px, 1fr));
+      .wiki-shadow-button.active {
+        border-color: rgba(190, 123, 24, 0.78);
+        background: linear-gradient(180deg, #fff2b5, #e7b84e);
+        box-shadow: 0 3px 8px rgba(55, 32, 12, 0.32);
       }
       .wiki-shadow-controls {
         grid-column: 1 / -1;
@@ -5373,11 +5395,11 @@ export function kellaDashboardHtml() {
       }
 
       function wikiMediaStyle(block) {
-        return "transform:translate(" + block.imagePositionX + "px," + block.imagePositionY + "px) scale(" + block.imageScale + ");filter:" + (block.shadowEnabled ? "drop-shadow(2px 4px 6px rgba(0,0,0,0.45))" : "none") + ";";
+        return "transform:translate(" + block.imagePositionX + "px," + block.imagePositionY + "px) scale(" + block.imageScale + ");";
       }
 
       function wikiTextContentStyle(block) {
-        return "text-shadow:" + (block.shadowEnabled ? "2px 3px 6px rgba(0,0,0,0.55)" : "none") + ";";
+        return "";
       }
 
       function wikiBlockStyleAttr(block) {
@@ -5403,7 +5425,7 @@ export function kellaDashboardHtml() {
       function renderWikiBlockHtml(rawBlock, editable) {
         const block = sanitizeWikiBlock(rawBlock);
         const selected = editable && String(block.id) === String(state.selectedWikiBlockId);
-        const classes = "wiki-block " + (block.type === "video" ? "wiki-video-block" : block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (selected ? " selected" : "");
+        const classes = "wiki-block " + (block.type === "video" ? "wiki-video-block" : block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (block.shadowEnabled ? " wiki-block--shadowed" : "") + (selected ? " selected" : "");
         const handles = wikiBlockHandlesHtml(editable, block.id);
         const addText = wikiInlineAddTextHtml(editable, block);
         if (block.type === "video") {
@@ -5428,7 +5450,7 @@ export function kellaDashboardHtml() {
       function renderWikiBlockEditorHtml(rawBlock, editable) {
         const block = sanitizeWikiBlock(rawBlock);
         const selected = editable && String(block.id) === String(state.selectedWikiBlockId);
-        const classes = "wiki-block " + (block.type === "video" ? "wiki-video-block" : block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (selected ? " selected" : "");
+        const classes = "wiki-block " + (block.type === "video" ? "wiki-video-block" : block.type === "image" ? "wiki-image-block" : "wiki-text-block") + (block.shadowEnabled ? " wiki-block--shadowed" : "") + (selected ? " selected" : "");
         const handles = wikiBlockHandlesHtml(editable, block.id);
         const addText = wikiInlineAddTextHtml(editable, block);
         if (block.type === "video") {
@@ -5725,35 +5747,59 @@ export function kellaDashboardHtml() {
         const block = selectedWikiBlock();
         if (!block) {
           return '<section class="wiki-inspector wiki-inspector--empty" data-wiki-inspector>' +
-            '<div class="wiki-style-head"><h4>Style</h4></div>' +
-            '<div class="wiki-control-group wiki-control-group--assets">' + renderWikiAssetToolsHtml() + '</div>' +
+            '<div class="wiki-inspector__group"><span class="wiki-inspector__label">Formatting</span>' +
+              '<div class="wiki-control-row">' +
+                '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="bold" title="Bold" aria-label="Bold">B</button>' +
+                '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="italic" title="Italic" aria-label="Italic">I</button>' +
+                '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="underline" title="Underline" aria-label="Underline">U</button>' +
+                '<button class="wiki-format-button wiki-shadow-button" type="button" data-action="toggle-wiki-shadow" aria-pressed="false">Shadow</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="wiki-inspector__group wiki-inspector__group--assets">' + renderWikiAssetToolsHtml() + '</div>' +
           '</section>';
         }
-        const textControls = block.type === "text"
-          ? '<div class="wiki-control-group"><span class="wiki-control-label">Text</span>' +
-              '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="bold" title="Bold selected text" aria-label="Bold selected text">B</button>' +
-              '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="italic" title="Italic selected text" aria-label="Italic selected text">I</button>' +
-              '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="underline" title="Underline selected text" aria-label="Underline selected text">U</button>' +
-              '<button class="wiki-format-button wiki-shadow-button' + (block.shadowEnabled ? " active" : "") + '" type="button" data-action="toggle-wiki-shadow" aria-pressed="' + String(block.shadowEnabled) + '">Shadow</button>' +
-              '<label>Font<select data-wiki-inline-style="fontFamily">' + wikiFontOptionsHtml(block.fontFamily) + '</select></label>' +
-              '<label>Size<select data-wiki-inline-style="fontSize">' + wikiSelectionSizeOptionsHtml(block.fontSizePx) + '</select></label>' +
-              '<label>Align<select data-wiki-block-style="align"><option value="left"' + optionSelected("left", block.align) + '>Left</option><option value="center"' + optionSelected("center", block.align) + '>Center</option><option value="right"' + optionSelected("right", block.align) + '>Right</option></select></label>' +
-              '<label class="wiki-color-control">Color<input class="wiki-color-wheel" type="color" data-wiki-inline-style="color" value="' + escapeHtml(block.color) + '" /></label>' +
+        const formattingControls = block.type === "text"
+          ? '<div class="wiki-inspector__group">' +
+              '<div class="wiki-inspector__header"><span class="wiki-inspector__label">Formatting</span></div>' +
+              '<div class="wiki-control-row">' +
+                '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="bold" title="Bold selected text" aria-label="Bold selected text">B</button>' +
+                '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="italic" title="Italic selected text" aria-label="Italic selected text">I</button>' +
+                '<button class="wiki-format-button" type="button" data-action="format-wiki-selection" data-wiki-inline-command="underline" title="Underline selected text" aria-label="Underline selected text">U</button>' +
+                '<button class="wiki-format-button wiki-shadow-button' + (block.shadowEnabled ? " active" : "") + '" type="button" data-action="toggle-wiki-shadow" aria-pressed="' + String(block.shadowEnabled) + '">Shadow</button>' +
+              '</div>' +
+              '<div class="wiki-control-row">' +
+                '<label>Font<select data-wiki-inline-style="fontFamily">' + wikiFontOptionsHtml(block.fontFamily) + '</select></label>' +
+                '<label>Size<select data-wiki-inline-style="fontSize">' + wikiSelectionSizeOptionsHtml(block.fontSizePx) + '</select></label>' +
+                '<label>Align<select data-wiki-block-style="align"><option value="left"' + optionSelected("left", block.align) + '>Left</option><option value="center"' + optionSelected("center", block.align) + '>Center</option><option value="right"' + optionSelected("right", block.align) + '>Right</option></select></label>' +
+                '<label class="wiki-color-control">Color<input class="wiki-color-wheel" type="color" data-wiki-inline-style="color" value="' + escapeHtml(block.color) + '" /></label>' +
+              '</div>' +
             '</div>'
-          : '<div class="wiki-control-group"><span class="wiki-control-label">Media</span><button class="secondary" type="button" data-action="change-wiki-image">Change ' + (block.type === "video" ? "Video" : "Picture") + '</button>' +
-            '<button class="wiki-format-button wiki-shadow-button' + (block.shadowEnabled ? " active" : "") + '" type="button" data-action="toggle-wiki-shadow" aria-pressed="' + String(block.shadowEnabled) + '">Shadow</button>' +
-            '<label>Crop X<input type="number" min="-2000" max="2000" data-wiki-block-style="imagePositionX" value="' + block.imagePositionX + '" /></label>' +
-            '<label>Crop Y<input type="number" min="-2000" max="2000" data-wiki-block-style="imagePositionY" value="' + block.imagePositionY + '" /></label>' +
-            '<label>Zoom<input type="range" min="0.1" max="8" step="0.05" data-wiki-block-style="imageScale" value="' + block.imageScale + '" /></label></div>';
+          : '<div class="wiki-inspector__group">' +
+              '<div class="wiki-inspector__header"><span class="wiki-inspector__label">Formatting</span></div>' +
+              '<div class="wiki-control-row">' +
+                '<button class="secondary" type="button" data-action="change-wiki-image">Change ' + (block.type === "video" ? "Video" : "Picture") + '</button>' +
+                '<button class="wiki-format-button wiki-shadow-button' + (block.shadowEnabled ? " active" : "") + '" type="button" data-action="toggle-wiki-shadow" aria-pressed="' + String(block.shadowEnabled) + '">Shadow</button>' +
+              '</div>' +
+              '<div class="wiki-control-row">' +
+                '<label>Crop X<input type="number" min="-2000" max="2000" data-wiki-block-style="imagePositionX" value="' + block.imagePositionX + '" /></label>' +
+                '<label>Crop Y<input type="number" min="-2000" max="2000" data-wiki-block-style="imagePositionY" value="' + block.imagePositionY + '" /></label>' +
+                '<label>Zoom<input type="range" min="0.1" max="8" step="0.05" data-wiki-block-style="imageScale" value="' + block.imageScale + '" /></label>' +
+              '</div>' +
+            '</div>';
         return '<section class="wiki-inspector" data-wiki-inspector>' +
-          '<div class="wiki-style-head"><h4>Style</h4></div>' +
-          textControls +
-          '<div class="wiki-control-group"><span class="wiki-control-label">Element</span>' +
-            '<button class="secondary" type="button" data-action="bring-wiki-forward">Bring Forward</button>' +
-            '<button class="secondary" type="button" data-action="duplicate-wiki-block">Duplicate</button>' +
-            '<button class="danger" type="button" data-action="delete-wiki-block" data-wiki-delete-block="' + escapeHtml(block.id) + '">Delete</button>' +
+          '<div class="wiki-inspector__group">' +
+            '<div class="wiki-inspector__header"><span class="wiki-inspector__label">Element</span></div>' +
+            '<div class="wiki-control-row">' +
+              '<button class="secondary" type="button" data-action="bring-wiki-forward">Bring Forward</button>' +
+              '<button class="secondary" type="button" data-action="duplicate-wiki-block">Duplicate</button>' +
+              '<button class="danger" type="button" data-action="delete-wiki-block" data-wiki-delete-block="' + escapeHtml(block.id) + '">Delete</button>' +
+            '</div>' +
           '</div>' +
-          '<div class="wiki-control-group wiki-control-group--assets">' + renderWikiAssetToolsHtml() + '</div>' +
+          formattingControls +
+          '<div class="wiki-inspector__group wiki-inspector__group--assets">' +
+            '<div class="wiki-inspector__header"><span class="wiki-inspector__label">Assets</span></div>' +
+            renderWikiAssetToolsHtml() +
+          '</div>' +
         '</section>';
       }
 
@@ -5960,6 +6006,8 @@ export function kellaDashboardHtml() {
         const node = wikiBlockElement(block.id);
         if (!node) return;
         node.setAttribute("style", wikiBlockStyle(block));
+        // D: toggle shadow class for CSS-based shadow layer
+        node.classList.toggle("wiki-block--shadowed", !!block.shadowEnabled);
         const media = node.querySelector("[data-wiki-media]");
         if (media) media.setAttribute("style", wikiMediaStyle(block));
         const content = node.querySelector("[data-wiki-text-content]");
@@ -9886,7 +9934,9 @@ export function kellaDashboardHtml() {
         if (!blockEl || (event.pointerType === "mouse" && event.button !== 0)) return;
         const isResize = !!event.target.closest("[data-wiki-resize-handle]");
         const isDragHandle = !!event.target.closest("[data-wiki-drag-handle]");
-        const isMediaCrop = blockEl.classList.contains("wiki-image-block") && !!event.target.closest("[data-wiki-media]");
+        const isImageBlock = blockEl.classList.contains("wiki-image-block");
+        // A: broaden image drag hit detection — clicking anywhere inside .wiki-media-frame uses move-image
+        const isMediaCrop = isImageBlock && (!!event.target.closest("[data-wiki-media]") || !!event.target.closest(".wiki-media-frame"));
         if (!isResize && !isDragHandle && !isMediaCrop) return;
         const id = blockEl.getAttribute("data-wiki-block") || "";
         syncWikiTextFromDom();
@@ -9900,6 +9950,7 @@ export function kellaDashboardHtml() {
         const canvasScaleY = canvas?.offsetHeight ? wikiPageHeight(state.wikiBlocks || []) / canvas.offsetHeight : canvasScaleX;
         const mode = isResize ? "resize-element" : isMediaCrop ? "move-image" : "move-element";
         state.wikiInteractionMode = mode;
+        // B: defer pointer capture + drag activation until movement exceeds threshold
         state.wikiDrag = {
           id,
           pointerId: event.pointerId,
@@ -9918,25 +9969,38 @@ export function kellaDashboardHtml() {
           baseWidth: block.width,
           baseHeight: block.height,
           baseImageX: block.imagePositionX,
-          baseImageY: block.imagePositionY
+          baseImageY: block.imagePositionY,
+          captured: false,
+          threshold: 5
         };
-        event.target.setPointerCapture?.(event.pointerId);
+        // Select the block visually but do NOT capture pointer or preventDefault yet
         (state.wikiBlocks || []).forEach(updateWikiBlockElement);
         refreshWikiSelection();
-        event.preventDefault();
-        event.stopPropagation();
       });
 
       document.addEventListener("pointermove", function(event) {
         const drag = state.wikiDrag;
         if (!drag || drag.pointerId !== event.pointerId) return;
+        // B: wait for movement threshold before activating drag
+        const deltaX = Math.abs(event.clientX - drag.startX);
+        const deltaY = Math.abs(event.clientY - drag.startY);
+        if (!drag.captured && deltaX < drag.threshold && deltaY < drag.threshold) return;
         const block = state.wikiBlocks.find(function(item) { return item.id === drag.id; });
         if (!block) return;
-        if (drag.mode === "move-image" && drag.scrollContainer) {
+        // B: capture the pointer only after threshold is crossed
+        if (!drag.captured) {
+          drag.captured = true;
+          drag.pointerTarget.setPointerCapture?.(event.pointerId);
+        }
+        // C: edge auto-scroll — support both vertical and horizontal for all drag modes
+        if (drag.scrollContainer) {
           const bounds = drag.scrollContainer.getBoundingClientRect();
           const edge = 54;
-          if (event.clientY < bounds.top + edge) drag.scrollContainer.scrollTop -= 14;
-          else if (event.clientY > bounds.bottom - edge) drag.scrollContainer.scrollTop += 14;
+          const scrollStep = 14;
+          if (event.clientX < bounds.left + edge) drag.scrollContainer.scrollLeft -= scrollStep;
+          else if (event.clientX > bounds.right - edge) drag.scrollContainer.scrollLeft += scrollStep;
+          if (event.clientY < bounds.top + edge) drag.scrollContainer.scrollTop -= scrollStep;
+          else if (event.clientY > bounds.bottom - edge) drag.scrollContainer.scrollTop += scrollStep;
         }
         const scrollDx = (drag.scrollContainer?.scrollLeft || 0) - drag.startScrollLeft;
         const scrollDy = (drag.scrollContainer?.scrollTop || 0) - drag.startScrollTop;
@@ -9988,6 +10052,7 @@ export function kellaDashboardHtml() {
         }
         updateWikiBlockElement(block);
         if (drag.mode !== "move-image") resizeWikiPageToContent();
+        // C: only preventDefault after drag is actively moving the element
         event.preventDefault();
         event.stopPropagation();
       });
