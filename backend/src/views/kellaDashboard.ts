@@ -1790,13 +1790,14 @@ export function kellaDashboardHtml() {
         box-shadow: 0 12px 26px rgba(111, 69, 25, 0.20), 0 0 18px rgba(255, 214, 90, 0.18);
         outline: none;
       }
-      .calendar-day-top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-      .calendar-day strong { font-size: 18px; color: #3a220c; }
-      .calendar-day em { color: #7b5b34; font-size: 11px; font-style: normal; font-weight: 950; text-transform: uppercase; letter-spacing: 0.05em; }
-      .calendar-day-list { display: grid; gap: 5px; min-width: 0; }
-      .calendar-day-top-buff { display: flex; justify-content: center; font-size: 11px; font-weight: 950; color: #3a220c; margin-bottom: 2px; }
-      .calendar-day-list-buff { display: flex; justify-content: center; align-items: center; padding: 0; }
-      .calendar-day-bottom-buff { display: flex; justify-content: center; font-size: 10px; font-weight: 700; color: #7b5b34; text-transform: capitalize; margin-top: 2px; }
+      .calendar-day-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; gap: 4px; }
+      .calendar-day-number { justify-self: start; font-size: 18px; font-weight: 950; color: #3a220c; }
+      .calendar-day-weekday { justify-self: end; color: #7b5b34; font-size: 11px; font-style: normal; font-weight: 950; text-transform: uppercase; letter-spacing: 0.05em; }
+      .calendar-day-buff { justify-self: center; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; flex: 0 0 auto; }
+      .calendar-day-buff img { width: 22px; height: 22px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(72, 42, 12, 0.20)); }
+      .calendar-day-buff.placeholder { visibility: hidden; }
+      .calendar-day-list { display: grid; gap: 5px; min-width: 0; margin-top: auto; }
+      .calendar-day-top-buff, .calendar-day-list-buff, .calendar-day-bottom-buff { display: none; }
       .calendar-entry {
         display: block;
         border-radius: 7px;
@@ -3168,9 +3169,11 @@ export function kellaDashboardHtml() {
         .calendar-day { min-height: 68px; padding: 5px 3px; border-radius: 8px; gap: 3px; text-align: center; }
         .event-calendar .calendar-day,
         .attendance-calendar-card .event-calendar .calendar-day { min-height: 68px; }
-        .calendar-day-top { justify-content: center; }
-        .calendar-day strong { font-size: 15px; }
-        .calendar-day em { display: none; }
+        .calendar-day-top { grid-template-columns: 1fr auto 1fr; }
+        .calendar-day-number { font-size: 14px; }
+        .calendar-day-weekday { font-size: 9px; }
+        .calendar-day-buff { width: 20px; height: 20px; }
+        .calendar-day-buff img { width: 16px; height: 16px; }
         .calendar-day-list { display: flex; justify-content: center; align-items: center; gap: 3px; overflow: hidden; }
         .calendar-entry { width: 6px; height: 6px; min-width: 6px; border: 0; border-radius: 50%; padding: 0; background: #b3262f; color: transparent; font-size: 0; }
         .calendar-entry small, .calendar-empty { display: none; }
@@ -5075,30 +5078,33 @@ export function kellaDashboardHtml() {
         const weekday = new Intl.DateTimeFormat("en", { weekday: "short", timeZone: "UTC" }).format(date);
         const isToday = key === dayKey(new Date());
         const visible = items.slice(0, 3);
+        const dayNum = date ? String(date.getUTCDate()) : "";
+        const buffItem = items.find(function(item) { return !!item.icon; }) || null;
+        const buffIcon = buffItem
+          ? '<span class="calendar-day-buff" role="img" aria-label="' + escapeHtml(buffItem.title || "Buff") + '" title="' + escapeHtml(buffItem.title || "Buff") + '" data-buff-day="' + escapeHtml(dayNum) + '" data-buff-weekday="' + escapeHtml(weekday) + '"><img src="' + escapeHtml(buffItem.icon) + '" alt="' + escapeHtml(buffItem.title || "Buff") + '" /></span>'
+          : '<span class="calendar-day-buff placeholder" aria-hidden="true"></span>';
         const entries = visible.length
           ? visible.map(function(item) {
               const icon = item.icon ? '<img src="' + escapeHtml(item.icon) + '" alt="" />' : "";
               const title = escapeHtml(item.title || "Buff");
               const meta = escapeHtml(item.meta || "");
-              const weekday = date ? new Intl.DateTimeFormat("en", { weekday: "short", timeZone: "UTC" }).format(date) : "";
-              const dayNum = date ? String(date.getUTCDate()) : "";
+              const weekdayLabel = date ? new Intl.DateTimeFormat("en", { weekday: "short", timeZone: "UTC" }).format(date) : "";
+              const dayNumLabel = date ? String(date.getUTCDate()) : "";
               const isBuff = !!item.icon;
               return '<span class="calendar-entry' + (isBuff ? " buff" : "") + '">' + (isBuff
-                ? '<span class="calendar-buff-image" data-buff-title="' + title + '" data-buff-meta="' + meta + '" data-buff-day="' + escapeHtml(dayNum) + '" data-buff-weekday="' + escapeHtml(weekday) + '">' + icon + '<span class="calendar-buff-tooltip">' + dayNum + '<br><img src="' + escapeHtml(item.icon) + '" alt="" /><br>' + weekday + '</span></span>'
+                ? '<span class="calendar-buff-image" data-buff-title="' + title + '" data-buff-meta="' + meta + '" data-buff-day="' + escapeHtml(dayNumLabel) + '" data-buff-weekday="' + escapeHtml(weekdayLabel) + '">' + icon + '<span class="calendar-buff-tooltip">' + dayNumLabel + '<br><img src="' + escapeHtml(item.icon) + '" alt="" /><br>' + weekdayLabel + '</span></span>'
                 : icon + '<span>' + title + '</span><small>' + meta + '</small>'
               ) + '</span>';
             }).join("")
           : '<span class="calendar-empty">No event</span>';
         const more = items.length > visible.length ? '<span class="calendar-more">+' + (items.length - visible.length) + ' more</span>' : "";
-        const buffOnly = items.length > 0 && items.every(function(item) { return !!item.icon; });
         return '<button class="calendar-day' + (items.length ? " has-items event" : "") + (isToday ? " today" : "") + '" type="button" data-calendar-day="' + key + '" data-calendar-type="' + type + '">' +
-          (buffOnly
-            ? '<span class="calendar-day-top calendar-day-top-buff">' + date.getUTCDate() + '</span>' +
-              '<span class="calendar-day-list calendar-day-list-buff">' + entries + '</span>' +
-              '<span class="calendar-day-bottom calendar-day-bottom-buff">' + weekday + '</span>'
-            : '<span class="calendar-day-top"><strong>' + date.getUTCDate() + '</strong><em>' + weekday + '</em></span>' +
-              '<span class="calendar-day-list">' + entries + more + '</span>'
-          ) +
+          '<div class="calendar-day-top">' +
+            '<span class="calendar-day-number">' + dayNum + '</span>' +
+            buffIcon +
+            '<span class="calendar-day-weekday">' + weekday + '</span>' +
+          '</div>' +
+          '<div class="calendar-day-list">' + entries + more + '</div>' +
         '</button>';
       }
 
