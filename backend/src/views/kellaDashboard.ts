@@ -1794,6 +1794,9 @@ export function kellaDashboardHtml() {
       .calendar-day strong { font-size: 18px; color: #3a220c; }
       .calendar-day em { color: #7b5b34; font-size: 11px; font-style: normal; font-weight: 950; text-transform: uppercase; letter-spacing: 0.05em; }
       .calendar-day-list { display: grid; gap: 5px; min-width: 0; }
+      .calendar-day-top-buff { display: flex; justify-content: center; font-size: 11px; font-weight: 950; color: #3a220c; margin-bottom: 2px; }
+      .calendar-day-list-buff { display: flex; justify-content: center; align-items: center; padding: 0; }
+      .calendar-day-bottom-buff { display: flex; justify-content: center; font-size: 10px; font-weight: 700; color: #7b5b34; text-transform: capitalize; margin-top: 2px; }
       .calendar-entry {
         display: block;
         border-radius: 7px;
@@ -1809,9 +1812,9 @@ export function kellaDashboardHtml() {
         white-space: nowrap;
       }
       .calendar-entry small { display: block; color: #6e512d; font-size: 10px; font-weight: 850; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
-      .calendar-entry.buff { display: inline-flex; align-items: center; justify-content: center; }
+      .calendar-entry.buff { display: inline-flex; align-items: center; justify-content: center; padding: 0; margin: 2px 0; border-radius: 0; border: 0; background: transparent; overflow: visible; }
       .calendar-entry.buff img { width: 22px; height: 22px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(72, 42, 12, 0.20)); }
-      .calendar-entry.buff small { min-width: 0; }
+      .calendar-entry.buff small { display: none; }
       .calendar-entry:not(.buff) { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; column-gap: 6px; }
       .calendar-entry:not(.buff) img { grid-row: 1 / span 2; width: 28px; height: 28px; object-fit: contain; }
       .calendar-entry:not(.buff) span { display: block; font: 800 10px Arial, sans-serif; color: #34210f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -4303,6 +4306,7 @@ export function kellaDashboardHtml() {
           const point = pointAt(radius * scores[index], index);
           return point.x.toFixed(1) + ',' + point.y.toFixed(1);
         });
+        const areaKey = 'radar-area-' + (selectedDate || 'latest');
         const dots = areaPoints.map(function(point) {
           const parts = point.split(',');
           return '<circle class="radar-dot" cx="' + parts[0] + '" cy="' + parts[1] + '" r="4"></circle>';
@@ -4327,7 +4331,7 @@ export function kellaDashboardHtml() {
         const graphToggle = '<button class="profile-graph-toggle ' + (graphMode === "trend" ? "active" : "") + '" type="button" data-action="toggle-profile-graph" data-member-id="' + escapeHtml(memberId) + '" aria-pressed="' + String(graphMode === "trend") + '" title="Switch to ' + (graphMode === "trend" ? "radar stats" : "power trend") + '"><img src="/assets/icons/change-graph.png?v=1" alt="" width="30" height="30" loading="lazy" decoding="async"><span class="profile-graph-toggle-copy"><strong>Change graph</strong><small>' + (graphMode === "trend" ? "Power trend" : "Radar stats") + '</small></span><span class="profile-graph-switch" aria-hidden="true"></span></button>';
         const graph = graphMode === "trend"
           ? profilePowerTrend(member, selectedDate)
-          : '<svg class="profile-radar" viewBox="0 0 560 348" role="img" aria-label="Current season player statistics radar chart">' + rings + spokes + '<polygon class="radar-area" points="' + areaPoints.join(' ') + '"></polygon>' + dots + labels + '</svg>';
+          : '<svg class="profile-radar" viewBox="0 0 560 348" role="img" aria-label="Current season player statistics radar chart" data-radar-date="' + escapeHtml(selectedDate) + '">' + rings + spokes + '<polygon class="radar-area" key="' + areaKey + '" points="' + areaPoints.join(" ") + '"></polygon>' + dots + labels + "</svg>";
         const radarSelector = graphMode === "radar" ? '<details class="metric-selector"><summary><span class="metric-selector-label">Radar stats</span><span class="metric-selector-value">' + axes.length + ' selected</span></summary><div class="metric-picker">' + metricButtons + '</div></details>' : '';
         return '<section class="profile-season-card"><div class="profile-season-topbar"><div class="profile-season-head"><h4>Current Season</h4><p>' + escapeHtml(selectedDate ? "Roster snapshot " + formatDate(new Date(selectedDate + "T00:00:00Z")) : "Compared with the current alliance roster") + '</p></div>' + graphToggle + '</div>' + graph +
           '<div class="profile-radar-controls">' + radarSelector +
@@ -4350,7 +4354,9 @@ export function kellaDashboardHtml() {
         const span = document.createElement("span");
         span.innerHTML = html;
         const replacement = span.firstElementChild;
-        current.parentNode?.replaceChild(replacement, current);
+        if (replacement) {
+          current.parentNode?.replaceChild(replacement, current);
+        }
         requestAnimationFrame(function() {
           if (panel) panel.scrollTop = scrollTop;
         });
@@ -5084,9 +5090,15 @@ export function kellaDashboardHtml() {
             }).join("")
           : '<span class="calendar-empty">No event</span>';
         const more = items.length > visible.length ? '<span class="calendar-more">+' + (items.length - visible.length) + ' more</span>' : "";
+        const buffOnly = items.length > 0 && items.every(function(item) { return !!item.icon; });
         return '<button class="calendar-day' + (items.length ? " has-items event" : "") + (isToday ? " today" : "") + '" type="button" data-calendar-day="' + key + '" data-calendar-type="' + type + '">' +
-          '<span class="calendar-day-top"><strong>' + date.getUTCDate() + '</strong><em>' + weekday + '</em></span>' +
-          '<span class="calendar-day-list">' + entries + more + '</span>' +
+          (buffOnly
+            ? '<span class="calendar-day-top calendar-day-top-buff">' + date.getUTCDate() + '</span>' +
+              '<span class="calendar-day-list calendar-day-list-buff">' + entries + '</span>' +
+              '<span class="calendar-day-bottom calendar-day-bottom-buff">' + weekday + '</span>'
+            : '<span class="calendar-day-top"><strong>' + date.getUTCDate() + '</strong><em>' + weekday + '</em></span>' +
+              '<span class="calendar-day-list">' + entries + more + '</span>'
+          ) +
         '</button>';
       }
 
