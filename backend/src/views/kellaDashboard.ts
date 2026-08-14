@@ -5083,8 +5083,10 @@ export function kellaDashboardHtml() {
         const buffIcon = buffItem
           ? '<span class="calendar-day-buff" role="img" aria-label="' + escapeHtml(buffItem.title || "Buff") + '" title="' + escapeHtml(buffItem.title || "Buff") + '" data-buff-day="' + escapeHtml(dayNum) + '" data-buff-weekday="' + escapeHtml(weekday) + '"><img src="' + escapeHtml(buffItem.icon) + '" alt="' + escapeHtml(buffItem.title || "Buff") + '" /></span>'
           : '<span class="calendar-day-buff placeholder" aria-hidden="true"></span>';
-        const entries = visible.length
-          ? visible.map(function(item) {
+        // Exclude buff items from the entry list since the buff icon already renders in the top row
+        const entryItems = visible.filter(function(item) { return !item.icon; });
+        const entries = entryItems.length
+          ? entryItems.map(function(item) {
               const icon = item.icon ? '<img src="' + escapeHtml(item.icon) + '" alt="" />' : "";
               const title = escapeHtml(item.title || "Buff");
               const meta = escapeHtml(item.meta || "");
