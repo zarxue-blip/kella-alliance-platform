@@ -726,7 +726,7 @@ export function kellaDashboardHtml() {
         pointer-events: none;
       }
       .wiki-image-block.wiki-block--shadowed .wiki-media-frame {
-        overflow: hidden;
+        overflow: visible;
         position: relative;
         z-index: 1;
       }
@@ -775,7 +775,7 @@ export function kellaDashboardHtml() {
       .wiki-media-frame {
         position: absolute;
         inset: 8px;
-        overflow: hidden;
+        overflow: visible;
         border-radius: 10px;
         background: rgba(76, 47, 18, 0.08);
       }
@@ -5408,7 +5408,7 @@ export function kellaDashboardHtml() {
 
       function wikiBlockHandlesHtml(editable, blockId) {
         return editable
-          ? '<button class="wiki-delete-block-button" type="button" data-action="delete-wiki-block" data-wiki-delete-block="' + escapeHtml(blockId || "") + '" title="Delete block" aria-label="Delete block">&times;</button><button class="wiki-drag-handle" type="button" data-wiki-drag-handle title="Drag block" aria-label="Drag block"></button><span class="wiki-resize-handle wiki-resize-nw" data-wiki-resize-handle data-resize-corner="nw" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-ne" data-wiki-resize-handle data-resize-corner="ne" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-sw" data-wiki-resize-handle data-resize-corner="sw" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-se" data-wiki-resize-handle data-resize-corner="se" title="Resize from corner"></span>'
+          ? '<button class="wiki-drag-handle" type="button" data-wiki-drag-handle title="Drag block" aria-label="Drag block"></button><span class="wiki-resize-handle wiki-resize-nw" data-wiki-resize-handle data-resize-corner="nw" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-ne" data-wiki-resize-handle data-resize-corner="ne" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-sw" data-wiki-resize-handle data-resize-corner="sw" title="Resize from corner"></span><span class="wiki-resize-handle wiki-resize-se" data-wiki-resize-handle data-resize-corner="se" title="Resize from corner"></span>'
           : "";
       }
 
@@ -5786,15 +5786,7 @@ export function kellaDashboardHtml() {
                 '<label>Zoom<input type="range" min="0.1" max="8" step="0.05" data-wiki-block-style="imageScale" value="' + block.imageScale + '" /></label>' +
               '</div>' +
             '</div>';
-        return '<section class="wiki-inspector" data-wiki-inspector>' +
-          '<div class="wiki-inspector__group">' +
-            '<div class="wiki-inspector__header"><span class="wiki-inspector__label">Element</span></div>' +
-            '<div class="wiki-control-row">' +
-              '<button class="secondary" type="button" data-action="bring-wiki-forward">Bring Forward</button>' +
-              '<button class="secondary" type="button" data-action="duplicate-wiki-block">Duplicate</button>' +
-              '<button class="danger" type="button" data-action="delete-wiki-block" data-wiki-delete-block="' + escapeHtml(block.id) + '">Delete</button>' +
-            '</div>' +
-          '</div>' +
+        return '<section class="wiki-inspector" data-wiki-inspector">' +
           formattingControls +
           '<div class="wiki-inspector__group wiki-inspector__group--assets">' +
             '<div class="wiki-inspector__header"><span class="wiki-inspector__label">Assets</span></div>' +
