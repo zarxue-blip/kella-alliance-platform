@@ -4368,6 +4368,7 @@ export function kellaDashboardHtml() {
       function selectProfileRadarDate(memberId, date) {
         const parsed = date ? new Date(date + "T00:00:00Z") : null;
         if (!parsed || !Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) return;
+        // MULTI-SELECTION: prefer openMember (full data loaded by openMemberModal) over compact dashboardMembers
         const member = (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || findMemberById(memberId) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
         if (!member) return;
         state.profileRadarDates[String(member.id || "profile")] = date;
@@ -4533,8 +4534,14 @@ export function kellaDashboardHtml() {
         document.body.classList.add("modal-open");
       }
 
-      function openMemberModal(member) {
+      async function openMemberModal(member) {
         if (!member || !memberModal || !memberModalContent) return;
+        // MULTI-SELECTION: If member data is compact (dashboard view with only one
+        // stat metric), fetch the full member so the radar graph has all metrics.
+        // Do not replace with single-item find/querySelectorAll logic — the radar
+        // needs full statHistory for all selected axes.
+        const full = await loadFullMember(member.id || "");
+        member = full || member;
         state.openMember = member;
         memberModalContent.dataset.memberId = member.id || "";
         const displayName = memberDisplayName(member);
@@ -4814,6 +4821,30 @@ export function kellaDashboardHtml() {
         state.dashboardMembers = data.members || [];
         state.dashboardMembersMetric = metric;
         return state.dashboardMembers;
+      }
+
+      // MULTI-SELECTION: When a member modal is opened from the dashboard (where members
+      // are loaded in compact mode with only one metric), fetch the full member data so
+      // the radar graph has all statHistory metrics available. Do not replace this with
+      // single-item find/querySelector logic — all selected radar metrics need full history.
+      async function loadFullMember(memberId) {
+        if (!memberId) return null;
+        const existing = findMemberById(memberId);
+        if (existing && Array.isArray(existing.statHistory) && existing.statHistory.length && existing.statHistory.some(function(entry) { return Object.keys(entry.metrics || {}).length > 1; })) return existing;
+        const uid = existing?.uid || "";
+        const ign = existing?.ign || "";
+        const query = uid ? uid : ign;
+        if (!query) return null;
+        const data = await fetchJson("/api/dashboard/members?q=" + encodeURIComponent(query));
+        const full = (data.members || []).find(function(m) { return String(m.id || "") === String(memberId); });
+        if (full) {
+          state.members = state.members.slice();
+          const idx = state.members.findIndex(function(m) { return String(m.id || "") === String(memberId); });
+          if (idx >= 0) state.members[idx] = full;
+          else state.members.push(full);
+          return full;
+        }
+        return existing;
       }
 
       async function loadProfile(force = false) {
@@ -9348,7 +9379,8 @@ export function kellaDashboardHtml() {
         }
         if (kind === "toggle-profile-graph") {
           const memberId = action.getAttribute("data-member-id") || "";
-          const member = findMemberById(memberId) || (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
+          // MULTI-SELECTION: prefer openMember (full data) over compact dashboardMembers
+          const member = (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || findMemberById(memberId) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
           if (!member) return;
           const key = String(member.id || "profile");
           state.profileGraphModes[key] = profileGraphMode(member) === "trend" ? "radar" : "trend";
@@ -9358,7 +9390,9 @@ export function kellaDashboardHtml() {
         if (kind === "toggle-profile-radar-metric") {
           const memberId = action.getAttribute("data-member-id") || "";
           const metricKey = action.getAttribute("data-metric") || "";
-          const member = findMemberById(memberId) || (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
+          // MULTI-SELECTION: Prefer openMember/profile (full data) over dashboardMembers (compact)
+          const member = state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember
+            : findMemberById(memberId) || (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
           if (!member || !statMetricOptions.some(function(metric) { return metric.key === metricKey; })) return;
           const selected = profileRadarMetrics(member).slice();
           const index = selected.indexOf(metricKey);
