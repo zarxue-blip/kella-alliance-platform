@@ -13,7 +13,9 @@
     "dev": "npm run build --workspace @cod-amp/shared && concurrently \"npm run dev --workspace @cod-amp/backend\" \"npm run dev --workspace @cod-amp/discord-bot\" \"npm run dev --workspace @cod-amp/frontend\"",
     "build": "npm run build --workspace @cod-amp/shared && npm run build --workspace @cod-amp/backend && npm run build --workspace @cod-amp/discord-bot && npm run build --workspace @cod-amp/frontend",
     "lint": "npm run lint --workspace @cod-amp/frontend --if-present",
-    "typecheck": "npm run typecheck --workspace @cod-amp/shared && npm run typecheck --workspace @cod-amp/backend && npm run typecheck --workspace @cod-amp/discord-bot && npm run typecheck --workspace @cod-amp/frontend"
+    "typecheck": "npm run typecheck --workspace @cod-amp/shared && npm run typecheck --workspace @cod-amp/backend && npm run typecheck --workspace @cod-amp/discord-bot && npm run typecheck --workspace @cod-amp/frontend",
+    "test": "npm run test --workspace @cod-amp/backend",
+    "test:radar": "npm run test:radar --workspace @cod-amp/backend"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"
