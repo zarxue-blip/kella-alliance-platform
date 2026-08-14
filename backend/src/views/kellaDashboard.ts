@@ -1809,9 +1809,13 @@ export function kellaDashboardHtml() {
         white-space: nowrap;
       }
       .calendar-entry small { display: block; color: #6e512d; font-size: 10px; font-weight: 850; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
-      .calendar-entry.buff { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; column-gap: 6px; }
-      .calendar-entry.buff img { grid-row: 1 / span 2; width: 28px; height: 28px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(72, 42, 12, 0.20)); }
+      .calendar-entry.buff { display: inline-flex; align-items: center; justify-content: center; }
+      .calendar-entry.buff img { width: 22px; height: 22px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(72, 42, 12, 0.20)); }
       .calendar-entry.buff small { min-width: 0; }
+      .calendar-entry:not(.buff) { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; column-gap: 6px; }
+      .calendar-entry:not(.buff) img { grid-row: 1 / span 2; width: 28px; height: 28px; object-fit: contain; }
+      .calendar-entry:not(.buff) span { display: block; font: 800 10px Arial, sans-serif; color: #34210f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .calendar-entry:not(.buff) small { display: block; color: #6e512d; font-size: 9px; font-weight: 850; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
       .calendar-buff-image { position: relative; display: inline-flex; cursor: pointer; }
       .calendar-buff-image img { width: 24px; height: 24px; }
       .calendar-buff-tooltip { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(120, 75, 25, 0.5); border-radius: 8px; padding: 8px; text-align: center; font: 800 11px Arial, sans-serif; color: #34210f; white-space: nowrap; z-index: 10; pointer-events: none; }
@@ -1845,6 +1849,7 @@ export function kellaDashboardHtml() {
         padding: 14px;
       }
       .calendar-detail-card h3 { font-size: 18px; margin-top: 7px; }
+      .calendar-detail-card .calendar-detail-buff-icon { width: 28px; height: 28px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(72, 42, 12, 0.20)); margin-right: 6px; vertical-align: middle; }
       .calendar-detail-card p { margin: 8px 0 0; color: #5f4729; }
       .calendar-detail-card .activity-time { margin-top: 6px; }
       .attendance-summary-grid {
@@ -4341,8 +4346,14 @@ export function kellaDashboardHtml() {
         }
         const panel = modalIsOpen ? memberModal?.querySelector(".member-modal-panel") : null;
         const scrollTop = panel?.scrollTop || 0;
-        current.outerHTML = memberSeasonRadar(member);
-        if (panel) requestAnimationFrame(function() { panel.scrollTop = scrollTop; });
+        const html = memberSeasonRadar(member);
+        const span = document.createElement("span");
+        span.innerHTML = html;
+        const replacement = span.firstElementChild;
+        current.parentNode?.replaceChild(replacement, current);
+        requestAnimationFrame(function() {
+          if (panel) panel.scrollTop = scrollTop;
+        });
       }
 
       function selectProfileRadarDate(memberId, date) {
@@ -4570,6 +4581,7 @@ export function kellaDashboardHtml() {
           : '';
         return '<article class="calendar-detail-card">' +
           '<span class="badge warn">' + escapeHtml(item.kind || "Detail") + '</span>' +
+          (item.icon ? '<img class="calendar-detail-buff-icon" src="' + escapeHtml(item.icon) + '" alt="" />' : '') +
           '<h3>' + escapeHtml(item.title || "Calendar Item") + '</h3>' +
           '<span class="activity-time">' + escapeHtml(item.meta || "") + '</span>' +
           '<p>' + escapeHtml(item.description || "") + '</p>' +
