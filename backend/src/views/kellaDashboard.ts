@@ -4196,7 +4196,7 @@ export function kellaDashboardHtml() {
 
       function profileRadarMetrics(member) {
         const id = String(member?.id || "profile");
-        const defaults = ["merits", "unitsKilled", "resourcesGathered", "serverRank", "unitsHealed", "buildingPower"];
+        const defaults = ["power", "merits", "unitsKilled", "resourcesGathered", "serverRank", "unitsHealed", "buildingPower"];
         const saved = state.profileRadarMetrics[id];
         return Array.isArray(saved) && saved.length >= 3 ? saved : defaults;
       }
