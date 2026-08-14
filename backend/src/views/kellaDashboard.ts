@@ -1812,6 +1812,10 @@ export function kellaDashboardHtml() {
       .calendar-entry.buff { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; column-gap: 6px; }
       .calendar-entry.buff img { grid-row: 1 / span 2; width: 28px; height: 28px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(72, 42, 12, 0.20)); }
       .calendar-entry.buff small { min-width: 0; }
+      .calendar-buff-image { position: relative; display: inline-flex; cursor: pointer; }
+      .calendar-buff-image img { width: 24px; height: 24px; }
+      .calendar-buff-tooltip { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(120, 75, 25, 0.5); border-radius: 8px; padding: 8px; text-align: center; font: 800 11px Arial, sans-serif; color: #34210f; white-space: nowrap; z-index: 10; pointer-events: none; }
+      .calendar-buff-image:hover .calendar-buff-tooltip { display: block; }
       .calendar-empty { color: var(--muted); font-size: 12px; font-weight: 850; }
       .calendar-more { color: #7c4b08; font-size: 11px; font-weight: 1000; }
       .calendar-day.hot, .calendar-day.has-items { background: linear-gradient(180deg, rgba(255, 224, 109, 0.78), rgba(209, 142, 43, 0.50)); border-color: rgba(169, 99, 23, 0.40); }
@@ -3550,7 +3554,7 @@ export function kellaDashboardHtml() {
 
       function formatDate(value) {
         if (!value) return "Unknown";
-        return new Intl.DateTimeFormat("en", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(value));
+        return new Intl.DateTimeFormat("en", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "UTC" }).format(new Date(value));
       }
 
       function formatDateTime(value) {
@@ -4009,7 +4013,7 @@ export function kellaDashboardHtml() {
 
       function compactDate(value) {
         if (!value) return "";
-        return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(value);
+        return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", timeZone: "UTC" }).format(value);
       }
 
       function formatDelta(delta) {
@@ -4265,8 +4269,8 @@ export function kellaDashboardHtml() {
         const roster = allRosterMembers().filter(isAllowedStatsAlliance);
         const centerX = 280;
         const centerY = 174;
-        const radius = axes.length > 7 ? 112 : 126;
-        const labelRadius = axes.length > 7 ? 148 : 160;
+        const radius = axes.length > 7 ? 104 : 114;
+        const labelRadius = axes.length > 7 ? 136 : 146;
         const angleFor = function(index) { return -Math.PI / 2 + (Math.PI * 2 * index) / axes.length; };
         const pointAt = function(distance, index) {
           const angle = angleFor(index);
@@ -5056,7 +5060,15 @@ export function kellaDashboardHtml() {
         const entries = visible.length
           ? visible.map(function(item) {
               const icon = item.icon ? '<img src="' + escapeHtml(item.icon) + '" alt="" />' : "";
-              return '<span class="calendar-entry' + (item.icon ? " buff" : "") + '">' + icon + '<span>' + escapeHtml(item.title) + '</span><small>' + escapeHtml(item.meta || item.kind || "") + '</small></span>';
+              const title = escapeHtml(item.title || "Buff");
+              const meta = escapeHtml(item.meta || "");
+              const weekday = date ? new Intl.DateTimeFormat("en", { weekday: "short", timeZone: "UTC" }).format(date) : "";
+              const dayNum = date ? String(date.getUTCDate()) : "";
+              const isBuff = !!item.icon;
+              return '<span class="calendar-entry' + (isBuff ? " buff" : "") + '">' + (isBuff
+                ? '<span class="calendar-buff-image" data-buff-title="' + title + '" data-buff-meta="' + meta + '" data-buff-day="' + escapeHtml(dayNum) + '" data-buff-weekday="' + escapeHtml(weekday) + '">' + icon + '<span class="calendar-buff-tooltip">' + dayNum + '<br><img src="' + escapeHtml(item.icon) + '" alt="" /><br>' + weekday + '</span></span>'
+                : icon + '<span>' + title + '</span><small>' + meta + '</small>'
+              ) + '</span>';
             }).join("")
           : '<span class="calendar-empty">No event</span>';
         const more = items.length > visible.length ? '<span class="calendar-more">+' + (items.length - visible.length) + ' more</span>' : "";
