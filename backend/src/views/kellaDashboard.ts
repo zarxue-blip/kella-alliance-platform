@@ -8765,8 +8765,12 @@ export function kellaDashboardHtml() {
       document.addEventListener("pointerdown", function(event) {
         const viewport = event.target.closest?.("[data-lord-research-scroll]");
         if (!viewport || event.button !== 0) return;
+        // RESEARCH-CLICK-FIX: If the user clicked directly on a research node button
+        // (or its child elements like the icon/image), do NOT capture the pointer.
+        // Capturing the pointer to the viewport prevents the click event from reaching
+        // the button, making it impossible for players to click talent nodes.
+        if (event.target.closest?.('[data-action="lord-research-select"]')) return;
         lordResearchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-        viewport.setPointerCapture?.(event.pointerId);
         if (lordResearchPointers.size === 2) {
           const points = Array.from(lordResearchPointers.values());
           const rect = viewport.getBoundingClientRect();
@@ -8815,6 +8819,9 @@ export function kellaDashboardHtml() {
         const dy = event.clientY - lordResearchPan.startY;
         if (!lordResearchPan.moved && Math.hypot(dx, dy) < 5) return;
         lordResearchPan.moved = true;
+        // RESEARCH-CLICK-FIX: Only capture the pointer when we detect actual panning,
+        // so that simple clicks on talent nodes still fire click events.
+        lordResearchPan.viewport.setPointerCapture?.(event.pointerId);
         lordResearchPan.viewport.classList.add("is-dragging");
         state.lordResearchPanX = lordResearchPan.panX + dx;
         state.lordResearchPanY = lordResearchPan.panY + dy;
