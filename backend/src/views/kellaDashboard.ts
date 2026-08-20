@@ -1944,6 +1944,22 @@ export function kellaDashboardHtml() {
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: 10px;
       }
+      .complaint-sender {
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr);
+        align-items: center;
+        gap: 9px;
+        min-width: 180px;
+      }
+      .complaint-sender img {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid rgba(92, 55, 18, 0.22);
+        background: rgba(255, 247, 219, 0.65);
+      }
+      .complaint-sender small { display: block; overflow-wrap: anywhere; }
       .alliance-stats-card { padding: 24px; }
       .metric-selector {
         margin: 0 0 16px;
@@ -8172,7 +8188,7 @@ export function kellaDashboardHtml() {
                 '<label>Type<select data-complaint="kind"><option value="Complaint">Complaint</option><option value="Suggestion">Suggestion</option></select></label>' +
                 '<label>Title<input data-complaint="title" maxlength="140" placeholder="Short title" /></label>' +
                 '<label class="wide">Description<textarea data-complaint="description" maxlength="1800" placeholder="Tell the R4s what happened or what should improve."></textarea></label>' +
-                '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /> Submit anonymously to R4s</label>' +
+                '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /> Mark as confidential <span class="muted">(admins can still verify the sender)</span></label>' +
                 '<label class="wide">Optional Picture<input type="file" data-complaint-image accept="image/png,image/jpeg,image/webp" /><span class="muted">Optional screenshot, under 3 MB.</span></label>' +
               '</div>' +
               '<div class="complaint-preview" data-complaint-image-preview>No picture selected.</div>' +
@@ -8191,7 +8207,7 @@ export function kellaDashboardHtml() {
             '<label>Type<select data-complaint="kind"><option value="Complaint">Complaint</option><option value="Suggestion">Suggestion</option></select></label>' +
             '<label>Title<input data-complaint="title" maxlength="140" placeholder="Short title" /></label>' +
             '<label class="wide">Description<textarea data-complaint="description" maxlength="1800" placeholder="Tell the R4s what happened or what should improve."></textarea></label>' +
-            '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /> Submit anonymously to R4s</label>' +
+            '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /> Mark as confidential <span class="muted">(admins can still verify the sender)</span></label>' +
             '<label class="wide">Optional Picture<input type="file" data-complaint-image accept="image/png,image/jpeg,image/webp" /><span class="muted">Optional screenshot, under 3 MB.</span></label>' +
           '</div>' +
           '<div class="complaint-preview" data-complaint-image-preview>No picture selected.</div>' +
@@ -8504,12 +8520,16 @@ export function kellaDashboardHtml() {
             const resolved = item.status === "Resolved";
             const attachment = item.imageDataUrl ? '<button class="secondary" type="button" data-action="open-complaint-detail" data-complaint-id="' + escapeHtml(item.id) + '">View Image</button>' : '<span class="muted">No image</span>';
             const message = '<strong>' + escapeHtml(item.title || item.kind || "Feedback") + '</strong><br><span>' + escapeHtml(item.message || "") + '</span>' + attachment;
+            const senderAvatar = escapeHtml(item.avatarUrl || "/assets/icons/members.png");
+            const senderMeta = item.discordUsername ? "@" + item.discordUsername : (item.discordId || "Discord ID unavailable");
+            const confidential = item.confidential ? '<br><span class="badge warn">Confidential</span>' : '';
+            const sender = '<div class="complaint-sender"><img src="' + senderAvatar + '" alt="" /><div><strong>' + escapeHtml(item.player || "Unknown") + '</strong><small class="muted">' + escapeHtml(senderMeta) + '</small>' + confidential + '</div></div>';
             const notes = [
               item.assignedTo ? "Assigned: " + item.assignedTo : "",
               item.adminNote ? "Note: " + item.adminNote : "",
               item.lastReply ? "Last reply: " + item.lastReply : ""
             ].filter(Boolean).join("\\n");
-            return '<tr><td>' + escapeHtml(item.kind || "Complaint") + '</td><td><strong>' + escapeHtml(item.player || "Unknown") + '</strong><br><span class="muted">' + escapeHtml(item.discordId || "") + '</span></td><td>' + message + '</td><td><span class="badge ' + (resolved ? "good" : "warn") + '">' + escapeHtml(item.status || "Pending") + '</span></td><td><span class="muted">' + escapeHtml(notes || "No admin notes yet.") + '</span></td><td>' + formatDateTime(item.sentAt) + '</td><td><div class="toolbar"><button class="primary" data-action="open-complaint-detail" data-complaint-id="' + escapeHtml(item.id) + '">Open</button><button class="secondary" data-action="assign-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Assign</button><button class="secondary" data-action="note-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Note</button><button class="secondary" data-action="reply-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Reply</button><button class="secondary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Pending">Pending</button><button class="primary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Resolved">Resolve</button></div></td></tr>';
+            return '<tr><td>' + escapeHtml(item.kind || "Complaint") + '</td><td>' + sender + '</td><td>' + message + '</td><td><span class="badge ' + (resolved ? "good" : "warn") + '">' + escapeHtml(item.status || "Pending") + '</span></td><td><span class="muted">' + escapeHtml(notes || "No admin notes yet.") + '</span></td><td>' + formatDateTime(item.sentAt) + '</td><td><div class="toolbar"><button class="primary" data-action="open-complaint-detail" data-complaint-id="' + escapeHtml(item.id) + '">Open</button><button class="secondary" data-action="assign-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Assign</button><button class="secondary" data-action="note-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Note</button><button class="secondary" data-action="reply-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Reply</button><button class="secondary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Pending">Pending</button><button class="primary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Resolved">Resolve</button></div></td></tr>';
           }).join("") +
           '</tbody></table></div>';
       }
@@ -8543,7 +8563,9 @@ export function kellaDashboardHtml() {
           '<section class="complaint-detail">' +
             '<div class="complaint-detail-meta">' +
               profileStat("Status", item.status || "Pending") +
+              profileStat("Discord Username", item.discordUsername ? "@" + item.discordUsername : "Not synced") +
               profileStat("Discord ID", item.discordId || "Unknown") +
+              profileStat("Privacy", item.confidential ? "Confidential request" : "Standard") +
               profileStat("Source", item.source || "discord") +
               profileStat("Assigned", item.assignedTo || "Unassigned") +
             '</div>' +
