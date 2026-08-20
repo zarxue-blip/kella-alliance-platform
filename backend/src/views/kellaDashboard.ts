@@ -8224,7 +8224,7 @@ export function kellaDashboardHtml() {
                 '<label>Type<select data-complaint="kind"><option value="Complaint">Complaint</option><option value="Suggestion">Suggestion</option></select></label>' +
                 '<label>Title<input data-complaint="title" maxlength="140" placeholder="Short title" /></label>' +
                 '<label class="wide">Description<textarea data-complaint="description" maxlength="1800" placeholder="Tell the R4s what happened or what should improve."></textarea></label>' +
-                '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /><span>Mark as confidential<br><small class="muted">Admins can still verify the sender.</small></span></label>' +
+                '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /><span>Submit anonymously</span></label>' +
                 '<label class="wide">Optional Picture<input type="file" data-complaint-image accept="image/png,image/jpeg,image/webp" /><span class="muted">Optional screenshot, under 3 MB.</span></label>' +
               '</div>' +
               '<div class="complaint-preview" data-complaint-image-preview>No picture selected.</div>' +
@@ -8243,7 +8243,7 @@ export function kellaDashboardHtml() {
             '<label>Type<select data-complaint="kind"><option value="Complaint">Complaint</option><option value="Suggestion">Suggestion</option></select></label>' +
             '<label>Title<input data-complaint="title" maxlength="140" placeholder="Short title" /></label>' +
             '<label class="wide">Description<textarea data-complaint="description" maxlength="1800" placeholder="Tell the R4s what happened or what should improve."></textarea></label>' +
-            '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /><span>Mark as confidential<br><small class="muted">Admins can still verify the sender.</small></span></label>' +
+            '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /><span>Submit anonymously</span></label>' +
             '<label class="wide">Optional Picture<input type="file" data-complaint-image accept="image/png,image/jpeg,image/webp" /><span class="muted">Optional screenshot, under 3 MB.</span></label>' +
           '</div>' +
           '<div class="complaint-preview" data-complaint-image-preview>No picture selected.</div>' +
