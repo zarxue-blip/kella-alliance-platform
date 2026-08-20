@@ -1894,6 +1894,42 @@ export function kellaDashboardHtml() {
       .attendance-focus-item h4 { margin: 0; color: #2d1a08; }
       .complaint-form-card { display: grid; gap: 14px; }
       .complaint-form-card .form-grid { margin-top: 8px; }
+      .complaint-form-card .wiki-toggle-field {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        cursor: pointer;
+      }
+      .complaint-form-card .wiki-toggle-field input[type="checkbox"] {
+        appearance: none;
+        flex: 0 0 21px;
+        width: 21px;
+        height: 21px;
+        min-width: 21px;
+        margin: 0;
+        padding: 0;
+        border: 2px solid #79501f;
+        border-radius: 5px;
+        background: #fff8df;
+        display: grid;
+        place-items: center;
+      }
+      .complaint-form-card .wiki-toggle-field input[type="checkbox"]::after {
+        content: "";
+        width: 10px;
+        height: 6px;
+        border-left: 3px solid #2d1a08;
+        border-bottom: 3px solid #2d1a08;
+        transform: rotate(-45deg) scale(0);
+        transition: transform 120ms ease;
+      }
+      .complaint-form-card .wiki-toggle-field input[type="checkbox"]:checked {
+        background: linear-gradient(180deg, #ffe878, #d99824);
+        border-color: #8b5516;
+      }
+      .complaint-form-card .wiki-toggle-field input[type="checkbox"]:checked::after { transform: rotate(-45deg) scale(1); }
+      .complaint-form-card .wiki-toggle-field > span { line-height: 1.35; }
       .feedback-page {
         width: min(100%, 860px);
         margin: 0 auto;
@@ -8188,7 +8224,7 @@ export function kellaDashboardHtml() {
                 '<label>Type<select data-complaint="kind"><option value="Complaint">Complaint</option><option value="Suggestion">Suggestion</option></select></label>' +
                 '<label>Title<input data-complaint="title" maxlength="140" placeholder="Short title" /></label>' +
                 '<label class="wide">Description<textarea data-complaint="description" maxlength="1800" placeholder="Tell the R4s what happened or what should improve."></textarea></label>' +
-                '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /> Mark as confidential <span class="muted">(admins can still verify the sender)</span></label>' +
+                '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /><span>Mark as confidential<br><small class="muted">Admins can still verify the sender.</small></span></label>' +
                 '<label class="wide">Optional Picture<input type="file" data-complaint-image accept="image/png,image/jpeg,image/webp" /><span class="muted">Optional screenshot, under 3 MB.</span></label>' +
               '</div>' +
               '<div class="complaint-preview" data-complaint-image-preview>No picture selected.</div>' +
@@ -8207,7 +8243,7 @@ export function kellaDashboardHtml() {
             '<label>Type<select data-complaint="kind"><option value="Complaint">Complaint</option><option value="Suggestion">Suggestion</option></select></label>' +
             '<label>Title<input data-complaint="title" maxlength="140" placeholder="Short title" /></label>' +
             '<label class="wide">Description<textarea data-complaint="description" maxlength="1800" placeholder="Tell the R4s what happened or what should improve."></textarea></label>' +
-            '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /> Mark as confidential <span class="muted">(admins can still verify the sender)</span></label>' +
+            '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /><span>Mark as confidential<br><small class="muted">Admins can still verify the sender.</small></span></label>' +
             '<label class="wide">Optional Picture<input type="file" data-complaint-image accept="image/png,image/jpeg,image/webp" /><span class="muted">Optional screenshot, under 3 MB.</span></label>' +
           '</div>' +
           '<div class="complaint-preview" data-complaint-image-preview>No picture selected.</div>' +
