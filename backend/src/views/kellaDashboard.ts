@@ -1790,10 +1790,14 @@ export function kellaDashboardHtml() {
         box-shadow: 0 12px 26px rgba(111, 69, 25, 0.20), 0 0 18px rgba(255, 214, 90, 0.18);
         outline: none;
       }
-      .calendar-day-top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-      .calendar-day strong { font-size: 18px; color: #3a220c; }
-      .calendar-day em { color: #7b5b34; font-size: 11px; font-style: normal; font-weight: 950; text-transform: uppercase; letter-spacing: 0.05em; }
-      .calendar-day-list { display: grid; gap: 5px; min-width: 0; }
+      .calendar-day-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; gap: 4px; }
+      .calendar-day-number { justify-self: start; font-size: 18px; font-weight: 950; color: #3a220c; }
+      .calendar-day-weekday { justify-self: end; color: #7b5b34; font-size: 11px; font-style: normal; font-weight: 950; text-transform: uppercase; letter-spacing: 0.05em; }
+      .calendar-day-buff { justify-self: center; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; flex: 0 0 auto; }
+      .calendar-day-buff img { width: 22px; height: 22px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(72, 42, 12, 0.20)); }
+      .calendar-day-buff.placeholder { visibility: hidden; }
+      .calendar-day-list { display: grid; gap: 5px; min-width: 0; margin-top: auto; }
+      .calendar-day-top-buff, .calendar-day-list-buff, .calendar-day-bottom-buff { display: none; }
       .calendar-entry {
         display: block;
         border-radius: 7px;
@@ -1809,9 +1813,9 @@ export function kellaDashboardHtml() {
         white-space: nowrap;
       }
       .calendar-entry small { display: block; color: #6e512d; font-size: 10px; font-weight: 850; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
-      .calendar-entry.buff { display: inline-flex; align-items: center; justify-content: center; }
+      .calendar-entry.buff { display: inline-flex; align-items: center; justify-content: center; padding: 0; margin: 2px 0; border-radius: 0; border: 0; background: transparent; overflow: visible; }
       .calendar-entry.buff img { width: 22px; height: 22px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(72, 42, 12, 0.20)); }
-      .calendar-entry.buff small { min-width: 0; }
+      .calendar-entry.buff small { display: none; }
       .calendar-entry:not(.buff) { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; column-gap: 6px; }
       .calendar-entry:not(.buff) img { grid-row: 1 / span 2; width: 28px; height: 28px; object-fit: contain; }
       .calendar-entry:not(.buff) span { display: block; font: 800 10px Arial, sans-serif; color: #34210f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1890,6 +1894,42 @@ export function kellaDashboardHtml() {
       .attendance-focus-item h4 { margin: 0; color: #2d1a08; }
       .complaint-form-card { display: grid; gap: 14px; }
       .complaint-form-card .form-grid { margin-top: 8px; }
+      .complaint-form-card .wiki-toggle-field {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        cursor: pointer;
+      }
+      .complaint-form-card .wiki-toggle-field input[type="checkbox"] {
+        appearance: none;
+        flex: 0 0 21px;
+        width: 21px;
+        height: 21px;
+        min-width: 21px;
+        margin: 0;
+        padding: 0;
+        border: 2px solid #79501f;
+        border-radius: 5px;
+        background: #fff8df;
+        display: grid;
+        place-items: center;
+      }
+      .complaint-form-card .wiki-toggle-field input[type="checkbox"]::after {
+        content: "";
+        width: 10px;
+        height: 6px;
+        border-left: 3px solid #2d1a08;
+        border-bottom: 3px solid #2d1a08;
+        transform: rotate(-45deg) scale(0);
+        transition: transform 120ms ease;
+      }
+      .complaint-form-card .wiki-toggle-field input[type="checkbox"]:checked {
+        background: linear-gradient(180deg, #ffe878, #d99824);
+        border-color: #8b5516;
+      }
+      .complaint-form-card .wiki-toggle-field input[type="checkbox"]:checked::after { transform: rotate(-45deg) scale(1); }
+      .complaint-form-card .wiki-toggle-field > span { line-height: 1.35; }
       .feedback-page {
         width: min(100%, 860px);
         margin: 0 auto;
@@ -1940,6 +1980,22 @@ export function kellaDashboardHtml() {
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: 10px;
       }
+      .complaint-sender {
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr);
+        align-items: center;
+        gap: 9px;
+        min-width: 180px;
+      }
+      .complaint-sender img {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid rgba(92, 55, 18, 0.22);
+        background: rgba(255, 247, 219, 0.65);
+      }
+      .complaint-sender small { display: block; overflow-wrap: anywhere; }
       .alliance-stats-card { padding: 24px; }
       .metric-selector {
         margin: 0 0 16px;
@@ -3165,9 +3221,11 @@ export function kellaDashboardHtml() {
         .calendar-day { min-height: 68px; padding: 5px 3px; border-radius: 8px; gap: 3px; text-align: center; }
         .event-calendar .calendar-day,
         .attendance-calendar-card .event-calendar .calendar-day { min-height: 68px; }
-        .calendar-day-top { justify-content: center; }
-        .calendar-day strong { font-size: 15px; }
-        .calendar-day em { display: none; }
+        .calendar-day-top { grid-template-columns: 1fr auto 1fr; }
+        .calendar-day-number { font-size: 14px; }
+        .calendar-day-weekday { font-size: 9px; }
+        .calendar-day-buff { width: 20px; height: 20px; }
+        .calendar-day-buff img { width: 16px; height: 16px; }
         .calendar-day-list { display: flex; justify-content: center; align-items: center; gap: 3px; overflow: hidden; }
         .calendar-entry { width: 6px; height: 6px; min-width: 6px; border: 0; border-radius: 50%; padding: 0; background: #b3262f; color: transparent; font-size: 0; }
         .calendar-entry small, .calendar-empty { display: none; }
@@ -4193,7 +4251,7 @@ export function kellaDashboardHtml() {
 
       function profileRadarMetrics(member) {
         const id = String(member?.id || "profile");
-        const defaults = ["merits", "unitsKilled", "resourcesGathered", "serverRank", "unitsHealed", "buildingPower"];
+        const defaults = ["power", "merits", "unitsKilled", "resourcesGathered", "serverRank", "unitsHealed", "buildingPower"];
         const saved = state.profileRadarMetrics[id];
         return Array.isArray(saved) && saved.length >= 3 ? saved : defaults;
       }
@@ -4282,7 +4340,7 @@ export function kellaDashboardHtml() {
           return { x: centerX + Math.cos(angle) * distance, y: centerY + Math.sin(angle) * distance };
         };
         const maxima = axes.map(function(axis) {
-          return Math.max(1, ...roster.map(function(item) { return memberMetricValue(item, axis.key, selectedDate); }));
+          return Math.max(1, ...roster.map(function(item) { return memberMetricValue(item, axis.key); }));
         });
         const values = axes.map(function(axis) { return memberMetricValue(member, axis.key, selectedDate); });
         const scores = values.map(function(value, index) {
@@ -4303,6 +4361,7 @@ export function kellaDashboardHtml() {
           const point = pointAt(radius * scores[index], index);
           return point.x.toFixed(1) + ',' + point.y.toFixed(1);
         });
+        const areaKey = 'radar-area-' + (selectedDate || 'latest');
         const dots = areaPoints.map(function(point) {
           const parts = point.split(',');
           return '<circle class="radar-dot" cx="' + parts[0] + '" cy="' + parts[1] + '" r="4"></circle>';
@@ -4327,7 +4386,7 @@ export function kellaDashboardHtml() {
         const graphToggle = '<button class="profile-graph-toggle ' + (graphMode === "trend" ? "active" : "") + '" type="button" data-action="toggle-profile-graph" data-member-id="' + escapeHtml(memberId) + '" aria-pressed="' + String(graphMode === "trend") + '" title="Switch to ' + (graphMode === "trend" ? "radar stats" : "power trend") + '"><img src="/assets/icons/change-graph.png?v=1" alt="" width="30" height="30" loading="lazy" decoding="async"><span class="profile-graph-toggle-copy"><strong>Change graph</strong><small>' + (graphMode === "trend" ? "Power trend" : "Radar stats") + '</small></span><span class="profile-graph-switch" aria-hidden="true"></span></button>';
         const graph = graphMode === "trend"
           ? profilePowerTrend(member, selectedDate)
-          : '<svg class="profile-radar" viewBox="0 0 560 348" role="img" aria-label="Current season player statistics radar chart">' + rings + spokes + '<polygon class="radar-area" points="' + areaPoints.join(' ') + '"></polygon>' + dots + labels + '</svg>';
+          : '<svg class="profile-radar" viewBox="0 0 560 348" role="img" aria-label="Current season player statistics radar chart" data-radar-date="' + escapeHtml(selectedDate) + '">' + rings + spokes + '<polygon class="radar-area" key="' + areaKey + '" points="' + areaPoints.join(" ") + '"></polygon>' + dots + labels + "</svg>";
         const radarSelector = graphMode === "radar" ? '<details class="metric-selector"><summary><span class="metric-selector-label">Radar stats</span><span class="metric-selector-value">' + axes.length + ' selected</span></summary><div class="metric-picker">' + metricButtons + '</div></details>' : '';
         return '<section class="profile-season-card"><div class="profile-season-topbar"><div class="profile-season-head"><h4>Current Season</h4><p>' + escapeHtml(selectedDate ? "Roster snapshot " + formatDate(new Date(selectedDate + "T00:00:00Z")) : "Compared with the current alliance roster") + '</p></div>' + graphToggle + '</div>' + graph +
           '<div class="profile-radar-controls">' + radarSelector +
@@ -4350,7 +4409,9 @@ export function kellaDashboardHtml() {
         const span = document.createElement("span");
         span.innerHTML = html;
         const replacement = span.firstElementChild;
-        current.parentNode?.replaceChild(replacement, current);
+        if (replacement) {
+          current.parentNode?.replaceChild(replacement, current);
+        }
         requestAnimationFrame(function() {
           if (panel) panel.scrollTop = scrollTop;
         });
@@ -4359,6 +4420,7 @@ export function kellaDashboardHtml() {
       function selectProfileRadarDate(memberId, date) {
         const parsed = date ? new Date(date + "T00:00:00Z") : null;
         if (!parsed || !Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) return;
+        // MULTI-SELECTION: prefer openMember (full data loaded by openMemberModal) over compact dashboardMembers
         const member = (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || findMemberById(memberId) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
         if (!member) return;
         state.profileRadarDates[String(member.id || "profile")] = date;
@@ -4524,8 +4586,14 @@ export function kellaDashboardHtml() {
         document.body.classList.add("modal-open");
       }
 
-      function openMemberModal(member) {
+      async function openMemberModal(member) {
         if (!member || !memberModal || !memberModalContent) return;
+        // MULTI-SELECTION: If member data is compact (dashboard view with only one
+        // stat metric), fetch the full member so the radar graph has all metrics.
+        // Do not replace with single-item find/querySelectorAll logic — the radar
+        // needs full statHistory for all selected axes.
+        const full = await loadFullMember(member.id || "");
+        member = full || member;
         state.openMember = member;
         memberModalContent.dataset.memberId = member.id || "";
         const displayName = memberDisplayName(member);
@@ -4807,6 +4875,30 @@ export function kellaDashboardHtml() {
         return state.dashboardMembers;
       }
 
+      // MULTI-SELECTION: When a member modal is opened from the dashboard (where members
+      // are loaded in compact mode with only one metric), fetch the full member data so
+      // the radar graph has all statHistory metrics available. Do not replace this with
+      // single-item find/querySelector logic — all selected radar metrics need full history.
+      async function loadFullMember(memberId) {
+        if (!memberId) return null;
+        const existing = findMemberById(memberId);
+        if (existing && Array.isArray(existing.statHistory) && existing.statHistory.length && existing.statHistory.some(function(entry) { return Object.keys(entry.metrics || {}).length > 1; })) return existing;
+        const uid = existing?.uid || "";
+        const ign = existing?.ign || "";
+        const query = uid ? uid : ign;
+        if (!query) return null;
+        const data = await fetchJson("/api/dashboard/members?q=" + encodeURIComponent(query));
+        const full = (data.members || []).find(function(m) { return String(m.id || "") === String(memberId); });
+        if (full) {
+          state.members = state.members.slice();
+          const idx = state.members.findIndex(function(m) { return String(m.id || "") === String(memberId); });
+          if (idx >= 0) state.members[idx] = full;
+          else state.members.push(full);
+          return full;
+        }
+        return existing;
+      }
+
       async function loadProfile(force = false) {
         if (state.profile && !force) return state.profile;
         const data = await fetchJson("/api/dashboard/profile");
@@ -5069,24 +5161,35 @@ export function kellaDashboardHtml() {
         const weekday = new Intl.DateTimeFormat("en", { weekday: "short", timeZone: "UTC" }).format(date);
         const isToday = key === dayKey(new Date());
         const visible = items.slice(0, 3);
-        const entries = visible.length
-          ? visible.map(function(item) {
+        const dayNum = date ? String(date.getUTCDate()) : "";
+        const buffItem = items.find(function(item) { return !!item.icon; }) || null;
+        const buffIcon = buffItem
+          ? '<span class="calendar-day-buff" role="img" aria-label="' + escapeHtml(buffItem.title || "Buff") + '" title="' + escapeHtml(buffItem.title || "Buff") + '" data-buff-day="' + escapeHtml(dayNum) + '" data-buff-weekday="' + escapeHtml(weekday) + '"><img src="' + escapeHtml(buffItem.icon) + '" alt="' + escapeHtml(buffItem.title || "Buff") + '" /></span>'
+          : '<span class="calendar-day-buff placeholder" aria-hidden="true"></span>';
+        // Exclude buff items from the entry list since the buff icon already renders in the top row
+        const entryItems = visible.filter(function(item) { return !item.icon; });
+        const entries = entryItems.length
+          ? entryItems.map(function(item) {
               const icon = item.icon ? '<img src="' + escapeHtml(item.icon) + '" alt="" />' : "";
               const title = escapeHtml(item.title || "Buff");
               const meta = escapeHtml(item.meta || "");
-              const weekday = date ? new Intl.DateTimeFormat("en", { weekday: "short", timeZone: "UTC" }).format(date) : "";
-              const dayNum = date ? String(date.getUTCDate()) : "";
+              const weekdayLabel = date ? new Intl.DateTimeFormat("en", { weekday: "short", timeZone: "UTC" }).format(date) : "";
+              const dayNumLabel = date ? String(date.getUTCDate()) : "";
               const isBuff = !!item.icon;
               return '<span class="calendar-entry' + (isBuff ? " buff" : "") + '">' + (isBuff
-                ? '<span class="calendar-buff-image" data-buff-title="' + title + '" data-buff-meta="' + meta + '" data-buff-day="' + escapeHtml(dayNum) + '" data-buff-weekday="' + escapeHtml(weekday) + '">' + icon + '<span class="calendar-buff-tooltip">' + dayNum + '<br><img src="' + escapeHtml(item.icon) + '" alt="" /><br>' + weekday + '</span></span>'
+                ? '<span class="calendar-buff-image" data-buff-title="' + title + '" data-buff-meta="' + meta + '" data-buff-day="' + escapeHtml(dayNumLabel) + '" data-buff-weekday="' + escapeHtml(weekdayLabel) + '">' + icon + '<span class="calendar-buff-tooltip">' + dayNumLabel + '<br><img src="' + escapeHtml(item.icon) + '" alt="" /><br>' + weekdayLabel + '</span></span>'
                 : icon + '<span>' + title + '</span><small>' + meta + '</small>'
               ) + '</span>';
             }).join("")
           : '<span class="calendar-empty">No event</span>';
         const more = items.length > visible.length ? '<span class="calendar-more">+' + (items.length - visible.length) + ' more</span>' : "";
         return '<button class="calendar-day' + (items.length ? " has-items event" : "") + (isToday ? " today" : "") + '" type="button" data-calendar-day="' + key + '" data-calendar-type="' + type + '">' +
-          '<span class="calendar-day-top"><strong>' + date.getUTCDate() + '</strong><em>' + weekday + '</em></span>' +
-          '<span class="calendar-day-list">' + entries + more + '</span>' +
+          '<div class="calendar-day-top">' +
+            '<span class="calendar-day-number">' + dayNum + '</span>' +
+            buffIcon +
+            '<span class="calendar-day-weekday">' + weekday + '</span>' +
+          '</div>' +
+          '<div class="calendar-day-list">' + entries + more + '</div>' +
         '</button>';
       }
 
@@ -8121,7 +8224,7 @@ export function kellaDashboardHtml() {
                 '<label>Type<select data-complaint="kind"><option value="Complaint">Complaint</option><option value="Suggestion">Suggestion</option></select></label>' +
                 '<label>Title<input data-complaint="title" maxlength="140" placeholder="Short title" /></label>' +
                 '<label class="wide">Description<textarea data-complaint="description" maxlength="1800" placeholder="Tell the R4s what happened or what should improve."></textarea></label>' +
-                '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /> Submit anonymously to R4s</label>' +
+                '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /><span>Submit anonymously</span></label>' +
                 '<label class="wide">Optional Picture<input type="file" data-complaint-image accept="image/png,image/jpeg,image/webp" /><span class="muted">Optional screenshot, under 3 MB.</span></label>' +
               '</div>' +
               '<div class="complaint-preview" data-complaint-image-preview>No picture selected.</div>' +
@@ -8140,7 +8243,7 @@ export function kellaDashboardHtml() {
             '<label>Type<select data-complaint="kind"><option value="Complaint">Complaint</option><option value="Suggestion">Suggestion</option></select></label>' +
             '<label>Title<input data-complaint="title" maxlength="140" placeholder="Short title" /></label>' +
             '<label class="wide">Description<textarea data-complaint="description" maxlength="1800" placeholder="Tell the R4s what happened or what should improve."></textarea></label>' +
-            '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /> Submit anonymously to R4s</label>' +
+            '<label class="wide wiki-toggle-field"><input type="checkbox" data-complaint="anonymous" /><span>Submit anonymously</span></label>' +
             '<label class="wide">Optional Picture<input type="file" data-complaint-image accept="image/png,image/jpeg,image/webp" /><span class="muted">Optional screenshot, under 3 MB.</span></label>' +
           '</div>' +
           '<div class="complaint-preview" data-complaint-image-preview>No picture selected.</div>' +
@@ -8453,12 +8556,16 @@ export function kellaDashboardHtml() {
             const resolved = item.status === "Resolved";
             const attachment = item.imageDataUrl ? '<button class="secondary" type="button" data-action="open-complaint-detail" data-complaint-id="' + escapeHtml(item.id) + '">View Image</button>' : '<span class="muted">No image</span>';
             const message = '<strong>' + escapeHtml(item.title || item.kind || "Feedback") + '</strong><br><span>' + escapeHtml(item.message || "") + '</span>' + attachment;
+            const senderAvatar = escapeHtml(item.avatarUrl || "/assets/icons/members.png");
+            const senderMeta = item.discordUsername ? "@" + item.discordUsername : (item.discordId || "Discord ID unavailable");
+            const confidential = item.confidential ? '<br><span class="badge warn">Confidential</span>' : '';
+            const sender = '<div class="complaint-sender"><img src="' + senderAvatar + '" alt="" /><div><strong>' + escapeHtml(item.player || "Unknown") + '</strong><small class="muted">' + escapeHtml(senderMeta) + '</small>' + confidential + '</div></div>';
             const notes = [
               item.assignedTo ? "Assigned: " + item.assignedTo : "",
               item.adminNote ? "Note: " + item.adminNote : "",
               item.lastReply ? "Last reply: " + item.lastReply : ""
             ].filter(Boolean).join("\\n");
-            return '<tr><td>' + escapeHtml(item.kind || "Complaint") + '</td><td><strong>' + escapeHtml(item.player || "Unknown") + '</strong><br><span class="muted">' + escapeHtml(item.discordId || "") + '</span></td><td>' + message + '</td><td><span class="badge ' + (resolved ? "good" : "warn") + '">' + escapeHtml(item.status || "Pending") + '</span></td><td><span class="muted">' + escapeHtml(notes || "No admin notes yet.") + '</span></td><td>' + formatDateTime(item.sentAt) + '</td><td><div class="toolbar"><button class="primary" data-action="open-complaint-detail" data-complaint-id="' + escapeHtml(item.id) + '">Open</button><button class="secondary" data-action="assign-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Assign</button><button class="secondary" data-action="note-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Note</button><button class="secondary" data-action="reply-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Reply</button><button class="secondary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Pending">Pending</button><button class="primary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Resolved">Resolve</button></div></td></tr>';
+            return '<tr><td>' + escapeHtml(item.kind || "Complaint") + '</td><td>' + sender + '</td><td>' + message + '</td><td><span class="badge ' + (resolved ? "good" : "warn") + '">' + escapeHtml(item.status || "Pending") + '</span></td><td><span class="muted">' + escapeHtml(notes || "No admin notes yet.") + '</span></td><td>' + formatDateTime(item.sentAt) + '</td><td><div class="toolbar"><button class="primary" data-action="open-complaint-detail" data-complaint-id="' + escapeHtml(item.id) + '">Open</button><button class="secondary" data-action="assign-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Assign</button><button class="secondary" data-action="note-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Note</button><button class="secondary" data-action="reply-complaint" data-complaint-id="' + escapeHtml(item.id) + '">Reply</button><button class="secondary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Pending">Pending</button><button class="primary" data-action="set-complaint-status" data-complaint-id="' + escapeHtml(item.id) + '" data-status="Resolved">Resolve</button></div></td></tr>';
           }).join("") +
           '</tbody></table></div>';
       }
@@ -8492,7 +8599,9 @@ export function kellaDashboardHtml() {
           '<section class="complaint-detail">' +
             '<div class="complaint-detail-meta">' +
               profileStat("Status", item.status || "Pending") +
+              profileStat("Discord Username", item.discordUsername ? "@" + item.discordUsername : "Not synced") +
               profileStat("Discord ID", item.discordId || "Unknown") +
+              profileStat("Privacy", item.confidential ? "Confidential request" : "Standard") +
               profileStat("Source", item.source || "discord") +
               profileStat("Assigned", item.assignedTo || "Unassigned") +
             '</div>' +
@@ -8714,8 +8823,12 @@ export function kellaDashboardHtml() {
       document.addEventListener("pointerdown", function(event) {
         const viewport = event.target.closest?.("[data-lord-research-scroll]");
         if (!viewport || event.button !== 0) return;
+        // RESEARCH-CLICK-FIX: If the user clicked directly on a research node button
+        // (or its child elements like the icon/image), do NOT capture the pointer.
+        // Capturing the pointer to the viewport prevents the click event from reaching
+        // the button, making it impossible for players to click talent nodes.
+        if (event.target.closest?.('[data-action="lord-research-select"]')) return;
         lordResearchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-        viewport.setPointerCapture?.(event.pointerId);
         if (lordResearchPointers.size === 2) {
           const points = Array.from(lordResearchPointers.values());
           const rect = viewport.getBoundingClientRect();
@@ -8764,6 +8877,9 @@ export function kellaDashboardHtml() {
         const dy = event.clientY - lordResearchPan.startY;
         if (!lordResearchPan.moved && Math.hypot(dx, dy) < 5) return;
         lordResearchPan.moved = true;
+        // RESEARCH-CLICK-FIX: Only capture the pointer when we detect actual panning,
+        // so that simple clicks on talent nodes still fire click events.
+        lordResearchPan.viewport.setPointerCapture?.(event.pointerId);
         lordResearchPan.viewport.classList.add("is-dragging");
         state.lordResearchPanX = lordResearchPan.panX + dx;
         state.lordResearchPanY = lordResearchPan.panY + dy;
@@ -9328,7 +9444,8 @@ export function kellaDashboardHtml() {
         }
         if (kind === "toggle-profile-graph") {
           const memberId = action.getAttribute("data-member-id") || "";
-          const member = findMemberById(memberId) || (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
+          // MULTI-SELECTION: prefer openMember (full data) over compact dashboardMembers
+          const member = (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || findMemberById(memberId) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
           if (!member) return;
           const key = String(member.id || "profile");
           state.profileGraphModes[key] = profileGraphMode(member) === "trend" ? "radar" : "trend";
@@ -9338,7 +9455,9 @@ export function kellaDashboardHtml() {
         if (kind === "toggle-profile-radar-metric") {
           const memberId = action.getAttribute("data-member-id") || "";
           const metricKey = action.getAttribute("data-metric") || "";
-          const member = findMemberById(memberId) || (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
+          // MULTI-SELECTION: Prefer openMember/profile (full data) over dashboardMembers (compact)
+          const member = state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember
+            : findMemberById(memberId) || (state.openMember && String(state.openMember.id) === String(memberId) ? state.openMember : null) || (state.profile && String(state.profile.id) === String(memberId) ? state.profile : null);
           if (!member || !statMetricOptions.some(function(metric) { return metric.key === metricKey; })) return;
           const selected = profileRadarMetrics(member).slice();
           const index = selected.indexOf(metricKey);

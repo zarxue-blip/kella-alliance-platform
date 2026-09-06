@@ -2170,25 +2170,38 @@ export const dashboardComplaints = asyncHandler(async (_req, res) => {
     .limit(200)
     .lean()) as DashboardAction[];
 
+  const discordIds = [...new Set(complaints.map((complaint) => complaint.actorDiscordId).filter((id): id is string => Boolean(id)))];
+  const members = discordIds.length
+    ? await MemberModel.find({ allianceId, discordId: { $in: discordIds } })
+        .select("discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign")
+        .lean()
+    : [];
+  const memberByDiscordId = new Map(members.map((member: any) => [String(member.discordId), member]));
+
   res.json({
-    complaints: complaints.map((complaint) => ({
-      id: complaint._id.toString(),
-      kind: complaint.eventType || complaint.payload?.kind || "Complaint",
-      title: complaint.payload?.title || complaint.eventType || complaint.payload?.kind || "Complaint",
-      player: complaint.payload?.anonymous ? "Anonymous" : displayName(complaint),
-      discordId: complaint.payload?.anonymous ? "" : complaint.actorDiscordId,
-      anonymous: Boolean(complaint.payload?.anonymous),
-      message: complaint.payload?.message || "",
-      imageDataUrl: complaint.payload?.imageDataUrl || "",
-      source: complaint.payload?.source || "discord",
-      status: complaint.status || "Pending",
-      sentAt: complaint.sentAt,
-      resolvedAt: complaint.payload?.resolvedAt,
-      adminNote: complaint.payload?.adminNote || "",
-      assignedTo: complaint.payload?.assignedTo || "",
-      lastReply: complaint.payload?.lastReply || "",
-      repliedAt: complaint.payload?.repliedAt || ""
-    }))
+    complaints: complaints.map((complaint) => {
+      const member = complaint.actorDiscordId ? memberByDiscordId.get(complaint.actorDiscordId) : undefined;
+      return {
+        id: complaint._id.toString(),
+        kind: complaint.eventType || complaint.payload?.kind || "Complaint",
+        title: complaint.payload?.title || complaint.eventType || complaint.payload?.kind || "Complaint",
+        player: member?.discordDisplayName || member?.ign || displayName(complaint),
+        discordUsername: member?.discordUsername || "",
+        discordId: complaint.actorDiscordId || "",
+        avatarUrl: member?.profilePhotoUrl || member?.discordAvatarUrl || "",
+        confidential: Boolean(complaint.payload?.anonymous),
+        message: complaint.payload?.message || "",
+        imageDataUrl: complaint.payload?.imageDataUrl || "",
+        source: complaint.payload?.source || "discord",
+        status: complaint.status || "Pending",
+        sentAt: complaint.sentAt,
+        resolvedAt: complaint.payload?.resolvedAt,
+        adminNote: complaint.payload?.adminNote || "",
+        assignedTo: complaint.payload?.assignedTo || "",
+        lastReply: complaint.payload?.lastReply || "",
+        repliedAt: complaint.payload?.repliedAt || ""
+      };
+    })
   });
 });
 
