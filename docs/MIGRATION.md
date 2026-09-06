@@ -22,3 +22,11 @@ Removed Roots and Buff Schedule navigation, page routes, dashboard controllers/A
 ## Validation
 
 Backend/bot/frontend typechecks and builds; radar, identity, Poll and dashboard syntax regressions; actual Toxic UID import/recovery tests; Migration validation and HTTP save/post/retry/permission tests. HTTP tests mock MongoDB and Discord. Browser checked form, View Applications, and selected-row details with local fixtures. Live delivery needs production credentials/a real application; failures remain saved for admin retry.
+
+## Applicant roles and confirmation
+
+After saving an application, Kella assigns Discord roles `1546170085704605839` and `1546179090300534785` to the verified applicant. Role delivery and partial successes are persisted separately from embed delivery; admin retry assigns only missing roles. Applicants must be in the configured Discord server and the bot must be able to manage these roles.
+
+The Migration-only **Connect Discord** flow verifies identity without granting a member/admin session. Visitors can connect before submission (the draft survives the redirect), or attach a verified identity afterward using their saved unguessable receipt. An existing linked identity cannot be replaced. Self-reported Discord names never authorize role assignment.
+
+Successful submission opens a thank-you dialog with the actual role result. Select fields use the ASCII placeholder **Select an option**. Tests cover the exact role IDs, partial failure and retry, scoped OAuth, receipt ownership, and the rendered confirmation dialog. Live role assignment awaits a verified applicant; Discord requests are mocked in automated tests.

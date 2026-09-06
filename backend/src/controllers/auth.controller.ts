@@ -1,3 +1,4 @@
+import { migrationIdentityCookie, signMigrationIdentity } from '../services/migrationIdentity.service.js';
 import type { Request, Response } from "express";
 import { randomBytes } from "node:crypto";
 import { env, isProduction } from "../config/env.js";
@@ -9,6 +10,7 @@ import { HttpError } from "../utils/httpError.js";
 import { isDashboardAdminUser, isDashboardWikiEditorUser, signSessionToken, type AuthenticatedRequest } from "../middleware/auth.js";
 
 const oauthStates = new Set<string>();
+const migrationOauthStates = new Set<string>();
 
 function csvSet(value?: string) {
   return new Set(
@@ -28,6 +30,10 @@ function hasAnyRole(userRoleIds: string[], allowedRoleIds?: string) {
 export const startDiscordLogin = asyncHandler(async (_req: Request, res: Response) => {
   const state = randomBytes(24).toString("hex");
   oauthStates.add(state);
+  if (_req.query.migration === '1') {
+    migrationOauthStates.add(state);
+    res.cookie('kella_migration_oauth_state', state, {httpOnly:true,secure:isProduction,sameSite:'lax',maxAge:600000});
+  }
   res.redirect(getDiscordAuthorizationUrl(state));
 });
 
@@ -37,8 +43,16 @@ export const discordCallback = asyncHandler(async (req: Request, res: Response) 
     throw new HttpError(400, "Invalid OAuth callback");
   }
   oauthStates.delete(state);
+  const migrationLogin = migrationOauthStates.delete(state);
+  if(migrationLogin && req.cookies?.kella_migration_oauth_state !== state) throw new HttpError(400,'Invalid migration login session');
 
   const { token: discordToken, identity } = await exchangeDiscordCode(code);
+  if(migrationLogin) {
+    res.clearCookie('kella_migration_oauth_state');
+    res.cookie(migrationIdentityCookie,signMigrationIdentity(identity.id),{httpOnly:true,secure:isProduction,sameSite:'lax',maxAge:3600000});
+    res.redirect('/migration');
+    return;
+  }
   const guildMember = await getDiscordOAuthGuildMember(discordToken.token_type, discordToken.access_token);
   if (env.DISCORD_GUILD_ID && !guildMember) {
     throw new HttpError(403, "This Discord account is not in the configured Kella server");

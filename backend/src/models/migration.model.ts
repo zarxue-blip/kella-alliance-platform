@@ -9,6 +9,9 @@ const migrationSchema = new Schema({
   status: {type:String,enum:['Pending','Reviewing','Accepted','Declined'],default:'Pending',index:true},
   channelId: {type:String,required:true},
   deliveryStatus: {type:String,enum:['Pending','Sending','Sent','Failed'],default:'Pending'},
+  roleStatus: {type:String,enum:['Pending','Assigned','Failed','NeedsDiscord'],default:'Pending'},
+  assignedRoleIds: {type:[String],default:[]},
+  roleError: {type:String,default:''},
   messageIds: {type:[String],default:[]},
   deliveryError: {type:String,default:''}
 },{timestamps:true});

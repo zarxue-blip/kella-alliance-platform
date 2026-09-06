@@ -1,3 +1,5 @@
+import { readMigrationIdentity } from '../services/migrationIdentity.service.js';
+import { assignMigrationRoles } from '../services/migrationRoles.service.js';
 import { AllianceModel } from '../models/alliance.model.js';
 import { env } from '../config/env.js';
 import { Router } from 'express';
@@ -34,6 +36,7 @@ async function deliver(id:string) {
     await submission.save();
   }
 }
+migrationRouter.get('/identity', (req,res)=>res.json({discordId:readMigrationIdentity(req)}));
 migrationRouter.get('/fields', (_req,res)=>res.json({fields:migrationFields}));
 migrationRouter.post('/', (req,res,next)=>{
   if(req.cookies?.[env.SESSION_COOKIE_NAME] || req.header('authorization')) return authenticate(req,res,next);
@@ -44,14 +47,15 @@ migrationRouter.post('/', (req,res,next)=>{
   const allianceId=await adminAlliance(req);
   let submission;
   try {
-    submission=await MigrationModel.findOneAndUpdate({requestKey:body.requestKey},{$setOnInsert:{allianceId,requesterId:req.user?.id,discordId:req.user?.discordId || '',requestKey:body.requestKey,answers,fields:migrationFields,channelId}},{upsert:true,new:true,setDefaultsOnInsert:true});
+    submission=await MigrationModel.findOneAndUpdate({requestKey:body.requestKey},{$setOnInsert:{allianceId,requesterId:req.user?.id,discordId:req.user?.discordId || readMigrationIdentity(req),requestKey:body.requestKey,answers,fields:migrationFields,channelId}},{upsert:true,new:true,setDefaultsOnInsert:true});
   } catch(error:any) {
     if(error?.code!==11000) throw error;
     submission=await MigrationModel.findOne({requestKey:body.requestKey});
   }
   await deliver(submission._id.toString());
+  await assignMigrationRoles(submission._id.toString());
   const current:any=await MigrationModel.findById(submission._id).lean();
-  res.status(201).json({id:submission._id,deliveryStatus:current.deliveryStatus,message:current.deliveryStatus==='Sent'?'Application saved and posted to Discord.':'Application saved. Discord delivery is pending administrator review.'});
+  res.status(201).json({id:submission._id,deliveryStatus:current.deliveryStatus,roleStatus:current.roleStatus,roleError:current.roleError,message:current.deliveryStatus==='Sent'?'Application saved and posted to Discord.':'Application saved. Discord delivery is pending administrator review.'});
 }));
 migrationRouter.get('/',authenticateDashboardAdmin,asyncHandler(async(req:AuthenticatedRequest,res)=>{
   const filter:any={allianceId:await adminAlliance(req)};
@@ -68,5 +72,18 @@ migrationRouter.patch('/:id',authenticateDashboardAdmin,asyncHandler(async(req:A
 migrationRouter.post('/:id/retry',authenticateDashboardAdmin,asyncHandler(async(req:AuthenticatedRequest,res)=>{
   const item=await MigrationModel.findOne({_id:z.string().regex(/^[a-f0-9]{24}$/i).parse(req.params.id),allianceId:await adminAlliance(req)});
   if(!item) throw new HttpError(404,'Application not found');
-  await deliver(item._id.toString());res.json({submission:await MigrationModel.findById(item._id).lean()});
+  await deliver(item._id.toString());await assignMigrationRoles(item._id.toString());res.json({submission:await MigrationModel.findById(item._id).lean()});
+}));
+
+// A saved request key is an unguessable receipt; only a verified Discord login
+// can attach an identity, and an already linked identity cannot be replaced.
+migrationRouter.post('/connect-discord', rateLimit({windowMs:60000,limit:10}), asyncHandler(async(req,res)=>{
+  const discordId=readMigrationIdentity(req);
+  if(!discordId) throw new HttpError(401,'Connect Discord first.');
+  const {requestKey}=z.object({requestKey:z.string().uuid()}).parse(req.body);
+  const item=await MigrationModel.findOneAndUpdate({requestKey,$or:[{discordId:''},{discordId}]},{$set:{discordId}},{new:true});
+  if(!item) throw new HttpError(404,'Application receipt not found or already linked to another account.');
+  await assignMigrationRoles(item._id.toString());
+  const current:any=await MigrationModel.findById(item._id).lean();
+  res.json({roleStatus:current.roleStatus,roleError:current.roleError});
 }));
