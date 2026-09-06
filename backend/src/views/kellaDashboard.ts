@@ -3341,6 +3341,7 @@ export function kellaDashboardHtml() {
       }
     </style>
     <link rel="stylesheet" href="/assets/command-center.css?v=1" />
+    <link rel="stylesheet" href="/assets/noticeboard.css?v=1" />
   </head>
   <body>
     <div class="shell">
@@ -7489,11 +7490,23 @@ export function kellaDashboardHtml() {
         updateTrainingPoints();
       }
 
+      function renderAllianceBoard() {
+        const notes = [
+          ["/calendar", "events.png", "Events", "Make a little time", "rose"],
+          ["/wiki", "embed-sender.png", "The Wiki", "A little shared wisdom", "cream"],
+          ["/members", "members.png", "Our members", "Good company", "blue"],
+          ["/attendance", "root-registration.png", "Attendance", "Count me in", "green"],
+          ["/research", "lord-tools.svg", "Research", "Something to discover", "cream"],
+          ["/training-tools", "training-tools.png", "Training", "Grow a little stronger", "rose"]
+        ];
+        return '<section class="alliance-board" aria-label="Alliance noticeboard"><img class="board-scene" src="/assets/nikko-noticeboard.png" alt="Nikko beside the alliance noticeboard in a sunny fantasy meadow" width="1254" height="1254" fetchpriority="high" /><div class="board-paper"><div class="board-heading"><span>KING OF GLORY</span><h2>Our little corner<br>of the realm.</h2><p>Pick a note. See what’s happening.</p></div><nav class="board-notes" aria-label="Noticeboard destinations">' + notes.map(function(note) { return '<a class="board-note note-' + note[4] + '" href="' + note[0] + '" data-link><img src="/assets/icons/' + note[1] + '" alt="" width="40" height="40"/><strong>' + note[2] + '</strong><span>' + note[3] + '</span></a>'; }).join('') + '</nav></div><a class="board-sign" href="/rankings" data-link><img src="/assets/kella-logo.png?v=1" alt="" width="54" height="54"/><span>Made of legends.<strong>Meet our alliance →</strong></span></a></section>';
+      }
+
       function renderDashboardData(summary, members = [], events = []) {
         const upcoming = sortedEvents(events).find(function(event) { return new Date(event.startsAt).getTime() >= Date.now(); });
         const buff = realmBuffCalendarItem(dayKey(new Date()));
         const eventAction = upcoming ? '<button class="primary" data-link-button="/attendance/' + escapeHtml(upcoming.id) + '">View attendance</button>' : '<button class="secondary" data-link-button="/calendar">Open calendar</button>';
-        app.innerHTML = pageHeader("Home", "", hasAdminAccess() ? '<button class="secondary" data-link-button="/officer">Officer workspace</button>' : '') +
+        app.innerHTML = renderAllianceBoard() + pageHeader("Around the alliance", "", hasAdminAccess() ? '<button class="secondary" data-link-button="/officer">Officer workspace</button>' : '') +
           '<section class="home-focus"><div class="next-event"><span class="eyebrow">Next event</span><h2>' + escapeHtml(upcoming?.title || 'No upcoming event') + '</h2><p>' + (upcoming ? formatUtcDateTime(upcoming.startsAt) : 'Your next alliance event will appear here.') + '</p>' + (upcoming ? '<p class="event-my-status">' + escapeHtml(myEventStatus(upcoming)) + '</p>' : '') + eventAction + '</div><div class="today-buff"><span class="eyebrow">Today’s buff</span>' + (buff ? '<img src="' + escapeHtml(buff.icon) + '" alt=""/><h3>' + escapeHtml(buff.title) + '</h3><p>' + escapeHtml(buff.meta || '') + '</p>' : '<h3>No scheduled buff</h3>') + '<a href="/buff-schedule" data-link>View schedule →</a></div></section>' +
           '<div id="home-announcement"></div><div class="home-stats"><span><strong>' + formatNumber(summary.totalMembers) + '</strong> members</span><span><strong>' + formatNumber(summary.todayCheckIns) + '</strong> checked in today</span><a href="/attendance" data-link>My attendance →</a></div>' +
           '<section class="card alliance-stats-card"><div class="card-header"><h3>Rankings</h3><a href="/rankings" data-link>View full ranking →</a></div>' + renderPowerBoard(members) + '</section>';

@@ -33,3 +33,10 @@ Member pages were checked at 360, 390, 430, 768, 1366, and 1920 pixels. Browser 
 - Give the owner the completed interactive preview and change summary. Do not request deployment approval before that point.
 
 The local preview now labels its sign-in/save limitations and intercepts sign-in attempts with a readable notice. Asynchronous page renderers are guarded against responses arriving after navigation; a delayed Wiki response regression test covers this failure.
+
+## Noticeboard direction — September 6
+Revised the local Home to follow the playful pinned-paper navigation of Teka Teki Studios, using the supplied Nikko scene unchanged and existing Kella icons/logo. Six pinned links open the real Events, Wiki, Members, Attendance, Research and Training routes. Rankings remain accessible from the alliance sign and below the board. Desktop navigation is now a compact top bar; phone navigation retains the bottom bar and drawer. Phone notes are enlarged beneath the scene. Shared workspace colors now use forest green and warm gold.
+
+Removed the desktop side column and replaced the plain Home introduction with the illustrated entrance. No features, records, permissions or integrations were removed. Officer/account routes remain intact; authenticated officer actions still need a safe authenticated test environment. The local preview continues to block sign-in and writes.
+
+Validation: backend build and full existing regression suite passed; pinned Event and Training links tested; calculator input 1 to 2 days changes highest result 227K to 454K; desktop, 768px tablet and 390px phone visually checked. Live baseline comparison confirms production unchanged. Added scene is 2.54 MB; this revision makes no new measured performance improvement claim. Previous cached frontend assets remain in place.
