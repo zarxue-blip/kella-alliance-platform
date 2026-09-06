@@ -3,7 +3,11 @@ import { lordResearchLevelCosts, lordResearchTreeData } from "../data/researchTr
 
 const navItems = [
   { path: "/migration", icon: "/assets/migration-gold.png", label: "Migration" },
-  { path: "/", icon: "/assets/icons/dashboard.png", label: "Dashboard" },
+  { path: "/", icon: "/assets/icons/dashboard.png", label: "Home" },
+  { path: "/calendar", icon: "/assets/icons/events.png", label: "Events" },
+  { path: "/profile", icon: "/assets/icons/members.png", label: "My Profile" },
+  { path: "/officer", icon: "/assets/icons/settings.png", label: "Officer", adminOnly: true },
+  { path: "/buff-schedule", icon: "/assets/buffs/buff-schedule.png", label: "Buff Schedule" },
   { path: "/wiki", icon: "/assets/icons/embed-sender.png", label: "Wiki" },
   { path: "/members", icon: "/assets/icons/members.png", label: "Members" },
   { path: "/research", icon: "/assets/buffs/research.png", label: "Research" },
@@ -3336,6 +3340,7 @@ export function kellaDashboardHtml() {
         .kofi-tip img { width: 32px; height: 32px; }
       }
     </style>
+    <link rel="stylesheet" href="/assets/command-center.css?v=1" />
   </head>
   <body>
     <div class="shell">
@@ -3343,15 +3348,14 @@ export function kellaDashboardHtml() {
         <div class="brand">
           <img class="brand-logo" src="/assets/kella-logo.png?v=1" alt="Kella logo" />
           <div>
-            <strong>KELLA</strong>
-            <span>Call of Dragons tools</span>
+            <strong>KING OF GLORY</strong>
+            <span>Command Center</span>
           </div>
         </div>
         <nav aria-label="Dashboard navigation" data-sidebar-nav>${navItems.filter((item) => !item.adminOnly).map(navLink).join("")}</nav>
         <div class="side-spacer"></div>
         <div class="side-footer">
-          <strong>Alliance Ops</strong>
-          Fast tools for migration, alerts, embeds, and officer reports.
+          <button type="button" class="secondary collapse-sidebar" data-collapse-sidebar aria-label="Collapse sidebar" aria-expanded="true">Collapse sidebar</button><span class="companion"><img src="/assets/kella-logo.png?v=1" alt="" width="32" height="32" /> Kella · Alliance companion</span>
         </div>
       </aside>
       <button class="mobile-nav-backdrop" type="button" data-mobile-nav-close aria-label="Close navigation"></button>
@@ -3361,7 +3365,7 @@ export function kellaDashboardHtml() {
             <button class="mobile-nav-toggle" type="button" data-mobile-nav-toggle aria-label="Open navigation" aria-expanded="false">☰</button>
             <img class="avatar-img" id="guildAvatar" src="/assets/kella-logo.png?v=1" alt="Kella logo" />
             <div>
-              <h1 id="guildName">Kella</h1>
+              <h1 id="guildName">KING OF GLORY</h1>
               <span class="muted" id="guildTagline">Command Center</span>
             </div>
           </div>
@@ -3370,11 +3374,11 @@ export function kellaDashboardHtml() {
               <span>Server Time</span>
               <strong data-server-clock>--:--:-- UTC</strong>
             </div>
-            <span class="auth-pill" data-auth-status>Checking login...</span>
+            <details class="account-menu"><summary>Account</summary><div class="account-panel"><span class="auth-pill" data-auth-status>Checking login...</span>
             <button class="profile-top-button" type="button" data-link-button="/profile" data-profile-button title="My Profile" style="display:none"><img src="/assets/icons/members.png" alt="" /><span><strong>My Profile</strong><em>Edit your player card</em></span></button>
             <button class="profile-top-button feedback-top-button" type="button" data-link-button="/complains" title="Complaint or suggestion"><img src="/assets/icons/complaints.png" alt="" /><span><strong>Feedback</strong><em>Complaint or suggestion</em></span></button>
             <button class="auth-button" type="button" data-action="discord-login" data-auth-login title="Discord Login">Login</button>
-            <button class="auth-button" type="button" data-action="discord-logout" data-auth-logout title="Logout" style="display:none">Logout</button>
+            <button class="auth-button" type="button" data-action="discord-logout" data-auth-logout title="Logout" style="display:none">Logout</button><a href="https://ko-fi.com/exuz19" target="_blank" rel="noreferrer">Support Kella</a></div></details>
           </div>
         </header>
         <div class="content">
@@ -3391,8 +3395,14 @@ export function kellaDashboardHtml() {
     </div>
     <div id="avatarCropper" class="avatar-cropper" aria-hidden="true"></div>
     <div id="toasts" class="toast-stack" aria-live="polite"></div>
-    <a class="kofi-tip" href="https://ko-fi.com/exuz19" target="_blank" rel="noreferrer"><img src="/assets/kella-logo.png?v=1" alt="" />Tip Me</a>
-    <script src="/assets/thumbnail-editor.js?v=3"></script>
+    <nav class="bottom-nav" aria-label="Mobile navigation">
+      <a href="/" data-link data-path="/" aria-label="Home"><img src="/assets/icons/dashboard.png" alt=""/><span>Home</span></a>
+      <a href="/calendar" data-link data-path="/calendar" aria-label="Events"><img src="/assets/icons/events.png" alt=""/><span>Events</span></a>
+      <a href="/wiki" data-link data-path="/wiki" aria-label="Wiki"><img src="/assets/icons/embed-sender.png" alt=""/><span>Wiki</span></a>
+      <a href="/members" data-link data-path="/members" aria-label="Members"><img src="/assets/icons/members.png" alt=""/><span>Members</span></a>
+      <button type="button" data-mobile-nav-toggle aria-label="More navigation" aria-expanded="false"><span aria-hidden="true">☰</span><span>More</span></button>
+    </nav>
+
     <script>
       const app = document.getElementById("app");
       const toasts = document.getElementById("toasts");
@@ -3656,23 +3666,23 @@ export function kellaDashboardHtml() {
       }
 
       function pathRequiresAdmin(path) {
-        return
-          ["/tools", "/events", "/alerts", "/shield-alerts", "/embed-sender", "/complaints", "/settings"].some(function(prefix) {
+        return path.startsWith("/roots") ||
+          ["/officer", "/tools", "/events", "/alerts", "/shield-alerts", "/embed-sender", "/complaints", "/settings"].some(function(prefix) {
             return path === prefix || path.startsWith(prefix + "/");
           });
       }
 
       function navItemHtml(item) {
-        return '<a href="' + escapeHtml(item.path) + '" data-link data-path="' + escapeHtml(item.path) + '"><img class="nav-icon" src="' + escapeHtml(item.icon) + '" alt="" loading="lazy" /><span>' + escapeHtml(item.label) + '</span></a>';
+        return '<a aria-label="' + escapeHtml(item.label) + '" title="' + escapeHtml(item.label) + '" href="' + escapeHtml(item.path) + '" data-link data-path="' + escapeHtml(item.path) + '"><img class="nav-icon" src="' + escapeHtml(item.icon) + '" alt="" loading="lazy" /><span>' + escapeHtml(item.label) + '</span></a>';
       }
 
       function renderSidebarNav() {
         const nav = document.querySelector("[data-sidebar-nav]");
         if (!nav) return;
-        nav.innerHTML = dashboardNavItems
-          .filter(function(item) { return !item.adminOnly || hasAdminAccess(); })
-          .map(navItemHtml)
-          .join("");
+        const primary = ["/", "/calendar", "/wiki", "/members", "/profile"];
+        nav.innerHTML = primary.map(function(path) { return navItemHtml(dashboardNavItems.find(function(item) { return item.path === path; })); }).join("") +
+          '<details class="nav-more"><summary>More</summary>' + dashboardNavItems.filter(function(item) { return !item.adminOnly && !primary.includes(item.path); }).map(navItemHtml).join("") + '</details>' +
+          (hasAdminAccess() ? '<div class="nav-section-label">Alliance management</div>' + navItemHtml(dashboardNavItems.find(function(item) { return item.path === "/officer"; })) : "");
         setActiveNav();
       }
 
@@ -4077,7 +4087,7 @@ export function kellaDashboardHtml() {
 
       function statMetricPicker() {
         const selectedMetric = currentStatMetric();
-        return '<details class="metric-selector"><summary><span class="metric-selector-label">Ranking metric</span><span class="metric-selector-value">' + escapeHtml(selectedMetric.label) + '</span></summary><div class="metric-picker" role="group" aria-label="Choose stat graph">' + statMetricOptions.map(function(metric) {
+        return '<details class="metric-selector"><summary><span class="metric-selector-label">Ranking metric</span><span class="metric-selector-value">' + escapeHtml(selectedMetric.label) + '</span></summary><input type="search" data-metric-search aria-label="Search ranking metrics" placeholder="Find a metric" /><div class="metric-picker" role="group" aria-label="Choose stat graph">' + statMetricOptions.map(function(metric) {
           return '<button class="metric-button ' + (metric.key === currentStatMetric().key ? "active" : "") + '" type="button" data-action="set-stats-metric" data-metric="' + escapeHtml(metric.key) + '">' + escapeHtml(metric.label) + '</button>';
         }).join("") + '</div></details>';
       }
@@ -4568,6 +4578,7 @@ export function kellaDashboardHtml() {
           manualMemberForm();
         memberModal.classList.add("open");
         memberModal.setAttribute("aria-hidden", "false");
+        memberModal.querySelector("button")?.focus();
         document.body.classList.add("modal-open");
       }
 
@@ -4605,10 +4616,9 @@ export function kellaDashboardHtml() {
             profileStat("Attendance", member.attendance ?? 0) +
             profileStat("Alliance", member.alliance || "") +
           '</div>' +
-          '<div class="profile-note"><strong>Officer Notes</strong><br>' + escapeHtml(member.notes || "No notes yet.") + '</div>' +
-          accountRelationshipSection(member) +
-          memberPowerChart(member) +
-          farmAccountsSection(member) +
+          (hasAdminAccess() ? '<details class="profile-section"><summary>Officer notes</summary>' + escapeHtml(member.notes || "No notes yet.") + '</details>' : "") +
+          '<details class="profile-section"><summary>Accounts</summary>' + accountRelationshipSection(member) + farmAccountsSection(member) + '</details>' +
+          '<details class="profile-section"><summary>Combat & growth</summary>' + memberPowerChart(member) + '</details>' +
           adminEditor;
         memberModal.classList.add("open");
         memberModal.setAttribute("aria-hidden", "false");
@@ -4758,11 +4768,14 @@ export function kellaDashboardHtml() {
       }
 
       function setActiveNav() {
-        document.querySelectorAll("[data-link]").forEach(function(link) {
+        document.querySelectorAll("[data-link][data-path]").forEach(function(link) {
           const path = link.getAttribute("data-path");
           let active = path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
           if (path === "/tools") active = ["/tools", "/events", "/alerts", "/shield-alerts", "/embed-sender"].some(function(prefix) { return location.pathname.startsWith(prefix); });
+          if (path === "/members" && location.pathname === "/rankings") active = true;
+          if (path === "/officer" && pathRequiresAdmin(location.pathname)) active = true;
           link.classList.toggle("active", active);
+          if(active) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
         });
       }
 
@@ -4787,7 +4800,7 @@ export function kellaDashboardHtml() {
       async function loadDashboardMembers(force = false) {
         const metric = state.statsMetric || "power";
         if (state.dashboardMembers.length && state.dashboardMembersMetric === metric && !force) return state.dashboardMembers;
-        const data = await fetchJson("/api/dashboard/members?view=dashboard&limit=500&metric=" + encodeURIComponent(metric));
+        const data = await fetchJson("/api/dashboard/members?view=dashboard&limit=10&metric=" + encodeURIComponent(metric));
         state.dashboardMembers = data.members || [];
         state.dashboardMembersMetric = metric;
         return state.dashboardMembers;
@@ -4940,11 +4953,11 @@ export function kellaDashboardHtml() {
 
       function applyGuildHeader(settings) {
         const alliance = settings?.alliance || {};
-        const name = alliance.name || "Kella";
+        const name = alliance.name || "KING OF GLORY";
         const tag = alliance.tag || "COD";
         document.getElementById("guildAvatar").alt = name + " logo";
         document.getElementById("guildName").textContent = name;
-        document.getElementById("guildTagline").textContent = tag + " Command Center";
+        document.getElementById("guildTagline").textContent = "Command Center";
       }
 
       function channelOptions(selected = "") {
@@ -5069,7 +5082,7 @@ export function kellaDashboardHtml() {
               const meta = escapeHtml(item.meta || "");
               return '<span class="calendar-entry">' + icon + '<span>' + title + '</span><small>' + meta + '</small></span>';
             }).join("")
-          : '<span class="calendar-empty">No event</span>';
+          : "";
         const more = items.length > visible.length ? '<span class="calendar-more">+' + (items.length - visible.length) + ' more</span>' : "";
         return '<button class="calendar-day' + (items.length ? " has-items event" : "") + (isToday ? " today" : "") + '" type="button" data-calendar-day="' + key + '" data-calendar-type="' + type + '">' +
           '<div class="calendar-day-top">' +
@@ -5087,7 +5100,7 @@ export function kellaDashboardHtml() {
         }).join("") + '</div>';
       }
 
-      function renderPowerBoard(members) {
+      function renderPowerBoard(members, limit = 10) {
         const metric = currentStatMetric();
         const allowedMembers = (members || []).filter(isAllowedStatsAlliance);
         const powerRankMap = new Map(allowedMembers
@@ -5096,7 +5109,7 @@ export function kellaDashboardHtml() {
           })
           .filter(function(item) { return item.value > 0; })
           .sort(function(a, b) { return Number(b.value || 0) - Number(a.value || 0); })
-          .slice(0, 50)
+          .slice(0, limit)
           .map(function(item, index) { return [String(item.member.id || item.member.uid || item.member.discordId), index + 1]; }));
         const ranked = allowedMembers
           .map(function(member) {
@@ -5110,7 +5123,7 @@ export function kellaDashboardHtml() {
             if (byMetric) return byMetric;
             return Number(b.power || 0) - Number(a.power || 0);
           })
-          .slice(0, 50);
+          .slice(0, limit);
         if (!ranked.length) return statMetricPicker() + empty("Upload a KoG, LWL, or mF Excel file to build the " + metric.label + " ranking.");
         return statMetricPicker() + '<div class="power-list">' + ranked.map(function(item, index) {
           const member = item.member;
@@ -5119,8 +5132,8 @@ export function kellaDashboardHtml() {
           const statValueText = formatCompactNumber(item.rankValue);
           const metricRankLabel = "#" + (index + 1) + " " + metric.label.toUpperCase();
           return '<button type="button" class="power-trend-row' + (powerRank ? " top-stat-player" : "") + '" data-member-row data-member-id="' + rowId + '" aria-label="Open ' + escapeHtml(metric.label) + ' history for ' + escapeHtml(memberDisplayName(member)) + '">' +
-            '<span class="power-player">' + memberAvatar(member, "member-avatar") + '<span class="power-player-info"><em class="stat-rank">' + escapeHtml(metricRankLabel) + (powerRank ? ' - Power #' + powerRank : '') + '</em><strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + escapeHtml(metric.label) + ': ' + statValueText + '</span></span></span>' +
-            '<span class="power-spark-wrap">' + sparklineSvg(item.history, 82) + '<span class="power-spark-meta">' + escapeHtml(statTrendMeta(item.history)) + '</span></span>' +
+            '<span class="power-player">' + memberAvatar(member, "member-avatar") + '<span class="power-player-info"><em class="stat-rank">' + escapeHtml(metricRankLabel) + '</em><strong>' + escapeHtml(member.ign || memberDisplayName(member)) + '</strong><span>' + escapeHtml(memberUsername(member)) + ' - ' + escapeHtml(metric.label) + ': ' + statValueText + '</span></span></span>' +
+            '<span class="power-spark-wrap">' + sparklineSvg(item.history, 40) + '<span class="power-spark-meta">' + escapeHtml(statTrendMeta(item.history)) + '</span></span>' +
             '<span class="trend-pill ' + trendClass(item.delta) + '">' + escapeHtml(formatDelta(item.delta)) + '</span>' +
           '</button>';
         }).join("") + '</div>';
@@ -5130,7 +5143,7 @@ export function kellaDashboardHtml() {
         const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         return '<div class="calendar-weekdays" aria-hidden="true">' + weekdays.map(function(day) { return '<span>' + day + '</span>'; }).join("") + '</div><div class="calendar-grid event-calendar">' + currentMonthDays().map(function(date) {
           const key = dayKey(date);
-          return renderCalendarCell(date, "events", calendarItemsForDay(events, key));
+          return (date.getUTCDate() === 1 ? '<span class="calendar-offset" style="grid-column:span ' + date.getUTCDay() + '"' + (date.getUTCDay() ? "" : " hidden") + '></span>' : "") + renderCalendarCell(date, "events", calendarItemsForDay(events, key));
         }).join("") + '</div>';
       }
 
@@ -5387,12 +5400,12 @@ export function kellaDashboardHtml() {
 
       function wikiExcerpt(page) {
         const blockText = Array.isArray(page?.blocks) ? page.blocks.filter(function(block) { return block.type === "text"; }).map(function(block) { return block.text || ""; }).join(" ") : "";
-        const text = String(page?.body || blockText || "").replace(/\\s+/g, " ").trim();
+        const text = String(page?.body || blockText || "").replace(/\\[\\[kella-img:[^\\]]+\\]\\]/g, "").replace(/\\s+/g, " ").trim();
         return text.length > 170 ? text.slice(0, 170) + "..." : text || "No wiki text added.";
       }
 
       function wikiImageHtml(page, className) {
-        return page?.imageDataUrl ? '<img class="' + className + '" src="' + escapeHtml(page.imageDataUrl) + '" alt="' + escapeHtml(page.title || "Wiki image") + '" />' : "";
+        return page?.imageDataUrl ? '<img loading="lazy" decoding="async" class="' + className + '" src="' + escapeHtml(page.imageDataUrl) + '" alt="' + escapeHtml(page.title || "Wiki image") + '" />' : "";
       }
 
       function wikiBlockStyle(block) {
@@ -6253,8 +6266,8 @@ export function kellaDashboardHtml() {
           }
           const actions = hasWikiEditAccess() ? '<button class="primary" data-action="clear-wiki-form">Create Wiki</button>' : "";
           app.innerHTML =
-            pageHeader("Kella Wiki", "", actions) +
-            (hasWikiEditAccess() ? renderWikiEditor() : "") +
+            pageHeader("Wiki", "", actions) +
+            '<div data-wiki-editor-host></div>' +
             renderWikiLibrary(pages);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load wiki. ' + escapeHtml(error.message) + '</div>';
@@ -7152,10 +7165,10 @@ export function kellaDashboardHtml() {
           return '<button class="training-mix-tier-button' + (active ? ' active' : '') + '" type="button" data-action="training-mixed-tier" data-training-tier="' + key + '">' + escapeHtml(trainingTierLabel(key)) + '</button>';
         }).join("");
         app.innerHTML =
-          pageHeader("Training Tools", "Plan troop training, event points, speedups, and power before spending your reserves.", '<button class="secondary" data-action="reset-training">Reset</button><button class="primary" data-action="copy-training-summary">Copy Results</button>') +
+          pageHeader("Training", "", '<button class="secondary" data-action="reset-training">Reset</button><button class="primary" data-action="copy-training-summary">Copy Results</button>') +
           '<div class="training-shell">' +
-            '<section class="training-intro"><img src="/assets/icons/training-tools.png" alt="" /><div><strong>Commander Training Planner</strong><span>Calculations use Call of Dragons base troop times. Set your city training buff to match the value shown in game.</span></div></section>' +
-            '<section class="training-resource-settings" data-training-resource-settings' + (selected === "mixed" ? ' hidden' : '') + '><label>Troop Type<select data-training-input data-training-troop-type>' + troopTypeOptions + '</select></label><div><strong>Resource calculation</strong><span>Costs change by troop type. Every result includes Ore, Mana, Wood, and Gold.</span></div></section>' +
+            '<details class="calculator-help"><summary>Calculation assumptions</summary><p>Uses Call of Dragons base troop times. Match the training buff to your city’s in-game value.</p></details>' +
+            '<section class="training-resource-settings" data-training-resource-settings' + (selected === "mixed" ? ' hidden' : '') + '><label>Troop Type<select data-training-input data-training-troop-type>' + troopTypeOptions + '</select></label></section>' +
             '<div class="training-mode-tabs" role="tablist" aria-label="Training calculator mode">' + tabs + '</div>' +
             '<section class="card training-calculator-card training-panel" data-training-panel="points"' + (selected === "points" ? '' : ' hidden') + '>' +
               '<div class="training-panel-head"><div><h3>Event Points</h3><p>See how many troops and event points your available training time can produce.</p></div></div>' +
@@ -7445,16 +7458,37 @@ export function kellaDashboardHtml() {
       }
 
       function renderDashboardData(summary, members = [], events = []) {
-        const dashboardActions = hasAdminAccess()
-          ? '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-link-button="/tools">Open Tools</button>'
-          : "";
-        const eventActions = hasAdminAccess()
-          ? '<button class="primary" data-link-button="/tools">Create Event</button>'
-          : '';
-        app.innerHTML =
-          pageHeader("Dashboard", "A cleaner command room for events, power, and member activity.", dashboardActions) +
-          '<section class="card" style="margin-bottom:18px"><div class="card-header"><div><h3>Event Calendar</h3><span class="muted">' + monthTitle() + ' active and past events. Click any day to view event attendance.</span></div><div class="toolbar">' + eventActions + '</div></div>' + renderEventsCalendar(events) + '</section>' +
-          '<section class="card alliance-stats-card"><div class="card-header"><div><h3>Members Stats</h3><span class="muted">Top 50 ranking graph based on the selected stat from your latest roster uploads.</span></div></div>' + renderPowerBoard(members) + '</section>';
+        const upcoming = sortedEvents(events).find(function(event) { return new Date(event.startsAt).getTime() >= Date.now(); });
+        const buff = realmBuffCalendarItem(dayKey(new Date()));
+        const eventAction = upcoming ? '<button class="primary" data-link-button="/attendance/' + escapeHtml(upcoming.id) + '">View attendance</button>' : '<button class="secondary" data-link-button="/calendar">Open calendar</button>';
+        app.innerHTML = pageHeader("Home", "", hasAdminAccess() ? '<button class="secondary" data-link-button="/officer">Officer workspace</button>' : '') +
+          '<section class="home-focus"><div class="next-event"><span class="eyebrow">Next event</span><h2>' + escapeHtml(upcoming?.title || 'No upcoming event') + '</h2><p>' + (upcoming ? formatUtcDateTime(upcoming.startsAt) : 'Your next alliance event will appear here.') + '</p>' + eventAction + '</div><div class="today-buff"><span class="eyebrow">Today’s buff</span>' + (buff ? '<img src="' + escapeHtml(buff.icon) + '" alt=""/><h3>' + escapeHtml(buff.title) + '</h3><p>' + escapeHtml(buff.meta || '') + '</p>' : '<h3>No scheduled buff</h3>') + '<a href="/buff-schedule" data-link>View schedule →</a></div></section>' +
+          '<div id="home-announcement"></div><div class="home-stats"><span><strong>' + formatNumber(summary.totalMembers) + '</strong> members</span><span><strong>' + formatNumber(summary.todayCheckIns) + '</strong> checked in today</span><a href="/attendance" data-link>My attendance →</a></div>' +
+          '<section class="card alliance-stats-card"><div class="card-header"><h3>Rankings</h3><a href="/rankings" data-link>View full ranking →</a></div>' + renderPowerBoard(members) + '</section>';
+      }
+
+      async function renderMemberCalendar() {
+        skeleton("Loading events…");
+        try {
+          const results = await Promise.all([loadDashboardEvents(), loadBuffSchedule()]);
+          app.innerHTML = pageHeader("Events", "", hasAdminAccess() ? '<button class="primary" data-link-button="/tools?tool=events">+ Add event</button><button class="secondary" data-link-button="/buff-schedule">Manage buffs</button>' : '') +
+            '<section class="card"><div class="card-header"><h3>' + monthTitle() + '</h3><a href="/attendance" data-link>Attendance →</a></div>' + renderEventsCalendar(results[0]) + '</section>';
+        } catch(error) { app.innerHTML = '<div class="error">' + escapeHtml(error.message) + '</div>'; }
+      }
+
+      async function renderRankings() {
+        skeleton("Loading rankings…");
+        try { const members = await loadMembers(); app.innerHTML = pageHeader("Rankings", "", '<a href="/members" data-link>Member directory →</a>') + renderPowerBoard(members, members.length); }
+        catch(error) { app.innerHTML = '<div class="error">' + escapeHtml(error.message) + '</div>'; }
+      }
+
+      function renderOfficer() {
+        const groups = [
+          { title: "Events & war", links: [["Attendance", "/attendance"], ["Create event", "/tools?tool=events"], ["Roots of War", "/roots-of-war"], ["Buff management", "/buff-schedule"], ["Polls & roles", "/tools?tool=polls"]] },
+          { title: "Alliance", links: [["Member management", "/members?manage=1"], ["Reports", "/roots-reports"], ["Feedback", "/complaints"], ["Settings & uploads", "/settings"]] },
+          { title: "Discord", links: [["Announcements", "/tools?tool=chat"], ["War alerts", "/tools?tool=alerts"], ["Shield alerts", "/tools?tool=shield"], ["Embeds", "/tools?tool=embed"], ["Thumbnail editor", "/tools?tool=thumbnails"]] }
+        ];
+        app.innerHTML = pageHeader("Officer workspace", "") + '<div class="officer-groups">' + groups.map(function(group) { return '<section><h3>' + group.title + '</h3><div class="officer-links">' + group.links.map(function(link) { return '<a href="' + link[1] + '" data-link>' + link[0] + '<span aria-hidden="true">→</span></a>'; }).join('') + '</div></section>'; }).join('') + '</div>';
       }
 
       async function renderDashboard() {
@@ -7462,6 +7496,11 @@ export function kellaDashboardHtml() {
         try {
           const results = await Promise.all([loadSummary(), loadSettings(), loadDashboardMembers(), loadDashboardEvents()]);
           renderDashboardData(results[0], results[2], results[3]);
+          if(state.auth?.authenticated) fetchJson('/api/announcements').then(function(data) {
+            const item = (data.announcements || []).find(function(item) { return item.sentAt && new Date(item.sentAt).getTime() <= Date.now(); });
+            const target=document.getElementById('home-announcement');
+            if(item && target) target.innerHTML='<section class="home-announcement"><span class="eyebrow">Alliance announcement</span><h3>' + escapeHtml(item.title) + '</h3><p>' + escapeHtml(item.body) + '</p></section>';
+          }).catch(function() {});
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load dashboard data. ' + escapeHtml(error.message) + '</div>';
         }
@@ -7535,10 +7574,10 @@ export function kellaDashboardHtml() {
         skeleton("Loading members...");
         try {
           const members = await loadMembers();
-          const adminActions = hasAdminAccess()
+          const adminActions = hasAdminAccess() && new URLSearchParams(location.search).has("manage")
             ? '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-action="open-add-member">Add Member</button>'
             : "";
-          app.innerHTML = pageHeader("Members", "Search members and review Discord profile, Lord ID, power, alliance role, attendance, and notes. Click any player row to open their full stats.", '<input class="search" data-member-search placeholder="Search members" />' + adminActions) + (hasAdminAccess() ? renderMemberUploadCard() : "") + renderMembersTable(members);
+          app.innerHTML = pageHeader("Members", "", '<input class="search" data-member-search placeholder="Search members" />' + adminActions) + (hasAdminAccess() && new URLSearchParams(location.search).has("manage") ? renderMemberUploadCard() : "") + renderMembersTable(members);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load members. ' + escapeHtml(error.message) + '</div>';
         }
@@ -7688,6 +7727,20 @@ export function kellaDashboardHtml() {
         '</section>';
       }
 
+      function myEventStatus(event) {
+        if (!state.auth?.authenticated) return 'Sign in to see your status';
+        const id = String(state.auth?.user?.discordId || '');
+        const groups = attendanceGroups(event);
+        const match = function(player) { return String(player.discordId || player.userId || player.id || '') === id; };
+        if (groups.attending.some(match)) return 'Attending';
+        if (groups.absent.some(match)) return 'Absent';
+        if (groups.unsure.some(match)) return 'Not sure';
+        return 'Check your response in Discord';
+      }
+      function memberEventRow(event) {
+        return '<article class="event-agenda-row"><div><h3>' + escapeHtml(event.title || 'Alliance event') + '</h3><span>' + formatUtcDateTime(event.startsAt) + '</span></div><span class="event-my-status">' + escapeHtml(myEventStatus(event)) + '</span><div class="toolbar">' + (event.messageLink ? '<a class="primary" target="_blank" rel="noreferrer" href="' + escapeHtml(event.messageLink) + '">Respond in Discord</a>' : '') + '<a href="/attendance/' + escapeHtml(event.id) + '" data-link>Details →</a></div></article>';
+      }
+
       async function renderAttendance() {
         skeleton("Loading attendance...");
         try {
@@ -7696,12 +7749,10 @@ export function kellaDashboardHtml() {
           const polls = results[1];
           const actions = (hasAdminAccess() ? '<button class="secondary" data-link-button="/tools">Create Event</button><button class="secondary" data-link-button="/tools?tool=polls">Create Poll</button>' : "") + '<button class="primary" data-action="refresh-events">Refresh</button>';
           app.innerHTML =
-            pageHeader("Attendance Calendar", "Event attendance, polls, and Best Online Time results in one place.", actions) +
-            renderAttendanceSummary(events, polls) +
-            '<section class="card attendance-calendar-card"><div class="card-header"><div><h3>' + monthTitle() + '</h3><span class="muted">Large days show event titles, server time, and response totals.</span></div><span class="badge good">Today is green</span></div>' + renderEventsCalendar(events) + '</section>' +
-            renderAttendanceFocus(events) +
-            '<section style="margin-top:18px"><div class="card-header"><div><h3>Poll Participation</h3><span class="muted">Poll-to-role and Best Online Time responses sync here automatically.</span></div></div>' + renderPollReports(polls) + '</section>' +
-            '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Recent Event Reports</h3><span class="muted">Use this table when you need exact counts or admin actions.</span></div></div>' + renderRecentEvents(sortedEvents(events).reverse()) + '</section>';
+            pageHeader("Attendance", "", actions) +
+            (hasAdminAccess() ? renderAttendanceSummary(events, polls) : "") +
+            '<section class="event-agenda">' + (events.length ? sortedEvents(events).reverse().map(memberEventRow).join('') : empty('No events yet.')) + '</section>' +
+            '<details class="attendance-polls"><summary>Poll Participation & Best Online Time</summary>' + renderPollReports(polls) + '</details>';
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load attendance. ' + escapeHtml(error.message) + '</div>';
         }
@@ -7958,7 +8009,10 @@ export function kellaDashboardHtml() {
             content = shieldToolContent(await loadAlerts());
           }
           if (selected === "embed") content = await embedToolContent();
-          if (selected === "thumbnails") content = await thumbnailToolContent();
+          if (selected === "thumbnails") {
+            if (!window.KellaThumbnailEditor) await new Promise(function(resolve,reject) { const script=document.createElement('script'); script.src='/assets/thumbnail-editor.js?v=3'; script.onload=resolve; script.onerror=function(){script.remove();reject(new Error('Thumbnail editor could not load.'));}; document.head.appendChild(script); });
+            content = await thumbnailToolContent();
+          }
           app.innerHTML = pageHeader("Tools", "Create events, polls, role assignments, messages, alerts, embeds, and thumbnails.", "") + toolPicker(selected) + content;
           if (selected === "embed") updateEmbedPreview();
           if (selected === "thumbnails") requestAnimationFrame(function() { window.KellaThumbnailEditor?.mount(document.querySelector("[data-thumbnail-editor]")); });
@@ -8522,8 +8576,10 @@ export function kellaDashboardHtml() {
         } else {
           renderSidebarNav();
         }
-        if (!state.settings) loadSettings().catch(function() {});
+        if (!state.settings && location.pathname !== "/") loadSettings().catch(function() {});
+        if (state.wikiDrag) { cancelAnimationFrame(state.wikiDrag.frame); state.wikiDrag = null; }
         const path = location.pathname;
+        document.body.dataset.route = path.split("/")[1] || "home";
         state.currentReport = null;
         if (pathRequiresAdmin(path) && !hasAdminAccess()) {
           setActiveNav();
@@ -8533,6 +8589,10 @@ export function kellaDashboardHtml() {
         if (path === "/migration") return renderMigration();
         if (path === "/migration/admin") return renderMigration(true);
         if (path === "/") return renderDashboard();
+        if (path === "/calendar") return renderMemberCalendar();
+        if (path === "/rankings") return renderRankings();
+        if (path === "/officer") return renderOfficer();
+        if (path === "/buff-schedule") return renderBuffSchedule();
         if (path === "/lord-tools") return navigate("/profile?section=lord");
         if (path === "/research") return renderLordTools(true, "research");
         if (path === "/training-tools") return renderTrainingTools();
@@ -8560,6 +8620,8 @@ export function kellaDashboardHtml() {
       function navigate(path) {
         history.pushState({}, "", path);
         closeMobileNav();
+        document.querySelector(".account-menu")?.removeAttribute("open");
+        window.scrollTo({ top: 0, behavior: "instant" });
         route();
       }
 
@@ -8569,7 +8631,7 @@ export function kellaDashboardHtml() {
         const toggle = document.querySelector("[data-mobile-nav-toggle]");
         sidebar?.classList.remove("open");
         backdrop?.classList.remove("open");
-        toggle?.setAttribute("aria-expanded", "false");
+        document.querySelectorAll("[data-mobile-nav-toggle]").forEach(function(button){button.setAttribute("aria-expanded", "false");});
         document.body.classList.remove("mobile-nav-open");
       }
 
@@ -8580,7 +8642,7 @@ export function kellaDashboardHtml() {
         const opening = !sidebar?.classList.contains("open");
         sidebar?.classList.toggle("open", opening);
         backdrop?.classList.toggle("open", opening);
-        toggle?.setAttribute("aria-expanded", String(opening));
+        document.querySelectorAll("[data-mobile-nav-toggle]").forEach(function(button){button.setAttribute("aria-expanded", String(opening));});
         document.body.classList.toggle("mobile-nav-open", opening);
       }
 
@@ -8597,6 +8659,25 @@ export function kellaDashboardHtml() {
         if (lordResearchPointers.size < 2) lordResearchPinch = null;
       }
 
+      document.addEventListener("input", function(event) {
+        if (event.target.matches("[data-metric-search]")) {
+          const query = event.target.value.toLowerCase();
+          event.target.closest(".metric-selector").querySelectorAll(".metric-button").forEach(function(button) { button.hidden = !button.textContent.toLowerCase().includes(query); });
+        }
+      });
+      document.addEventListener("click", function(event) {
+        const collapse = event.target.closest("[data-collapse-sidebar]");
+        if (collapse) { const collapsed = document.body.classList.toggle("sidebar-collapsed"); collapse.setAttribute("aria-expanded", String(!collapsed)); collapse.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar"); }
+        if (!event.target.closest(".account-menu")) document.querySelector(".account-menu")?.removeAttribute("open");
+      });
+      document.addEventListener("keydown", function(event) {
+        if(event.key === 'Tab' && memberModal?.classList.contains('open')) {
+          const items=Array.from(memberModal.querySelectorAll('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary,[tabindex="0"]')).filter(function(item){return item.getClientRects().length;});
+          const first=items[0],last=items[items.length-1];
+          if(event.shiftKey && document.activeElement===first){event.preventDefault();last?.focus();}
+          else if(!event.shiftKey && document.activeElement===last){event.preventDefault();first?.focus();}
+        }
+        if(event.key === "Escape") { document.querySelector(".account-menu")?.removeAttribute("open"); closeMobileNav(); } });
       document.addEventListener("pointerdown", function(event) {
         const viewport = event.target.closest?.("[data-lord-research-scroll]");
         if (!viewport || event.button !== 0) return;
@@ -9010,6 +9091,7 @@ export function kellaDashboardHtml() {
           }
           const editor = document.querySelector("[data-wiki-editor]");
           if (editor) editor.outerHTML = renderWikiEditor(page);
+          else document.querySelector("[data-wiki-editor-host]")?.insertAdjacentHTML("beforeend", renderWikiEditor(page));
           document.querySelector("[data-wiki-editor]")?.scrollIntoView({ behavior: "smooth", block: "start" });
           return;
         }
@@ -9020,6 +9102,7 @@ export function kellaDashboardHtml() {
           }
           const editor = document.querySelector("[data-wiki-editor]");
           if (editor) editor.outerHTML = renderWikiEditor();
+          else document.querySelector("[data-wiki-editor-host]")?.insertAdjacentHTML("beforeend", renderWikiEditor());
           document.querySelector("[data-wiki-editor]")?.scrollIntoView({ behavior: "smooth", block: "start" });
           return;
         }
@@ -9255,6 +9338,7 @@ export function kellaDashboardHtml() {
           return;
         }
         if (kind === "set-stats-metric") {
+          if (location.pathname === "/rankings") { state.statsMetric = action.getAttribute("data-metric") || "power"; renderRankings(); return; }
           const nextMetric = action.getAttribute("data-metric") || "power";
           if (!statMetricOptions.some(function(metric) { return metric.key === nextMetric; })) return;
           state.statsMetric = nextMetric;
@@ -9818,6 +9902,8 @@ export function kellaDashboardHtml() {
           corner: event.target.closest("[data-wiki-resize-handle]")?.getAttribute("data-resize-corner") || "se",
           startX: event.clientX,
           startY: event.clientY,
+          startWindowX: window.scrollX,
+          startWindowY: window.scrollY,
           canvasScaleX,
           canvasScaleY,
           scrollContainer,
@@ -9837,9 +9923,10 @@ export function kellaDashboardHtml() {
         refreshWikiSelection();
       });
 
-      document.addEventListener("pointermove", function(event) {
+      function moveWikiPointer(event) {
         const drag = state.wikiDrag;
         if (!drag || drag.pointerId !== event.pointerId) return;
+        drag.lastX = event.clientX; drag.lastY = event.clientY;
         // B: wait for movement threshold before activating drag
         const deltaX = Math.abs(event.clientX - drag.startX);
         const deltaY = Math.abs(event.clientY - drag.startY);
@@ -9849,6 +9936,12 @@ export function kellaDashboardHtml() {
         // B: capture the pointer only after threshold is crossed
         if (!drag.captured) {
           drag.captured = true;
+          const scrollFrame = function() {
+            if (state.wikiDrag !== drag) return;
+            moveWikiPointer({pointerId:drag.pointerId,clientX:drag.lastX,clientY:drag.lastY,preventDefault:function(){},stopPropagation:function(){}});
+            drag.frame = requestAnimationFrame(scrollFrame);
+          };
+          drag.frame = requestAnimationFrame(scrollFrame);
           drag.pointerTarget.setPointerCapture?.(event.pointerId);
         }
         // C: edge auto-scroll — support both vertical and horizontal for all drag modes
@@ -9863,8 +9956,8 @@ export function kellaDashboardHtml() {
         }
         const scrollDx = (drag.scrollContainer?.scrollLeft || 0) - drag.startScrollLeft;
         const scrollDy = (drag.scrollContainer?.scrollTop || 0) - drag.startScrollTop;
-        const dx = (event.clientX - drag.startX + scrollDx) * drag.canvasScaleX;
-        const dy = (event.clientY - drag.startY + scrollDy) * drag.canvasScaleY;
+        const dx = (event.clientX - drag.startX + scrollDx + window.scrollX - drag.startWindowX) * drag.canvasScaleX;
+        const dy = (event.clientY - drag.startY + scrollDy + window.scrollY - drag.startWindowY) * drag.canvasScaleY;
         if (drag.mode === "resize-element") {
           const minWidth = block.type === "text" ? 80 : 24;
           const minHeight = block.type === "text" ? 48 : 24;
@@ -9914,11 +10007,15 @@ export function kellaDashboardHtml() {
         // C: only preventDefault after drag is actively moving the element
         event.preventDefault();
         event.stopPropagation();
-      });
+      }
+      document.addEventListener("pointermove", moveWikiPointer);
+
+
 
       function finishWikiPointer(event) {
         const drag = state.wikiDrag;
         if (!drag || drag.pointerId !== event.pointerId) return;
+        cancelAnimationFrame(drag.frame);
         state.wikiDrag = null;
         state.wikiInteractionMode = null;
         drag.pointerTarget?.releasePointerCapture?.(event.pointerId);
@@ -10184,6 +10281,13 @@ export function kellaDashboardHtml() {
         if (document.activeElement && document.activeElement.matches("input, textarea, select")) return;
         refreshDashboardSilently();
       }, 120000);
+      const tableLabels = new MutationObserver(function() {
+        app.querySelectorAll('table').forEach(function(table) {
+          const headings = Array.from(table.querySelectorAll('thead th')).map(function(th) { return th.textContent; });
+          table.querySelectorAll('tbody tr').forEach(function(row) { Array.from(row.children).forEach(function(cell,index) { if(headings[index]) cell.setAttribute('data-label',headings[index]); }); });
+        });
+      });
+      tableLabels.observe(app, {childList:true,subtree:true});
       route();
     </script>
   </body>

@@ -11,7 +11,7 @@ import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { botRouter } from "./routes/bot.routes.js";
 import { apiRouter } from "./routes/index.js";
-import { kellaDashboardHtml } from "./views/kellaDashboard.js";
+import { kellaPageHtml, kellaPageAssets } from "./views/kellaPage.js";
 
 const appDir = dirname(fileURLToPath(import.meta.url));
 const publicDir = join(appDir, "..", "public");
@@ -43,6 +43,11 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
   app.use(rateLimit({ windowMs: 60_000, limit: 240 }));
+  app.get('/assets/:file', (req, res, next) => {
+    const asset = kellaPageAssets.get(req.path);
+    if (!asset) return next();
+    res.set('Cache-Control', 'public, max-age=31536000, immutable').type(asset.type).send(asset.body);
+  });
   app.use("/assets", express.static(publicDir, { maxAge: "7d", immutable: true }));
   app.get("/favicon.ico", (_req, res) => res.sendFile(join(publicDir, "kella-favicon.png")));
   app.get("/apple-touch-icon.png", (_req, res) => res.sendFile(join(publicDir, "kella-logo.png")));
@@ -51,6 +56,9 @@ export function createApp() {
   app.get(
     [
       "/",
+      "/calendar",
+      "/rankings",
+      "/officer",
       "/profile",
       "/migration",
       "/migration/admin",
@@ -72,7 +80,7 @@ export function createApp() {
       "/settings"
     ],
     (_req, res) => {
-      res.type("html").send(kellaDashboardHtml());
+      res.type("html").send(kellaPageHtml);
     }
   );
 

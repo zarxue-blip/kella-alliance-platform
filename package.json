@@ -15,7 +15,8 @@
     "lint": "npm run lint --workspace @cod-amp/frontend --if-present",
     "typecheck": "npm run typecheck --workspace @cod-amp/shared && npm run typecheck --workspace @cod-amp/backend && npm run typecheck --workspace @cod-amp/discord-bot && npm run typecheck --workspace @cod-amp/frontend",
     "test": "npm run test --workspace @cod-amp/backend",
-    "test:radar": "npm run test:radar --workspace @cod-amp/backend"
+    "test:radar": "npm run test:radar --workspace @cod-amp/backend",
+    "preview:safe": "tsx watch preview.ts"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

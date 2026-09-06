@@ -1,3 +1,4 @@
+import { rankMembers } from "../services/ranking.service.js";
 import { createHash } from "node:crypto";
 import { Types } from "mongoose";
 import sanitizeHtml from "sanitize-html";
@@ -1403,7 +1404,7 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
   const metricKey = typeof req.query.metric === "string" && /^[a-z][a-zA-Z0-9]*$/.test(req.query.metric) ? req.query.metric : "power";
   const requestedLimit = Number(req.query.limit || 0);
   const limit = dashboardView
-    ? Math.max(50, Math.min(Number.isFinite(requestedLimit) && requestedLimit > 0 ? requestedLimit : 500, 500))
+    ? Math.max(1, Math.min(Number.isFinite(requestedLimit) && requestedLimit > 0 ? requestedLimit : 10, 500))
     : 2000;
   const filter: Record<string, unknown> = allianceFilter(allianceId);
   if (q) {
@@ -1431,7 +1432,7 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
 
   const queriedMembers = (await memberQuery.lean()) as DashboardMember[];
   const members = dashboardView && !q
-    ? queriedMembers.filter((member) => isAllowedTopnAlliance(member.alliance)).slice(0, limit)
+    ? rankMembers(queriedMembers.filter((member) => ["kog", "lwl", "mf"].includes(topnAllianceTag(member.alliance))), metricKey, limit)
     : queriedMembers;
 
   res.json({
