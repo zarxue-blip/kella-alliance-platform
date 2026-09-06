@@ -8,7 +8,7 @@ export const migrationClient = String.raw`
 
           hasAdminAccess() ? '<button class="secondary" data-link-button="' + (adminMode ? '/migration' : '/migration/admin') + '">' + (adminMode ? 'Application form' : 'View Applications') + '</button>' : '');
 
-        app.innerHTML = header + '<p>Loadingâ€¦</p>';
+        app.innerHTML = header + '<p>Loading...</p>';
 
         try {
 
@@ -44,9 +44,9 @@ export const migrationClient = String.raw`
 
                 body.querySelectorAll('tr').forEach(function(r){r.classList.remove('selected');r.setAttribute('aria-selected','false');});row.classList.add('selected');row.setAttribute('aria-selected','true');
 
-                detail.replaceChildren();const heading=document.createElement('h3');heading.textContent=item.answers.ign+' · '+item.answers.playerId;detail.appendChild(heading);
+                detail.replaceChildren();const heading=document.createElement('h3');heading.textContent=item.answers.ign+' - '+item.answers.playerId;detail.appendChild(heading);
 
-                const delivery=document.createElement('p');delivery.textContent='Discord: '+item.deliveryStatus+' · Requester: '+item.discordId;detail.appendChild(delivery);
+                const delivery=document.createElement('p');delivery.textContent='Discord: '+item.deliveryStatus+' - Requester: '+item.discordId;detail.appendChild(delivery);
 
                 const grid=document.createElement('div');grid.className='migration-answer-grid';detail.appendChild(grid);
 
@@ -84,7 +84,7 @@ export const migrationClient = String.raw`
 
             if(field.type==='multi') {const choices=document.createElement('div');choices.className='migration-choices';choices.setAttribute('role','group');choices.setAttribute('aria-label',field.label);field.options.forEach(function(option){const row=document.createElement('label');const input=document.createElement('input');input.type='checkbox';input.name=field.key;input.value=option;row.appendChild(input);row.appendChild(document.createTextNode(option));choices.appendChild(row);});wrapper.appendChild(choices);}
 
-            else {const input=document.createElement(field.type==='textarea'?'textarea':field.type==='single'?'select':'input');input.id='migration-'+field.key;input.name=field.key;input.required=field.required;if(field.type==='single'){input.add(new Option('Selectâ€¦',''));field.options.forEach(function(o){input.add(new Option(o,o));});}else if(field.type==='number'){input.type='number';input.min='0';input.max=String(Number.MAX_SAFE_INTEGER);input.step='any';}else{if(field.type!=='textarea') input.type='text';input.maxLength=field.type==='textarea'?2000:200;}wrapper.appendChild(input);}
+            else {const input=document.createElement(field.type==='textarea'?'textarea':field.type==='single'?'select':'input');input.id='migration-'+field.key;input.name=field.key;input.required=field.required;if(field.type==='single'){input.add(new Option('Select...',''));field.options.forEach(function(o){input.add(new Option(o,o));});}else if(field.type==='number'){input.type='number';input.min='0';input.max=String(Number.MAX_SAFE_INTEGER);input.step='any';}else{if(field.type!=='textarea') input.type='text';input.maxLength=field.type==='textarea'?2000:200;}wrapper.appendChild(input);}
 
             groups[field.section].appendChild(wrapper);
 
@@ -105,4 +105,3 @@ export const migrationClient = String.raw`
       }
 
 `;
-
