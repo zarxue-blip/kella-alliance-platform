@@ -27,5 +27,19 @@ app.use(async (req,res,next) => {
   }
   next();
 });
-app.get('*',(_req,res)=>res.type('html').send(kellaPageHtml));
+app.get('/__preview/info.js',(_req,res)=>res.type('application/javascript').send(`
+document.addEventListener('click', function(event) {
+  const action = event.target instanceof Element ? event.target.closest('[data-action="discord-login"]') : null;
+  if (!action) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  const notice = document.getElementById('preview-notice');
+  notice.textContent = 'Sign-in is unavailable in this local preview. You can browse the pages and use the calculators.';
+  notice.focus();
+}, true);
+`));
+const previewHtml = kellaPageHtml
+  .replace('</head>', '<style>#preview-notice{padding:8px 16px;background:#29251e;color:#e4d3b4;font:14px/1.5 "Segoe UI",sans-serif;border-bottom:1px solid #5b503e}#preview-notice:focus{outline:2px solid #c7a86e;outline-offset:-2px}</style><script src="/__preview/info.js" defer></script></head>')
+  .replace('<body>', '<body><aside id="preview-notice" role="status" tabindex="-1">Local preview · Sign-in and saving are unavailable.</aside>');
+app.get('*',(_req,res)=>res.type('html').send(previewHtml));
 app.listen(4173,'127.0.0.1',()=>console.log('Local preview: http://127.0.0.1:4173'));

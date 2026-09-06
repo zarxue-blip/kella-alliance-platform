@@ -1,3 +1,4 @@
+import { personalAttendanceByEvent } from "../services/personalAttendance.service.js";
 import { rankMembers } from "../services/ranking.service.js";
 import { createHash } from "node:crypto";
 import { Types } from "mongoose";
@@ -1930,6 +1931,15 @@ export const dashboardPollDelete = asyncHandler(async (req, res) => {
   const poll = await PollModel.findOneAndDelete({ _id: req.params.id, ...allianceFilter(allianceId) });
   if (!poll) throw new HttpError(404, "Poll not found");
   res.json({ ok: true, poll: pollDto(poll) });
+});
+
+export const dashboardPersonalAttendance = asyncHandler(async (req: AuthenticatedRequest, res) => {
+  const responses = await KellaActionModel.find({
+    allianceId: req.user.allianceId,
+    actorDiscordId: req.user.discordId,
+    type: "event_response"
+  }).select("reportId status sentAt").sort({ sentAt: -1 }).limit(1000).lean<Array<{ reportId?: string; status?: string; sentAt?: Date }>>();
+  res.set("Cache-Control", "private, no-store").json({ byEvent: personalAttendanceByEvent(responses) });
 });
 
 export const dashboardEvents = asyncHandler(async (_req, res) => {

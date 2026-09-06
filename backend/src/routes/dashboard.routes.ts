@@ -30,6 +30,8 @@ import {
   dashboardEventDelete,
   dashboardEventSend,
   dashboardEvents,
+  dashboardPersonalAttendance,
+  dashboardRootsCreate,
   dashboardShieldSend,
   dashboardSummary,
   dashboardWikiAdminList,
@@ -58,6 +60,7 @@ dashboardRouter.delete("/uploads/:id", authenticateDashboardAdmin, dashboardRost
 dashboardRouter.post("/sync-discord-members", authenticateDashboardAdmin, dashboardDiscordMemberSync);
 dashboardRouter.get("/alerts", dashboardAlerts);
 dashboardRouter.get("/events", dashboardEvents);
+dashboardRouter.get("/my-attendance", authenticate, dashboardPersonalAttendance);
 dashboardRouter.post("/events", authenticateDashboardAdmin, dashboardEventSend);
 dashboardRouter.delete("/events/:id", authenticateDashboardAdmin, dashboardEventDelete);
 dashboardRouter.get("/polls", dashboardPolls);

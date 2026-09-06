@@ -12,7 +12,7 @@ The HTML produced by `backend/src/views/kellaDashboard.ts` at `cb9214355b4273e38
 
 Run `npm run preview:safe` from the repository. It listens only on `127.0.0.1:4173`, serves the actual application template and assets, and reads an allowlist of public production APIs without forwarding credentials. Writes and authentication are blocked. No production database or Discord bot is started.
 
-This is an internal development preview, not the complete authenticated preview required for handoff. It cannot validate saves, real role transitions, private officer data, OAuth, or Discord actions. Do not add a fake admin switch or pass production credentials to this server.
+The owner has requested localhost for preview and can review this local interface. It is not yet the complete authenticated preview. It cannot validate saves, real role transitions, private officer data, OAuth, or Discord actions. Do not add a fake admin switch or pass production credentials to this server.
 
 The production API still has the old ranking limit behavior. The local read adapter trims real records and uses the same ranking helper; selected non-Power metrics require the existing full member endpoint until an isolated backend runs the modified API. Therefore local upstream payload size is not evidence of the new API's performance.
 
@@ -27,7 +27,9 @@ Member pages were checked at 360, 390, 430, 768, 1366, and 1920 pixels. Browser 
 - Obtain an isolated staging backend/database and test Discord/OAuth configuration.
 - Test real member and officer sessions, permissions, all save/delete feedback, Wiki image dragging during scroll, Roots management, polls/roles, buffs, imports, and Discord integrations there.
 - Complete any fixes found in those tests. Officer interface changes have not received authenticated browser verification.
-- The existing public attendance response contains display names, not stable identity mappings. The UI links to Discord for the authoritative personal response instead of guessing. Finish reliable personal attendance status with authenticated staging data.
+- A new session-protected personal attendance endpoint matches the signed-in Discord ID within the member’s alliance. Status selection and rejection of invalid/missing sessions are tested. Verify real authenticated data before treating this feature as fully accepted.
 - Validate authenticated announcements on Home.
 - Review performance with the modified API running, including database query costs; compact ranking responses still use the existing bounded roster query internally.
 - Give the owner the completed interactive preview and change summary. Do not request deployment approval before that point.
+
+The local preview now labels its sign-in/save limitations and intercepts sign-in attempts with a readable notice. Asynchronous page renderers are guarded against responses arriving after navigation; a delayed Wiki response regression test covers this failure.

@@ -3409,7 +3409,8 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], polls: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiInteractionMode: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingTroopType: "cavalry", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "", lordTools: null, lordView: "overview", lordSearch: "", lordResearchTree: "economy", lordResearchSelected: "", lordResearchZoom: 0.6, lordResearchPanX: 0, lordResearchPanY: 0 };
+      let navigationVersion = 0;
+      const state = { personalAttendance: null, summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], polls: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiInteractionMode: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingTroopType: "cavalry", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "", lordTools: null, lordView: "overview", lordSearch: "", lordResearchTree: "economy", lordResearchSelected: "", lordResearchZoom: 0.6, lordResearchPanX: 0, lordResearchPanY: 0 };
       let lordResearchPan = null;
       let lordResearchPinch = null;
       const lordResearchPointers = new Map();
@@ -6247,6 +6248,7 @@ export function kellaDashboardHtml() {
       }
 
       async function renderWiki(slug = "") {
+        const renderVersion = navigationVersion;
         skeleton("Loading wiki...");
         try {
           const pages = await loadWiki();
@@ -6254,22 +6256,26 @@ export function kellaDashboardHtml() {
             const decodedSlug = decodeURIComponent(String(slug || ""));
             const page = pages.find(function(item) { return String(item.slug || "") === decodedSlug; });
             if (!page || (!hasWikiEditAccess() && page.status !== "Published")) {
+              if (renderVersion !== navigationVersion) return;
               app.innerHTML = pageHeader("Kella Wiki", "", '<button class="secondary" data-link-button="/wiki">Back to Wiki</button>') +
                 '<div class="empty">This wiki page could not be found.</div>';
               return;
             }
             state.wikiReaderZoom = 1;
+            if (renderVersion !== navigationVersion) return;
             app.innerHTML = pageHeader(escapeHtml(page.title || "Kella Wiki"), "By " + escapeHtml(page.author || page.createdBy || "Kella Officer"), '<button class="secondary" data-link-button="/wiki">Back to Wiki</button>') +
               '<section class="card wiki-shared-reader">' + wikiArticleMarkup(page, false) + '</section>';
             requestAnimationFrame(fitWikiReader);
             return;
           }
           const actions = hasWikiEditAccess() ? '<button class="primary" data-action="clear-wiki-form">Create Wiki</button>' : "";
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML =
             pageHeader("Wiki", "", actions) +
             '<div data-wiki-editor-host></div>' +
             renderWikiLibrary(pages);
         } catch (error) {
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = '<div class="error">Could not load wiki. ' + escapeHtml(error.message) + '</div>';
         }
       }
@@ -6277,6 +6283,32 @@ export function kellaDashboardHtml() {
 
 
 
+      async function renderBuffSchedule() {
+        const renderVersion = navigationVersion;
+        skeleton("Loading weekly buff schedule...");
+        try {
+          const schedule = await loadBuffSchedule();
+          const actions = hasAdminAccess()
+            ? '<button class="secondary" type="button" data-action="reset-buff-schedule">Reset to Default</button>' + buffDiscordToggleHtml("data-buff-send-discord") + '<button class="primary" type="button" data-action="save-buff-schedule">Save Schedule</button>'
+            : "";
+          const updated = schedule.updatedAt
+            ? 'Last saved ' + formatDateTime(schedule.updatedAt) + ' by ' + escapeHtml(schedule.updatedBy || "Kella officer")
+            : "Using Kella's recommended weekly schedule";
+          if (renderVersion !== navigationVersion) return;
+          app.innerHTML =
+            pageHeader("Weekly Buff Schedule", "The real alliance buff plan for every day of the week.", actions) +
+            '<div class="buff-schedule-shell">' +
+              '<section class="buff-notice"><img src="/assets/buffs/buff-schedule.png" alt="" /><div><strong>War Time Override</strong><span>Buffs may change when alliance strategy requires it.</span></div></section>' +
+              '<section class="card buff-week"><div class="buff-week-heading"><span>Day of week</span><span>Current buff</span><span>' + (hasAdminAccess() ? "Admin setting" : "Schedule") + '</span></div>' + buffScheduleRows(schedule) + '</section>' +
+              buffDatedOverridesHtml(schedule) +
+              '<div class="buff-footer"><img src="/assets/buffs/buff-schedule.png" alt="" /><div><strong>Call of Dragons server time - UTC</strong><span>Buffs scheduled at 14:00 UTC. (time may change depends on situation)</span></div></div>' +
+              '<div class="buff-updated">' + updated + '</div>' +
+            '</div>';
+        } catch (error) {
+          if (renderVersion !== navigationVersion) return;
+          app.innerHTML = '<div class="error">Could not load the buff schedule. ' + escapeHtml(error.message) + '</div>';
+        }
+      }
 
       function trainingValue(selector, fallback = 0) {
         const value = Number(document.querySelector(selector)?.value ?? fallback);
@@ -7462,23 +7494,26 @@ export function kellaDashboardHtml() {
         const buff = realmBuffCalendarItem(dayKey(new Date()));
         const eventAction = upcoming ? '<button class="primary" data-link-button="/attendance/' + escapeHtml(upcoming.id) + '">View attendance</button>' : '<button class="secondary" data-link-button="/calendar">Open calendar</button>';
         app.innerHTML = pageHeader("Home", "", hasAdminAccess() ? '<button class="secondary" data-link-button="/officer">Officer workspace</button>' : '') +
-          '<section class="home-focus"><div class="next-event"><span class="eyebrow">Next event</span><h2>' + escapeHtml(upcoming?.title || 'No upcoming event') + '</h2><p>' + (upcoming ? formatUtcDateTime(upcoming.startsAt) : 'Your next alliance event will appear here.') + '</p>' + eventAction + '</div><div class="today-buff"><span class="eyebrow">Today’s buff</span>' + (buff ? '<img src="' + escapeHtml(buff.icon) + '" alt=""/><h3>' + escapeHtml(buff.title) + '</h3><p>' + escapeHtml(buff.meta || '') + '</p>' : '<h3>No scheduled buff</h3>') + '<a href="/buff-schedule" data-link>View schedule →</a></div></section>' +
+          '<section class="home-focus"><div class="next-event"><span class="eyebrow">Next event</span><h2>' + escapeHtml(upcoming?.title || 'No upcoming event') + '</h2><p>' + (upcoming ? formatUtcDateTime(upcoming.startsAt) : 'Your next alliance event will appear here.') + '</p>' + (upcoming ? '<p class="event-my-status">' + escapeHtml(myEventStatus(upcoming)) + '</p>' : '') + eventAction + '</div><div class="today-buff"><span class="eyebrow">Today’s buff</span>' + (buff ? '<img src="' + escapeHtml(buff.icon) + '" alt=""/><h3>' + escapeHtml(buff.title) + '</h3><p>' + escapeHtml(buff.meta || '') + '</p>' : '<h3>No scheduled buff</h3>') + '<a href="/buff-schedule" data-link>View schedule →</a></div></section>' +
           '<div id="home-announcement"></div><div class="home-stats"><span><strong>' + formatNumber(summary.totalMembers) + '</strong> members</span><span><strong>' + formatNumber(summary.todayCheckIns) + '</strong> checked in today</span><a href="/attendance" data-link>My attendance →</a></div>' +
           '<section class="card alliance-stats-card"><div class="card-header"><h3>Rankings</h3><a href="/rankings" data-link>View full ranking →</a></div>' + renderPowerBoard(members) + '</section>';
       }
 
       async function renderMemberCalendar() {
+        const renderVersion = navigationVersion;
         skeleton("Loading events…");
         try {
           const results = await Promise.all([loadDashboardEvents(), loadBuffSchedule()]);
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = pageHeader("Events", "", hasAdminAccess() ? '<button class="primary" data-link-button="/tools?tool=events">+ Add event</button><button class="secondary" data-link-button="/buff-schedule">Manage buffs</button>' : '') +
             '<section class="card"><div class="card-header"><h3>' + monthTitle() + '</h3><a href="/attendance" data-link>Attendance →</a></div>' + renderEventsCalendar(results[0]) + '</section>';
         } catch(error) { app.innerHTML = '<div class="error">' + escapeHtml(error.message) + '</div>'; }
       }
 
       async function renderRankings() {
+        const renderVersion = navigationVersion;
         skeleton("Loading rankings…");
-        try { const members = await loadMembers(); app.innerHTML = pageHeader("Rankings", "", '<a href="/members" data-link>Member directory →</a>') + renderPowerBoard(members, members.length); }
+        try { const members = await loadMembers(); if (renderVersion !== navigationVersion) return; app.innerHTML = pageHeader("Rankings", "", '<a href="/members" data-link>Member directory →</a>') + renderPowerBoard(members, members.length); }
         catch(error) { app.innerHTML = '<div class="error">' + escapeHtml(error.message) + '</div>'; }
       }
 
@@ -7492,9 +7527,11 @@ export function kellaDashboardHtml() {
       }
 
       async function renderDashboard() {
+        const renderVersion = navigationVersion;
         skeleton("Loading dashboard...");
         try {
-          const results = await Promise.all([loadSummary(), loadSettings(), loadDashboardMembers(), loadDashboardEvents()]);
+          const results = await Promise.all([loadSummary(), loadSettings(), loadDashboardMembers(), loadDashboardEvents(), loadBuffSchedule(), loadPersonalAttendance()]);
+          if (renderVersion !== navigationVersion) return;
           renderDashboardData(results[0], results[2], results[3]);
           if(state.auth?.authenticated) fetchJson('/api/announcements').then(function(data) {
             const item = (data.announcements || []).find(function(item) { return item.sentAt && new Date(item.sentAt).getTime() <= Date.now(); });
@@ -7502,6 +7539,7 @@ export function kellaDashboardHtml() {
             if(item && target) target.innerHTML='<section class="home-announcement"><span class="eyebrow">Alliance announcement</span><h3>' + escapeHtml(item.title) + '</h3><p>' + escapeHtml(item.body) + '</p></section>';
           }).catch(function() {});
         } catch (error) {
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = '<div class="error">Could not load dashboard data. ' + escapeHtml(error.message) + '</div>';
         }
       }
@@ -7529,6 +7567,7 @@ export function kellaDashboardHtml() {
       }
 
       async function renderProfile() {
+        const renderVersion = navigationVersion;
         const profileParams = new URLSearchParams(location.search);
         if (profileParams.get("section") === "lord") {
           const requestedTool = profileParams.get("tool") || "";
@@ -7537,6 +7576,7 @@ export function kellaDashboardHtml() {
         skeleton("Loading your profile...");
         const auth = await loadAuth(true);
         if (!auth.authenticated) {
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = pageHeader("My Profile", "Login with Discord to edit your own Kella profile card.", '<button class="primary" data-action="discord-login">Login with Discord</button>') +
             '<section class="card">' + empty("Your profile will appear here after Discord login.") + '</section>';
           return;
@@ -7544,6 +7584,7 @@ export function kellaDashboardHtml() {
         try {
           const profile = await loadProfile(true);
           const displayName = memberDisplayName(profile);
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML =
             pageHeader("My Profile", "Your player card, Discord identity, and personal alliance progress.", '<button class="primary" data-action="save-my-profile">Save Profile</button>') +
             profileHubNav("profile") +
@@ -7566,30 +7607,112 @@ export function kellaDashboardHtml() {
               '<label class="wide">Profile Photo URL<input data-profile="profilePhotoUrl" value="' + escapeHtml(profile.profilePhotoUrl || "") + '" placeholder="https://..." /></label>' +
             '</div><p class="muted" style="margin-top:12px">Only admins can change power, Lord ID, Discord User ID, rank, role, and officer notes.</p></div></section>';
         } catch (error) {
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = '<div class="error">Could not load your profile. ' + escapeHtml(error.message) + '</div>';
         }
       }
 
       async function renderMembers() {
+        const renderVersion = navigationVersion;
         skeleton("Loading members...");
         try {
           const members = await loadMembers();
           const adminActions = hasAdminAccess() && new URLSearchParams(location.search).has("manage")
             ? '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-action="open-add-member">Add Member</button>'
             : "";
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = pageHeader("Members", "", '<input class="search" data-member-search placeholder="Search members" />' + adminActions) + (hasAdminAccess() && new URLSearchParams(location.search).has("manage") ? renderMemberUploadCard() : "") + renderMembersTable(members);
         } catch (error) {
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = '<div class="error">Could not load members. ' + escapeHtml(error.message) + '</div>';
         }
       }
 
+      async function renderRootsRegistration() {
+        const renderVersion = navigationVersion;
+        skeleton("Loading Roots registration...");
+        try {
+          const reports = await loadReports();
+          const latest = reports[0];
+          let channelHtml = '<label>Discord Channel<input data-roots-channel-manual placeholder="Paste channel ID" /></label>';
+          try {
+            await loadChannels();
+            channelHtml = '<label>Discord Channel<select data-roots-channel>' + channelOptions() + '</select></label>';
+          } catch {
+            channelHtml = '<label>Discord Channel<input data-roots-channel-manual placeholder="Paste channel ID or add Password in Settings" /></label>';
+          }
+          if (renderVersion !== navigationVersion) return;
+          app.innerHTML =
+            pageHeader("Roots Registration", "Members click one button for 14 UTC or 20 UTC, and Kella saves one current answer per player per slot.", '<button class="primary" data-action="send-roots-registration">Create Roots Panel</button>') +
+            '<section class="two"><div class="card"><h3>Buttons Included</h3><p>14 UTC: ⚔ Available, ❌ Absent, ❔ Not Sure</p><p>20 UTC: ⚔ Available, ❌ Absent, ❔ Not Sure</p><p>Members can click again to update their answer.</p></div>' +
+            '<div class="card"><div class="card-header"><h3>Latest Report</h3><button class="secondary" data-link-button="/roots-reports">Reports</button></div>' +
+            (latest ? '<p>' + formatDate(latest.date) + ' - ' + latest.timeSlot + '</p><p>' + latest.available + ' Available, ' + latest.absent + ' Absent, ' + latest.unsure + ' Not Sure</p>' : '<p>No Roots reports yet.</p>') +
+            '</div></section>';
+        } catch (error) {
+          if (renderVersion !== navigationVersion) return;
+          app.innerHTML = '<div class="error">Could not load Roots data. ' + escapeHtml(error.message) + '</div>';
+        }
+      }
 
+      async function renderRootsReports() {
+        const renderVersion = navigationVersion;
+        skeleton("Loading Roots reports...");
+        try {
+          const reports = await loadReports();
+          const rows = reports.length
+            ? reports.map(function(report) {
+                return '<tr><td>' + formatDate(report.date) + '</td><td>' + escapeHtml(report.timeSlot) + '</td><td>' + report.available + '</td><td>' + report.absent + '</td><td>' + report.unsure + '</td><td>' + escapeHtml(report.createdBy) + '</td><td><button class="secondary" data-link-button="/roots-reports/' + report.id + '">View Report</button></td></tr>';
+              }).join("")
+            : "";
+          if (renderVersion !== navigationVersion) return;
+          app.innerHTML =
+            pageHeader("Roots Reports", "Historical Roots of War registrations grouped by Discord message and time slot.", '<button class="secondary" data-action="refresh-reports">Refresh</button>') +
+            (reports.length ? '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Time Slot</th><th>Available Count</th><th>Absent Count</th><th>Not Sure Count</th><th>Created By</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' : empty("No Roots reports yet. Run /roots in Discord to create the first one."));
+        } catch (error) {
+          if (renderVersion !== navigationVersion) return;
+          app.innerHTML = '<div class="error">Could not load Roots reports. ' + escapeHtml(error.message) + '</div>';
+        }
+      }
 
       function numbered(players) {
         return players.length ? players.map(function(player, index) { return (index + 1) + ". " + player; }).join("\\n") : "None";
       }
 
 
+      async function renderRootsReportDetails(id) {
+        const renderVersion = navigationVersion;
+        skeleton("Loading report details...");
+        try {
+          const data = await fetchJson("/api/dashboard/roots-reports/" + encodeURIComponent(id));
+          const report = data.report;
+          state.currentReport = report;
+          const section = function(title, players, className) {
+            return '<div class="card"><div class="card-header"><h3>' + title + '</h3><span class="badge ' + className + '">' + players.length + ' total</span></div>' +
+              (players.length ? '<ul class="list">' + players.map(function(player) { return '<li>' + escapeHtml(player) + '</li>'; }).join("") + '</ul>' : empty("No players in this section.")) +
+              '</div>';
+          };
+          let channelHtml = '<label>Discord Channel<select data-report-channel><option value="">Set Admin Key to load channels</option></select></label>';
+          try {
+            await loadChannels();
+            channelHtml = '<label>Discord Channel<select data-report-channel>' + channelOptions() + '</select></label>';
+          } catch {
+            channelHtml = '<label>Discord Channel ID<input data-report-channel-manual placeholder="Paste channel ID" /></label>';
+          }
+          if (renderVersion !== navigationVersion) return;
+          app.innerHTML =
+            pageHeader("Roots Report", "Detailed Roots of War attendance list with export tools.", '<button class="secondary" data-link-button="/roots-reports">Back</button><button class="secondary" data-action="export-csv">Export CSV</button><button class="secondary" data-action="export-json">Export JSON</button><button class="primary" data-action="copy-report">Copy Report</button>') +
+            '<section class="card"><div class="card-header"><h3>' + formatDate(report.date) + ' - ' + escapeHtml(report.timeSlot) + '</h3>' + (report.messageLink ? '<a class="secondary" target="_blank" rel="noreferrer" href="' + escapeHtml(report.messageLink) + '">Discord Message Link</a>' : '<span class="badge warn">No message link</span>') + '</div><p>Created By: ' + escapeHtml(report.createdBy) + '</p></section>' +
+            '<section class="players" style="margin-top:18px">' +
+              section("⚔ Available", report.available || [], "good") +
+              section("❌ Absent", report.absent || [], "bad") +
+              section("❔ Not Sure", report.unsure || [], "warn") +
+            '</section>' +
+            '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Send Report to Discord</h3><button class="primary" data-action="send-roots-report">Send Report</button></div><div class="form-grid">' + channelHtml + '<label>Role Mention ID<input data-report-role placeholder="Optional role ID" /></label></div></section>';
+        } catch (error) {
+          if (renderVersion !== navigationVersion) return;
+          app.innerHTML = '<div class="error">Could not load report details. ' + escapeHtml(error.message) + '</div>';
+        }
+      }
 
       function defaultUtcParts() {
         const value = new Date(Date.now() + 60 * 60 * 1000);
@@ -7727,55 +7850,64 @@ export function kellaDashboardHtml() {
         '</section>';
       }
 
+      async function loadPersonalAttendance() {
+        if (!state.auth?.authenticated) { state.personalAttendance = null; return null; }
+        try { const data = await fetchJson('/api/dashboard/my-attendance'); state.personalAttendance = data.byEvent || {}; }
+        catch { state.personalAttendance = null; }
+        return state.personalAttendance;
+      }
       function myEventStatus(event) {
         if (!state.auth?.authenticated) return 'Sign in to see your status';
-        const id = String(state.auth?.user?.discordId || '');
-        const groups = attendanceGroups(event);
-        const match = function(player) { return String(player.discordId || player.userId || player.id || '') === id; };
-        if (groups.attending.some(match)) return 'Attending';
-        if (groups.absent.some(match)) return 'Absent';
-        if (groups.unsure.some(match)) return 'Not sure';
-        return 'Check your response in Discord';
+        if (state.personalAttendance === null) return 'Check your response in Discord';
+        return state.personalAttendance[String(event.id)] || 'No response';
       }
       function memberEventRow(event) {
         return '<article class="event-agenda-row"><div><h3>' + escapeHtml(event.title || 'Alliance event') + '</h3><span>' + formatUtcDateTime(event.startsAt) + '</span></div><span class="event-my-status">' + escapeHtml(myEventStatus(event)) + '</span><div class="toolbar">' + (event.messageLink ? '<a class="primary" target="_blank" rel="noreferrer" href="' + escapeHtml(event.messageLink) + '">Respond in Discord</a>' : '') + '<a href="/attendance/' + escapeHtml(event.id) + '" data-link>Details →</a></div></article>';
       }
 
       async function renderAttendance() {
+        const renderVersion = navigationVersion;
         skeleton("Loading attendance...");
         try {
-          const results = await Promise.all([loadDashboardEvents(), loadPolls(true)]);
+          const results = await Promise.all([loadDashboardEvents(), loadBuffSchedule(), loadPolls(true), loadPersonalAttendance()]);
           const events = results[0];
           const polls = results[1];
           const actions = (hasAdminAccess() ? '<button class="secondary" data-link-button="/tools">Create Event</button><button class="secondary" data-link-button="/tools?tool=polls">Create Poll</button>' : "") + '<button class="primary" data-action="refresh-events">Refresh</button>';
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML =
             pageHeader("Attendance", "", actions) +
             (hasAdminAccess() ? renderAttendanceSummary(events, polls) : "") +
             '<section class="event-agenda">' + (events.length ? sortedEvents(events).reverse().map(memberEventRow).join('') : empty('No events yet.')) + '</section>' +
             '<details class="attendance-polls"><summary>Poll Participation & Best Online Time</summary>' + renderPollReports(polls) + '</details>';
         } catch (error) {
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = '<div class="error">Could not load attendance. ' + escapeHtml(error.message) + '</div>';
         }
       }
 
       async function renderAttendanceDetails(id) {
+        const renderVersion = navigationVersion;
         skeleton("Loading attendance report...");
         try {
           const events = await loadDashboardEvents();
           const event = events.find(function(item) { return String(item.id) === String(id); });
           if (!event) {
+            if (renderVersion !== navigationVersion) return;
             app.innerHTML = pageHeader("Attendance", "This event could not be found.", '<button class="secondary" data-link-button="/attendance">Back to Attendance</button>') + '<section class="card">' + empty("No attendance report found for this event.") + '</section>';
             return;
           }
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML =
             pageHeader("Attendance Report", "One clean view for who is coming, absent, or unsure.", '<button class="secondary" data-link-button="/attendance">Back</button><button class="primary" data-action="refresh-events">Refresh</button>') +
             attendanceEventCard(event);
         } catch (error) {
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = '<div class="error">Could not load attendance report. ' + escapeHtml(error.message) + '</div>';
         }
       }
 
       async function renderEvents() {
+        const renderVersion = navigationVersion;
         skeleton("Loading events...");
         let channelHtml = '<label>Discord Channel<input data-event="channelManual" placeholder="Paste channel ID" /></label>';
         try {
@@ -7786,7 +7918,8 @@ export function kellaDashboardHtml() {
         }
         try {
           const events = await loadDashboardEvents();
-          const commands = ["/summit", "/attack", "/checkin", "/remind", "/absence", "/apply", "/complain"];
+          const commands = ["/roots", "/summit", "/attack", "/checkin", "/remind", "/absence", "/apply", "/complain"];
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML =
             pageHeader("Events", "Create event embeds with attendance buttons using Call of Dragons 24-hour UTC server time.", '<button class="primary" data-action="send-event-embed">Send Event</button>') +
             '<section class="card"><div class="card-header"><div><h3>Create Event Embed</h3><span class="muted">Kella sends Attending, Absent, and Not Sure buttons automatically.</span></div><span class="badge warn">24-hour UTC</span></div><div class="form-grid">' +
@@ -7801,6 +7934,7 @@ export function kellaDashboardHtml() {
               return '<div class="card"><div class="card-header"><h3>' + command + '</h3></div><p>Use this in Discord to create the matching Kella workflow.</p></div>';
             }).join("") + '</section>';
         } catch (error) {
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = '<div class="error">Could not load events. ' + escapeHtml(error.message) + '</div>';
         }
       }
@@ -7993,6 +8127,7 @@ export function kellaDashboardHtml() {
       }
 
       async function renderTools(forcedTool) {
+        const renderVersion = navigationVersion;
         skeleton("Loading tools...");
         const selected = forcedTool || new URLSearchParams(location.search).get("tool") || "events";
         try {
@@ -8013,24 +8148,29 @@ export function kellaDashboardHtml() {
             if (!window.KellaThumbnailEditor) await new Promise(function(resolve,reject) { const script=document.createElement('script'); script.src='/assets/thumbnail-editor.js?v=3'; script.onload=resolve; script.onerror=function(){script.remove();reject(new Error('Thumbnail editor could not load.'));}; document.head.appendChild(script); });
             content = await thumbnailToolContent();
           }
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = pageHeader("Tools", "Create events, polls, role assignments, messages, alerts, embeds, and thumbnails.", "") + toolPicker(selected) + content;
           if (selected === "embed") updateEmbedPreview();
           if (selected === "thumbnails") requestAnimationFrame(function() { window.KellaThumbnailEditor?.mount(document.querySelector("[data-thumbnail-editor]")); });
         } catch (error) {
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = '<div class="error">Could not load tools. ' + escapeHtml(error.message) + '</div>';
         }
       }
 
       async function renderAlerts(type) {
+        const renderVersion = navigationVersion;
         skeleton("Loading alerts...");
         try {
           const alerts = await loadAlerts();
           const filtered = type === "shield" ? alerts.filter(function(alert) { return alert.type === "shield_alert"; }) : alerts;
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML =
             pageHeader(type === "shield" ? "Shield Alerts" : "Alerts", "Recent Kella alert activity from MongoDB.", '<button class="secondary" data-action="refresh-alerts">Refresh</button>') +
             (type === "shield" ? renderShieldTool() : '<section class="two">' + renderAttackTool() + renderDmAlertTool() + '</section>') +
             '<div style="height:18px"></div>' + renderAlertsTable(filtered);
         } catch (error) {
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = '<div class="error">Could not load alerts. ' + escapeHtml(error.message) + '</div>';
         }
       }
@@ -8055,15 +8195,18 @@ export function kellaDashboardHtml() {
       }
 
       async function renderComplaints() {
+        const renderVersion = navigationVersion;
         skeleton("Loading complaints...");
         try {
           const complaints = await loadComplaints();
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML =
             pageHeader("Complaints", "Private complaints and suggestions submitted with /complain.", '<button class="secondary" data-action="refresh-complaints">Refresh</button>') +
             '<section class="card"><div class="card-header"><div><h3>Admin Inbox</h3><span class="muted">Use Pending while reviewing, then Resolve when handled.</span></div></div>' +
             renderComplaintsTable(complaints) +
             '</section>';
         } catch (error) {
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = '<div class="error">Could not load complaints. ' + escapeHtml(error.message) + '. Add your Password in Settings if needed.</div>';
         }
       }
@@ -8117,16 +8260,19 @@ export function kellaDashboardHtml() {
       }
 
       async function renderMemberFeedback() {
+        const renderVersion = navigationVersion;
         skeleton("Loading feedback form...");
         try {
           const auth = await loadAuth(true);
           const content = auth.authenticated
             ? complaintFormMarkup()
             : '<section class="card complaint-form-card"><div class="card-header"><div><h3>Discord Login Required</h3><span class="muted">Login confirms that you are an alliance member. You can still submit anonymously.</span></div></div><p>Your complaint or suggestion stays private to alliance admins.</p><div class="toolbar"><button class="secondary" type="button" data-link-button="/">Back to Dashboard</button><button class="primary" type="button" data-action="discord-login">Login with Discord</button></div></section>';
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML =
             pageHeader("Feedback", "Send a private complaint or suggestion to the R4 team.") +
             '<div class="feedback-page">' + content + '</div>';
         } catch (error) {
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = '<div class="error">Could not load the feedback form. ' + escapeHtml(error.message || "Please try again.") + '</div>';
         }
       }
@@ -8242,6 +8388,7 @@ export function kellaDashboardHtml() {
       }
 
       async function renderEmbedSender() {
+        const renderVersion = navigationVersion;
         skeleton("Loading embed sender...");
         let channelsError = "";
         let templatesError = "";
@@ -8253,6 +8400,7 @@ export function kellaDashboardHtml() {
         const templateOptions = '<option value="">Load saved template</option>' + state.templates.map(function(template) {
           return '<option value="' + escapeHtml(template.id) + '">' + escapeHtml(template.name) + '</option>';
         }).join("");
+        if (renderVersion !== navigationVersion) return;
         app.innerHTML =
           pageHeader("Embed Sender", "Build a Discord embed, preview it live, save templates, and send through Kella.", '<button class="secondary" data-action="preview-embed">Preview</button><button class="secondary" data-action="save-template">Save Template</button><button class="danger" data-action="delete-template">Delete Template</button><button class="primary" data-action="send-embed">Send Embed</button>') +
           (channelsError || templatesError ? '<div class="error" style="margin-bottom:14px">' + escapeHtml(channelsError || templatesError) + '. Add your Admin Key in Settings if needed.</div>' : '') +
@@ -8288,6 +8436,7 @@ export function kellaDashboardHtml() {
       }
 
       async function renderSettings() {
+        const renderVersion = navigationVersion;
         skeleton("Loading settings...");
         try {
           await loadAuth(true);
@@ -8297,6 +8446,7 @@ export function kellaDashboardHtml() {
           const locked = !adminToken() && !isDashboardAdmin();
           const lockedAttr = locked ? " disabled" : "";
           const uploads = locked ? [] : await loadRosterUploads(true);
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = pageHeader("Settings", "Saved admin preferences for Kella channels, officer roles, and enabled modules.", '<button class="primary" data-action="save-settings"' + lockedAttr + '>Save Settings</button>') +
             '<div class="locked-note" data-settings-locked-note' + (locked ? "" : ' style="display:none"') + '>Login with an approved Discord admin account or enter the fallback Password first.</div>' +
             '<section class="grid" data-settings-panel>' +
@@ -8313,6 +8463,7 @@ export function kellaDashboardHtml() {
             renderRosterUploadManager(uploads, locked);
           syncSettingsLock();
         } catch (error) {
+          if (renderVersion !== navigationVersion) return;
           app.innerHTML = '<div class="error">Could not load settings. ' + escapeHtml(error.message) + '</div>';
         }
       }
@@ -8366,6 +8517,44 @@ export function kellaDashboardHtml() {
         };
       }
 
+      async function renderRootsRegistration() {
+        const renderVersion = navigationVersion;
+        skeleton("Loading Roots registration...");
+        try {
+          const reports = await loadReports();
+          const latest = reports[0];
+          let channelHtml = '<label>Discord Channel<input data-roots-channel-manual placeholder="Paste channel ID" /></label>';
+          try {
+            await loadChannels();
+            channelHtml = '<label>Discord Channel<select data-roots-channel>' + channelOptions() + '</select></label>';
+          } catch {
+            channelHtml = '<label>Discord Channel<input data-roots-channel-manual placeholder="Paste channel ID or add Password in Settings" /></label>';
+          }
+          const reportRows = reports.length
+            ? reports.map(function(report) {
+                return '<tr><td>' + formatDate(report.date) + '</td><td>' + escapeHtml(report.timeSlot) + '</td><td>' + report.available + '</td><td>' + report.absent + '</td><td>' + report.unsure + '</td><td>' + escapeHtml(report.createdBy) + '</td><td><button class="secondary" data-link-button="/roots-reports/' + report.id + '">View</button></td></tr>';
+              }).join("")
+            : "";
+
+          if (renderVersion !== navigationVersion) return;
+
+          app.innerHTML =
+            pageHeader("Roots of War", "Registration and reports in one place. Create the Discord panel, then review 14 UTC and 20 UTC attendance below.", '<button class="primary" data-action="send-roots-registration">Create Roots Panel</button>') +
+            '<section class="two"><div class="card"><div class="card-header"><div><h3>Create Roots Panel</h3><span class="muted">Kella sends 14 UTC and 20 UTC buttons to Discord, then stores every answer in reports.</span></div><span class="badge warn">24-hour UTC</span></div><div class="form-grid">' +
+              channelHtml +
+              '<label>Role Mention ID<input data-roots-role placeholder="Optional role ID" /></label>' +
+            '</div><p class="muted" style="margin-top:12px">Members can choose Available, Absent, or Not Sure for each slot and update their answer any time.</p></div>' +
+            '<div class="card"><div class="card-header"><h3>Latest Report</h3><button class="secondary" data-action="refresh-reports">Refresh</button></div>' +
+            (latest ? '<p>' + formatDate(latest.date) + ' - ' + latest.timeSlot + '</p><p>' + latest.available + ' Available, ' + latest.absent + ' Absent, ' + latest.unsure + ' Not Sure</p>' : '<p>No Roots reports yet.</p>') +
+            '</div></section>' +
+            '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Roots Reports</h3><span class="muted">Historical registrations grouped by message and time slot.</span></div></div>' +
+            (reports.length ? '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Time Slot</th><th>Available</th><th>Absent</th><th>Not Sure</th><th>Created By</th><th></th></tr></thead><tbody>' + reportRows + '</tbody></table></div>' : empty("No Roots reports yet. Create a Roots panel first.")) +
+            '</section>';
+        } catch (error) {
+          if (renderVersion !== navigationVersion) return;
+          app.innerHTML = '<div class="error">Could not load Roots data. ' + escapeHtml(error.message) + '</div>';
+        }
+      }
 
       function renderAlertsTable(alerts) {
         if (!alerts.length) return empty("No alerts recorded yet.");
@@ -8571,11 +8760,13 @@ export function kellaDashboardHtml() {
 
       ${migrationClient}
       async function route() {
+        const routeVersion = ++navigationVersion;
         if (!state.auth) {
           await loadAuth().catch(function() { updateAuthStatus(); });
         } else {
           renderSidebarNav();
         }
+        if (routeVersion !== navigationVersion) return;
         if (!state.settings && location.pathname !== "/") loadSettings().catch(function() {});
         if (state.wikiDrag) { cancelAnimationFrame(state.wikiDrag.frame); state.wikiDrag = null; }
         const path = location.pathname;

@@ -24,3 +24,22 @@ const requiresAdmin=new Function(extract('pathRequiresAdmin','navItemHtml')+'ret
 for(const route of ['/officer','/tools','/settings','/roots-of-war','/events','/embed-sender']) assert.equal(requiresAdmin(route),true,route);
 for(const route of ['/','/calendar','/wiki','/members','/attendance','/research','/training-tools']) assert.equal(requiresAdmin(route),false,route);
 console.log('Ranking limits, selected metric order, cached assets, syntax, and route access tests passed.');
+
+async function verifyLateNavigation() {
+  const start=html.indexOf('      async function renderWiki(');
+  const end=html.indexOf('      function buffScheduleRows',start);
+  assert.ok(start>=0 && end>start);
+  const app={innerHTML:'Training'};
+  let resolvePages:(pages:unknown[])=>void=()=>{};
+  const pending=new Promise<unknown[]>(resolve=>{resolvePages=resolve;});
+  const harness=new Function('app','loadWiki','skeleton','hasWikiEditAccess',
+    'let navigationVersion=0;\n'+html.slice(start,end)+'\nreturn {render:renderWiki,navigate:function(){navigationVersion++;}};'
+  )(app,()=>pending,()=>{},()=>false);
+  const loading=harness.render();
+  harness.navigate();
+  resolvePages([]);
+  await loading;
+  assert.equal(app.innerHTML,'Training','a late Wiki response must not overwrite the current page');
+  console.log('Delayed-response navigation regression test passed.');
+}
+verifyLateNavigation().catch(error=>{console.error(error);process.exitCode=1;});
