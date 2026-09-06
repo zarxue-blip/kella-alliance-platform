@@ -26,6 +26,7 @@ const kellaActionSchema = new Schema(
         "complaint",
         "discord_member_sync",
         "member_xlsx_import",
+        "member_identity_recovery",
         "member_manual_add",
         "member_deleted",
         "event_deleted"

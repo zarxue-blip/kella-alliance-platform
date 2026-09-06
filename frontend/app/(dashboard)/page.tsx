@@ -4,7 +4,7 @@ import { StatCard } from "@/components/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { operations, rootsOfWarSlotStats, shieldWarnings, stats } from "@/lib/mock-data";
+import { operations, shieldWarnings, stats } from "@/lib/mock-data";
 import { formatDate } from "@/lib/utils";
 
 export default function HomePage() {
@@ -66,27 +66,7 @@ export default function HomePage() {
         </Card>
       </div>
 
-      <Card className="mt-6 overflow-hidden">
-        <div
-          className="grid gap-4 bg-cover bg-center p-5 md:grid-cols-[1fr_auto]"
-          style={{ backgroundImage: "linear-gradient(90deg, rgba(9,9,11,0.94), rgba(9,9,11,0.64)), url('/assets/roots-of-war-bg.png')" }}
-        >
-          <div>
-            <Badge className="border-command/50 text-command2">Roots of War</Badge>
-            <h3 className="mt-4 text-2xl font-black">Registration windows are open</h3>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {rootsOfWarSlotStats.map((slot) => (
-                <div key={slot.slot} className="rounded-lg border border-border bg-zinc-950/80 p-4">
-                  <p className="text-sm text-zinc-500">{slot.label}</p>
-                  <p className="mt-2 text-xl font-black">{slot.registered} registered</p>
-                  <p className="text-sm text-success">{slot.checkedIn} checked in</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <img src="/assets/kella.png" alt="Kella" className="hidden max-h-44 object-contain md:block" />
-        </div>
-      </Card>
+
     </div>
   );
 }

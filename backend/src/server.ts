@@ -1,3 +1,4 @@
+import { recoverMissingToxicMain } from './services/memberRecovery.service.js';
 import { createServer } from "node:http";
 import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
@@ -19,6 +20,7 @@ function readCookie(header: string | undefined, name: string) {
 
 async function bootstrap() {
   await connectDatabase();
+  await recoverMissingToxicMain().catch((error) => console.error("Toxic recovery failed; server will continue", error));
 
   const app = createApp();
   const httpServer = createServer(app);

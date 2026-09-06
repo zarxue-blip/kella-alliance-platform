@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node test/radar_multi_selection.test.js && tsx test/member_identity.test.ts && tsx test/poll.test.ts && tsx test/dashboard_template.test.ts",
+    "test": "node test/radar_multi_selection.test.js && tsx test/member_identity.test.ts && tsx test/poll.test.ts && tsx test/dashboard_template.test.ts && tsx test/member_import.test.ts && tsx test/migration.test.ts && tsx test/migration_http.test.ts && tsx test/member_recovery.test.ts",
     "test:radar": "node test/radar_multi_selection.test.js",
     "test:members": "tsx test/member_identity.test.ts",
     "test:poll": "tsx test/poll.test.ts",

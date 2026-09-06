@@ -462,3 +462,15 @@ export async function sendDiscordPoll(input: SendPollInput) {
     })
   });
 }
+
+export async function sendMigrationEmbed(channelId: string, description: string, applicationId: string, page: number) {
+  return discordRequest<{id:string}>(`/channels/${channelId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({
+      allowed_mentions: {parse:[]},
+      nonce: `${applicationId}${page}`.slice(-25), enforce_nonce:true,
+      embeds:[{title:'New 881 SERVER Migration Application' + (page ? ` (continued ${page+1})` : ''),
+        description,color:0xcda85a,footer:{text:`Application ${applicationId} • Leadership review`}}]
+    })
+  });
+}

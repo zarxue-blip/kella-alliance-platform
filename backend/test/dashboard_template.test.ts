@@ -10,7 +10,8 @@ assert.ok(inlineScripts.length, "dashboard must contain its inline application s
 for (const script of inlineScripts) new Function(script);
 
 assert.match(html, /data-wiki-canvas/, "Wiki editor must remain in the dashboard");
-assert.match(html, /data-buff-day/, "Realm Buff calendar rendering must remain in the dashboard");
+assert.doesNotMatch(html, /path: "\/buff-schedule"|path: "\/roots-of-war"/, "retired navigation must be absent");
+assert.match(html, /migration-gold.png/, "Migration navigation icon must be present");
 assert.match(html, /Poll Participation/, "Attendance must render poll participation");
 assert.match(html, /data-action="send-poll"/, "admin poll creator must render");
 

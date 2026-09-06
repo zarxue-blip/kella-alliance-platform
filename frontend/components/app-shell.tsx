@@ -27,7 +27,6 @@ const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/members", label: "Members", icon: Users },
   { href: "/attendance", label: "Attendance", icon: ClipboardList },
-  { href: "/roots-of-war", label: "Roots of War", icon: Swords },
   { href: "/war", label: "War Ops", icon: Swords },
   { href: "/events", label: "Events", icon: CalendarDays },
   { href: "/shields", label: "Shields", icon: Shield },

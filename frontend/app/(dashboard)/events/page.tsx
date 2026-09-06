@@ -18,7 +18,6 @@ export default function EventsPage() {
       <PageHeader
         title="Event Management"
         description="Manage RSVP, Roots of War slot registration, attendance links, automatic reminders, and calendar-ready alliance schedules."
-        action={<Link href="/roots-of-war" className="inline-flex h-10 items-center justify-center rounded-md bg-command px-4 text-sm font-semibold text-white transition hover:bg-red-600">Roots of War Registration</Link>}
       />
       <Card>
         <CardHeader>

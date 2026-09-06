@@ -1,14 +1,14 @@
+import { migrationClient } from './migrationClient.js';
 import { lordResearchLevelCosts, lordResearchTreeData } from "../data/researchTree.data.js";
 
 const navItems = [
+  { path: "/migration", icon: "/assets/migration-gold.png", label: "Migration" },
   { path: "/", icon: "/assets/icons/dashboard.png", label: "Dashboard" },
-  { path: "/buff-schedule", icon: "/assets/buffs/buff-schedule.png", label: "Buff Schedule" },
   { path: "/wiki", icon: "/assets/icons/embed-sender.png", label: "Wiki" },
   { path: "/members", icon: "/assets/icons/members.png", label: "Members" },
   { path: "/research", icon: "/assets/buffs/research.png", label: "Research" },
   { path: "/training-tools", icon: "/assets/icons/training-tools.png", label: "Training Tools" },
   { path: "/attendance", icon: "/assets/icons/events.png", label: "Attendance" },
-  { path: "/roots-of-war", icon: "/assets/icons/root-registration.png", label: "Roots of War", adminOnly: true },
   { path: "/tools", icon: "/assets/icons/events.png", label: "Tools", adminOnly: true },
   { path: "/complaints", icon: "/assets/icons/complaints.png", label: "Complaints", adminOnly: true },
   { path: "/settings", icon: "/assets/icons/settings.png", label: "Settings", adminOnly: true }
@@ -17,8 +17,6 @@ const navItems = [
 const modules = [
   { id: "shield", name: "Shield Alerts", badge: "Live", command: "/shield @player", description: "DM a player instantly and log the officer, player, and sent time." },
   { id: "attack", name: "Attack Alert", badge: "Critical", command: "/attack", description: "Post an alliance-wide attack alert with one-click response buttons." },
-  { id: "roots", name: "Roots Registration", badge: "Core", command: "/roots", description: "14 UTC and 20 UTC availability buttons for Available, Absent, and Not Sure." },
-  { id: "reports", name: "Roots Reports", badge: "Reports", command: "Dashboard", description: "Historical Roots reports with CSV, JSON, report copy, and Discord send." },
   { id: "embed", name: "Embed Sender", badge: "Admin", command: "Dashboard", description: "Build, preview, save, and send Discord embeds from the website." },
   { id: "wiki", name: "Wiki", badge: "Guides", command: "Dashboard", description: "Publish alliance rules, guides, images, and readable member notes." },
   { id: "summit", name: "Summit Registration", badge: "Fast", command: "/summit", description: "Simple Summit attendance buttons for Attending, Absent, and Not Sure." },
@@ -27,7 +25,7 @@ const modules = [
   { id: "checkin", name: "Daily Check-In", badge: "Activity", command: "/checkin", description: "One button daily activity tracking for weekly and inactive member reports." },
   { id: "absence", name: "Absence Notices", badge: "Modal", command: "/absence", description: "Members submit reason, start date, and end date. Officers see who is away." },
   { id: "applications", name: "Applications", badge: "Recruiting", command: "/apply", description: "Simple application modal for IGN, power, timezone, and main legion." },
-  { id: "reminders", name: "Event Reminders", badge: "Auto", command: "/remind", description: "Queue reminders for Summit, Roots, Fortress, Stronghold, Pass Defense, or Behemoth." },
+  { id: "reminders", name: "Event Reminders", badge: "Auto", command: "/remind", description: "Queue reminders for Summit, Fortress, Stronghold, Pass Defense, or Behemoth." },
   { id: "members", name: "Members", badge: "Roster", command: "Dashboard", description: "Search members, see Discord User ID, Lord ID, alliance role, attendance, and notes." },
   { id: "settings", name: "Settings", badge: "Setup", command: "Dashboard", description: "Admin key, channels, alliance label, and module switches." }
 ];
@@ -60,8 +58,6 @@ const wikiMiscImages = [
   { src: "/assets/wiki-misc/members.png", label: "Members" },
   { src: "/assets/wiki-misc/peace.webp", label: "Peace" },
   { src: "/assets/wiki-misc/pleased.webp", label: "Pleased" },
-  { src: "/assets/wiki-misc/root-registration.png", label: "Roots Registration" },
-  { src: "/assets/wiki-misc/roots-report.png", label: "Roots Report" },
   { src: "/assets/wiki-misc/settings.png", label: "Settings" },
   { src: "/assets/wiki-misc/shh.webp", label: "Shh" },
   { src: "/assets/wiki-misc/shield-alert.png", label: "Shield Alert" },
@@ -3355,7 +3351,7 @@ export function kellaDashboardHtml() {
         <div class="side-spacer"></div>
         <div class="side-footer">
           <strong>Alliance Ops</strong>
-          Fast tools for Roots, alerts, embeds, and officer reports.
+          Fast tools for migration, alerts, embeds, and officer reports.
         </div>
       </aside>
       <button class="mobile-nav-backdrop" type="button" data-mobile-nav-close aria-label="Close navigation"></button>
@@ -3403,7 +3399,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], polls: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiInteractionMode: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingTroopType: "cavalry", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "", lordTools: null, lordView: "overview", lordSearch: "", lordResearchTree: "economy", lordResearchSelected: "", lordResearchZoom: 0.6, lordResearchPanX: 0, lordResearchPanY: 0 };
+      const state = { summary: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], polls: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiInteractionMode: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingTroopType: "cavalry", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "", lordTools: null, lordView: "overview", lordSearch: "", lordResearchTree: "economy", lordResearchSelected: "", lordResearchZoom: 0.6, lordResearchPanX: 0, lordResearchPanY: 0 };
       let lordResearchPan = null;
       let lordResearchPinch = null;
       const lordResearchPointers = new Map();
@@ -3415,7 +3411,6 @@ export function kellaDashboardHtml() {
       const dashboardCommands = [
         { name: "shield", label: "Shield Alert", description: "DM a shield warning to one player." },
         { name: "attack", label: "Attack Alert", description: "Post an emergency alliance attack alert." },
-        { name: "roots", label: "Roots Registration", description: "Open 14 UTC and 20 UTC Roots registration." },
         { name: "summit", label: "Summit Registration", description: "Open a Summit attendance panel." },
         { name: "poll", label: "Poll + Role", description: "Post a poll and optionally map answers to roles." },
         { name: "besttime", label: "Best Online Time", description: "Collect member UTC availability." },
@@ -3428,22 +3423,6 @@ export function kellaDashboardHtml() {
         { name: "suggest", label: "Suggestion", description: "Let members send private suggestions." },
         { name: "wiki-admin", label: "Wiki", description: "Post the Kella Wiki reader link." },
         { name: "dashboard", label: "Dashboard Link", description: "Give members the Kella website link." }
-      ];
-      const buffTypes = {
-        Gathering: { label: "Gathering Boost", icon: "/assets/buffs/gathering.png", description: "Increase gathering speed and resource collection rate." },
-        Research: { label: "Research Speed", icon: "/assets/buffs/research.png", description: "Reduce research time and speed up technology development." },
-        Training: { label: "Troop Training", icon: "/assets/buffs/training.png", description: "Reduce training time and speed up troop recruitment." },
-        Construction: { label: "Construction Speed", icon: "/assets/buffs/construction.png", description: "Reduce building time for alliance development." },
-        Healing: { label: "Healing Speed", icon: "/assets/buffs/healing.png", description: "Recover wounded troops faster and return to battle." }
-      };
-      const defaultBuffSchedule = [
-        { day: "Monday", buff: "Gathering", note: "" },
-        { day: "Tuesday", buff: "Research", note: "" },
-        { day: "Wednesday", buff: "Gathering", note: "" },
-        { day: "Thursday", buff: "Research", note: "" },
-        { day: "Friday", buff: "Gathering", note: "" },
-        { day: "Saturday", buff: "Training", note: "War time: may be changed" },
-        { day: "Sunday", buff: "Research", note: "War time: may be changed" }
       ];
       const trainingTierOrder = ["t3", "t4", "t5", "p34", "p45"];
       const trainingTiers = {
@@ -3677,7 +3656,7 @@ export function kellaDashboardHtml() {
       }
 
       function pathRequiresAdmin(path) {
-        return path.startsWith("/roots") ||
+        return
           ["/tools", "/events", "/alerts", "/shield-alerts", "/embed-sender", "/complaints", "/settings"].some(function(prefix) {
             return path === prefix || path.startsWith(prefix + "/");
           });
@@ -4716,74 +4695,13 @@ export function kellaDashboardHtml() {
         '</section>';
       }
 
-      function buffScheduleDayName(key) {
-        const date = new Date(key + "T00:00:00Z");
-        return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "long" }).format(date);
-      }
 
-      function realmBuffForDate(key) {
-        const schedule = state.buffSchedule || {};
-        const override = (schedule.datedBuffs || []).find(function(item) { return item.date === key; });
-        const day = buffScheduleDayName(key);
-        const weekly = (schedule.days || defaultBuffSchedule).find(function(item) { return item.day === day; });
-        const saved = override || weekly;
-        if (!saved) return null;
-        const type = buffTypes[saved.buff] || buffTypes.Gathering;
-        return {
-          date: key,
-          day,
-          buff: saved.buff,
-          label: type.label,
-          icon: type.icon,
-          description: type.description,
-          timeUtc: override?.timeUtc || "14:00",
-          note: saved.note || "",
-          isOverride: Boolean(override),
-          updatedBy: override?.updatedBy || schedule.updatedBy || ""
-        };
-      }
 
-      function realmBuffCalendarItem(key) {
-        const buff = realmBuffForDate(key);
-        if (!buff) return null;
-        return {
-          kind: "Realm Buff",
-          title: buff.label,
-          meta: buff.timeUtc + " UTC",
-          description: buff.note || buff.description,
-          icon: buff.icon,
-          buffDate: key,
-          isOverride: buff.isOverride
-        };
-      }
 
-      function buffDiscordToggleHtml(attribute) {
-        return '<label class="buff-publish-toggle"><input type="checkbox" ' + attribute + ' /><span class="buff-toggle-track" aria-hidden="true"></span><span>Send to Discord</span></label>';
-      }
 
-      function calendarDayBuffForm(key) {
-        if (!hasAdminAccess()) return "";
-        const current = realmBuffForDate(key) || { buff: "Gathering", timeUtc: "14:00", note: "", isOverride: false };
-        const options = Object.keys(buffTypes).map(function(buff) {
-          return '<option value="' + escapeHtml(buff) + '"' + (buff === current.buff ? " selected" : "") + '>' + escapeHtml(buffTypes[buff].label) + '</option>';
-        }).join("");
-        return '<section class="card calendar-create-card" style="margin-top:16px" data-calendar-buff-form>' +
-          '<div class="card-header"><div><h3>Realm Buff</h3><span class="muted">Always saves to Kella and the calendar. Discord is optional.</span></div><button class="primary" type="button" data-action="toggle-calendar-buff-form" aria-expanded="false">+ Buff</button></div>' +
-          '<div data-calendar-buff-fields hidden>' +
-            '<div class="form-grid">' +
-              '<label>Buff<select data-calendar-buff="buff">' + options + '</select></label>' +
-              '<label>Selected Date<input data-calendar-buff="date" type="date" value="' + escapeHtml(key) + '" readonly /></label>' +
-              '<label>Time UTC<input data-calendar-buff="timeUtc" type="time" value="' + escapeHtml(current.timeUtc || "14:00") + '" /></label>' +
-              '<label>Note<input data-calendar-buff="note" maxlength="160" value="' + escapeHtml(current.note || "") + '" placeholder="Optional note" /></label>' +
-            '</div>' +
-            '<div class="toolbar" style="margin-top:12px">' + buffDiscordToggleHtml("data-calendar-buff-send-discord") + '<button class="primary" type="button" data-action="save-calendar-buff" data-calendar-date="' + escapeHtml(key) + '">Save Buff</button>' + (current.isOverride ? '<button class="danger" type="button" data-action="delete-calendar-buff" data-calendar-date="' + escapeHtml(key) + '">Remove Date Override</button>' : "") + '</div>' +
-          '</div>' +
-        '</section>';
-      }
 
       async function openCalendarDayModal(key, type) {
         if (!memberModal || !memberModalContent) return;
-        await loadBuffSchedule().catch(function() {});
         if (hasAdminAccess()) {
           await Promise.all([
             loadChannels().catch(function() { state.channels = []; }),
@@ -4793,11 +4711,11 @@ export function kellaDashboardHtml() {
         const date = new Date(key + "T00:00:00Z");
         const title = type === "events" ? "Attendance Calendar" : "Activity Calendar";
         const dayEvents = eventsForDay(state.events || [], key);
-        const buffItem = realmBuffCalendarItem(key);
+
         const items = type === "events"
           ? dayEvents.map(eventDetailItem)
           : calendarActivityItems(state.summary || {}, state.events || [], key);
-        if (buffItem) items.unshift(buffItem);
+
         const dateLabel = new Intl.DateTimeFormat("en", {
           timeZone: "UTC",
           weekday: "long",
@@ -4811,9 +4729,9 @@ export function kellaDashboardHtml() {
             '<div><span class="profile-kicker">' + escapeHtml(title) + '</span><h3 id="memberModalTitle">' + escapeHtml(dateLabel) + '</h3><div class="profile-subtitle">Call of Dragons server time - UTC</div></div>' +
           '</div>' +
           (type === "events"
-            ? ((buffItem ? '<div class="calendar-detail-list">' + calendarDetailCard(buffItem) + '</div>' : "") + (dayEvents.length ? calendarAttendanceSnapshot(dayEvents) : empty("No event recorded for this day yet.")))
+            ? (dayEvents.length ? calendarAttendanceSnapshot(dayEvents) : empty("No event recorded for this day yet."))
             : ((items.length ? '<div class="calendar-detail-list">' + items.map(calendarDetailCard).join("") + '</div>' : empty("No activity recorded for this day yet.")) + calendarAttendanceSnapshot(dayEvents))) +
-          calendarDayEventForm(key) + calendarDayBuffForm(key);
+          calendarDayEventForm(key);
         memberModal.classList.add("open");
         memberModal.setAttribute("aria-hidden", "false");
         document.body.classList.add("modal-open");
@@ -4843,7 +4761,6 @@ export function kellaDashboardHtml() {
         document.querySelectorAll("[data-link]").forEach(function(link) {
           const path = link.getAttribute("data-path");
           let active = path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
-          if (path === "/roots-of-war") active = location.pathname.startsWith("/roots");
           if (path === "/tools") active = ["/tools", "/events", "/alerts", "/shield-alerts", "/embed-sender"].some(function(prefix) { return location.pathname.startsWith(prefix); });
           link.classList.toggle("active", active);
         });
@@ -4854,11 +4771,6 @@ export function kellaDashboardHtml() {
         return state.summary;
       }
 
-      async function loadReports() {
-        const data = await fetchJson("/api/dashboard/roots-reports");
-        state.reports = data.reports || [];
-        return state.reports;
-      }
 
       async function loadMembers(query = "") {
         const data = await fetchJson("/api/dashboard/members" + (query ? "?q=" + encodeURIComponent(query) : ""));
@@ -4960,11 +4872,6 @@ export function kellaDashboardHtml() {
         return state.settings;
       }
 
-      async function loadBuffSchedule(force = false) {
-        if (state.buffSchedule && !force) return state.buffSchedule;
-        state.buffSchedule = await fetchJson("/api/dashboard/buff-schedule");
-        return state.buffSchedule;
-      }
 
       async function loadChannels() {
         if (!state.channels) {
@@ -5122,32 +5029,11 @@ export function kellaDashboardHtml() {
 
       function calendarItemsForDay(events, key) {
         const items = eventsForDay(events, key).map(eventDetailItem);
-        const buff = realmBuffCalendarItem(key);
-        if (buff) items.unshift(buff);
         return items;
       }
 
       function calendarActivityItems(summary, events, key) {
         const items = eventsForDay(events, key).map(eventDetailItem);
-        if (summary.upcomingRoots && dayKey(summary.upcomingRoots.date) === key) {
-          items.push({
-            kind: "Roots",
-            title: "Roots registration active",
-            meta: "Created by " + (summary.upcomingRoots.createdBy || "Unknown Officer"),
-            description: (summary.upcomingRoots.slots || []).map(function(slot) {
-              return slot.label + ": " + slot.available + " available, " + slot.absent + " absent, " + slot.unsure + " unsure";
-            }).join(" | ")
-          });
-        }
-        (summary.recentRegistrations || []).forEach(function(registration) {
-          if (dayKey(registration.sentAt) !== key) return;
-          items.push({
-            kind: "Roots Vote",
-            title: (registration.player || "Player") + " chose " + (registration.status || "Unknown"),
-            meta: (registration.slot || "Roots") + " - " + formatUtcTime(registration.sentAt),
-            description: "Latest Roots of War attendance response."
-          });
-        });
         (summary.latestShieldAlerts || []).forEach(function(alert) {
           if (dayKey(alert.sentAt) !== key) return;
           items.push({
@@ -5175,31 +5061,19 @@ export function kellaDashboardHtml() {
         const isToday = key === dayKey(new Date());
         const visible = items.slice(0, 3);
         const dayNum = date ? String(date.getUTCDate()) : "";
-        const buffItem = items.find(function(item) { return !!item.icon; }) || null;
-        const buffIcon = buffItem
-          ? '<span class="calendar-day-buff" role="img" aria-label="' + escapeHtml(buffItem.title || "Buff") + '" title="' + escapeHtml(buffItem.title || "Buff") + '" data-buff-day="' + escapeHtml(dayNum) + '" data-buff-weekday="' + escapeHtml(weekday) + '"><img src="' + escapeHtml(buffItem.icon) + '" alt="' + escapeHtml(buffItem.title || "Buff") + '" /></span>'
-          : '<span class="calendar-day-buff placeholder" aria-hidden="true"></span>';
-        // Exclude buff items from the entry list since the buff icon already renders in the top row
-        const entryItems = visible.filter(function(item) { return !item.icon; });
+        const entryItems = visible;
         const entries = entryItems.length
           ? entryItems.map(function(item) {
               const icon = item.icon ? '<img src="' + escapeHtml(item.icon) + '" alt="" />' : "";
-              const title = escapeHtml(item.title || "Buff");
+              const title = escapeHtml(item.title || "Event");
               const meta = escapeHtml(item.meta || "");
-              const weekdayLabel = date ? new Intl.DateTimeFormat("en", { weekday: "short", timeZone: "UTC" }).format(date) : "";
-              const dayNumLabel = date ? String(date.getUTCDate()) : "";
-              const isBuff = !!item.icon;
-              return '<span class="calendar-entry' + (isBuff ? " buff" : "") + '">' + (isBuff
-                ? '<span class="calendar-buff-image" data-buff-title="' + title + '" data-buff-meta="' + meta + '" data-buff-day="' + escapeHtml(dayNumLabel) + '" data-buff-weekday="' + escapeHtml(weekdayLabel) + '">' + icon + '<span class="calendar-buff-tooltip">' + dayNumLabel + '<br><img src="' + escapeHtml(item.icon) + '" alt="" /><br>' + weekdayLabel + '</span></span>'
-                : icon + '<span>' + title + '</span><small>' + meta + '</small>'
-              ) + '</span>';
+              return '<span class="calendar-entry">' + icon + '<span>' + title + '</span><small>' + meta + '</small></span>';
             }).join("")
           : '<span class="calendar-empty">No event</span>';
         const more = items.length > visible.length ? '<span class="calendar-more">+' + (items.length - visible.length) + ' more</span>' : "";
         return '<button class="calendar-day' + (items.length ? " has-items event" : "") + (isToday ? " today" : "") + '" type="button" data-calendar-day="' + key + '" data-calendar-type="' + type + '">' +
           '<div class="calendar-day-top">' +
             '<span class="calendar-day-number">' + dayNum + '</span>' +
-            buffIcon +
             '<span class="calendar-day-weekday">' + weekday + '</span>' +
           '</div>' +
           '<div class="calendar-day-list">' + entries + more + '</div>' +
@@ -5271,7 +5145,6 @@ export function kellaDashboardHtml() {
 
       function renderCommandBoard() {
         const commands = [
-          { command: "/roots", text: "Open Roots attendance." },
           { command: "/time utc:13 UTC", text: "Post a live countdown." },
           { command: "/complain message", text: "Send R4 feedback." },
           { command: "/checkin", text: "Daily activity button." }
@@ -5954,9 +5827,9 @@ export function kellaDashboardHtml() {
           '<input type="file" data-wiki-block-image accept="image/png,image/jpeg,image/webp,video/mp4,video/webm" style="display:none" />' +
           '<input type="file" data-wiki-stock-image accept="image/png,image/jpeg,image/webp" style="display:none" />' +
           '<div class="form-grid">' +
-            '<label>Title<input data-wiki="title" maxlength="120" placeholder="Roots of War Guide" value="' + escapeHtml(editing.title || "") + '" /></label>' +
+            '<label>Title<input data-wiki="title" maxlength="120" placeholder="Alliance Guide" value="' + escapeHtml(editing.title || "") + '" /></label>' +
             '<label>Author<input data-wiki="author" maxlength="120" placeholder="Officer name" value="' + escapeHtml(editing.author || state.auth?.user?.displayName || state.auth?.user?.username || "") + '" /></label>' +
-            '<label class="wide wiki-tags-field">Tags<input data-wiki="tags" maxlength="380" placeholder="Pets, Heroes, Roots of War" value="' + escapeHtml(selectedTags.join(", ")) + '" /><small>Separate tags with commas, or select an existing tag.</small>' + tagSuggestions + '</label>' +
+            '<label class="wide wiki-tags-field">Tags<input data-wiki="tags" maxlength="380" placeholder="Pets, Heroes, Strategy" value="' + escapeHtml(selectedTags.join(", ")) + '" /><small>Separate tags with commas, or select an existing tag.</small>' + tagSuggestions + '</label>' +
             '<label>Status<select data-wiki="status"><option value="Published"' + optionSelected("Published", editing.status || "Published") + '>Published</option><option value="Draft"' + optionSelected("Draft", editing.status || "Published") + '>Draft</option></select></label>' +
           '</div>' +
           renderWikiInspectorHtml() +
@@ -6388,69 +6261,9 @@ export function kellaDashboardHtml() {
         }
       }
 
-      function buffScheduleRows(schedule) {
-        const today = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "long" }).format(new Date());
-        const editable = hasAdminAccess();
-        return (schedule.days || defaultBuffSchedule).map(function(item) {
-          const type = buffTypes[item.buff] || buffTypes.Gathering;
-          const options = Object.keys(buffTypes).map(function(key) {
-            return '<option value="' + escapeHtml(key) + '"' + (key === item.buff ? " selected" : "") + '>' + escapeHtml(buffTypes[key].label) + '</option>';
-          }).join("");
-          const adminSetting = editable
-            ? '<div class="buff-admin-setting"><select data-buff-day-select data-buff-day="' + escapeHtml(item.day) + '">' + options + '</select><input data-buff-day-note data-buff-day="' + escapeHtml(item.day) + '" value="' + escapeHtml(item.note || "") + '" placeholder="Optional note" maxlength="160" /></div>'
-            : '<span class="buff-readonly">Weekly schedule</span>';
-          return '<article class="buff-day-row' + (item.day === today ? " is-today" : "") + '" data-buff-row data-buff-day="' + escapeHtml(item.day) + '">' +
-            '<div class="buff-day-name">' + escapeHtml(item.day) + (item.day === today ? '<span class="buff-today">Today</span>' : '') + '</div>' +
-            '<div class="buff-current"><img class="buff-icon" data-buff-icon src="' + escapeHtml(type.icon) + '" alt="" /><div><h3 data-buff-label>' + escapeHtml(type.label) + '</h3><p data-buff-description>' + escapeHtml(type.description) + '</p><span class="buff-note" data-buff-note' + (item.note ? "" : ' hidden') + '>' + escapeHtml(item.note || "") + '</span></div></div>' +
-            adminSetting +
-          '</article>';
-        }).join("");
-      }
 
-      function readBuffScheduleForm() {
-        return Array.from(document.querySelectorAll("[data-buff-row]")).map(function(row) {
-          return {
-            day: row.getAttribute("data-buff-day") || "",
-            buff: row.querySelector("[data-buff-day-select]")?.value || "Gathering",
-            note: row.querySelector("[data-buff-day-note]")?.value.trim() || ""
-          };
-        });
-      }
 
-      function buffDatedOverridesHtml(schedule) {
-        const overrides = (schedule.datedBuffs || []).slice().sort(function(left, right) {
-          return String(left.date || "").localeCompare(String(right.date || ""));
-        });
-        if (!overrides.length) return "";
-        return '<section class="card"><div class="card-header"><div><h3>Date Overrides</h3><span class="muted">These dates replace the normal weekly buff and are shared with the Event Calendar.</span></div></div><div class="buff-date-list">' + overrides.map(function(item) {
-          const type = buffTypes[item.buff] || buffTypes.Gathering;
-          return '<article class="buff-date-item"><img src="' + escapeHtml(type.icon) + '" alt="" /><div><h4>' + escapeHtml(type.label) + '</h4><span>' + escapeHtml(item.date || "") + ' - ' + escapeHtml(item.day || "") + ' - ' + escapeHtml(item.timeUtc || "14:00") + ' UTC' + (item.note ? '<br>' + escapeHtml(item.note) : "") + '</span></div>' + (hasAdminAccess() ? '<button class="danger" type="button" data-action="delete-calendar-buff" data-calendar-date="' + escapeHtml(item.date || "") + '">Remove</button>' : "") + '</article>';
-        }).join("") + '</div></section>';
-      }
 
-      async function renderBuffSchedule() {
-        skeleton("Loading weekly buff schedule...");
-        try {
-          const schedule = await loadBuffSchedule();
-          const actions = hasAdminAccess()
-            ? '<button class="secondary" type="button" data-action="reset-buff-schedule">Reset to Default</button>' + buffDiscordToggleHtml("data-buff-send-discord") + '<button class="primary" type="button" data-action="save-buff-schedule">Save Schedule</button>'
-            : "";
-          const updated = schedule.updatedAt
-            ? 'Last saved ' + formatDateTime(schedule.updatedAt) + ' by ' + escapeHtml(schedule.updatedBy || "Kella officer")
-            : "Using Kella's recommended weekly schedule";
-          app.innerHTML =
-            pageHeader("Weekly Buff Schedule", "The real alliance buff plan for every day of the week.", actions) +
-            '<div class="buff-schedule-shell">' +
-              '<section class="buff-notice"><img src="/assets/buffs/buff-schedule.png" alt="" /><div><strong>War Time Override</strong><span>Buffs may change when alliance strategy requires it.</span></div></section>' +
-              '<section class="card buff-week"><div class="buff-week-heading"><span>Day of week</span><span>Current buff</span><span>' + (hasAdminAccess() ? "Admin setting" : "Schedule") + '</span></div>' + buffScheduleRows(schedule) + '</section>' +
-              buffDatedOverridesHtml(schedule) +
-              '<div class="buff-footer"><img src="/assets/buffs/buff-schedule.png" alt="" /><div><strong>Call of Dragons server time - UTC</strong><span>Buffs scheduled at 14:00 UTC. (time may change depends on situation)</span></div></div>' +
-              '<div class="buff-updated">' + updated + '</div>' +
-            '</div>';
-        } catch (error) {
-          app.innerHTML = '<div class="error">Could not load the buff schedule. ' + escapeHtml(error.message) + '</div>';
-        }
-      }
 
       function trainingValue(selector, fallback = 0) {
         const value = Number(document.querySelector(selector)?.value ?? fallback);
@@ -7647,7 +7460,7 @@ export function kellaDashboardHtml() {
       async function renderDashboard() {
         skeleton("Loading dashboard...");
         try {
-          const results = await Promise.all([loadSummary(), loadSettings(), loadDashboardMembers(), loadDashboardEvents(), loadBuffSchedule()]);
+          const results = await Promise.all([loadSummary(), loadSettings(), loadDashboardMembers(), loadDashboardEvents()]);
           renderDashboardData(results[0], results[2], results[3]);
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load dashboard data. ' + escapeHtml(error.message) + '</div>';
@@ -7731,99 +7544,13 @@ export function kellaDashboardHtml() {
         }
       }
 
-      async function renderRootsRegistration() {
-        skeleton("Loading Roots registration...");
-        try {
-          const reports = await loadReports();
-          const latest = reports[0];
-          let channelHtml = '<label>Discord Channel<input data-roots-channel-manual placeholder="Paste channel ID" /></label>';
-          try {
-            await loadChannels();
-            channelHtml = '<label>Discord Channel<select data-roots-channel>' + channelOptions() + '</select></label>';
-          } catch {
-            channelHtml = '<label>Discord Channel<input data-roots-channel-manual placeholder="Paste channel ID or add Password in Settings" /></label>';
-          }
-          app.innerHTML =
-            pageHeader("Roots Registration", "Members click one button for 14 UTC or 20 UTC, and Kella saves one current answer per player per slot.", '<button class="primary" data-action="send-roots-registration">Create Roots Panel</button>') +
-            '<section class="two"><div class="card"><h3>Buttons Included</h3><p>14 UTC: ⚔ Available, ❌ Absent, ❔ Not Sure</p><p>20 UTC: ⚔ Available, ❌ Absent, ❔ Not Sure</p><p>Members can click again to update their answer.</p></div>' +
-            '<div class="card"><div class="card-header"><h3>Latest Report</h3><button class="secondary" data-link-button="/roots-reports">Reports</button></div>' +
-            (latest ? '<p>' + formatDate(latest.date) + ' - ' + latest.timeSlot + '</p><p>' + latest.available + ' Available, ' + latest.absent + ' Absent, ' + latest.unsure + ' Not Sure</p>' : '<p>No Roots reports yet.</p>') +
-            '</div></section>';
-        } catch (error) {
-          app.innerHTML = '<div class="error">Could not load Roots data. ' + escapeHtml(error.message) + '</div>';
-        }
-      }
 
-      async function renderRootsReports() {
-        skeleton("Loading Roots reports...");
-        try {
-          const reports = await loadReports();
-          const rows = reports.length
-            ? reports.map(function(report) {
-                return '<tr><td>' + formatDate(report.date) + '</td><td>' + escapeHtml(report.timeSlot) + '</td><td>' + report.available + '</td><td>' + report.absent + '</td><td>' + report.unsure + '</td><td>' + escapeHtml(report.createdBy) + '</td><td><button class="secondary" data-link-button="/roots-reports/' + report.id + '">View Report</button></td></tr>';
-              }).join("")
-            : "";
-          app.innerHTML =
-            pageHeader("Roots Reports", "Historical Roots of War registrations grouped by Discord message and time slot.", '<button class="secondary" data-action="refresh-reports">Refresh</button>') +
-            (reports.length ? '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Time Slot</th><th>Available Count</th><th>Absent Count</th><th>Not Sure Count</th><th>Created By</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' : empty("No Roots reports yet. Run /roots in Discord to create the first one."));
-        } catch (error) {
-          app.innerHTML = '<div class="error">Could not load Roots reports. ' + escapeHtml(error.message) + '</div>';
-        }
-      }
 
       function numbered(players) {
         return players.length ? players.map(function(player, index) { return (index + 1) + ". " + player; }).join("\\n") : "None";
       }
 
-      function reportText(report) {
-        return [
-          "ROOTS OF WAR REPORT",
-          "",
-          "Date: " + formatDate(report.date),
-          "Time Slot: " + report.timeSlot,
-          "",
-          "AVAILABLE:",
-          numbered(report.available || []),
-          "",
-          "ABSENT:",
-          numbered(report.absent || []),
-          "",
-          "NOT SURE:",
-          numbered(report.unsure || [])
-        ].join("\\n");
-      }
 
-      async function renderRootsReportDetails(id) {
-        skeleton("Loading report details...");
-        try {
-          const data = await fetchJson("/api/dashboard/roots-reports/" + encodeURIComponent(id));
-          const report = data.report;
-          state.currentReport = report;
-          const section = function(title, players, className) {
-            return '<div class="card"><div class="card-header"><h3>' + title + '</h3><span class="badge ' + className + '">' + players.length + ' total</span></div>' +
-              (players.length ? '<ul class="list">' + players.map(function(player) { return '<li>' + escapeHtml(player) + '</li>'; }).join("") + '</ul>' : empty("No players in this section.")) +
-              '</div>';
-          };
-          let channelHtml = '<label>Discord Channel<select data-report-channel><option value="">Set Admin Key to load channels</option></select></label>';
-          try {
-            await loadChannels();
-            channelHtml = '<label>Discord Channel<select data-report-channel>' + channelOptions() + '</select></label>';
-          } catch {
-            channelHtml = '<label>Discord Channel ID<input data-report-channel-manual placeholder="Paste channel ID" /></label>';
-          }
-          app.innerHTML =
-            pageHeader("Roots Report", "Detailed Roots of War attendance list with export tools.", '<button class="secondary" data-link-button="/roots-reports">Back</button><button class="secondary" data-action="export-csv">Export CSV</button><button class="secondary" data-action="export-json">Export JSON</button><button class="primary" data-action="copy-report">Copy Report</button>') +
-            '<section class="card"><div class="card-header"><h3>' + formatDate(report.date) + ' - ' + escapeHtml(report.timeSlot) + '</h3>' + (report.messageLink ? '<a class="secondary" target="_blank" rel="noreferrer" href="' + escapeHtml(report.messageLink) + '">Discord Message Link</a>' : '<span class="badge warn">No message link</span>') + '</div><p>Created By: ' + escapeHtml(report.createdBy) + '</p></section>' +
-            '<section class="players" style="margin-top:18px">' +
-              section("⚔ Available", report.available || [], "good") +
-              section("❌ Absent", report.absent || [], "bad") +
-              section("❔ Not Sure", report.unsure || [], "warn") +
-            '</section>' +
-            '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Send Report to Discord</h3><button class="primary" data-action="send-roots-report">Send Report</button></div><div class="form-grid">' + channelHtml + '<label>Role Mention ID<input data-report-role placeholder="Optional role ID" /></label></div></section>';
-        } catch (error) {
-          app.innerHTML = '<div class="error">Could not load report details. ' + escapeHtml(error.message) + '</div>';
-        }
-      }
 
       function defaultUtcParts() {
         const value = new Date(Date.now() + 60 * 60 * 1000);
@@ -7964,9 +7691,9 @@ export function kellaDashboardHtml() {
       async function renderAttendance() {
         skeleton("Loading attendance...");
         try {
-          const results = await Promise.all([loadDashboardEvents(), loadBuffSchedule(), loadPolls(true)]);
+          const results = await Promise.all([loadDashboardEvents(), loadPolls(true)]);
           const events = results[0];
-          const polls = results[2];
+          const polls = results[1];
           const actions = (hasAdminAccess() ? '<button class="secondary" data-link-button="/tools">Create Event</button><button class="secondary" data-link-button="/tools?tool=polls">Create Poll</button>' : "") + '<button class="primary" data-action="refresh-events">Refresh</button>';
           app.innerHTML =
             pageHeader("Attendance Calendar", "Event attendance, polls, and Best Online Time results in one place.", actions) +
@@ -8008,13 +7735,13 @@ export function kellaDashboardHtml() {
         }
         try {
           const events = await loadDashboardEvents();
-          const commands = ["/roots", "/summit", "/attack", "/checkin", "/remind", "/absence", "/apply", "/complain"];
+          const commands = ["/summit", "/attack", "/checkin", "/remind", "/absence", "/apply", "/complain"];
           app.innerHTML =
             pageHeader("Events", "Create event embeds with attendance buttons using Call of Dragons 24-hour UTC server time.", '<button class="primary" data-action="send-event-embed">Send Event</button>') +
             '<section class="card"><div class="card-header"><div><h3>Create Event Embed</h3><span class="muted">Kella sends Attending, Absent, and Not Sure buttons automatically.</span></div><span class="badge warn">24-hour UTC</span></div><div class="form-grid">' +
               channelHtml +
               '<label>Role Mention ID<input data-event="roleMentionId" placeholder="Optional role ID" /></label>' +
-              '<label>Event Title<input data-event="title" placeholder="Summit, Roots of War, Fortress..." /></label>' +
+              '<label>Event Title<input data-event="title" placeholder="Summit, Fortress..." /></label>' +
               utcEventTimeControls() +
               '<label class="wide">Description<textarea data-event="description" placeholder="Tell members what to do, where to go, and what time to be ready."></textarea></label>' +
             '</div></section>' +
@@ -8050,12 +7777,12 @@ export function kellaDashboardHtml() {
         } catch {
           channelHtml = '<label>Discord Channel<input data-event="channelManual" placeholder="Paste channel ID or add Password in Settings" /></label>';
         }
-        const results = await Promise.all([loadDashboardEvents(), loadBuffSchedule()]);
+        const results = await Promise.all([loadDashboardEvents()]);
         const events = results[0];
         return '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Create Event Embed</h3><span class="muted">Kella sends Attending, Absent, and Not Sure buttons automatically.</span></div><div class="toolbar"><span class="badge warn">24-hour UTC</span><button class="primary" data-action="send-event-embed">Send Event</button></div></div><div class="form-grid">' +
             channelHtml +
             '<label>Role Mention ID<input data-event="roleMentionId" placeholder="Optional role ID" /></label>' +
-            '<label>Event Title<input data-event="title" placeholder="Summit, Roots of War, Fortress..." /></label>' +
+            '<label>Event Title<input data-event="title" placeholder="Summit, Fortress..." /></label>' +
             utcEventTimeControls() +
             '<label class="wide">Description<textarea data-event="description" placeholder="Tell members what to do, where to go, and what time to be ready."></textarea></label>' +
           '</div></section>' +
@@ -8172,9 +7899,9 @@ export function kellaDashboardHtml() {
           '<section class="two" style="margin-top:18px"><div class="card stack"><div class="card-header"><h3>Embed Sender</h3><div class="toolbar"><button class="secondary" data-action="preview-embed">Preview</button><button class="secondary" data-action="save-template">Save Template</button><button class="danger" data-action="delete-template">Delete Template</button><button class="primary" data-action="send-embed">Send Embed</button></div></div><div class="form-grid">' +
             '<label>Saved Template<select data-template-select>' + templateOptions + '</select></label>' +
             channelField +
-            '<label>Embed Title<input data-embed="title" value="Roots of War Reminder" /></label>' +
+            '<label>Embed Title<input data-embed="title" value="Alliance Event Reminder" /></label>' +
             '<label>Embed Color<input data-embed="color" value="#facc15" /></label>' +
-            '<label class="wide">Embed Description<textarea data-embed="description">Roots of War registration is now open. Please choose your availability for 14 UTC or 20 UTC.</textarea></label>' +
+            '<label class="wide">Embed Description<textarea data-embed="description">Alliance event registration is now open. Please choose your availability.</textarea></label>' +
             '<label>Image URL<input data-embed="imageUrl" placeholder="Optional image URL" /></label>' +
             '<label>Thumbnail URL<input data-embed="thumbnailUrl" placeholder="Optional thumbnail URL" /></label>' +
             '<label>Footer Text<input data-embed="footer" value="Sent by Kella" /></label>' +
@@ -8478,9 +8205,9 @@ export function kellaDashboardHtml() {
           '<section class="two"><div class="card stack"><div class="form-grid">' +
             '<label>Saved Template<select data-template-select>' + templateOptions + '</select></label>' +
             channelField +
-            '<label>Embed Title<input data-embed="title" value="⚔ Roots of War Reminder" /></label>' +
+            '<label>Embed Title<input data-embed="title" value="⚔ Alliance Event Reminder" /></label>' +
             '<label>Embed Color<input data-embed="color" value="#facc15" /></label>' +
-            '<label class="wide">Embed Description<textarea data-embed="description">Roots of War registration is now open. Please choose your availability for 14 UTC or 20 UTC.</textarea></label>' +
+            '<label class="wide">Embed Description<textarea data-embed="description">Alliance event registration is now open. Please choose your availability.</textarea></label>' +
             '<label>Image URL<input data-embed="imageUrl" placeholder="Optional image URL" /></label>' +
             '<label>Thumbnail URL<input data-embed="thumbnailUrl" placeholder="Optional thumbnail URL" /></label>' +
             '<label>Footer Text<input data-embed="footer" value="Sent by Kella" /></label>' +
@@ -8523,7 +8250,7 @@ export function kellaDashboardHtml() {
               '<div class="card"><h3>Alliance Name</h3><p>Name shown at the top of the dashboard.</p><input data-setting="allianceName" data-admin-required value="' + escapeHtml(alliance.name || "") + '"' + lockedAttr + ' /></div>' +
               '<div class="card"><h3>Alliance Tag</h3><p>Short tag shown in the round badge.</p><input data-setting="allianceTag" data-admin-required value="' + escapeHtml(alliance.tag || "") + '"' + lockedAttr + ' /></div>' +
               '<div class="card"><h3>Announcement Channel</h3><p>Where Kella should post event announcements.</p><input data-setting="announcementChannel" data-admin-required placeholder="Channel name or ID" value="' + escapeHtml(settings.announcementChannel || "") + '"' + lockedAttr + ' /></div>' +
-              '<div class="card"><h3>Attendance Channel</h3><p>Where Roots, Summit, and check-in panels should be used.</p><input data-setting="attendanceChannel" data-admin-required placeholder="Channel name or ID" value="' + escapeHtml(settings.attendanceChannel || "") + '"' + lockedAttr + ' /></div>' +
+              '<div class="card"><h3>Attendance Channel</h3><p>Where Summit and check-in panels should be used.</p><input data-setting="attendanceChannel" data-admin-required placeholder="Channel name or ID" value="' + escapeHtml(settings.attendanceChannel || "") + '"' + lockedAttr + ' /></div>' +
               '<div class="card"><h3>Alert Channel</h3><p>Where attack and shield alert logs should be reviewed.</p><input data-setting="alertChannel" data-admin-required placeholder="Channel name or ID" value="' + escapeHtml(settings.alertChannel || "") + '"' + lockedAttr + ' /></div>' +
               '<div class="card"><h3>Officer Roles</h3><p>Comma-separated Discord roles that can operate Kella.</p><input data-setting="officerRoles" data-admin-required value="' + escapeHtml((settings.officerRoles || []).join(", ")) + '"' + lockedAttr + ' /></div>' +
               '<div class="card"><h3>Enabled Modules</h3><p>' + dashboardModules.filter(function(module) { return moduleState(module.id); }).length + ' of ' + dashboardModules.length + ' modules enabled.</p><button class="secondary" data-link-button="/">Back to Modules</button></div>' +
@@ -8585,40 +8312,6 @@ export function kellaDashboardHtml() {
         };
       }
 
-      async function renderRootsRegistration() {
-        skeleton("Loading Roots registration...");
-        try {
-          const reports = await loadReports();
-          const latest = reports[0];
-          let channelHtml = '<label>Discord Channel<input data-roots-channel-manual placeholder="Paste channel ID" /></label>';
-          try {
-            await loadChannels();
-            channelHtml = '<label>Discord Channel<select data-roots-channel>' + channelOptions() + '</select></label>';
-          } catch {
-            channelHtml = '<label>Discord Channel<input data-roots-channel-manual placeholder="Paste channel ID or add Password in Settings" /></label>';
-          }
-          const reportRows = reports.length
-            ? reports.map(function(report) {
-                return '<tr><td>' + formatDate(report.date) + '</td><td>' + escapeHtml(report.timeSlot) + '</td><td>' + report.available + '</td><td>' + report.absent + '</td><td>' + report.unsure + '</td><td>' + escapeHtml(report.createdBy) + '</td><td><button class="secondary" data-link-button="/roots-reports/' + report.id + '">View</button></td></tr>';
-              }).join("")
-            : "";
-
-          app.innerHTML =
-            pageHeader("Roots of War", "Registration and reports in one place. Create the Discord panel, then review 14 UTC and 20 UTC attendance below.", '<button class="primary" data-action="send-roots-registration">Create Roots Panel</button>') +
-            '<section class="two"><div class="card"><div class="card-header"><div><h3>Create Roots Panel</h3><span class="muted">Kella sends 14 UTC and 20 UTC buttons to Discord, then stores every answer in reports.</span></div><span class="badge warn">24-hour UTC</span></div><div class="form-grid">' +
-              channelHtml +
-              '<label>Role Mention ID<input data-roots-role placeholder="Optional role ID" /></label>' +
-            '</div><p class="muted" style="margin-top:12px">Members can choose Available, Absent, or Not Sure for each slot and update their answer any time.</p></div>' +
-            '<div class="card"><div class="card-header"><h3>Latest Report</h3><button class="secondary" data-action="refresh-reports">Refresh</button></div>' +
-            (latest ? '<p>' + formatDate(latest.date) + ' - ' + latest.timeSlot + '</p><p>' + latest.available + ' Available, ' + latest.absent + ' Absent, ' + latest.unsure + ' Not Sure</p>' : '<p>No Roots reports yet.</p>') +
-            '</div></section>' +
-            '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Roots Reports</h3><span class="muted">Historical registrations grouped by message and time slot.</span></div></div>' +
-            (reports.length ? '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Time Slot</th><th>Available</th><th>Absent</th><th>Not Sure</th><th>Created By</th><th></th></tr></thead><tbody>' + reportRows + '</tbody></table></div>' : empty("No Roots reports yet. Create a Roots panel first.")) +
-            '</section>';
-        } catch (error) {
-          app.innerHTML = '<div class="error">Could not load Roots data. ' + escapeHtml(error.message) + '</div>';
-        }
-      }
 
       function renderAlertsTable(alerts) {
         if (!alerts.length) return empty("No alerts recorded yet.");
@@ -8822,6 +8515,7 @@ export function kellaDashboardHtml() {
           '<section class="card">' + empty("Members can use Dashboard, Members, Attendance, and My Profile. Admin tools stay hidden until Kella confirms admin access.") + '</section>';
       }
 
+      ${migrationClient}
       async function route() {
         if (!state.auth) {
           await loadAuth().catch(function() { updateAuthStatus(); });
@@ -8836,8 +8530,9 @@ export function kellaDashboardHtml() {
           return renderAdminAccessRequired();
         }
         setActiveNav();
+        if (path === "/migration") return renderMigration();
+        if (path === "/migration/admin") return renderMigration(true);
         if (path === "/") return renderDashboard();
-        if (path === "/buff-schedule") return renderBuffSchedule();
         if (path === "/lord-tools") return navigate("/profile?section=lord");
         if (path === "/research") return renderLordTools(true, "research");
         if (path === "/training-tools") return renderTrainingTools();
@@ -8847,8 +8542,6 @@ export function kellaDashboardHtml() {
         if (path === "/members") return renderMembers();
         if (path === "/attendance") return renderAttendance();
         if (path.startsWith("/attendance/")) return renderAttendanceDetails(path.split("/").pop());
-        if (path === "/roots-of-war" || path === "/roots-registration" || path === "/roots-reports") return renderRootsRegistration();
-        if (path.startsWith("/roots-reports/")) return renderRootsReportDetails(path.split("/").pop());
         if (path === "/tools") return renderTools();
         if (path === "/events") return renderTools("events");
         if (path === "/alerts") {
@@ -9249,18 +8942,11 @@ export function kellaDashboardHtml() {
           if (scope === "embed") updateEmbedPreview();
           return;
         }
-        if (kind === "save-buff-schedule") withFeedback(action, async function() {
-          const sendToDiscord = Boolean(document.querySelector("[data-buff-send-discord]")?.checked);
-          const result = await sendJson("PUT", "/api/dashboard/buff-schedule", { days: readBuffScheduleForm(), sendToDiscord }, true);
-          state.buffSchedule = result;
-          await renderBuffSchedule();
-          return result.warning || result.message || "Weekly buff schedule saved.";
-        }, "Weekly buff schedule saved.");
-        if (kind === "reset-buff-schedule") {
-          if (!window.confirm("Reset all seven days to Kella's recommended schedule? Save afterward to keep it.")) return;
-          state.buffSchedule = { days: defaultBuffSchedule.map(function(item) { return { ...item }; }), updatedAt: null, updatedBy: "Unsaved reset" };
-          renderBuffSchedule();
-          toast("Defaults restored. Click Save Schedule to keep them.");
+        if (kind === "toggle-character-motion") {
+          const paused = document.body.classList.toggle("character-paused");
+          action.setAttribute("aria-pressed", String(paused));
+          action.setAttribute("aria-label", paused ? "Resume Kella animation" : "Pause Kella animation");
+          action.textContent = paused ? "Resume motion" : "Pause motion";
           return;
         }
         if (kind === "training-mode") {
@@ -9748,14 +9434,6 @@ export function kellaDashboardHtml() {
           state.dashboardMembers = [];
           await renderDashboard();
         }, "Dashboard refreshed.");
-        if (kind === "refresh-reports") withFeedback(action, async function() {
-          state.reports = [];
-          if (location.pathname.startsWith("/roots-reports/")) {
-            await renderRootsReportDetails(location.pathname.split("/").pop());
-          } else {
-            await renderRootsRegistration();
-          }
-        }, "Reports refreshed.");
         if (kind === "refresh-alerts") withFeedback(action, async function() {
           state.alerts = [];
           await loadAlerts();
@@ -9784,51 +9462,6 @@ export function kellaDashboardHtml() {
           if (willOpen) form.querySelector('[data-calendar-event="title"]')?.focus();
           return;
         }
-        if (kind === "toggle-calendar-buff-form") {
-          const form = action.closest("[data-calendar-buff-form]");
-          const fields = form?.querySelector("[data-calendar-buff-fields]");
-          if (!fields) return;
-          const willOpen = fields.hidden;
-          fields.hidden = !willOpen;
-          action.setAttribute("aria-expanded", String(willOpen));
-          action.textContent = willOpen ? "Close" : "+ Buff";
-          if (willOpen) form.querySelector('[data-calendar-buff="buff"]')?.focus();
-          return;
-        }
-        if (kind === "save-calendar-buff") withFeedback(action, async function() {
-          const form = action.closest("[data-calendar-buff-form]");
-          if (!form) throw new Error("Realm Buff form is missing.");
-          const value = function(name) {
-            return (form.querySelector('[data-calendar-buff="' + name + '"]')?.value || "").trim();
-          };
-          const date = value("date") || action.getAttribute("data-calendar-date") || "";
-          const buff = value("buff");
-          const timeUtc = value("timeUtc") || "14:00";
-          const note = value("note");
-          const sendToDiscord = Boolean(form.querySelector("[data-calendar-buff-send-discord]")?.checked);
-          if (!date || !buff) throw new Error("Choose a date and Realm Buff.");
-          const result = await sendJson("PUT", "/api/dashboard/buff-schedule/date/" + encodeURIComponent(date), { buff, timeUtc, note, sendToDiscord }, true);
-          state.buffSchedule = result;
-          if (location.pathname === "/") await renderDashboard();
-          else if (location.pathname === "/attendance") await renderAttendance();
-          else if (location.pathname === "/buff-schedule") await renderBuffSchedule();
-          else await renderTools("events");
-          if (location.pathname !== "/buff-schedule") await openCalendarDayModal(date, "events");
-          return result.warning || result.message || "Buff saved and calendar updated.";
-        }, "Buff saved and calendar updated.");
-        if (kind === "delete-calendar-buff") withFeedback(action, async function() {
-          const date = action.getAttribute("data-calendar-date") || "";
-          if (!date) throw new Error("Realm Buff date is missing.");
-          if (!window.confirm("Remove the Realm Buff override for " + date + "? The weekly schedule will apply again.")) return "Remove cancelled.";
-          const result = await sendJson("DELETE", "/api/dashboard/buff-schedule/date/" + encodeURIComponent(date), undefined, true);
-          state.buffSchedule = result;
-          if (location.pathname === "/") await renderDashboard();
-          else if (location.pathname === "/attendance") await renderAttendance();
-          else if (location.pathname === "/buff-schedule") await renderBuffSchedule();
-          else await renderTools("events");
-          if (location.pathname !== "/buff-schedule") await openCalendarDayModal(date, "events");
-          return result.message || "Dated buff removed.";
-        }, "Dated buff removed.");
         if (kind === "save-calendar-event") withFeedback(action, async function() {
           const form = action.closest("[data-calendar-event-form]");
           if (!form) throw new Error("Calendar event form is missing.");
@@ -9938,15 +9571,6 @@ export function kellaDashboardHtml() {
           else await renderTools("polls");
           return "Poll deleted.";
         }, "Poll deleted.");
-        if (kind === "send-roots-registration") withFeedback(action, async function() {
-          const channelId = document.querySelector("[data-roots-channel]")?.value || document.querySelector("[data-roots-channel-manual]")?.value || "";
-          const roleMentionId = document.querySelector("[data-roots-role]")?.value || "";
-          if (!channelId.trim()) throw new Error("Choose a Discord channel first.");
-          await sendJson("POST", "/api/dashboard/tools/roots-registration", { channelId, roleMentionId }, true);
-          state.summary = null;
-          state.reports = [];
-          await renderRootsRegistration();
-        }, "Roots registration panel sent.");
         if (kind === "set-complaint-status") withFeedback(action, async function() {
           const id = action.getAttribute("data-complaint-id") || "";
           const status = action.getAttribute("data-status") || "Pending";
@@ -10030,21 +9654,6 @@ export function kellaDashboardHtml() {
           await renderSettings();
           return "Imported roster data cleared. " + (result.deletedUploads || 0) + " upload records removed, " + (result.deletedMembers || 0) + " upload-only members deleted, and " + (result.updatedMembers || 0) + " Discord profiles recalculated.";
         }, "Imported roster data cleared.");
-        if (kind === "copy-report") withFeedback(action, function() { return navigator.clipboard.writeText(reportText(state.currentReport)); }, "Report copied.");
-        if (kind === "export-json") withFeedback(action, async function() { downloadBlob(new Blob([JSON.stringify(state.currentReport, null, 2)], { type: "application/json" }), "roots-report.json"); }, "JSON exported.");
-        if (kind === "export-csv") withFeedback(action, async function() {
-          const rows = [["Status", "Player"]];
-          (state.currentReport.available || []).forEach(function(player) { rows.push(["Available", player]); });
-          (state.currentReport.absent || []).forEach(function(player) { rows.push(["Absent", player]); });
-          (state.currentReport.unsure || []).forEach(function(player) { rows.push(["Not Sure", player]); });
-          const csv = rows.map(function(row) { return row.map(function(cell) { return '"' + String(cell).replaceAll('"', '""') + '"'; }).join(","); }).join("\\n");
-          downloadBlob(new Blob([csv], { type: "text/csv" }), "roots-report.csv");
-        }, "CSV exported.");
-        if (kind === "send-roots-report") withFeedback(action, async function() {
-          const channelId = document.querySelector("[data-report-channel]")?.value || document.querySelector("[data-report-channel-manual]")?.value || "";
-          const roleMentionId = document.querySelector("[data-report-role]")?.value || "";
-          await sendJson("POST", "/api/dashboard/roots-reports/" + encodeURIComponent(state.currentReport.id) + "/send", { channelId, roleMentionId }, true);
-        }, "Roots report sent.");
         if (kind === "send-shield-alert") withFeedback(action, async function() {
           await sendJson("POST", "/api/dashboard/tools/shield-alert", {
             memberId: document.querySelector("[data-shield-member]")?.value || "",
@@ -10380,17 +9989,6 @@ export function kellaDashboardHtml() {
           selectProfileRadarDate(event.target.getAttribute("data-member-id") || "", event.target.value || "");
           return;
         }
-        if (event.target.matches("[data-buff-day-select]")) {
-          const row = event.target.closest("[data-buff-row]");
-          const type = buffTypes[event.target.value] || buffTypes.Gathering;
-          const icon = row?.querySelector("[data-buff-icon]");
-          const label = row?.querySelector("[data-buff-label]");
-          const description = row?.querySelector("[data-buff-description]");
-          if (icon) icon.src = type.icon;
-          if (label) label.textContent = type.label;
-          if (description) description.textContent = type.description;
-          return;
-        }
         if (event.target.matches('[data-calendar-event="mode"]')) {
           const form = event.target.closest("[data-calendar-event-form]");
           const channelField = form?.querySelector("[data-calendar-channel-field]");
@@ -10482,14 +10080,6 @@ export function kellaDashboardHtml() {
         if (event.target.matches("[data-training-input]")) {
           if (event.target.matches("[data-training-mix-unit], [data-training-mix-range]")) syncTrainingMixedInput(event.target);
           updateTrainingTools();
-          return;
-        }
-        if (event.target.matches("[data-buff-day-note]")) {
-          const note = event.target.closest("[data-buff-row]")?.querySelector("[data-buff-note]");
-          if (note) {
-            note.textContent = event.target.value;
-            note.hidden = !event.target.value.trim();
-          }
           return;
         }
         if (event.target.matches("[data-wiki-asset-search]")) {

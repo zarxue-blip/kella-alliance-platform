@@ -4,13 +4,12 @@ import sanitizeHtml from "sanitize-html";
 import { z } from "zod";
 import { env } from "../config/env.js";
 import { AllianceModel } from "../models/alliance.model.js";
-import { BuffScheduleModel, buffScheduleDays, buffScheduleTypes } from "../models/buffSchedule.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { PollModel } from "../models/poll.model.js";
 import { UserModel } from "../models/user.model.js";
 import { WikiPageModel, wikiAlignments, wikiBlockTypes, wikiFontFamilies, wikiFontSizes, wikiStatuses } from "../models/wikiPage.model.js";
-import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendDiscordImage, sendDiscordMessage, sendDiscordPoll, sendEventAttendanceEmbed, sendRootsRegistration } from "../services/discord.service.js";
+import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendDiscordImage, sendDiscordMessage, sendDiscordPoll, sendEventAttendanceEmbed } from "../services/discord.service.js";
 import { cleanImportedPlayerName, parseTopnCsv, parseTopnJson, parseTopnWorkbook, type ImportedTopnMember } from "../services/xlsx.service.js";
 import {
   canAdoptGameIdentity,
@@ -29,67 +28,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
 import type { AuthenticatedRequest } from "../middleware/auth.js";
 
-const rootsSlots = ["14UTC", "20UTC"] as const;
-const rootsStatuses = ["Available", "Absent", "Not Sure"] as const;
-const defaultBuffSchedule = [
-  { day: "Monday", buff: "Gathering", note: "" },
-  { day: "Tuesday", buff: "Research", note: "" },
-  { day: "Wednesday", buff: "Gathering", note: "" },
-  { day: "Thursday", buff: "Research", note: "" },
-  { day: "Friday", buff: "Gathering", note: "" },
-  { day: "Saturday", buff: "Training", note: "War time: may be changed" },
-  { day: "Sunday", buff: "Research", note: "War time: may be changed" }
-] as const;
-
-const realmBuffDiscordChannelId = "1537412848492355617";
-const realmBuffIcons: Record<(typeof buffScheduleTypes)[number], string> = {
-  Gathering: "/assets/buffs/gathering.png",
-  Research: "/assets/buffs/research.png",
-  Training: "/assets/buffs/training.png",
-  Construction: "/assets/buffs/construction.png",
-  Healing: "/assets/buffs/healing.png"
-};
-
-const buffScheduleSchema = z.object({
-  days: z
-    .array(
-      z.object({
-        day: z.enum(buffScheduleDays),
-        buff: z.enum(buffScheduleTypes),
-        note: z.string().trim().max(160).optional().default("")
-      })
-    )
-    .length(7)
-    .superRefine((days, context) => {
-      const uniqueDays = new Set(days.map((item) => item.day));
-      if (uniqueDays.size !== buffScheduleDays.length) {
-        context.addIssue({ code: z.ZodIssueCode.custom, message: "Schedule must include every day exactly once" });
-      }
-    }),
-  sendToDiscord: z.boolean().optional().default(false)
-});
-
-const datedBuffSchema = z.object({
-  buff: z.enum(buffScheduleTypes),
-  timeUtc: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, "Time must use 24-hour UTC format"),
-  note: z.string().trim().max(160).optional().default(""),
-  sendToDiscord: z.boolean().optional().default(false)
-});
-
-const parseBuffDate = (value: string) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new HttpError(400, "Date must use YYYY-MM-DD format");
-  const date = new Date(`${value}T00:00:00.000Z`);
-  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) throw new HttpError(400, "Invalid calendar date");
-  return date;
-};
-
-const buffScheduleResponse = (schedule: any, fallbackDays: readonly any[] = defaultBuffSchedule) => ({
-  days: schedule?.days?.length ? schedule.days : fallbackDays,
-  datedBuffs: Array.isArray(schedule?.datedBuffs) ? schedule.datedBuffs : [],
-  updatedAt: schedule?.updatedAt || null,
-  updatedBy: schedule?.updatedBy || "Kella defaults",
-  lastPublishedAt: schedule?.lastPublishedAt || null
-});
 type DashboardAction = {
   _id: { toString(): string };
   type?: string;
@@ -143,7 +81,6 @@ const dashboardSettingsSchema = z.object({
           z.enum([
             "shield",
             "attack",
-            "roots",
             "summit",
             "poll",
             "besttime",
@@ -207,17 +144,6 @@ const thumbnailToolSchema = z.object({
     .string()
     .max(12_000_000, "Thumbnail is too large.")
     .regex(/^data:image\/png;base64,/i, "Thumbnail must be a PNG image.")
-});
-
-const rootsReportSendSchema = z.object({
-  channelId: z.string().min(1, "Target channel is required"),
-  roleMentionId: z.string().optional()
-});
-
-const rootsCreateSchema = z.object({
-  channelId: z.string().min(1, "Target channel is required"),
-  roleMentionId: z.string().optional(),
-  eventDate: z.coerce.date().optional()
 });
 
 const eventCreateSchema = z.object({
@@ -435,22 +361,6 @@ function startOfToday() {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
   return date;
-}
-
-function slotLabel(slot: string) {
-  return slot === "14UTC" ? "14:00 UTC" : "20:00 UTC";
-}
-
-function reportId(sessionId: string, slot: string) {
-  return `${sessionId}_${slot}`;
-}
-
-function parseReportId(id: string) {
-  const [sessionId, slot] = id.split("_");
-  if (!sessionId || !slot || !rootsSlots.includes(slot as (typeof rootsSlots)[number])) {
-    throw new HttpError(400, "Invalid Roots report id");
-  }
-  return { sessionId, slot };
 }
 
 function displayName(action: any) {
@@ -1129,7 +1039,9 @@ async function findMemberForGameRow(allianceId: string, uid: string, ign: string
     .limit(1200)
     .lean()) as MergeCandidate[];
 
-  return candidates.find((candidate) => canAdoptGameIdentity(candidate, uid) && memberMatchesName(candidate, ign)) ?? null;
+  const matches = candidates.filter((candidate) => canAdoptGameIdentity(candidate, uid) &&
+    memberSearchNames(candidate).some((name) => normalizeRosterIdentityName(name) === normalizeRosterIdentityName(ign)));
+  return matches.length === 1 ? matches[0]! : null;
 }
 
 async function findMemberForDiscordProfile(allianceId: string, discordId: string, displayName: string, username: string) {
@@ -1257,7 +1169,7 @@ async function resetUploadedRosterData(allianceId: string) {
   };
 }
 
-async function importGameStatSnapshots(
+export async function importGameStatSnapshots(
   alliance: any,
   snapshots: GameStatSnapshot[],
   fallbackDiscordPrefix: "xlsx" | "topn"
@@ -1270,52 +1182,28 @@ async function importGameStatSnapshots(
     .lean()) as MergeCandidate[];
 
   const byUid = new Map<string, MergeCandidate>();
-  const byIgn = new Map<string, MergeCandidate>();
-  const byVariant = new Map<string, MergeCandidate>();
-  const deletedIds = new Set<string>();
   const changed = new Map<string, MergeCandidate>();
   const createdIds = new Set<string>();
   const updatedIds = new Set<string>();
   const mergedIds = new Set<string>();
 
-  const isLive = (member?: MergeCandidate | null) => Boolean(member && !deletedIds.has(memberId(member)));
-
   const indexCandidate = (member: MergeCandidate) => {
-    if (!isLive(member)) return;
     if (member.uid) byUid.set(String(member.uid), member);
-    if (member.ign) byIgn.set(normalizeRosterIdentityName(member.ign), member);
-    // Name fallback exists only to let a Discord-only shell adopt its first game
-    // identity. Established game accounts (especially farms) must never absorb a
-    // newly appearing main account just because their names look related.
-    if (!isDiscordOnlyProfile(member)) return;
-    for (const name of memberSearchNames(member)) {
-      for (const variant of rosterVariants(name)) {
-        byVariant.set(variant, preferProfileCandidate(byVariant.get(variant), member));
-      }
-    }
   };
 
   const findCandidate = (uid: string, ign: string) => {
-    const exactUid = byUid.get(uid);
-    const exactIgn = byIgn.get(normalizeRosterIdentityName(ign));
-    const exact = isLive(exactUid)
-      ? exactUid!
-      : isLive(exactIgn) && canAdoptGameIdentity(exactIgn, uid) ? exactIgn! : null;
-    let profileMatch: MergeCandidate | null = null;
-    for (const variant of rosterVariants(ign)) {
-      const candidate = byVariant.get(variant);
-      if (isLive(candidate) && canAdoptGameIdentity(candidate, uid)) {
-        profileMatch = candidate;
-        break;
-      }
-    }
-
-    if (profileMatch && exact && memberId(profileMatch) !== memberId(exact) && isUploadedOnlyMember(exact)) {
-      deletedIds.add(memberId(exact));
-      return profileMatch;
-    }
-
-    return exact ?? profileMatch;
+    // A stable game ID always wins. Never delete an existing game account to
+    // attach a loosely related Discord profile: that loses history and links.
+    const exact = byUid.get(uid);
+    if (exact) return exact;
+    const shells = existingMembers.filter((member) =>
+      isDiscordOnlyProfile(member) && canAdoptGameIdentity(member, uid)
+    );
+    const normalized = normalizeRosterIdentityName(ign);
+    const matches = shells.filter((member) => normalized &&
+      memberSearchNames(member).some((name) => normalizeRosterIdentityName(name) === normalized)
+    );
+    return matches.length === 1 ? matches[0]! : null;
   };
 
   existingMembers.forEach(indexCandidate);
@@ -1373,9 +1261,8 @@ async function importGameStatSnapshots(
     }
   }
 
-  const ops: any[] = Array.from(deletedIds).map((id) => ({ deleteOne: { filter: { _id: id, allianceId } } }));
+  const ops: any[] = [];
   for (const member of changed.values()) {
-    if (deletedIds.has(memberId(member))) continue;
     ops.push({
       updateOne: {
         filter: { _id: member._id, allianceId },
@@ -1416,7 +1303,7 @@ async function importGameStatSnapshots(
     updated: updatedIds.size,
     merged: mergedIds.size,
     skipped,
-    deletedDuplicates: deletedIds.size
+    deletedDuplicates: 0
   };
 }
 
@@ -1437,15 +1324,6 @@ function publicSettings(alliance: any) {
       moduleStates: normalizeModuleStates(settings.moduleStates),
       disabledCommands: Array.isArray(settings.disabledCommands) ? settings.disabledCommands : []
     }
-  };
-}
-
-function summarizeRootsResponses(responses: any[], slot: string) {
-  const scoped = responses.filter((response) => response.slot === slot);
-  return {
-    available: scoped.filter((response) => response.status === "Available").length,
-    absent: scoped.filter((response) => response.status === "Absent").length,
-    unsure: scoped.filter((response) => response.status === "Not Sure").length
   };
 }
 
@@ -1477,8 +1355,6 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
     activeAlerts,
     pendingShieldWarnings,
     pendingApplications,
-    latestRoots,
-    recentRegistrations,
     latestShieldAlerts,
     recentAdminActions
   ] =
@@ -1488,27 +1364,14 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
       KellaActionModel.countDocuments({ ...filter, type: { $in: ["attack_alert", "dm_alert"] }, sentAt: { $gte: recentWindow } }),
       KellaActionModel.countDocuments({ ...filter, type: "shield_alert", sentAt: { $gte: recentWindow } }),
       KellaActionModel.countDocuments({ ...filter, type: "application", status: "Pending" }),
-      KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean(),
-      KellaActionModel.find({ ...filter, type: "roots_response" }).sort({ sentAt: -1 }).limit(8).lean(),
       KellaActionModel.find({ ...filter, type: "shield_alert" }).sort({ sentAt: -1 }).limit(5).lean(),
-      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "dm_alert", "event_reminder", "embed_sent", "chat_sent", "roots_report_sent", "discord_member_sync", "member_xlsx_import", "member_manual_add", "member_deleted", "event_deleted"] } })
+      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "dm_alert", "event_reminder", "embed_sent", "chat_sent", "discord_member_sync", "member_xlsx_import", "member_manual_add", "member_deleted", "event_deleted"] } })
         .sort({ sentAt: -1 })
         .limit(8)
         .lean()
     ]);
-  const latestRootsAction = latestRoots as DashboardAction | null;
-  const recentRootsRegistrations = recentRegistrations as DashboardAction[];
   const shieldAlerts = latestShieldAlerts as DashboardAction[];
   const adminActions = recentAdminActions as DashboardAction[];
-
-  const latestRootsId = latestRootsAction?._id?.toString();
-  const rootsResponses = latestRootsId
-    ? ((await KellaActionModel.find({
-        ...filter,
-        type: "roots_response",
-        $or: [{ reportId: latestRootsId }, { reportId: { $exists: false } }, { reportId: "" }]
-      }).lean()) as DashboardAction[])
-    : [];
 
   res.json({
     botStatus: env.DISCORD_BOT_TOKEN ? "Configured" : "Missing Discord bot token",
@@ -1517,21 +1380,6 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
     activeAlerts,
     pendingShieldWarnings,
     pendingApplications,
-    upcomingRoots: latestRootsAction
-      ? {
-          id: latestRootsId,
-          date: latestRootsAction.sentAt,
-          createdBy: latestRootsAction.actorName || "Unknown Officer",
-          slots: rootsSlots.map((slot) => ({ slot, label: slotLabel(slot), ...summarizeRootsResponses(rootsResponses, slot) }))
-        }
-      : undefined,
-    recentRegistrations: recentRootsRegistrations.map((registration) => ({
-      id: registration._id.toString(),
-      player: displayName(registration),
-      slot: registration.slot,
-      status: registration.status,
-      sentAt: registration.sentAt
-    })),
     latestShieldAlerts: shieldAlerts.map((alert) => ({
       id: alert._id.toString(),
       officer: alert.actorName || alert.actorDiscordId || "Dashboard",
@@ -2352,110 +2200,8 @@ export const dashboardComplaintReply = asyncHandler(async (req, res) => {
   res.json({ complaint: updated });
 });
 
-export const dashboardRootsCreate = asyncHandler(async (req, res) => {
-  const body = rootsCreateSchema.parse(req.body);
-  const allianceId = await resolveAllianceId();
-  const session = await KellaActionModel.create({
-    allianceId,
-    type: "roots_registration",
-    actorName: "Dashboard",
-    targetDiscordId: body.channelId,
-    status: "Open",
-    payload: {
-      channelId: body.channelId,
-      roleMentionId: body.roleMentionId,
-      eventDate: body.eventDate?.toISOString(),
-      createdFromDashboard: true
-    }
-  });
 
-  const message = await sendRootsRegistration({
-    channelId: body.channelId,
-    roleMentionId: body.roleMentionId,
-    reportId: session._id.toString(),
-    eventDate: body.eventDate
-  });
 
-  const updated = await KellaActionModel.findByIdAndUpdate(
-    session._id,
-    {
-      $set: {
-        "payload.messageId": message?.id,
-        "payload.messageLink": discordMessageLink(message),
-        "payload.discordChannelId": message?.channel_id || body.channelId
-      }
-    },
-    { new: true }
-  ).lean();
-
-  res.status(201).json({ session: updated || session, message });
-});
-
-export const rootsReportList = asyncHandler(async (_req, res) => {
-  const allianceId = await resolveAllianceId();
-  const filter = allianceFilter(allianceId);
-  const sessions = (await KellaActionModel.find({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).limit(100).lean()) as DashboardAction[];
-  const sessionIds = sessions.map((session) => session._id.toString());
-  const responses = sessionIds.length
-    ? ((await KellaActionModel.find({
-        ...filter,
-        type: "roots_response",
-        $or: [{ reportId: { $in: sessionIds } }, { reportId: { $exists: false } }, { reportId: "" }]
-      }).lean()) as DashboardAction[])
-    : [];
-
-  const reports = sessions.flatMap((session, index) => {
-    const sessionId = session._id.toString();
-    const sessionResponses = responses.filter((response) => response.reportId === sessionId || (index === 0 && !response.reportId));
-    return rootsSlots.map((slot) => ({
-      id: reportId(sessionId, slot),
-      date: session.payload?.eventDate || session.sentAt,
-      timeSlot: slotLabel(slot),
-      createdBy: session.actorName || "Unknown Officer",
-      messageLink: session.payload?.messageLink,
-      ...summarizeRootsResponses(sessionResponses, slot)
-    }));
-  });
-
-  res.json({ reports });
-});
-
-export const rootsReportDetails = asyncHandler(async (req, res) => {
-  const { sessionId, slot } = parseReportId(req.params.id);
-  if (!Types.ObjectId.isValid(sessionId)) throw new HttpError(400, "Invalid Roots report id");
-
-  const allianceId = await resolveAllianceId();
-  const filter = allianceFilter(allianceId);
-  const session = (await KellaActionModel.findOne({ ...filter, _id: sessionId, type: "roots_registration" }).lean()) as DashboardAction | null;
-  if (!session) throw new HttpError(404, "Roots report not found");
-
-  const latestSession = (await KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean()) as DashboardAction | null;
-  const responseFilter =
-    latestSession?._id?.toString() === sessionId
-      ? { ...filter, type: "roots_response", slot, $or: [{ reportId: sessionId }, { reportId: { $exists: false } }, { reportId: "" }] }
-      : { ...filter, type: "roots_response", reportId: sessionId, slot };
-  const responses = (await KellaActionModel.find(responseFilter).sort({ actorName: 1 }).lean()) as DashboardAction[];
-  const playersByStatus = Object.fromEntries(
-    rootsStatuses.map((status) => [
-      status,
-      responses.filter((response) => response.status === status).map((response) => displayName(response))
-    ])
-  );
-
-  res.json({
-    report: {
-      id: reportId(sessionId, slot),
-      date: session.payload?.eventDate || session.sentAt,
-      timeSlot: slotLabel(slot),
-      slot,
-      createdBy: session.actorName || "Unknown Officer",
-      messageLink: session.payload?.messageLink,
-      available: playersByStatus.Available,
-      absent: playersByStatus.Absent,
-      unsure: playersByStatus["Not Sure"]
-    }
-  });
-});
 
 async function listWikiPages(includeDrafts: boolean) {
   const allianceId = await resolveAllianceId();
@@ -2975,187 +2721,4 @@ export const dashboardDmAlertResendFailed = asyncHandler(async (req, res) => {
   });
 
   res.status(201).json({ alert, total: recipients.length, sent, failed, failures: retryFailures.slice(0, 50) });
-});
-
-export const rootsReportSend = asyncHandler(async (req, res) => {
-  const body = rootsReportSendSchema.parse(req.body);
-  const { sessionId, slot } = parseReportId(req.params.id);
-  if (!Types.ObjectId.isValid(sessionId)) throw new HttpError(400, "Invalid Roots report id");
-
-  const allianceId = await resolveAllianceId();
-  const filter = allianceFilter(allianceId);
-  const session = (await KellaActionModel.findOne({ ...filter, _id: sessionId, type: "roots_registration" }).lean()) as DashboardAction | null;
-  if (!session) throw new HttpError(404, "Roots report not found");
-
-  const latestSession = (await KellaActionModel.findOne({ ...filter, type: "roots_registration" }).sort({ sentAt: -1 }).lean()) as DashboardAction | null;
-  const responseFilter =
-    latestSession?._id?.toString() === sessionId
-      ? { ...filter, type: "roots_response", slot, $or: [{ reportId: sessionId }, { reportId: { $exists: false } }, { reportId: "" }] }
-      : { ...filter, type: "roots_response", reportId: sessionId, slot };
-  const responses = (await KellaActionModel.find(responseFilter).sort({ actorName: 1 }).lean()) as DashboardAction[];
-  const byStatus = (status: string) => responses.filter((response) => response.status === status).map((response) => displayName(response));
-  const available = byStatus("Available");
-  const absent = byStatus("Absent");
-  const unsure = byStatus("Not Sure");
-  const lineList = (players: string[]) => (players.length ? players.map((player, index) => `${index + 1}. ${player}`).join("\n") : "None");
-  const description = [
-    `Date: ${session.sentAt ? new Date(session.sentAt).toISOString().slice(0, 10) : "Unknown"}`,
-    `Time Slot: ${slotLabel(slot)}`,
-    "",
-    "AVAILABLE:",
-    lineList(available),
-    "",
-    "ABSENT:",
-    lineList(absent),
-    "",
-    "NOT SURE:",
-    lineList(unsure)
-  ].join("\n");
-
-  const message = await sendDiscordEmbed({
-    channelId: body.channelId,
-    roleMentionId: body.roleMentionId,
-    title: "ROOTS OF WAR REPORT",
-    description,
-    color: "#facc15",
-    footer: "Sent by Kella"
-  });
-  const action = await KellaActionModel.create({
-    allianceId,
-    type: "roots_report_sent",
-    actorName: "Dashboard",
-    targetDiscordId: body.channelId,
-    status: "Sent",
-    reportId: sessionId,
-    slot,
-    payload: { messageId: message?.id, channelId: message?.channel_id }
-  });
-  res.status(201).json({ message, action });
-});
-
-export const dashboardBuffSchedule = asyncHandler(async (_req, res) => {
-  const allianceId = await resolveAllianceId();
-  const schedule = allianceId ? ((await BuffScheduleModel.findOne({ allianceId }).lean()) as any) : null;
-  res.json(buffScheduleResponse(schedule));
-});
-
-export const dashboardBuffScheduleUpdate = asyncHandler(async (req: AuthenticatedRequest, res) => {
-  const body = buffScheduleSchema.parse(req.body);
-  const allianceId = await resolveAllianceId();
-  if (!allianceId) throw new HttpError(404, "Alliance not found");
-
-  const byDay = new Map(body.days.map((item) => [item.day, item]));
-  const days = buffScheduleDays.map((day) => byDay.get(day));
-  if (days.some((item) => !item)) throw new HttpError(400, "Schedule must include every day exactly once");
-
-  const updatedBy = req.user?.discordId || "Dashboard";
-  const scheduleHash = createHash("sha256").update(JSON.stringify(days)).digest("hex");
-  const schedule = (await BuffScheduleModel.findOneAndUpdate(
-    { allianceId },
-    { $set: { days, updatedBy } },
-    { upsert: true, new: true, runValidators: true }
-  ).lean()) as any;
-
-  if (!body.sendToDiscord) {
-    res.json({ ...buffScheduleResponse(schedule, days), discord: { ok: true, skipped: true }, message: "Schedule saved and calendar updated." });
-    return;
-  }
-
-  if (schedule?.lastPublishedHash === scheduleHash) {
-    res.json({ ...buffScheduleResponse(schedule, days), discord: { ok: true, skipped: true }, message: "Schedule saved. Discord already has this exact schedule." });
-    return;
-  }
-
-  const dayIndex = new Map<string, number>(buffScheduleDays.map((day, index) => [day, index]));
-  const now = new Date();
-  const mondayOffset = (now.getUTCDay() + 6) % 7;
-  const currentMonday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - mondayOffset, 14, 0, 0));
-  const nextOccurrence = (day: string) => {
-    const target = new Date(currentMonday);
-    target.setUTCDate(target.getUTCDate() + Number(dayIndex.get(day) || 0));
-    if (target.getTime() < now.getTime()) target.setUTCDate(target.getUTCDate() + 7);
-    return target;
-  };
-  const description = (days as Array<{ day: string; buff: string; note?: string }>).map((item) => {
-    const target = nextOccurrence(item.day);
-    const unix = Math.floor(target.getTime() / 1000);
-    return `**${item.day} - ${item.buff}**\n<t:${unix}:D> at 14:00 UTC${item.note ? `\n${item.note}` : ""}`;
-  }).join("\n\n");
-
-  try {
-    const message = await sendDiscordEmbed({
-      channelId: realmBuffDiscordChannelId,
-      title: "Realm Buff Schedule",
-      description,
-      color: "#d89a20",
-      footer: "Kella - Call of Dragons server time (UTC)"
-    });
-    await BuffScheduleModel.updateOne({ allianceId }, { $set: { lastPublishedHash: scheduleHash, lastPublishedAt: new Date(), lastDiscordMessageId: message?.id || "" } });
-    res.json({ ...buffScheduleResponse(schedule, days), discord: { ok: true, messageId: message?.id }, message: "Schedule saved and published to Discord." });
-  } catch (error) {
-    res.json({ ...buffScheduleResponse(schedule, days), discord: { ok: false, error: error instanceof Error ? error.message : String(error) }, warning: "Buff saved, but Discord announcement failed." });
-  }
-});
-
-export const dashboardBuffDateUpdate = asyncHandler(async (req: AuthenticatedRequest, res) => {
-  const body = datedBuffSchema.parse(req.body);
-  const dateKey = String(req.params.date || "");
-  const date = parseBuffDate(dateKey);
-  const day = buffScheduleDays[(date.getUTCDay() + 6) % 7]!;
-  const allianceId = await resolveAllianceId();
-  if (!allianceId) throw new HttpError(404, "Alliance not found");
-
-  const updatedBy = req.user?.discordId || "Dashboard";
-  const existing = (await BuffScheduleModel.findOne({ allianceId }).lean()) as any;
-  const datedBuffs = (Array.isArray(existing?.datedBuffs) ? existing.datedBuffs : [])
-    .filter((item: any) => item.date !== dateKey)
-    .concat([{ date: dateKey, day, buff: body.buff, timeUtc: body.timeUtc, note: body.note, updatedBy, updatedAt: new Date() }])
-    .sort((left: any, right: any) => String(left.date).localeCompare(String(right.date)));
-  const schedule = (await BuffScheduleModel.findOneAndUpdate(
-    { allianceId },
-    { $set: { days: existing?.days?.length ? existing.days : defaultBuffSchedule, datedBuffs, updatedBy } },
-    { upsert: true, new: true, runValidators: true }
-  ).lean()) as any;
-
-  if (!body.sendToDiscord) {
-    res.json({ ...buffScheduleResponse(schedule), discord: { ok: true, skipped: true }, message: "Buff saved and calendar updated." });
-    return;
-  }
-
-  const publishHash = createHash("sha256").update(JSON.stringify({ date: dateKey, buff: body.buff, timeUtc: body.timeUtc, note: body.note })).digest("hex");
-  if (schedule?.lastPublishedHash === publishHash) {
-    res.json({ ...buffScheduleResponse(schedule), discord: { ok: true, skipped: true }, message: "Buff saved. Discord already has this exact announcement." });
-    return;
-  }
-
-  try {
-    const dayLabel = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "long" }).format(date);
-    const iconUrl = new URL(realmBuffIcons[body.buff], env.PUBLIC_APP_URL).toString();
-    const message = await sendDiscordEmbed({
-      channelId: realmBuffDiscordChannelId,
-      title: `Realm Buff: ${body.buff}`,
-      description: `**Buff:** ${body.buff}\n**Date:** ${dateKey}\n**Day:** ${dayLabel}\n**Time:** ${body.timeUtc} UTC${body.note ? `\n\n${body.note}` : ""}`,
-      color: "#d89a20",
-      thumbnailUrl: iconUrl,
-      footer: "Kella - Call of Dragons server time (UTC)"
-    });
-    await BuffScheduleModel.updateOne({ allianceId }, { $set: { lastPublishedHash: publishHash, lastPublishedAt: new Date(), lastDiscordMessageId: message?.id || "" } });
-    res.json({ ...buffScheduleResponse(schedule), discord: { ok: true, messageId: message?.id }, message: "Buff saved, calendar updated, and announcement sent." });
-  } catch (error) {
-    res.json({ ...buffScheduleResponse(schedule), discord: { ok: false, error: error instanceof Error ? error.message : String(error) }, warning: "Buff saved, but Discord announcement failed." });
-  }
-});
-
-export const dashboardBuffDateDelete = asyncHandler(async (req: AuthenticatedRequest, res) => {
-  const dateKey = String(req.params.date || "");
-  parseBuffDate(dateKey);
-  const allianceId = await resolveAllianceId();
-  if (!allianceId) throw new HttpError(404, "Alliance not found");
-  const updatedBy = req.user?.discordId || "Dashboard";
-  const schedule = (await BuffScheduleModel.findOneAndUpdate(
-    { allianceId },
-    { $pull: { datedBuffs: { date: dateKey } }, $set: { updatedBy } },
-    { new: true, runValidators: true }
-  ).lean()) as any;
-  res.json({ ...buffScheduleResponse(schedule), message: "Dated buff removed. The weekly schedule now applies." });
 });

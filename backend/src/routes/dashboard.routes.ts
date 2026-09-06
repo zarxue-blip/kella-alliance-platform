@@ -1,10 +1,6 @@
 import { Router } from "express";
 import {
   dashboardAlerts,
-  dashboardBuffSchedule,
-  dashboardBuffDateDelete,
-  dashboardBuffDateUpdate,
-  dashboardBuffScheduleUpdate,
   dashboardMembers,
   dashboardMemberCreate,
   dashboardMemberDelete,
@@ -34,7 +30,6 @@ import {
   dashboardEventDelete,
   dashboardEventSend,
   dashboardEvents,
-  dashboardRootsCreate,
   dashboardShieldSend,
   dashboardSummary,
   dashboardWikiAdminList,
@@ -43,19 +38,12 @@ import {
   dashboardWikiList,
   dashboardWikiUpdate,
   dashboardDmAlertResendFailed,
-  rootsReportDetails,
-  rootsReportList,
-  rootsReportSend
 } from "../controllers/dashboard.controller.js";
 import { authenticate, authenticateDashboardAdmin, authenticateDashboardWikiEditor } from "../middleware/auth.js";
 
 export const dashboardRouter = Router();
 
 dashboardRouter.get("/summary", dashboardSummary);
-dashboardRouter.get("/buff-schedule", dashboardBuffSchedule);
-dashboardRouter.put("/buff-schedule", authenticateDashboardAdmin, dashboardBuffScheduleUpdate);
-dashboardRouter.put("/buff-schedule/date/:date", authenticateDashboardAdmin, dashboardBuffDateUpdate);
-dashboardRouter.delete("/buff-schedule/date/:date", authenticateDashboardAdmin, dashboardBuffDateDelete);
 dashboardRouter.get("/members", dashboardMembers);
 dashboardRouter.post("/members", authenticateDashboardAdmin, dashboardMemberCreate);
 dashboardRouter.patch("/members/:id", authenticateDashboardAdmin, dashboardMemberUpdate);
@@ -87,13 +75,9 @@ dashboardRouter.patch("/complaints/:id/status", authenticateDashboardAdmin, dash
 dashboardRouter.post("/complaints/:id/reply", authenticateDashboardAdmin, dashboardComplaintReply);
 dashboardRouter.get("/settings", dashboardSettings);
 dashboardRouter.patch("/settings", authenticateDashboardAdmin, dashboardSettingsUpdate);
-dashboardRouter.get("/roots-reports", rootsReportList);
-dashboardRouter.post("/roots-reports/:id/send", authenticateDashboardAdmin, rootsReportSend);
-dashboardRouter.get("/roots-reports/:id", rootsReportDetails);
 dashboardRouter.post("/tools/shield-alert", authenticateDashboardAdmin, dashboardShieldSend);
 dashboardRouter.post("/tools/attack-alert", authenticateDashboardAdmin, dashboardAttackSend);
 dashboardRouter.post("/tools/chat", authenticateDashboardAdmin, dashboardChatSend);
 dashboardRouter.post("/tools/thumbnail", authenticateDashboardAdmin, dashboardThumbnailSend);
 dashboardRouter.post("/tools/dm-alert", authenticateDashboardAdmin, dashboardDmAlertSend);
 dashboardRouter.post("/tools/dm-alert/:id/resend-failed", authenticateDashboardAdmin, dashboardDmAlertResendFailed);
-dashboardRouter.post("/tools/roots-registration", authenticateDashboardAdmin, dashboardRootsCreate);

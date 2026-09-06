@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { MemberModel } from '../src/models/member.model.js';
+import { KellaActionModel } from '../src/models/kellaAction.model.js';
+import { recoverMissingToxicMain } from '../src/services/memberRecovery.service.js';
+let existing=false,marked=false,writes=0;let saved:any;
+(MemberModel as any).findOne=()=>({lean:async()=>({allianceId:'000000000000000000000001'})});
+(KellaActionModel as any).exists=async()=>marked;
+(MemberModel as any).updateOne=async(filter:any,update:any)=>{assert.equal(filter.uid,'24055137');assert.deepEqual(Object.keys(update),['$setOnInsert']);if(!existing){saved=update.$setOnInsert;writes++;existing=true;}return {upsertedCount:writes};};
+(KellaActionModel as any).create=async(value:any)=>{assert.equal(value.type,'member_identity_recovery');marked=true;};
+await recoverMissingToxicMain();await recoverMissingToxicMain();assert.equal(writes,1);assert.equal(saved.power,45552739);assert.equal(saved.powerHistory[0].date.toISOString(),'2026-08-14T00:00:00.000Z');assert.equal(saved.mainMemberId,undefined);console.log('Toxic recovery is insert-only, dated correctly, and runs once.');

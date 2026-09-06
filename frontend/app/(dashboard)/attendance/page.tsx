@@ -15,7 +15,6 @@ export default function AttendancePage() {
       <PageHeader
         title="Attendance System"
         description="Create events, support Discord, web, QR, and manual officer check-ins, then generate weekly, monthly, and all-time reports."
-        action={<Link href="/roots-of-war" className="inline-flex h-10 items-center justify-center rounded-md bg-command px-4 text-sm font-semibold text-white transition hover:bg-red-600">Roots of War Check-in</Link>}
       />
       <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
         <Card>

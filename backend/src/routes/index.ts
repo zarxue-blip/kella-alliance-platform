@@ -1,3 +1,4 @@
+import { migrationRouter } from './migration.routes.js';
 import { Router } from "express";
 import { analyticsRouter } from "./analytics.routes.js";
 import { announcementRouter } from "./announcement.routes.js";
@@ -11,7 +12,6 @@ import { eventRouter } from "./event.routes.js";
 import { memberRouter } from "./member.routes.js";
 import { operationRouter } from "./operation.routes.js";
 import { recruitmentRouter } from "./recruitment.routes.js";
-import { rootsOfWarRouter } from "./rootsOfWar.routes.js";
 import { settingsRouter } from "./settings.routes.js";
 import { shieldRouter } from "./shield.routes.js";
 import { taskRouter } from "./task.routes.js";
@@ -20,6 +20,7 @@ export const apiRouter = Router();
 
 apiRouter.get("/health", (_req, res) => res.json({ ok: true, service: "cod-amp-api" }));
 apiRouter.use("/dashboard", dashboardRouter);
+apiRouter.use("/migration", migrationRouter);
 apiRouter.use("/embed", embedRouter);
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/members", memberRouter);
@@ -29,7 +30,6 @@ apiRouter.use("/shields", shieldRouter);
 apiRouter.use("/recruitment", recruitmentRouter);
 apiRouter.use("/tasks", taskRouter);
 apiRouter.use("/events", eventRouter);
-apiRouter.use("/roots-of-war", rootsOfWarRouter);
 apiRouter.use("/diplomacy", diplomacyRouter);
 apiRouter.use("/analytics", analyticsRouter);
 apiRouter.use("/announcements", announcementRouter);
