@@ -50,3 +50,8 @@ Validation: backend build and full existing regression suite passed; pinned Even
 - Home no longer fetches the member ranking list, summary or realm-buff schedule. Removed application code reduces the main JavaScript from about 559 KB to 524 KB before compression. New backgrounds are about 2.4 MB landscape and 2.2 MB portrait; the browser selects one for its screen size.
 - Backend build and regression suite pass, including current-event selection and removed-route GET/POST/PUT/DELETE 404 checks. Desktop 1440px, tablet 768px and phone 390/360px checked. Animation pause, Events/day details and Training navigation checked. Authenticated officer save flows remain unavailable in this protected local preview.
 - No push or deployment. Production baseline remains unchanged.
+
+## Transparent character video — September 7
+Replaced the static Kella image and synthetic sway with the supplied coin-toss video. Background removed locally using frame segmentation, with additional cleanup near the feet and retention of the separate airborne coin. Export: transparent VP9 WebM, 480 x 672, 24 fps, 6.875-second loop, 787,721 bytes. Audio is omitted for the decorative loop. A transparent still from the clip is the poster.
+
+The actual video pauses and plays through the existing motion control. Reduced-motion preferences start it paused. Verified transparent playback and pause/play in the in-app browser, plus 390px mobile playback with no horizontal overflow. Backend build and regression suite passed. Localhost preview restarted after the session ended; no deployment or production changes.

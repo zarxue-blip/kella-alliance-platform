@@ -11,3 +11,10 @@ body[data-route=home] .shell{display:block;min-height:0;margin:0;width:100%;max-
 /* Reserve room for real event names without moving navigation off the parchment. */
 .board-heading h2{max-height:2.2em}
 @media(max-width:480px){.board-heading{margin:4px 0}.board-notes .board-note{min-height:67px;padding:2px;gap:3px}.board-note img{width:42px;height:42px}}
+
+/* Original transparent video supplies the motion; no synthetic sway. */
+.board-character.has-video{left:3%;width:35%;max-width:580px;bottom:8%}
+.board-character video{display:block;width:100%;height:auto;filter:drop-shadow(5px 9px 5px #183e4240);background:transparent;object-fit:contain}
+@media(max-width:900px){.board-character.has-video{left:0;bottom:1%;width:33%;max-width:190px}}
+@media(max-width:480px){.board-character.has-video{width:34%;max-width:145px;bottom:0}}
+@media(prefers-reduced-motion:reduce){.character-motion{display:inline-block}}
