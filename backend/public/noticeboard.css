@@ -18,3 +18,14 @@ body[data-route=home] .shell{display:block;min-height:0;margin:0;width:100%;max-
 @media(max-width:900px){.board-character.has-video{left:0;bottom:1%;width:33%;max-width:190px}}
 @media(max-width:480px){.board-character.has-video{width:34%;max-width:145px;bottom:0}}
 @media(prefers-reduced-motion:reduce){.character-motion{display:inline-block}}
+/* Board navigation and event framing. */
+body[data-route=home] .topbar{display:none!important}
+.board-profile{position:absolute;right:-3%;top:-2%;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:50px;min-height:54px;color:#513a25;text-decoration:none;font:700 12px Georgia,serif;z-index:2}
+.board-profile img{width:44px;height:44px;object-fit:contain;filter:drop-shadow(2px 4px 3px #6c482666);transition:transform .2s}.board-profile:hover img{transform:scale(1.12)}
+.board-heading{position:relative;width:94%;margin:24px 0 14px;padding:16px 22px;border:2px solid #bb8532;border-radius:10px;background:linear-gradient(120deg,#fff2c088,#e6bd6066,#fff1ba77);box-shadow:inset 0 0 0 3px #ffecac,inset 0 0 0 4px #b87e3666,0 4px 8px #6a441f33}
+.board-heading:before,.board-heading:after{content:'◆';position:absolute;top:50%;transform:translateY(-50%);color:#b57824;font-size:13px;text-shadow:0 1px #fff4ce}.board-heading:before{left:-7px}.board-heading:after{right:-7px}
+.board-heading h2{max-height:none;overflow:visible;margin:8px 0;font-size:clamp(22px,2.3vw,40px);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.board-notes{grid-template-columns:repeat(3,minmax(0,1fr))}.board-flying-icon{position:fixed;object-fit:contain;pointer-events:none;z-index:10000;filter:drop-shadow(0 12px 18px #6b411c77);will-change:transform,opacity}
+@media(max-width:900px){.board-profile{top:-3%;right:-3%;font-size:11px;min-width:40px}.board-profile img{width:34px;height:34px}.board-brand{align-self:flex-start;margin-left:0;max-width:78%;font-size:10px}.board-heading{margin:17px 0 8px;padding:12px 14px;width:100%}.board-heading h2{font-size:24px}.board-notes{gap:10px 3px}}
+@media(max-width:480px){.board-profile img{width:30px;height:30px}.board-heading{padding:10px;margin:12px 0 8px}.board-heading h2{font-size:22px}.board-heading p{font-size:11px}.board-brand{font-size:9px;letter-spacing:.04em}.board-brand img{width:21px;height:21px}.board-profile{top:-2%;font-size:10px}.board-notes .board-note{min-height:64px}}
+@media(prefers-reduced-motion:reduce){.board-profile img{transition:none}}

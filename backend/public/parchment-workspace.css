@@ -1,0 +1,57 @@
+/* Shared parchment workspace. Authored Wiki page canvases retain their own styling. */
+body:not([data-route=home]){--bg:#e8cf9d;--panel:#f6e7c4;--panel-2:#ead6aa;--panel-3:#dfc58f;--text:#49331f;--ink:#49331f;--muted:#786044;--line:#c6a46a;--gold:#91601f;--gold-soft:#714714;--red:#8b4530;--paper:#f6e7c4;--paper-soft:#ead6aa;--paper-deep:#dfc58f;--glass:#f4e4be;--green:#286344;--blue:#315d7a;background:#214e3b url('/assets/alliance-board-wide.png') center/cover fixed;color:var(--text)}
+body:not([data-route=home]) .shell{background:transparent;box-shadow:none;min-height:100dvh}
+body:not([data-route=home]) main{background:transparent}
+body:not([data-route=home]) .content{width:calc(100% - 64px);max-width:1320px;margin:24px auto 48px;padding:28px 32px 36px;background:radial-gradient(ellipse at top,#fff3d5aa,transparent 70%),linear-gradient(100deg,#e6ca95,#f4e3bc 25%,#f5e6c3 75%,#e8cc96);border:7px solid #966128;border-radius:9px;outline:2px solid #543217;box-shadow:inset 0 0 0 2px #fff0bd,0 15px 40px #152a2966}
+body:not([data-route=home]) :is(.sidebar,.topbar){background:linear-gradient(110deg,#f3dfb3f5,#e4c38af5);border-color:#ac7937;box-shadow:0 3px 10px #30201133;color:var(--text)}
+body:not([data-route=home]) :is(.brand strong,.brand span,.guild h1,.nav-more summary,.companion,.server-clock strong,.server-clock span){color:var(--text)}
+body:not([data-route=home]) .sidebar nav a{color:#624629}
+body:not([data-route=home]) .sidebar nav a.active,body:not([data-route=home]) .sidebar nav a:hover{background:#b87e3026;color:#523417;border-color:#ac7937}
+body:not([data-route=home]) .sidebar .nav-more[open],body:not([data-route=home]) .sidebar .nav-more[open]>a{background:#efdbad;color:#51391e}
+body:not([data-route=home]) :is(.hero h2,.card h3,.card-header h3,.officer-groups h3,.attendance-detail-head h3,.member-profile-hero h3){color:var(--text);font-family:Georgia,serif;text-shadow:0 1px #fff3d2}
+body:not([data-route=home]) :is(.card,.table-wrap,.wiki-card,.calendar-detail-card,.attendance-summary-card,.attendance-group,.training-summary,.training-resource,.profile-stat,.stat,.wiki-inspector){background:var(--panel);border-color:var(--line);border-radius:6px;color:var(--text);box-shadow:0 3px 8px #81592313}
+body:not([data-route=home]) .card .card{background:#ead6aa55}
+body:not([data-route=home]) :is(.primary,.secondary,.auth-button,.profile-top-button,.wiki-format-button,.wiki-tag-button,.training-mode-button){background:linear-gradient(#ffedb8,#e1b65f);border:1px solid #a57229;color:#51351c;box-shadow:inset 0 1px #fff6d7,0 2px 3px #59381522;border-radius:5px;text-shadow:0 1px #ffefbb}
+body:not([data-route=home]) .primary{background:linear-gradient(#d8aa50,#b7822d);color:#38230c;border-color:#8e5f21}
+body:not([data-route=home]) :is(.secondary:hover,.primary:hover,.auth-button:hover){filter:brightness(1.05)}
+body:not([data-route=home]) .danger{background:#a34031;color:#fff7e8;border-color:#742d24;text-shadow:none}
+body:not([data-route=home]) input:not([type=checkbox]):not([type=radio]):not([type=color]),body:not([data-route=home]) select,body:not([data-route=home]) textarea{background:#fff7e5;color:#49331f;border-color:#b8955e;box-shadow:inset 0 1px 3px #70502216}
+body:not([data-route=home]) input::placeholder,body:not([data-route=home]) textarea::placeholder{color:#8c7759}
+body:not([data-route=home]) :is(.account-menu summary,.account-panel){background:#f5e5bf;border-color:#ac7937;color:#49331f}
+body:not([data-route=home]) .account-panel .feedback-top-button{background:linear-gradient(#ffedb8,#e1b65f)}
+body:not([data-route=home]) :is(th,.training-table th){background:#dfc28b;color:#694d2c;border-color:#ba9458}
+body:not([data-route=home]) td{color:#49331f;border-color:#d2b888}
+body:not([data-route=home]) tr:hover td{background:#e6cb9755}
+body:not([data-route=home]) :is(.badge,.training-tier-badge,.metric-selector,.stat-metric-search,.metric-picker,.training-mode-tabs){background:#ead3a3;color:#634823;border-color:#b99052}
+body:not([data-route=home]) :is(.metric-button,.metric-picker button){background:#f6e8c7;color:#624421;border-color:#c09d5c}
+body:not([data-route=home]) :is(.training-mode-button.active,.wiki-tag-button.active){background:linear-gradient(#efcf87,#d3a44d);color:#483011;border-color:#946221;box-shadow:inset 0 1px #fff0bb}
+body:not([data-route=home]) :is(.training-summary strong,.training-resource strong,.training-tier,.profile-stat strong,.power-player-info strong,.power-value,.metric-selector-value){color:var(--text)}
+body:not([data-route=home]) .calendar-day{background:#f9edcf;border:1px solid #c5a168;border-radius:5px;color:#51371e;box-shadow:0 1px 3px #71482111}
+body:not([data-route=home]) .calendar-day:hover{background:#f3d89b;transform:none}
+body:not([data-route=home]) .calendar-day.today{background:#f4d898;border:2px solid #a77424;box-shadow:inset 0 0 0 1px #fff1bd}
+body:not([data-route=home]) .calendar-day-number{color:#593b18}
+body:not([data-route=home]) .calendar-entry{background:#dcc089;color:#51371e;border-color:#b38c46}
+body:not([data-route=home]) .calendar-entry small{color:#745735}
+body:not([data-route=home]) :is(.power-trend-row,.power-trend-row.top-stat-player){background:#f8eac8;color:#49331f;border-color:#d0ad70}
+body:not([data-route=home]) .power-trend-row:hover{background:#eed6a0}
+body:not([data-route=home]) .trend-pill{color:#286344}
+body:not([data-route=home]) .member-modal-panel{background:linear-gradient(115deg,#e7ce9d,#f8eac9);border:4px solid #a27033;color:#49331f}
+body:not([data-route=home]) .modal-close{background:#e2bd72;color:#4c3018;border-color:#a97b34}
+body:not([data-route=home]) .skeleton{background:linear-gradient(100deg,#e7cfa0,#fff0c9,#e7cfa0);color:#785a34;border-color:#b99761}
+body:not([data-route=home]) .error{background:#ffe1d5;color:#853621;border-color:#b36249}
+body:not([data-route=home]) .officer-links a{color:#5c3c18;border-color:#c5a168;background:#f6e5bb}
+body:not([data-route=home]) .officer-links a:hover{background:#edce8b}
+body:not([data-route=home]) :is(a,button,input,select,textarea,summary):focus-visible{outline-color:#85531c}
+@media(max-width:900px){body:not([data-route=home]) .content{width:calc(100% - 28px);margin:14px auto 86px;padding:22px 18px;border-width:4px}body:not([data-route=home]) .bottom-nav{background:linear-gradient(#f4e3bb,#dfbf7f);border-color:#9e7034}body:not([data-route=home]) .bottom-nav a,body:not([data-route=home]) .bottom-nav button{color:#725329}body:not([data-route=home]) .bottom-nav a.active{background:#d0a35655;color:#473119;border-color:#8e621f}}
+@media(max-width:600px){body:not([data-route=home]) .content{width:calc(100% - 16px);padding:18px 12px;border-width:3px}body:not([data-route=home]) .calendar-day{padding:5px 2px}body:not([data-route=home]) .hero h2{font-size:27px}}
+body:not([data-route=home]) .calendar-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;background:#c5a168;border-color:#c5a168}
+body:not([data-route=home]) .calendar-day{background:#f9edcf!important;min-height:100px!important}
+body:not([data-route=home]) .calendar-day.today{background:#f4d898!important}
+body:not([data-route=home]) .calendar-day:hover{background:#f3d89b!important}
+body:not([data-route=home]) .calendar-offset{background:#e4cca0}
+body:not([data-route=home]) .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px}
+body:not([data-route=home]) .topbar .top-actions{display:flex;align-items:center;margin-left:auto}
+@media(max-width:600px){body:not([data-route=home]) .calendar-day{min-height:72px!important}.calendar-entry{font-size:10px}}
+body:not([data-route=home]) .wiki-card{min-width:0;overflow:hidden}
+body:not([data-route=home]) .wiki-card :is(p,h3,.wiki-excerpt){overflow-wrap:anywhere;min-width:0}
+body:not([data-route=home]){color-scheme:light}

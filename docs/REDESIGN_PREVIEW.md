@@ -55,3 +55,10 @@ Validation: backend build and full existing regression suite passed; pinned Even
 Replaced the static Kella image and synthetic sway with the supplied coin-toss video. Background removed locally using frame segmentation, with additional cleanup near the feet and retention of the separate airborne coin. Export: transparent VP9 WebM, 480 x 672, 24 fps, 6.875-second loop, 787,721 bytes. Audio is omitted for the decorative loop. A transparent still from the clip is the poster.
 
 The actual video pauses and plays through the existing motion control. Reduced-motion preferences start it paused. Verified transparent playback and pause/play in the in-app browser, plus 390px mobile playback with no horizontal overflow. Backend build and regression suite passed. Localhost preview restarted after the session ended; no deployment or production changes.
+
+## Shared parchment style and board interactions — September 7
+Home: removed the event-title scrollbar and the upper-right Account control. Profile now sits in the paper's top-right corner. The calendar/current-event block has a gold inset frame. Board icons and Profile spin and enlarge toward the screen before navigating, with immediate navigation for reduced-motion users and preserved modifier-click behavior.
+
+Other pages: shared scenic background, framed parchment workspace, gold controls, warm tables and forms, matching navigation, calendar cells, Wiki library, rankings/member cards, training panels, profile and officer surfaces. Wiki-authored canvas content remains independently styled. Fixed the medium-width calendar so all seven weekday columns stay aligned, and contained long Wiki excerpts.
+
+Checks: backend build and regression suite passed; Home, Events, Wiki, Training and Profile visually checked; board transitions and new Profile placement navigate correctly. Mobile 390px checks show no horizontal overflow, and the training calculator still changes 227K to 454K when days changes from 1 to 2. Authenticated officer/save views remain pending an isolated login environment. Production remains unchanged; work saved on the development branch only.

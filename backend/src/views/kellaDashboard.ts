@@ -3340,7 +3340,8 @@ export function kellaDashboardHtml() {
       }
     </style>
     <link rel="stylesheet" href="/assets/command-center.css?v=1" />
-    <link rel="stylesheet" href="/assets/noticeboard.css?v=3" />
+    <link rel="stylesheet" href="/assets/noticeboard.css?v=4" />
+    <link rel="stylesheet" href="/assets/parchment-workspace.css?v=1" />
   </head>
   <body>
     <div class="shell">
@@ -7465,10 +7466,10 @@ export function kellaDashboardHtml() {
       function renderAllianceBoard(events = []) {
         const current = boardCurrentEvent(events);
         const motionPaused = document.body.classList.contains("character-paused");
-        const notes = [["/calendar", "events.png", "Events"], ["/wiki", "embed-sender.png", "Wiki"], ["/members", "members.png", "Members"], ["/attendance", "events.png", "Attendance"], ["/research", "lord-tools.svg", "Research"], ["/training-tools", "training-tools.png", "Training"], ["/profile", "members.png", "Profile"]];
+        const notes = [["/calendar", "events.png", "Events"], ["/wiki", "embed-sender.png", "Wiki"], ["/members", "members.png", "Members"], ["/attendance", "events.png", "Attendance"], ["/research", "lord-tools.svg", "Research"], ["/training-tools", "training-tools.png", "Training"]];
         if (hasAdminAccess()) notes.push(["/officer", "settings.png", "Officer"]);
         const eventLabel = current ? (dayKey(current.startsAt) === dayKey(new Date()) ? "Today’s event" : "Next event") : "Alliance calendar";
-        return '<section class="alliance-board" aria-label="Alliance noticeboard"><picture><source media="(max-width: 900px)" srcset="/assets/alliance-board-portrait.png"/><img class="board-scene" src="/assets/alliance-board-wide.png" alt="Sunny fantasy meadow with the alliance noticeboard" width="1672" height="941" fetchpriority="high"/></picture><div class="board-character has-video"><video data-kella-video muted loop playsinline preload="auto" poster="/assets/kella-toss-poster.png" aria-label="Kella tossing a coin" width="480" height="672"><source src="/assets/kella-toss.webm" type="video/webm"/></video><button class="character-motion" type="button" data-action="toggle-character-motion" aria-pressed="' + motionPaused + '" aria-label="' + (motionPaused ? 'Resume Kella animation' : 'Pause Kella animation') + '">' + (motionPaused ? 'Resume motion' : 'Pause motion') + '</button></div><div class="board-paper"><a class="board-brand" href="/" data-link><img src="/assets/kella-logo.png?v=1" alt="" width="32" height="32"/>KING OF GLORY</a><div class="board-heading"><span>' + eventLabel + '</span><h2>' + escapeHtml(current?.title || 'No upcoming event') + '</h2><p>' + (current ? formatUtcDateTime(current.startsAt) : 'A new adventure will appear here when scheduled.') + '</p>' + (current ? '<a class="board-event-link" href="/attendance/' + escapeHtml(current.id) + '" data-link>View event →</a>' : '') + '</div><nav class="board-notes" aria-label="Noticeboard destinations">' + notes.map(function(note) { return '<a class="board-note" href="' + note[0] + '" data-link><img src="/assets/icons/' + note[1] + '" alt="" width="68" height="68"/><strong>' + note[2] + '</strong></a>'; }).join('') + '</nav></div></section>';
+        return '<section class="alliance-board" aria-label="Alliance noticeboard"><picture><source media="(max-width: 900px)" srcset="/assets/alliance-board-portrait.png"/><img class="board-scene" src="/assets/alliance-board-wide.png" alt="Sunny fantasy meadow with the alliance noticeboard" width="1672" height="941" fetchpriority="high"/></picture><div class="board-character has-video"><video data-kella-video muted loop playsinline preload="auto" poster="/assets/kella-toss-poster.png" aria-label="Kella tossing a coin" width="480" height="672"><source src="/assets/kella-toss.webm" type="video/webm"/></video><button class="character-motion" type="button" data-action="toggle-character-motion" aria-pressed="' + motionPaused + '" aria-label="' + (motionPaused ? 'Resume Kella animation' : 'Pause Kella animation') + '">' + (motionPaused ? 'Resume motion' : 'Pause motion') + '</button></div><div class="board-paper"><a class="board-profile" href="/profile" data-link aria-label="My Profile"><img src="/assets/icons/members.png" alt="" width="44" height="44"/><span>Profile</span></a><a class="board-brand" href="/" data-link><img src="/assets/kella-logo.png?v=1" alt="" width="32" height="32"/>KING OF GLORY</a><div class="board-heading"><span>' + eventLabel + '</span><h2>' + escapeHtml(current?.title || 'No upcoming event') + '</h2><p>' + (current ? formatUtcDateTime(current.startsAt) : 'A new adventure will appear here when scheduled.') + '</p>' + (current ? '<a class="board-event-link" href="/attendance/' + escapeHtml(current.id) + '" data-link>View event →</a>' : '') + '</div><nav class="board-notes" aria-label="Noticeboard destinations">' + notes.map(function(note) { return '<a class="board-note" href="' + note[0] + '" data-link><img src="/assets/icons/' + note[1] + '" alt="" width="68" height="68"/><strong>' + note[2] + '</strong></a>'; }).join('') + '</nav></div></section>';
       }
 
       function initializeCharacterVideo() {
@@ -8684,6 +8685,36 @@ export function kellaDashboardHtml() {
         navigate("/");
       }
 
+      let boardTransitionActive = false;
+      async function openBoardDestination(link, path) {
+        if (boardTransitionActive) return;
+        const icon = link.querySelector('img');
+        if (!icon || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return navigate(path);
+        boardTransitionActive = true;
+        const version = navigationVersion;
+        const bounds = icon.getBoundingClientRect();
+        const flying = icon.cloneNode(true);
+        flying.className = 'board-flying-icon';
+        flying.setAttribute('aria-hidden', 'true');
+        Object.assign(flying.style, {left: bounds.left + 'px', top: bounds.top + 'px', width: bounds.width + 'px', height: bounds.height + 'px'});
+        document.body.appendChild(flying);
+        try {
+          const dx = innerWidth / 2 - bounds.left - bounds.width / 2;
+          const dy = innerHeight / 2 - bounds.top - bounds.height / 2;
+          await flying.animate([
+            {transform:'translate(0,0) rotate(0deg) scale(1)', opacity:1},
+            {transform:'translate(' + dx + 'px,' + dy + 'px) rotate(300deg) scale(5)', opacity:1, offset:.7},
+            {transform:'translate(' + dx + 'px,' + dy + 'px) rotate(360deg) scale(13)', opacity:0}
+          ], {duration:560, easing:'cubic-bezier(.2,.65,.3,1)', fill:'forwards'}).finished;
+        } catch (_) {
+          // Navigation remains available if the browser cannot animate.
+        } finally {
+          flying.remove();
+          boardTransitionActive = false;
+        }
+        if (version === navigationVersion) navigate(path);
+      }
+
       function navigate(path) {
         history.pushState({}, "", path);
         closeMobileNav();
@@ -8851,8 +8882,11 @@ export function kellaDashboardHtml() {
 
         const link = event.target.closest("[data-link]");
         if (link) {
+          if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
           event.preventDefault();
-          navigate(link.getAttribute("data-path") || link.getAttribute("href"));
+          const destination = link.getAttribute("data-path") || link.getAttribute("href");
+          if (link.matches('.board-note, .board-profile')) openBoardDestination(link, destination);
+          else navigate(destination);
           return;
         }
 
