@@ -21,13 +21,13 @@ for(const [path,item] of kellaPageAssets) {
 const html=kellaDashboardHtml();
 function extract(name:string,nextName:string) { const a=html.indexOf(`      function ${name}(`),b=html.indexOf(`      function ${nextName}(`,a); assert.ok(a>=0&&b>a);return html.slice(a,b); }
 const requiresAdmin=new Function(extract('pathRequiresAdmin','navItemHtml')+'return pathRequiresAdmin;')();
-for(const route of ['/officer','/tools','/settings','/roots-of-war','/events','/embed-sender']) assert.equal(requiresAdmin(route),true,route);
+for(const route of ['/officer','/tools','/settings','/events','/embed-sender']) assert.equal(requiresAdmin(route),true,route);
 for(const route of ['/','/calendar','/wiki','/members','/attendance','/research','/training-tools']) assert.equal(requiresAdmin(route),false,route);
 console.log('Ranking limits, selected metric order, cached assets, syntax, and route access tests passed.');
 
 async function verifyLateNavigation() {
   const start=html.indexOf('      async function renderWiki(');
-  const end=html.indexOf('      function buffScheduleRows',start);
+  const end=html.indexOf('      function trainingValue',start);
   assert.ok(start>=0 && end>start);
   const app={innerHTML:'Training'};
   let resolvePages:(pages:unknown[])=>void=()=>{};
@@ -43,3 +43,18 @@ async function verifyLateNavigation() {
   console.log('Delayed-response navigation regression test passed.');
 }
 verifyLateNavigation().catch(error=>{console.error(error);process.exitCode=1;});
+
+// Current-event choice uses the calendar day in UTC and never promotes old events.
+const chooseEvent = new Function('sortedEvents','dayKey',extract('boardCurrentEvent','renderAllianceBoard')+'return boardCurrentEvent;')(
+  (items:any[])=>items.slice().sort((a,b)=>Date.parse(a.startsAt)-Date.parse(b.startsAt)),
+  (value:any)=>new Date(value).toISOString().slice(0,10)
+);
+const now=new Date('2026-09-06T12:00:00Z');
+const past={id:'past',startsAt:'2026-09-05T14:00:00Z'};
+const today={id:'today',startsAt:'2026-09-06T10:00:00Z'};
+const next={id:'next',startsAt:'2026-09-07T14:00:00Z'};
+assert.equal(chooseEvent([next,past,today],now)?.id,'today');
+assert.equal(chooseEvent([past,next],now)?.id,'next');
+assert.equal(chooseEvent([past],now),null);
+assert.equal(chooseEvent([],now),null);
+console.log('Current event selection checks passed.');

@@ -31,7 +31,6 @@ import {
   dashboardEventSend,
   dashboardEvents,
   dashboardPersonalAttendance,
-  dashboardRootsCreate,
   dashboardShieldSend,
   dashboardSummary,
   dashboardWikiAdminList,

@@ -4,7 +4,7 @@ import express from 'express';
 import { kellaPageHtml, kellaPageAssets } from './backend/src/views/kellaPage.js';
 import { rankMembers } from './backend/src/services/ranking.service.js';
 const app = express();
-const allowed = new Set(['/api/dashboard/summary','/api/dashboard/settings','/api/dashboard/members','/api/dashboard/events','/api/dashboard/buff-schedule','/api/dashboard/wiki','/api/dashboard/polls','/api/dashboard/roots-reports','/api/dashboard/alerts']);
+const allowed = new Set(['/api/dashboard/summary','/api/dashboard/settings','/api/dashboard/members','/api/dashboard/events','/api/dashboard/wiki','/api/dashboard/polls','/api/dashboard/alerts']);
 const cache = new Map<string,{at:number,status:number,body:string}>();
 app.get('/assets/:file', (req,res,next) => { const item=kellaPageAssets.get(req.path); if(!item)return next(); res.type(item.type).send(item.body); });
 app.use('/assets', express.static('backend/public'));
@@ -41,5 +41,6 @@ document.addEventListener('click', function(event) {
 const previewHtml = kellaPageHtml
   .replace('</head>', '<style>#preview-notice{padding:8px 16px;background:#29251e;color:#e4d3b4;font:14px/1.5 "Segoe UI",sans-serif;border-bottom:1px solid #5b503e}#preview-notice:focus{outline:2px solid #c7a86e;outline-offset:-2px}</style><script src="/__preview/info.js" defer></script></head>')
   .replace('<body>', '<body><aside id="preview-notice" role="status" tabindex="-1">Local preview · Sign-in and saving are unavailable.</aside>');
+app.use(['/buff-schedule','/roots-of-war','/roots-registration','/roots-reports'],(_req,res)=>res.status(404).send('This feature has been removed.'));
 app.get('*',(_req,res)=>res.type('html').send(previewHtml));
 app.listen(4173,'127.0.0.1',()=>console.log('Local preview: http://127.0.0.1:4173'));

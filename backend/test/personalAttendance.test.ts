@@ -35,6 +35,12 @@ async function verify() {
       const response=await fetch(origin+'/api/dashboard/my-attendance?discordId=another-player',{headers});
       assert.equal(response.status,401,'personal attendance requires a real user session');
     }
+    for(const route of ['/buff-schedule','/roots-of-war','/roots-registration','/roots-reports','/api/dashboard/buff-schedule','/api/dashboard/roots-reports','/api/roots-of-war']) {
+      for(const method of ['GET','POST','PUT','DELETE']) {
+        const removed=await fetch(origin+route,{method});
+        assert.equal(removed.status,404,'removed website feature must be unreachable: '+method+' '+route);
+      }
+    }
     const response=await fetch(origin+'/calendar');
     assert.equal(response.status,200);
     const html=await response.text();

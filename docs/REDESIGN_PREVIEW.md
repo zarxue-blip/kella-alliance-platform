@@ -40,3 +40,13 @@ Revised the local Home to follow the playful pinned-paper navigation of Teka Tek
 Removed the desktop side column and replaced the plain Home introduction with the illustrated entrance. No features, records, permissions or integrations were removed. Officer/account routes remain intact; authenticated officer actions still need a safe authenticated test environment. The local preview continues to block sign-in and writes.
 
 Validation: backend build and full existing regression suite passed; pinned Event and Training links tested; calculator input 1 to 2 days changes highest result 227K to 454K; desktop, 768px tablet and 390px phone visually checked. Live baseline comparison confirms production unchanged. Added scene is 2.54 MB; this revision makes no new measured performance improvement claim. Previous cached frontend assets remain in place.
+
+## Full-screen board revision — September 6
+- Home now fills the viewport with the illustrated environment. Navigation is inside the board; the external Home navigation bars and sticky-note surfaces are removed. Existing icons have shadows and short labels.
+- Supplied Kella character replaces Nikko as a separate animated layer. Gentle sway has a pause control and respects reduced-motion preferences.
+- Generated wider and portrait boards keep the interface on the parchment on desktop and phones.
+- Board heading uses a real event scheduled today (UTC), otherwise the next future event. No upcoming event is shown when there is none. Rankings and member totals are removed from Home; rankings remain a separate page.
+- Realm-buff scheduling and Roots registration/reports/attendance are removed from website navigation, calendar, officer controls, page handlers, dashboard controllers and public website routes. Regular event attendance remains. Stored records are not deleted. Separate Discord bot code remains outside this website revision.
+- Home no longer fetches the member ranking list, summary or realm-buff schedule. Removed application code reduces the main JavaScript from about 559 KB to 524 KB before compression. New backgrounds are about 2.4 MB landscape and 2.2 MB portrait; the browser selects one for its screen size.
+- Backend build and regression suite pass, including current-event selection and removed-route GET/POST/PUT/DELETE 404 checks. Desktop 1440px, tablet 768px and phone 390/360px checked. Animation pause, Events/day details and Training navigation checked. Authenticated officer save flows remain unavailable in this protected local preview.
+- No push or deployment. Production baseline remains unchanged.
