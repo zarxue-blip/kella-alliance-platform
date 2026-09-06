@@ -7,10 +7,24 @@ import { AllianceModel } from "../models/alliance.model.js";
 import { BuffScheduleModel, buffScheduleDays, buffScheduleTypes } from "../models/buffSchedule.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
 import { MemberModel } from "../models/member.model.js";
+import { PollModel } from "../models/poll.model.js";
 import { UserModel } from "../models/user.model.js";
 import { WikiPageModel, wikiAlignments, wikiBlockTypes, wikiFontFamilies, wikiFontSizes, wikiStatuses } from "../models/wikiPage.model.js";
-import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendDiscordImage, sendDiscordMessage, sendEventAttendanceEmbed, sendRootsRegistration } from "../services/discord.service.js";
+import { listDiscordGuildMembers, sendAttackAlert, sendDiscordDm, sendDiscordEmbed, sendDiscordImage, sendDiscordMessage, sendDiscordPoll, sendEventAttendanceEmbed, sendRootsRegistration } from "../services/discord.service.js";
 import { cleanImportedPlayerName, parseTopnCsv, parseTopnJson, parseTopnWorkbook, type ImportedTopnMember } from "../services/xlsx.service.js";
+import {
+  canAdoptGameIdentity,
+  canonicalAllianceLabel,
+  canonicalAllianceTag,
+  isDiscordOnlyIdentity,
+  isGameUid,
+  isUploadedOnlyIdentity,
+  normalizeRosterIdentityName,
+  rosterIdentityVariants,
+  rosterNamesLookRelated,
+  uniqueDiscordRosterMatch
+} from "../services/memberIdentity.service.js";
+import { bestOnlineTimeOptions, pollDto, pollOptionsWithKeys } from "../services/poll.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
 import type { AuthenticatedRequest } from "../middleware/auth.js";
@@ -131,6 +145,8 @@ const dashboardSettingsSchema = z.object({
             "attack",
             "roots",
             "summit",
+            "poll",
+            "besttime",
             "time",
             "remind",
             "checkin",
@@ -212,6 +228,21 @@ const eventCreateSchema = z.object({
   roleMentionId: z.string().optional(),
   publishToDiscord: z.boolean().optional().default(true)
 });
+
+const dashboardPollCreateSchema = z.object({
+  channelId: z.string().trim().optional().default(""),
+  roleMentionId: z.string().trim().optional().default(""),
+  kind: z.enum(["poll", "best_online_time"]).default("poll"),
+  question: z.string().trim().min(1, "Poll question is required").max(256),
+  description: z.string().trim().max(1000).optional().default(""),
+  options: z.array(z.object({
+    label: z.string().trim().min(1).max(80),
+    roleId: z.string().trim().regex(/^\d{15,25}$/, "Role ID must be numeric").optional().or(z.literal(""))
+  })).min(2).max(10).optional(),
+  publishToDiscord: z.boolean().optional().default(true)
+});
+
+const dashboardPollStatusSchema = z.object({ status: z.enum(["Open", "Closed"]) });
 
 const complaintStatusSchema = z.object({
   status: z.enum(["Pending", "Resolved"]).optional(),
@@ -374,7 +405,7 @@ const dashboardMemberCreateSchema = z.object({
 
 type MergeCandidate = Pick<
   DashboardMember,
-  "_id" | "ign" | "discordId" | "discordUsername" | "discordDisplayName" | "uid" | "power" | "powerHistory" | "statHistory" | "rank" | "alliance"
+  "_id" | "mainMemberId" | "ign" | "discordId" | "discordUsername" | "discordDisplayName" | "uid" | "power" | "powerHistory" | "statHistory" | "rank" | "alliance"
 >;
 
 async function resolveAlliance(): Promise<any> {
@@ -881,52 +912,12 @@ function mergeStatHistory(
     .map((entry) => ({ date: entry.date, metrics: entry.metrics, source: entry.source, filename: entry.filename }));
 }
 
-function collapseRepeatedLetters(value: string) {
-  return value.replace(/([a-z0-9])\1+/g, "$1");
-}
-
-function rosterTokens(value: string) {
-  const noise = new Set(["ckr", "kog", "cod", "row", "aga", "alliance", "guild"]);
-  return cleanImportedPlayerName(value)
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .split(" ")
-    .map((token) => token.trim())
-    .filter((token) => token.length >= 3 && !noise.has(token) && !/^\d+$/.test(token));
-}
-
 function rosterVariants(value: string) {
-  const tokens = rosterTokens(value);
-  const variants = new Set<string>();
-  for (const token of tokens) {
-    variants.add(token);
-    variants.add(collapseRepeatedLetters(token));
-  }
-  const compact = tokens.join("");
-  if (compact) {
-    variants.add(compact);
-    variants.add(collapseRepeatedLetters(compact));
-  }
-  return Array.from(variants).filter((variant) => variant.length >= 3);
+  return rosterIdentityVariants(value);
 }
 
 function namesLookRelated(left?: string, right?: string) {
-  const leftVariants = rosterVariants(left || "");
-  const rightVariants = rosterVariants(right || "");
-  if (!leftVariants.length || !rightVariants.length) return false;
-
-  for (const leftVariant of leftVariants) {
-    for (const rightVariant of rightVariants) {
-      if (leftVariant === rightVariant) return true;
-      const shorter = leftVariant.length <= rightVariant.length ? leftVariant : rightVariant;
-      const longer = leftVariant.length <= rightVariant.length ? rightVariant : leftVariant;
-      if (shorter.length >= 4 && longer.includes(shorter) && shorter.length / longer.length >= 0.35) return true;
-    }
-  }
-
-  return false;
+  return rosterNamesLookRelated(left, right);
 }
 
 function memberMatchesName(member: MergeCandidate, name: string) {
@@ -935,33 +926,20 @@ function memberMatchesName(member: MergeCandidate, name: string) {
     .some((value) => namesLookRelated(String(value), name));
 }
 
-function discordMemberMatchesRoster(member: MergeCandidate, displayName: string, username: string) {
-  return [displayName, username].some((value) => memberMatchesName(member, value));
-}
-
 function memberId(value: MergeCandidate) {
   return value._id.toString();
 }
 
 function isUploadedOnlyMember(member?: MergeCandidate | null) {
-  const discordId = String(member?.discordId || "");
-  return discordId.startsWith("xlsx:") || discordId.startsWith("topn:");
+  return isUploadedOnlyIdentity(member);
 }
 
 function isRealDiscordUserId(value?: string) {
   return /^\d{15,25}$/.test(String(value || ""));
 }
 
-function isGameUid(value?: string) {
-  return /^\d{5,12}$/.test(String(value || ""));
-}
-
 function isDiscordOnlyProfile(member?: DashboardMember | null) {
-  if (!member) return false;
-  const discordId = String(member.discordId || "");
-  const uid = String(member.uid || "");
-  const hasStatHistory = Boolean((member.powerHistory || []).length || (member.statHistory || []).length);
-  return uid === discordId || uid === `discord-${discordId}` || (!isGameUid(uid) && numeric(member.power) === 0 && !hasStatHistory);
+  return isDiscordOnlyIdentity(member);
 }
 
 async function absorbDiscordProfileIntoMember(
@@ -999,9 +977,7 @@ function shouldDeleteImportedRosterMember(member: {
 }
 
 function topnAllianceTag(value?: string) {
-  const raw = String(value || "").trim();
-  const bracketed = raw.match(/\[([^\]]+)\]/)?.[1] || raw;
-  return bracketed.replace(/[^a-z0-9]/gi, "").toLowerCase();
+  return canonicalAllianceTag(value);
 }
 
 function isAllowedTopnAlliance(value?: string) {
@@ -1017,7 +993,7 @@ function allowedTopnRows(rows: ImportedTopnMember[]) {
       excluded += 1;
       continue;
     }
-    allowed.push({ ...row, ign: cleanImportedPlayerName(row.ign) });
+    allowed.push({ ...row, ign: cleanImportedPlayerName(row.ign), alliance: canonicalAllianceLabel(row.alliance) || row.alliance });
   }
   return { allowed, excluded };
 }
@@ -1134,8 +1110,11 @@ function dashboardMemberDto(member: any, options: { historyLimit?: number; compa
 }
 
 async function findMemberForGameRow(allianceId: string, uid: string, ign: string) {
-  const exact = ((await MemberModel.findOne({ allianceId, uid }).select("_id ign discordId discordUsername discordDisplayName uid power powerHistory statHistory").lean()) ??
-    (await MemberModel.findOne({ allianceId, ign }).select("_id ign discordId discordUsername discordDisplayName uid power powerHistory statHistory").lean())) as MergeCandidate | null;
+  const byUid = (await MemberModel.findOne({ allianceId, uid }).select("_id mainMemberId ign discordId discordUsername discordDisplayName uid power powerHistory statHistory").lean()) as MergeCandidate | null;
+  if (byUid) return byUid;
+
+  const byIgn = (await MemberModel.findOne({ allianceId, ign }).select("_id mainMemberId ign discordId discordUsername discordDisplayName uid power powerHistory statHistory").lean()) as MergeCandidate | null;
+  if (byIgn && canAdoptGameIdentity(byIgn, uid)) return byIgn;
 
   const candidates = (await MemberModel.find({
     allianceId,
@@ -1146,17 +1125,11 @@ async function findMemberForGameRow(allianceId: string, uid: string, ign: string
       { discordId: { $not: /^(xlsx|topn):/ } }
     ]
   })
-    .select("_id ign discordId discordUsername discordDisplayName uid power powerHistory statHistory")
+    .select("_id mainMemberId ign discordId discordUsername discordDisplayName uid power powerHistory statHistory")
     .limit(1200)
     .lean()) as MergeCandidate[];
 
-  const profileMatch = candidates.find((candidate) => memberMatchesName(candidate, ign)) ?? null;
-  if (profileMatch && exact && memberId(profileMatch) !== memberId(exact) && isUploadedOnlyMember(exact)) {
-    await MemberModel.deleteOne({ _id: exact._id, allianceId });
-    return profileMatch;
-  }
-
-  return exact ?? profileMatch;
+  return candidates.find((candidate) => canAdoptGameIdentity(candidate, uid) && memberMatchesName(candidate, ign)) ?? null;
 }
 
 async function findMemberForDiscordProfile(allianceId: string, discordId: string, displayName: string, username: string) {
@@ -1175,11 +1148,11 @@ async function findMemberForDiscordProfile(allianceId: string, discordId: string
     allianceId,
     discordId: /^(xlsx|topn):/
   })
-    .select("_id ign discordId discordUsername discordDisplayName uid power powerHistory statHistory")
+    .select("_id mainMemberId ign discordId discordUsername discordDisplayName uid power powerHistory statHistory")
     .limit(1200)
     .lean()) as MergeCandidate[];
 
-  return candidates.find((candidate) => discordMemberMatchesRoster(candidate, displayName, username)) ?? null;
+  return uniqueDiscordRosterMatch(candidates, displayName, username);
 }
 
 type GameStatSnapshot = {
@@ -1292,7 +1265,7 @@ async function importGameStatSnapshots(
   const allianceId = alliance._id.toString();
   const now = new Date();
   const existingMembers = (await MemberModel.find({ allianceId })
-    .select("_id ign discordId discordUsername discordDisplayName uid power powerHistory statHistory rank alliance")
+    .select("_id mainMemberId ign discordId discordUsername discordDisplayName uid power powerHistory statHistory rank alliance")
     .limit(5000)
     .lean()) as MergeCandidate[];
 
@@ -1310,8 +1283,11 @@ async function importGameStatSnapshots(
   const indexCandidate = (member: MergeCandidate) => {
     if (!isLive(member)) return;
     if (member.uid) byUid.set(String(member.uid), member);
-    if (member.ign) byIgn.set(String(member.ign).trim().toLowerCase(), member);
-    if (isUploadedOnlyMember(member)) return;
+    if (member.ign) byIgn.set(normalizeRosterIdentityName(member.ign), member);
+    // Name fallback exists only to let a Discord-only shell adopt its first game
+    // identity. Established game accounts (especially farms) must never absorb a
+    // newly appearing main account just because their names look related.
+    if (!isDiscordOnlyProfile(member)) return;
     for (const name of memberSearchNames(member)) {
       for (const variant of rosterVariants(name)) {
         byVariant.set(variant, preferProfileCandidate(byVariant.get(variant), member));
@@ -1320,11 +1296,15 @@ async function importGameStatSnapshots(
   };
 
   const findCandidate = (uid: string, ign: string) => {
-    const exact = [byUid.get(uid), byIgn.get(ign.trim().toLowerCase())].find(isLive) ?? null;
+    const exactUid = byUid.get(uid);
+    const exactIgn = byIgn.get(normalizeRosterIdentityName(ign));
+    const exact = isLive(exactUid)
+      ? exactUid!
+      : isLive(exactIgn) && canAdoptGameIdentity(exactIgn, uid) ? exactIgn! : null;
     let profileMatch: MergeCandidate | null = null;
     for (const variant of rosterVariants(ign)) {
       const candidate = byVariant.get(variant);
-      if (isLive(candidate)) {
+      if (isLive(candidate) && canAdoptGameIdentity(candidate, uid)) {
         profileMatch = candidate;
         break;
       }
@@ -1588,13 +1568,9 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
       { role: { $regex: q, $options: "i" } }
     ];
   }
-  if (dashboardView && !q) {
-    filter.alliance = { $regex: "kog|lwl|mf", $options: "i" };
-  }
-
   const memberQuery = MemberModel.find(filter)
     .sort({ power: -1, attendanceScore: -1, ign: 1 })
-    .limit(limit)
+    .limit(dashboardView && !q ? 2000 : limit)
     .select(
       dashboardView
         ? "mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role attendanceScore alliance power powerHistory statHistory"
@@ -1605,7 +1581,10 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
     memberQuery.slice("powerHistory", -10).slice("statHistory", -10);
   }
 
-  const members = (await memberQuery.lean()) as DashboardMember[];
+  const queriedMembers = (await memberQuery.lean()) as DashboardMember[];
+  const members = dashboardView && !q
+    ? queriedMembers.filter((member) => isAllowedTopnAlliance(member.alliance)).slice(0, limit)
+    : queriedMembers;
 
   res.json({
     members: members.map((member) => dashboardMemberDto(member, dashboardView ? { historyLimit: 10, compact: true, metricKey } : {}))
@@ -2020,6 +1999,88 @@ export const dashboardAlerts = asyncHandler(async (_req, res) => {
       payload: alert.payload || {}
     }))
   });
+});
+
+export const dashboardPolls = asyncHandler(async (_req, res) => {
+  const allianceId = await resolveAllianceId();
+  const polls = await PollModel.find(allianceFilter(allianceId)).sort({ createdAt: -1 }).limit(100).lean();
+  res.json({ polls: polls.map(pollDto) });
+});
+
+export const dashboardPollCreate = asyncHandler(async (req, res) => {
+  const body = dashboardPollCreateSchema.parse(req.body);
+  const allianceId = await resolveAllianceId();
+  const alliance = allianceId
+    ? await AllianceModel.findById(allianceId).select("settings.attendanceChannel settings.announcementChannel").lean() as any
+    : null;
+  const channelId = body.channelId || String(alliance?.settings?.attendanceChannel || alliance?.settings?.announcementChannel || "").trim();
+  const rawOptions = body.kind === "best_online_time" && !body.options?.length
+    ? bestOnlineTimeOptions.map((label) => ({ label, roleId: "" }))
+    : body.options || [];
+  if (rawOptions.length < 2) throw new HttpError(400, "Add at least two poll options");
+  if (body.publishToDiscord && !channelId) throw new HttpError(400, "Choose a Discord channel or configure an Attendance channel first");
+
+  const poll = await PollModel.create({
+    allianceId,
+    kind: body.kind,
+    question: body.question,
+    description: body.description,
+    options: pollOptionsWithKeys(rawOptions),
+    channelId,
+    createdByDiscordId: dashboardActor(req),
+    status: "Open"
+  });
+
+  if (!body.publishToDiscord) {
+    return res.status(201).json({ poll: pollDto(poll), discord: { ok: false, skipped: true } });
+  }
+
+  try {
+    const message = await sendDiscordPoll({
+      pollId: poll._id.toString(),
+      channelId,
+      roleMentionId: body.roleMentionId,
+      question: poll.question,
+      description: poll.description,
+      kind: poll.kind,
+      options: poll.options
+    });
+    poll.channelId = message?.channel_id || channelId;
+    poll.messageId = message?.id || "";
+    poll.messageLink = discordMessageLink(message) || "";
+    await poll.save();
+    return res.status(201).json({ poll: pollDto(poll), discord: { ok: true } });
+  } catch (error) {
+    return res.status(201).json({
+      poll: pollDto(poll),
+      discord: { ok: false, error: error instanceof Error ? error.message : String(error) },
+      warning: "Poll saved to Attendance, but Discord publishing failed."
+    });
+  }
+});
+
+export const dashboardPollStatusUpdate = asyncHandler(async (req, res) => {
+  const body = dashboardPollStatusSchema.parse(req.body);
+  if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid poll id");
+  const allianceId = await resolveAllianceId();
+  const statusUpdate = body.status === "Closed"
+    ? { $set: { status: body.status, closedAt: new Date() } }
+    : { $set: { status: body.status }, $unset: { closedAt: "" } };
+  const poll = await PollModel.findOneAndUpdate(
+    { _id: req.params.id, ...allianceFilter(allianceId) },
+    statusUpdate,
+    { new: true, runValidators: true }
+  );
+  if (!poll) throw new HttpError(404, "Poll not found");
+  res.json({ poll: pollDto(poll) });
+});
+
+export const dashboardPollDelete = asyncHandler(async (req, res) => {
+  if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid poll id");
+  const allianceId = await resolveAllianceId();
+  const poll = await PollModel.findOneAndDelete({ _id: req.params.id, ...allianceFilter(allianceId) });
+  if (!poll) throw new HttpError(404, "Poll not found");
+  res.json({ ok: true, poll: pollDto(poll) });
 });
 
 export const dashboardEvents = asyncHandler(async (_req, res) => {

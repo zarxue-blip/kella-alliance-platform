@@ -12,7 +12,9 @@ import { CallToArmsModel } from "../models/callToArms.model.js";
 import { UserModel } from "../models/user.model.js";
 import { RootsOfWarRegistrationModel } from "../models/rootsOfWarRegistration.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
+import { PollModel } from "../models/poll.model.js";
 import { publishCallToArms } from "../services/alert.service.js";
+import { pollDto, pollOptionsWithKeys, recordPollVote } from "../services/poll.service.js";
 import { emitAlliance } from "../services/realtime.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
@@ -117,6 +119,69 @@ export const botCommandSettings = asyncHandler(async (req, res) => {
     ? alliance.settings.disabledCommands
     : [];
   res.json({ disabledCommands });
+});
+
+const pollOptionInputSchema = z.object({
+  label: z.string().trim().min(1).max(80),
+  roleId: z.string().trim().regex(/^\d{15,25}$/).optional().or(z.literal(""))
+});
+
+export const botPollCreate = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema.extend({
+    kind: z.enum(["poll", "best_online_time"]).default("poll"),
+    question: z.string().trim().min(1).max(256),
+    description: z.string().trim().max(1000).optional().default(""),
+    options: z.array(pollOptionInputSchema).min(2).max(10),
+    channelId: z.string().trim().optional().default(""),
+    createdByDiscordId: z.string().trim().optional().default("")
+  }).parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  const poll = await PollModel.create({
+    allianceId,
+    kind: body.kind,
+    question: body.question,
+    description: body.description,
+    options: pollOptionsWithKeys(body.options),
+    channelId: body.channelId,
+    createdByDiscordId: body.createdByDiscordId,
+    status: "Open"
+  });
+  res.status(201).json({ poll: pollDto(poll) });
+});
+
+export const botPollMessageUpdate = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema.extend({
+    guildId: z.string().trim().optional(),
+    channelId: z.string().trim().optional(),
+    messageId: z.string().trim().optional()
+  }).parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  const messageLink = body.guildId && body.channelId && body.messageId
+    ? `https://discord.com/channels/${body.guildId}/${body.channelId}/${body.messageId}`
+    : "";
+  const poll = await PollModel.findOneAndUpdate(
+    { _id: req.params.id, allianceId },
+    { $set: { channelId: body.channelId || "", messageId: body.messageId || "", messageLink } },
+    { new: true }
+  );
+  if (!poll) throw new HttpError(404, "Poll not found");
+  res.json({ poll: pollDto(poll) });
+});
+
+export const botPollVote = asyncHandler(async (req, res) => {
+  const body = serviceContextSchema.extend({
+    discordId: z.string().trim().min(1),
+    displayName: z.string().trim().max(120).optional(),
+    optionKey: z.string().trim().regex(/^o\d{1,2}$/)
+  }).parse(req.body);
+  const allianceId = await resolveAllianceId(body.allianceId);
+  res.json(await recordPollVote({
+    allianceId,
+    pollId: req.params.id,
+    discordId: body.discordId,
+    displayName: body.displayName,
+    optionKey: body.optionKey
+  }));
 });
 
 export const botShieldAlert = asyncHandler(async (req, res) => {

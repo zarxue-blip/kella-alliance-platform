@@ -53,6 +53,16 @@ interface SendRootsRegistrationInput {
   eventDate?: Date | string;
 }
 
+interface SendPollInput {
+  pollId: string;
+  channelId: string;
+  roleMentionId?: string;
+  question: string;
+  description?: string;
+  kind?: "poll" | "best_online_time";
+  options: Array<{ key: string; label: string; roleId?: string }>;
+}
+
 interface DiscordGuildMember {
   avatar?: string | null;
   joined_at?: string | null;
@@ -208,6 +218,18 @@ export async function listDiscordGuildMembers() {
         joinedAt: member.joined_at || undefined
       };
     });
+}
+
+export async function assignDiscordRole(discordId: string, roleId: string) {
+  if (!env.DISCORD_GUILD_ID) throw new HttpError(503, "Discord guild id is not configured");
+  if (!discordId || !roleId) throw new HttpError(400, "Discord member and role are required");
+  await discordRequest<void>(`/guilds/${env.DISCORD_GUILD_ID}/members/${discordId}/roles/${roleId}`, { method: "PUT" });
+}
+
+export async function removeDiscordRole(discordId: string, roleId: string) {
+  if (!env.DISCORD_GUILD_ID) throw new HttpError(503, "Discord guild id is not configured");
+  if (!discordId || !roleId) return;
+  await discordRequest<void>(`/guilds/${env.DISCORD_GUILD_ID}/members/${discordId}/roles/${roleId}`, { method: "DELETE" });
 }
 
 export async function sendDiscordEmbed(input: SendEmbedInput) {
@@ -398,6 +420,45 @@ export async function sendRootsRegistration(input: SendRootsRegistrationInput) {
           ]
         }
       ]
+    })
+  });
+}
+
+export async function sendDiscordPoll(input: SendPollInput) {
+  if (!input.pollId) throw new HttpError(400, "Poll id is required");
+  if (!input.channelId) throw new HttpError(400, "Target channel is required");
+  if (!input.question.trim()) throw new HttpError(400, "Poll question is required");
+  if (input.options.length < 2 || input.options.length > 10) throw new HttpError(400, "Polls need 2 to 10 options");
+
+  const buttons = input.options.map((option, index) => ({
+    type: 2,
+    custom_id: `poll:${input.pollId}:${option.key}`,
+    label: option.label.slice(0, 80),
+    style: (index % 4) + 1
+  }));
+  const components = [];
+  for (let index = 0; index < buttons.length; index += 5) {
+    components.push({ type: 1, components: buttons.slice(index, index + 5) });
+  }
+  const mappedRoles = input.options.filter((option) => option.roleId).length;
+  const description = [
+    input.description?.trim(),
+    input.kind === "best_online_time" ? "Choose the UTC window when you are usually online." : "Choose one option. You can change your vote anytime.",
+    mappedRoles ? "Your choice also updates the matching Discord role." : ""
+  ].filter(Boolean).join("\n\n");
+
+  return discordRequest<any>(`/channels/${input.channelId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({
+      content: input.roleMentionId ? `<@&${input.roleMentionId}>` : undefined,
+      allowed_mentions: input.roleMentionId ? { roles: [input.roleMentionId] } : { parse: [] },
+      embeds: [{
+        title: input.kind === "best_online_time" ? "BEST ONLINE TIME" : "ALLIANCE POLL",
+        description: `**${input.question.trim()}**\n\n${description}`,
+        color: 0xfacc15,
+        footer: { text: "Kella saves results to the Attendance dashboard" }
+      }],
+      components
     })
   });
 }

@@ -22,6 +22,8 @@ const modules = [
   { id: "embed", name: "Embed Sender", badge: "Admin", command: "Dashboard", description: "Build, preview, save, and send Discord embeds from the website." },
   { id: "wiki", name: "Wiki", badge: "Guides", command: "Dashboard", description: "Publish alliance rules, guides, images, and readable member notes." },
   { id: "summit", name: "Summit Registration", badge: "Fast", command: "/summit", description: "Simple Summit attendance buttons for Attending, Absent, and Not Sure." },
+  { id: "polls", name: "Polls + Roles", badge: "New", command: "/poll", description: "Create one-click polls, map answers to Discord roles, and review participation in Attendance." },
+  { id: "besttime", name: "Best Online Time", badge: "UTC", command: "/besttime", description: "Collect members' usual online windows and compare the results in Attendance." },
   { id: "checkin", name: "Daily Check-In", badge: "Activity", command: "/checkin", description: "One button daily activity tracking for weekly and inactive member reports." },
   { id: "absence", name: "Absence Notices", badge: "Modal", command: "/absence", description: "Members submit reason, start date, and end date. Officers see who is away." },
   { id: "applications", name: "Applications", badge: "Recruiting", command: "/apply", description: "Simple application modal for IGN, power, timezone, and main legion." },
@@ -1892,6 +1894,8 @@ export function kellaDashboardHtml() {
         padding: 13px;
       }
       .attendance-focus-item h4 { margin: 0; color: #2d1a08; }
+      .meter { height: 8px; overflow: hidden; border-radius: 999px; background: rgba(92, 55, 18, 0.14); }
+      .meter span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #b77912, #eab308); }
       .complaint-form-card { display: grid; gap: 14px; }
       .complaint-form-card .form-grid { margin-top: 8px; }
       .complaint-form-card .wiki-toggle-field {
@@ -3399,7 +3403,7 @@ export function kellaDashboardHtml() {
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
-      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiInteractionMode: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingTroopType: "cavalry", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "", lordTools: null, lordView: "overview", lordSearch: "", lordResearchTree: "economy", lordResearchSelected: "", lordResearchZoom: 0.6, lordResearchPanX: 0, lordResearchPanY: 0 };
+      const state = { summary: null, buffSchedule: null, reports: [], members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], polls: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiInteractionMode: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingTroopType: "cavalry", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "", lordTools: null, lordView: "overview", lordSearch: "", lordResearchTree: "economy", lordResearchSelected: "", lordResearchZoom: 0.6, lordResearchPanX: 0, lordResearchPanY: 0 };
       let lordResearchPan = null;
       let lordResearchPinch = null;
       const lordResearchPointers = new Map();
@@ -3413,6 +3417,8 @@ export function kellaDashboardHtml() {
         { name: "attack", label: "Attack Alert", description: "Post an emergency alliance attack alert." },
         { name: "roots", label: "Roots Registration", description: "Open 14 UTC and 20 UTC Roots registration." },
         { name: "summit", label: "Summit Registration", description: "Open a Summit attendance panel." },
+        { name: "poll", label: "Poll + Role", description: "Post a poll and optionally map answers to roles." },
+        { name: "besttime", label: "Best Online Time", description: "Collect member UTC availability." },
         { name: "time", label: "UTC Timer", description: "Post a live Discord countdown." },
         { name: "remind", label: "Event Reminder", description: "Queue a reminder for an alliance event." },
         { name: "checkin", label: "Daily Check-In", description: "Post the daily member check-in button." },
@@ -3975,7 +3981,7 @@ export function kellaDashboardHtml() {
       }
 
       function dashboardAllianceTag(value) {
-        const raw = String(value || "").trim();
+        const raw = String(value || "").trim().normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "");
         const bracketed = (raw.match(/\\[([^\\]]+)\\]/) || [])[1] || raw;
         return bracketed.replace(/[^a-z0-9]/gi, "").toLowerCase();
       }
@@ -4916,6 +4922,13 @@ export function kellaDashboardHtml() {
         const data = await fetchJson("/api/dashboard/events");
         state.events = data.events || [];
         return state.events;
+      }
+
+      async function loadPolls(force = false) {
+        if (state.polls.length && !force) return state.polls;
+        const data = await fetchJson("/api/dashboard/polls");
+        state.polls = data.polls || [];
+        return state.polls;
       }
 
       async function loadComplaints() {
@@ -7895,19 +7908,40 @@ export function kellaDashboardHtml() {
         });
       }
 
-      function renderAttendanceSummary(events) {
+      function renderAttendanceSummary(events, polls) {
         const today = dayKey(new Date());
         const now = Date.now();
         const monthEvents = (events || []).filter(function(event) { return inCurrentMonth(event.startsAt); });
         const todayEvents = (events || []).filter(function(event) { return dayKey(event.startsAt) === today; });
         const upcoming = (events || []).filter(function(event) { return new Date(event.startsAt || 0).getTime() >= now; });
-        const responses = (events || []).reduce(function(total, event) { return total + eventResponseTotal(event); }, 0);
+        const responses = (events || []).reduce(function(total, event) { return total + eventResponseTotal(event); }, 0) +
+          (polls || []).reduce(function(total, poll) { return total + Number(poll.totalVotes || 0); }, 0);
         return '<section class="attendance-summary-grid">' +
           '<div class="attendance-summary-card"><span>This Month</span><strong>' + monthEvents.length + '</strong><p>Events on the calendar</p></div>' +
           '<div class="attendance-summary-card"><span>Today</span><strong>' + todayEvents.length + '</strong><p>Events using UTC server day</p></div>' +
           '<div class="attendance-summary-card"><span>Upcoming</span><strong>' + upcoming.length + '</strong><p>Still active or scheduled</p></div>' +
-          '<div class="attendance-summary-card"><span>Responses</span><strong>' + responses + '</strong><p>Total attendance clicks saved</p></div>' +
+          '<div class="attendance-summary-card"><span>Responses</span><strong>' + responses + '</strong><p>Event and poll responses saved</p></div>' +
         '</section>';
+      }
+
+      function renderPollReports(polls) {
+        if (!polls.length) return empty("No polls or Best Online Time surveys yet.");
+        return '<div class="grid">' + polls.map(function(poll) {
+          const total = Number(poll.totalVotes || 0);
+          const options = (poll.options || []).map(function(option) {
+            const count = Number(option.count || 0);
+            const percent = total ? Math.round((count / total) * 100) : 0;
+            const voters = (option.voters || []).map(function(voter) { return escapeHtml(voter.displayName || voter.discordId); }).join(", ");
+            return '<div class="attendance-focus-item" style="cursor:default"><h4>' + escapeHtml(option.label) + '</h4><span class="muted">' + count + ' vote' + (count === 1 ? '' : 's') + ' · ' + percent + '%' + (option.roleId ? ' · Role linked' : '') + '</span>' +
+              '<div class="meter" style="margin-top:8px"><span style="width:' + percent + '%"></span></div>' +
+              (voters ? '<details style="margin-top:8px"><summary>View voters</summary><p class="muted">' + voters + '</p></details>' : '') + '</div>';
+          }).join("");
+          const adminActions = hasAdminAccess()
+            ? '<div class="toolbar"><button class="secondary" type="button" data-action="set-poll-status" data-poll-id="' + escapeHtml(poll.id) + '" data-poll-status="' + (poll.status === "Open" ? "Closed" : "Open") + '">' + (poll.status === "Open" ? "Close" : "Reopen") + '</button><button class="danger" type="button" data-action="delete-poll" data-poll-id="' + escapeHtml(poll.id) + '">Delete</button></div>'
+            : '';
+          return '<article class="card"><div class="card-header"><div><span class="badge ' + (poll.kind === "best_online_time" ? "warn" : "good") + '">' + (poll.kind === "best_online_time" ? "Best Online Time" : "Poll") + '</span><h3>' + escapeHtml(poll.question) + '</h3><span class="muted">' + total + ' responses · ' + escapeHtml(poll.status || "Open") + '</span></div><div class="stack">' + (poll.messageLink ? '<a class="secondary" target="_blank" rel="noreferrer" href="' + escapeHtml(poll.messageLink) + '">Discord Message</a>' : '') + adminActions + '</div></div>' +
+            (poll.description ? '<p>' + escapeHtml(poll.description) + '</p>' : '') + '<div class="attendance-focus-list">' + options + '</div></article>';
+        }).join("") + '</div>';
       }
 
       function renderAttendanceFocus(events) {
@@ -7930,14 +7964,16 @@ export function kellaDashboardHtml() {
       async function renderAttendance() {
         skeleton("Loading attendance...");
         try {
-          const results = await Promise.all([loadDashboardEvents(), loadBuffSchedule()]);
+          const results = await Promise.all([loadDashboardEvents(), loadBuffSchedule(), loadPolls(true)]);
           const events = results[0];
-          const actions = (hasAdminAccess() ? '<button class="secondary" data-link-button="/tools">Create Event</button>' : "") + '<button class="primary" data-action="refresh-events">Refresh</button>';
+          const polls = results[2];
+          const actions = (hasAdminAccess() ? '<button class="secondary" data-link-button="/tools">Create Event</button><button class="secondary" data-link-button="/tools?tool=polls">Create Poll</button>' : "") + '<button class="primary" data-action="refresh-events">Refresh</button>';
           app.innerHTML =
-            pageHeader("Attendance Calendar", "Admin-friendly event attendance by UTC server day. Click any calendar day to see events and player responses.", actions) +
-            renderAttendanceSummary(events) +
+            pageHeader("Attendance Calendar", "Event attendance, polls, and Best Online Time results in one place.", actions) +
+            renderAttendanceSummary(events, polls) +
             '<section class="card attendance-calendar-card"><div class="card-header"><div><h3>' + monthTitle() + '</h3><span class="muted">Large days show event titles, server time, and response totals.</span></div><span class="badge good">Today is green</span></div>' + renderEventsCalendar(events) + '</section>' +
             renderAttendanceFocus(events) +
+            '<section style="margin-top:18px"><div class="card-header"><div><h3>Poll Participation</h3><span class="muted">Poll-to-role and Best Online Time responses sync here automatically.</span></div></div>' + renderPollReports(polls) + '</section>' +
             '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Recent Event Reports</h3><span class="muted">Use this table when you need exact counts or admin actions.</span></div></div>' + renderRecentEvents(sortedEvents(events).reverse()) + '</section>';
         } catch (error) {
           app.innerHTML = '<div class="error">Could not load attendance. ' + escapeHtml(error.message) + '</div>';
@@ -7994,6 +8030,7 @@ export function kellaDashboardHtml() {
       function toolPicker(selected) {
         const tools = [
           ["events", "Event Maker"],
+          ["polls", "Polls + Roles"],
           ["chat", "Kella Chat"],
           ["alerts", "Attack + DM Alerts"],
           ["shield", "Shield Alerts"],
@@ -8023,6 +8060,52 @@ export function kellaDashboardHtml() {
             '<label class="wide">Description<textarea data-event="description" placeholder="Tell members what to do, where to go, and what time to be ready."></textarea></label>' +
           '</div></section>' +
           '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Recent Sent Events</h3><button class="secondary" data-action="refresh-events">Refresh</button></div>' + renderRecentEvents(events) + '</section>';
+      }
+
+      function pollFormValue(name) {
+        return document.querySelector('[data-poll="' + name + '"]')?.value?.trim() || "";
+      }
+
+      function pollPayload() {
+        const labels = Array.from(document.querySelectorAll('[data-poll-option="label"]'));
+        const roles = Array.from(document.querySelectorAll('[data-poll-option="roleId"]'));
+        const options = labels.map(function(input, index) {
+          const label = input.value.trim();
+          return label ? { label: label, roleId: (roles[index]?.value || "").trim() } : null;
+        }).filter(Boolean);
+        const kind = pollFormValue("kind") || "poll";
+        return {
+          channelId: pollFormValue("channelId") || pollFormValue("channelManual"),
+          roleMentionId: pollFormValue("roleMentionId"),
+          kind: kind,
+          question: pollFormValue("question") || (kind === "best_online_time" ? "When are you usually online?" : ""),
+          description: pollFormValue("description"),
+          options: options.length ? options : undefined,
+          publishToDiscord: true
+        };
+      }
+
+      async function pollToolContent() {
+        let channelHtml = '<label>Discord Channel<input data-poll="channelManual" placeholder="Paste channel ID" /></label>';
+        try {
+          await loadChannels();
+          channelHtml = '<label>Discord Channel<select data-poll="channelId">' + channelOptions() + '</select></label>';
+        } catch {
+          state.channels = [];
+        }
+        const polls = await loadPolls(true);
+        const optionRows = Array.from({ length: 6 }, function(_, index) {
+          const number = index + 1;
+          return '<label>Option ' + number + '<input data-poll-option="label" maxlength="80" placeholder="' + (number <= 2 ? "Required for a normal poll" : "Optional") + '" /></label><label>Option ' + number + ' Role ID<input data-poll-option="roleId" inputmode="numeric" placeholder="Optional Discord role ID" /></label>';
+        }).join("");
+        return '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Create Poll</h3><span class="muted">Map any answer to a Discord role. Best Online Time uses six UTC windows automatically when options are left blank.</span></div><button class="primary" data-action="send-poll">Publish Poll</button></div><div class="form-grid">' +
+          channelHtml +
+          '<label>Poll Type<select data-poll="kind"><option value="poll">General Poll</option><option value="best_online_time">Best Online Time</option></select></label>' +
+          '<label>Role to Mention<input data-poll="roleMentionId" placeholder="Optional role ID" /></label>' +
+          '<label class="wide">Question<input data-poll="question" maxlength="256" placeholder="What should members choose?" /></label>' +
+          '<label class="wide">Description<textarea data-poll="description" maxlength="1000" placeholder="Optional context for members"></textarea></label>' + optionRows +
+          '</div><p class="muted" style="margin-top:12px">Poll-to-role requires Kella\\'s Discord role to sit above every role it assigns.</p></section>' +
+          '<section style="margin-top:18px"><div class="card-header"><div><h3>Recent Poll Results</h3><span class="muted">The same response data appears in Attendance.</span></div><button class="secondary" data-action="refresh-polls">Refresh</button></div>' + renderPollReports(polls) + '</section>';
       }
 
       function optionalLinkButtonFields(scope) {
@@ -8137,6 +8220,7 @@ export function kellaDashboardHtml() {
         try {
           let content = "";
           if (selected === "events") content = await eventToolContent();
+          if (selected === "polls") content = await pollToolContent();
           if (selected === "chat") content = await chatToolContent();
           if (selected === "alerts") {
             await Promise.all([loadChannels().catch(function() { state.channels = []; }), loadMembers().catch(function() { state.members = []; })]);
@@ -8148,7 +8232,7 @@ export function kellaDashboardHtml() {
           }
           if (selected === "embed") content = await embedToolContent();
           if (selected === "thumbnails") content = await thumbnailToolContent();
-          app.innerHTML = pageHeader("Tools", "Pick the admin tool you need. Events, chat, alerts, shield warnings, embeds, and thumbnails live here.", "") + toolPicker(selected) + content;
+          app.innerHTML = pageHeader("Tools", "Create events, polls, role assignments, messages, alerts, embeds, and thumbnails.", "") + toolPicker(selected) + content;
           if (selected === "embed") updateEmbedPreview();
           if (selected === "thumbnails") requestAnimationFrame(function() { window.KellaThumbnailEditor?.mount(document.querySelector("[data-thumbnail-editor]")); });
         } catch (error) {
@@ -9680,6 +9764,7 @@ export function kellaDashboardHtml() {
         }, "Alerts refreshed.");
         if (kind === "refresh-events") withFeedback(action, async function() {
           state.events = [];
+          state.polls = [];
           if (location.pathname === "/attendance") {
             await renderAttendance();
           } else if (location.pathname.startsWith("/attendance/")) {
@@ -9823,6 +9908,36 @@ export function kellaDashboardHtml() {
           state.events = [];
           await renderTools("events");
         }, "Event embed sent.");
+        if (kind === "send-poll") withFeedback(action, async function() {
+          const result = await sendJson("POST", "/api/dashboard/polls", pollPayload(), true);
+          state.polls = [];
+          await renderTools("polls");
+          return result.warning || "Poll published and connected to Attendance.";
+        }, "Poll published.");
+        if (kind === "refresh-polls") withFeedback(action, async function() {
+          state.polls = [];
+          await renderTools("polls");
+        }, "Polls refreshed.");
+        if (kind === "set-poll-status") withFeedback(action, async function() {
+          const id = action.getAttribute("data-poll-id") || "";
+          const status = action.getAttribute("data-poll-status") || "Closed";
+          if (!id) throw new Error("Poll id missing.");
+          await sendJson("PATCH", "/api/dashboard/polls/" + encodeURIComponent(id) + "/status", { status: status }, true);
+          state.polls = [];
+          if (location.pathname === "/attendance") await renderAttendance();
+          else await renderTools("polls");
+          return "Poll " + status.toLowerCase() + ".";
+        }, "Poll updated.");
+        if (kind === "delete-poll") withFeedback(action, async function() {
+          const id = action.getAttribute("data-poll-id") || "";
+          if (!id) throw new Error("Poll id missing.");
+          if (!window.confirm("Delete this poll and all of its saved responses?")) return "Delete cancelled.";
+          await sendJson("DELETE", "/api/dashboard/polls/" + encodeURIComponent(id), undefined, true);
+          state.polls = [];
+          if (location.pathname === "/attendance") await renderAttendance();
+          else await renderTools("polls");
+          return "Poll deleted.";
+        }, "Poll deleted.");
         if (kind === "send-roots-registration") withFeedback(action, async function() {
           const channelId = document.querySelector("[data-roots-channel]")?.value || document.querySelector("[data-roots-channel-manual]")?.value || "";
           const roleMentionId = document.querySelector("[data-roots-role]")?.value || "";

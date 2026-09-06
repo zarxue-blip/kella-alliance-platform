@@ -58,6 +58,35 @@ export const api = {
   eventResponse(input: { discordId: string; displayName?: string; eventId: string; status: string }) {
     return request("POST", "/bot/event/response", { ...allianceContext(), ...input });
   },
+  createPoll(input: {
+    kind: "poll" | "best_online_time";
+    question: string;
+    description?: string;
+    options: Array<{ label: string; roleId?: string }>;
+    channelId?: string;
+    createdByDiscordId?: string;
+  }) {
+    return request<{
+      poll: {
+        id: string;
+        kind: "poll" | "best_online_time";
+        question: string;
+        description: string;
+        options: Array<{ key: string; label: string; roleId?: string }>;
+      };
+    }>("POST", "/bot/polls", { ...allianceContext(), ...input });
+  },
+  updatePollMessage(pollId: string, input: { guildId?: string; channelId?: string; messageId?: string }) {
+    return request("PATCH", `/bot/polls/${pollId}/message`, { ...allianceContext(), ...input });
+  },
+  pollVote(pollId: string, input: { discordId: string; displayName?: string; optionKey: string }) {
+    return request<{
+      selection: string;
+      changed: boolean;
+      roleUpdated: boolean;
+      roleWarning?: string;
+    }>("POST", `/bot/polls/${pollId}/vote`, { ...allianceContext(), ...input });
+  },
   rootsResponse(input: { discordId: string; displayName?: string; reportId?: string; slot: string; status: string }) {
     return request("POST", "/bot/roots/response", { ...allianceContext(), ...input });
   },

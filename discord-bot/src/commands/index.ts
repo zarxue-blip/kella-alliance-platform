@@ -62,6 +62,88 @@ function summitButtons() {
   );
 }
 
+type PollOption = { key: string; label: string; roleId?: string };
+
+export function pollButtons(pollId: string, options: PollOption[]) {
+  const styles = [ButtonStyle.Primary, ButtonStyle.Success, ButtonStyle.Secondary, ButtonStyle.Danger];
+  const rows: Array<ActionRowBuilder<ButtonBuilder>> = [];
+  options.forEach((option, index) => {
+    const rowIndex = Math.floor(index / 5);
+    if (!rows[rowIndex]) rows[rowIndex] = new ActionRowBuilder<ButtonBuilder>();
+    rows[rowIndex].addComponents(
+      new ButtonBuilder()
+        .setCustomId(`poll:${pollId}:${option.key}`)
+        .setLabel(option.label.slice(0, 80))
+        .setStyle(styles[index % styles.length] ?? ButtonStyle.Primary)
+    );
+  });
+  return rows;
+}
+
+export function pollEmbed(input: {
+  kind: "poll" | "best_online_time";
+  question: string;
+  description?: string;
+  options: PollOption[];
+}) {
+  const mappedRoles = input.options.filter((option) => option.roleId).length;
+  return {
+    title: input.kind === "best_online_time" ? "BEST ONLINE TIME" : "ALLIANCE POLL",
+    description: [
+      `**${input.question}**`,
+      input.description,
+      input.kind === "best_online_time" ? "Choose the UTC window when you are usually online." : "Choose one option. You can change your vote anytime.",
+      mappedRoles ? "Your choice also updates the matching Discord role." : ""
+    ].filter(Boolean).join("\n\n"),
+    color: 0xfacc15,
+    footer: { text: "Kella saves results to the Attendance dashboard" }
+  };
+}
+
+const pollCommand = new SlashCommandBuilder()
+  .setName("poll")
+  .setDescription("Create a poll, optionally assigning a role for each answer.")
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+  .addStringOption((option) => option.setName("question").setDescription("Question to ask").setRequired(true).setMaxLength(256))
+  .addStringOption((option) => option.setName("option1").setDescription("First answer").setRequired(true).setMaxLength(80))
+  .addStringOption((option) => option.setName("option2").setDescription("Second answer").setRequired(true).setMaxLength(80))
+  .addStringOption((option) => option.setName("option3").setDescription("Optional third answer").setRequired(false).setMaxLength(80))
+  .addStringOption((option) => option.setName("option4").setDescription("Optional fourth answer").setRequired(false).setMaxLength(80))
+  .addStringOption((option) => option.setName("option5").setDescription("Optional fifth answer").setRequired(false).setMaxLength(80))
+  .addRoleOption((option) => option.setName("role1").setDescription("Role assigned for option 1").setRequired(false))
+  .addRoleOption((option) => option.setName("role2").setDescription("Role assigned for option 2").setRequired(false))
+  .addRoleOption((option) => option.setName("role3").setDescription("Role assigned for option 3").setRequired(false))
+  .addRoleOption((option) => option.setName("role4").setDescription("Role assigned for option 4").setRequired(false))
+  .addRoleOption((option) => option.setName("role5").setDescription("Role assigned for option 5").setRequired(false));
+
+const bestTimeCommand = new SlashCommandBuilder()
+  .setName("besttime")
+  .setDescription("Ask members for their usual best online UTC window.")
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+  .addStringOption((option) => option.setName("question").setDescription("Optional custom question").setRequired(false).setMaxLength(256));
+
+async function publishPoll(
+  interaction: ChatInputCommandInteraction,
+  kind: "poll" | "best_online_time",
+  question: string,
+  options: Array<{ label: string; roleId?: string }>
+) {
+  await interaction.deferReply();
+  const { poll } = await api.createPoll({
+    kind,
+    question,
+    options,
+    channelId: interaction.channelId,
+    createdByDiscordId: interaction.user.id
+  });
+  const message = await interaction.editReply({ embeds: [pollEmbed(poll)], components: pollButtons(poll.id, poll.options) });
+  await api.updatePollMessage(poll.id, {
+    guildId: interaction.guildId ?? undefined,
+    channelId: message.channelId,
+    messageId: message.id
+  });
+}
+
 async function allianceMention(interaction: ChatInputCommandInteraction) {
   const roles = await interaction.guild?.roles.fetch().catch(() => null);
   const role = roles?.find((candidate) => candidate.name.toLowerCase() === "alliance");
@@ -203,6 +285,31 @@ export const commands: BotCommand[] = [
         ],
         components: [summitButtons()]
       });
+    }
+  },
+  {
+    data: pollCommand,
+    async execute(interaction) {
+      const options: Array<{ label: string; roleId?: string }> = [];
+      for (let index = 0; index < 5; index += 1) {
+        const number = index + 1;
+        const label = interaction.options.getString(`option${number}`)?.trim();
+        const role = interaction.options.getRole(`role${number}`);
+        if (label) options.push({ label, ...(role?.id ? { roleId: role.id } : {}) });
+      }
+      await publishPoll(interaction, "poll", interaction.options.getString("question", true).trim(), options);
+    }
+  },
+  {
+    data: bestTimeCommand,
+    async execute(interaction) {
+      const options = ["00-04 UTC", "04-08 UTC", "08-12 UTC", "12-16 UTC", "16-20 UTC", "20-24 UTC"].map((label) => ({ label }));
+      await publishPoll(
+        interaction,
+        "best_online_time",
+        interaction.options.getString("question")?.trim() || "When are you usually online?",
+        options
+      );
     }
   },
   {

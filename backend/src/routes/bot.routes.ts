@@ -13,6 +13,9 @@ import {
   botEventReminder,
   botEventResponse,
   botProfile,
+  botPollCreate,
+  botPollMessageUpdate,
+  botPollVote,
   botRegister,
   botRootsResponse,
   botRootsSession,
@@ -32,6 +35,9 @@ export const botRouter = Router();
 botRouter.use(authenticateService);
 botRouter.post("/register", botRegister);
 botRouter.get("/profile", botProfile);
+botRouter.post("/polls", botPollCreate);
+botRouter.patch("/polls/:id/message", botPollMessageUpdate);
+botRouter.post("/polls/:id/vote", botPollVote);
 botRouter.post("/attendance", botAttendance);
 botRouter.post("/shield", botShield);
 botRouter.post("/roots-of-war/register", botRootsOfWarRegister);

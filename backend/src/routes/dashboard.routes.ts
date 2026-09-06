@@ -17,6 +17,10 @@ import {
   dashboardDiscordMemberSync,
   dashboardProfile,
   dashboardProfileUpdate,
+  dashboardPollCreate,
+  dashboardPollDelete,
+  dashboardPolls,
+  dashboardPollStatusUpdate,
   dashboardDmAlertSend,
   dashboardSettings,
   dashboardSettingsUpdate,
@@ -68,6 +72,10 @@ dashboardRouter.get("/alerts", dashboardAlerts);
 dashboardRouter.get("/events", dashboardEvents);
 dashboardRouter.post("/events", authenticateDashboardAdmin, dashboardEventSend);
 dashboardRouter.delete("/events/:id", authenticateDashboardAdmin, dashboardEventDelete);
+dashboardRouter.get("/polls", dashboardPolls);
+dashboardRouter.post("/polls", authenticateDashboardAdmin, dashboardPollCreate);
+dashboardRouter.patch("/polls/:id/status", authenticateDashboardAdmin, dashboardPollStatusUpdate);
+dashboardRouter.delete("/polls/:id", authenticateDashboardAdmin, dashboardPollDelete);
 dashboardRouter.get("/wiki", dashboardWikiList);
 dashboardRouter.get("/wiki/admin", authenticateDashboardWikiEditor, dashboardWikiAdminList);
 dashboardRouter.post("/wiki", authenticateDashboardWikiEditor, dashboardWikiCreate);

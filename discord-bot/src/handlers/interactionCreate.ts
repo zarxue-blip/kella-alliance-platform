@@ -202,6 +202,24 @@ export async function handleInteraction(interaction: Interaction) {
       return;
     }
 
+    if (interaction.isButton() && interaction.customId.startsWith("poll:")) {
+      const [, pollId, optionKey] = interaction.customId.split(":");
+      if (!pollId || !optionKey) return;
+      const result = await api.pollVote(pollId, {
+        discordId: interaction.user.id,
+        displayName: displayName(interaction),
+        optionKey
+      });
+      const roleNote = result.roleWarning
+        ? " Your vote was saved, but Kella could not update the Discord role; an officer should check bot role permissions."
+        : result.roleUpdated ? " Your Discord role was updated." : "";
+      await interaction.reply({
+        ephemeral: true,
+        content: `${botName} recorded your choice: ${result.selection}.${roleNote}`
+      });
+      return;
+    }
+
     if (interaction.isButton() && interaction.customId.startsWith("roots:")) {
       const [, reportId, slot, statusValue] = interaction.customId.split(":");
       if (!reportId || !slot || !statusValue) return;
