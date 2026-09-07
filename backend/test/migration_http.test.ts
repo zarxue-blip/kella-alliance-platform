@@ -31,6 +31,7 @@ globalThis.fetch=async(input:any,init:any)=>{
  const index=docs.findIndex(d=>String(d._id)===String(filter._id)&&String(d.allianceId)===String(filter.allianceId));
  return index<0?null:docs.splice(index,1)[0];
 };
+(MigrationModel as any).find=(filter:any)=>({sort(){return this;},lean:async()=>docs.filter(d=>String(d.allianceId)===String(filter.allianceId))});
 const app=express();app.use(express.json());app.use(cookieParser());app.use('/migration',migrationRouter);app.use(errorHandler);const server=app.listen(0,'127.0.0.1');await new Promise<void>(r=>server.once('listening',r));const base='http://127.0.0.1:'+(server.address() as any).port;
 const token=signSessionToken({id:String(user._id),allianceId:String(user.allianceId),discordId:user.discordId,role:'Member'});const headers={'content-type':'application/json',cookie:'cod_amp_session='+token};
 const answers:any={};for(const f of migrationFields)answers[f.key]=f.type==='multi'?f.options.slice(0,1):f.type==='single'?f.options.at(-1):f.type==='number'?100:'Example';answers.playerId='24055137';answers.groupMigration='No';
@@ -50,6 +51,17 @@ try{
  const linkedHeaders={'content-type':'application/json',cookie:migrationIdentityCookie+'='+signMigrationIdentity(user.discordId)};
  r=await fetch(base+'/migration/connect-discord',{method:'POST',headers:linkedHeaders,body:receipt});assert.equal(r.status,200);assert.equal((await r.json()).roleStatus,'Assigned');assert.equal(docs.at(-1).discordId,user.discordId);
  r=await fetch(base+'/migration/connect-discord',{method:'POST',headers:{...linkedHeaders,cookie:migrationIdentityCookie+'='+signMigrationIdentity('987654321098765432')},body:receipt});assert.equal(r.status,404,'cannot replace a verified applicant identity');assert.equal(docs.at(-1).discordId,user.discordId);
+ r=await fetch(base+'/migration/export.csv');assert.equal(r.status,401);
+ user.role='Member';r=await fetch(base+'/migration/export.csv',{headers});assert.equal(r.status,403);
+ user.role='Leader';const originalCount=docs.length;
+ for(let i=0;i<35;i++)docs.push({_id:new Types.ObjectId(),allianceId:user.allianceId,answers:{ign:'Export Player '+i,legacy:'Older answer'},fields:[{key:'legacy',label:'Previous question'}],status:'Pending'});
+ docs.push({_id:new Types.ObjectId(),allianceId:new Types.ObjectId(),answers:{ign:'Other alliance private'}});
+ r=await fetch(base+'/migration/export.csv',{headers});assert.equal(r.status,200);assert.match(r.headers.get('content-disposition')||'',/attachment/);assert.match(r.headers.get('cache-control')||'',/no-store/);
+ const csv=await r.text();assert.ok(csv.includes('Export Player 34'));assert.ok(csv.includes('Previous question'));assert.ok(csv.includes('Older answer'));assert.ok(!csv.includes('Other alliance private'));assert.equal(docs.length,originalCount+36,'export must not delete records');docs.splice(originalCount);
+ const {migrationCsv}=await import('../src/services/migrationExport.service.js');
+ const escaped=migrationCsv([{answers:{ign:'=1+1',discord:'123456789012345678',extra:'Comma, quote" and newline\nnext'},fields:[]}]);
+ assert.ok(escaped.includes("'=1+1"));assert.ok(escaped.includes("'123456789012345678"));assert.ok(escaped.includes('quote""'));assert.ok(escaped.startsWith('\uFEFF'));
+ console.log('Migration CSV: authorization, alliance scope, all pages, archived answers, escaping and record preservation passed.');
  const deleteId=String(docs[0]._id);const count=docs.length;
  r=await fetch(base+'/migration/'+deleteId,{method:'DELETE'});assert.equal(r.status,401);
  user.role='Member';r=await fetch(base+'/migration/'+deleteId,{method:'DELETE',headers});assert.equal(r.status,403);assert.equal(docs.length,count);

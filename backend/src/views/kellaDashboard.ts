@@ -3340,8 +3340,8 @@ export function kellaDashboardHtml() {
       }
     </style>
     <link rel="stylesheet" href="/assets/command-center.css?v=1" />
-    <link rel="stylesheet" href="/assets/noticeboard.css?v=5" />
-    <link rel="stylesheet" href="/assets/parchment-workspace.css?v=2" />
+    <link rel="stylesheet" href="/assets/noticeboard.css?v=6" />
+    <link rel="stylesheet" href="/assets/parchment-workspace.css?v=3" />
   </head>
   <body>
     <div class="shell">
@@ -6832,7 +6832,7 @@ export function kellaDashboardHtml() {
             '<label>Alliance Center<select data-lord-research-setting="allianceCenter">' + Array.from({ length: 25 }, function(_, index) { const level = index + 1; return '<option value="' + level + '"' + (level === lordNumber(settings.allianceCenter) ? ' selected' : '') + '>Level ' + level + '</option>'; }).join("") + '</select></label>' +
             '<label>Research speed %<input type="number" min="0" max="500" step="1" value="' + lordNumber(settings.speed) + '" data-lord-research-setting="speed" /></label>' +
             '<button class="lord-research-toggle' + (settings.heightsOfPower ? ' on' : '') + '" type="button" data-action="lord-research-event"><span>Heights of Power <b>+15%</b></span><i aria-hidden="true"></i></button></div>' +
-            '<main class="lord-research-main" data-lord-research-fullscreen><div class="lord-research-tabs"><button class="lord-research-tab' + (lordResearchTreeKey() === "economy" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="economy">Economy</button><button class="lord-research-tab' + (lordResearchTreeKey() === "military" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="military">Military</button><span class="lord-research-hint">Click +1 &middot; Right click -1 &middot; Drag to move</span><span class="lord-research-fullscreen-control"><button class="lord-research-fullscreen-toggle" type="button" data-action="lord-research-fullscreen" aria-label="Open research tree full screen" title="Full screen"><span class="lord-research-fullscreen-icon" aria-hidden="true"></span></button></span></div><div class="lord-research-tree-scroll" data-lord-research-scroll tabindex="0" aria-label="' + treeLabel + ' research tree. Drag to move and scroll or pinch to zoom."><div class="lord-research-summary" data-lord-research-summary>' + lordResearchSummaryHtml(data) + '</div>' + lordResearchTreeHtml(data) + '</div></main></div></section>';
+            '<main class="lord-research-main" data-lord-research-fullscreen><div class="lord-research-tabs"><button class="lord-research-tab' + (lordResearchTreeKey() === "economy" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="economy">Economy</button><button class="lord-research-tab' + (lordResearchTreeKey() === "military" ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="military">Military</button><span class="lord-research-hint">Drag to explore · Scroll to zoom</span><button class="secondary" type="button" data-action="research-fit">Fit tree</button><button class="secondary" type="button" data-action="research-readable">Readable view</button><span class="lord-research-fullscreen-control"><button class="lord-research-fullscreen-toggle" type="button" data-action="lord-research-fullscreen" aria-label="Open research tree full screen" title="Full screen"><span class="lord-research-fullscreen-icon" aria-hidden="true"></span></button></span></div><div class="lord-research-tree-scroll" data-lord-research-scroll tabindex="0" aria-label="' + treeLabel + ' research tree. Drag to move and scroll or pinch to zoom."><div class="lord-research-summary" data-lord-research-summary>' + lordResearchSummaryHtml(data) + '</div>' + lordResearchTreeHtml(data) + '</div></main></div></section>';
       }
 
       function applyLordResearchTransform() {
@@ -6894,9 +6894,9 @@ export function kellaDashboardHtml() {
         const width = Number.parseFloat(canvas.style.width) || canvas.scrollWidth || 1;
         const height = Number.parseFloat(canvas.style.height) || canvas.scrollHeight || 1;
         const exactFit = Math.max(0.08, Math.min(1, Math.min((viewport.clientWidth - 40) / width, (viewport.clientHeight - 40) / height)));
-        const fit = Math.max(0.08, exactFit);
+        const fit = preferReadable ? 1 : exactFit;
         state.lordResearchZoom = Math.floor(fit * 100) / 100;
-        state.lordResearchPanX = Math.round((viewport.clientWidth - (width * state.lordResearchZoom)) / 2);
+        state.lordResearchPanX = Math.max(20, Math.round((viewport.clientWidth - (width * state.lordResearchZoom)) / 2));
         state.lordResearchPanY = Math.round((viewport.clientHeight - (height * state.lordResearchZoom)) / 2 + 18);
         applyLordResearchTransform();
       }
@@ -7468,12 +7468,24 @@ export function kellaDashboardHtml() {
         const notes = [["/calendar", "events.png", "Events"], ["/wiki", "embed-sender.png", "Wiki"], ["/members", "members.png", "Members"], ["/attendance", "events.png", "Attendance"], ["/research", "research.png", "Research"], ["/training-tools", "training-tools.png", "Training"], ["/migration", "/assets/migration-gold.png", "Migration"]];
         if (hasAdminAccess()) notes.push(["/officer", "settings.png", "Admin Tools"]);
         const eventLabel = current ? (dayKey(current.startsAt) === dayKey(new Date()) ? "Today’s event" : "Next event") : "Alliance calendar";
-        return '<section class="alliance-board" aria-label="Alliance noticeboard"><picture><source media="(max-width: 900px)" srcset="/assets/alliance-board-portrait.png"/><img class="board-scene" src="/assets/alliance-board-wide.png" alt="Sunny fantasy meadow with the alliance noticeboard" width="1672" height="941" fetchpriority="high"/></picture><div class="board-character has-video"><video data-kella-video autoplay muted loop playsinline preload="auto" poster="/assets/kella-toss-poster.png" aria-label="Kella tossing a coin" width="480" height="672"><source src="/assets/kella-toss.webm" type="video/webm"/></video></div><div class="board-paper"><a class="board-profile" href="/profile" data-link aria-label="My Profile"><img src="/assets/icons/members.png" alt="" width="44" height="44"/><span>Profile</span></a><a class="board-brand" href="/" data-link><img src="/assets/kella-logo.png?v=1" alt="" width="32" height="32"/>KING OF GLORY</a><div class="board-heading"><span>' + eventLabel + '</span><h2>' + escapeHtml(current?.title || 'No upcoming event') + '</h2><p>' + (current ? formatUtcDateTime(current.startsAt) : 'A new adventure will appear here when scheduled.') + '</p>' + (current ? '<a class="board-event-link" href="/attendance/' + escapeHtml(current.id) + '" data-link>View event →</a>' : '') + '</div><nav class="board-notes" aria-label="Noticeboard destinations">' + notes.map(function(note) { return '<a class="board-note" href="' + note[0] + '" data-link><img src="' + (note[1].startsWith("/") ? note[1] : "/assets/icons/" + note[1]) + '" alt="" width="68" height="68"/><strong>' + note[2] + '</strong></a>'; }).join('') + '</nav></div></section>';
+        return '<section class="alliance-board" aria-label="Alliance noticeboard"><picture><source media="(max-width: 900px)" srcset="/assets/alliance-board-portrait.png"/><img class="board-scene" src="/assets/alliance-board-wide.png" alt="Sunny fantasy meadow with the alliance noticeboard" width="1672" height="941" fetchpriority="high"/></picture><div class="board-character has-video"><video data-kella-video autoplay muted loop playsinline preload="auto" poster="/assets/kella-toss-poster.png" aria-label="Kella tossing a coin" width="480" height="672"></video></div><div class="board-paper"><a class="board-profile" href="/profile" data-link aria-label="My Profile"><img src="/assets/icons/members.png" alt="" width="44" height="44"/><span>Profile</span></a><a class="board-brand" href="/" data-link><img src="/assets/kella-logo.png?v=1" alt="" width="32" height="32"/>KING OF GLORY</a><div class="board-heading"><span>' + eventLabel + '</span><h2>' + escapeHtml(current?.title || 'No upcoming event') + '</h2><p>' + (current ? formatUtcDateTime(current.startsAt) : 'A new adventure will appear here when scheduled.') + '</p>' + (current ? '<a class="board-event-link" href="/attendance/' + escapeHtml(current.id) + '" data-link>View event →</a>' : '') + '</div><nav class="board-notes" aria-label="Noticeboard destinations">' + notes.map(function(note) { return '<a class="board-note" href="' + note[0] + '" data-link><img src="' + (note[1].startsWith("/") ? note[1] : "/assets/icons/" + note[1]) + '" alt="" width="68" height="68"/><strong>' + note[2] + '</strong></a>'; }).join('') + '</nav></div></section>';
       }
 
       function initializeCharacterVideo() {
         const video = document.querySelector('[data-kella-video]');
         if (!video) return;
+        const mobile = window.matchMedia('(max-width: 900px)').matches;
+        const safari = /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Edg/.test(navigator.userAgent);
+        if (mobile || safari) {
+          const animation = document.createElement('img');
+          animation.src = '/assets/kella-toss-transparent.webp';
+          animation.alt = 'Kella tossing a coin';
+          animation.className = 'kella-transparent-loop';
+          animation.width = 360; animation.height = 504;
+          video.replaceWith(animation);
+          return;
+        }
+        video.src = '/assets/kella-toss.webm';
         video.muted = true;
         video.play().catch(function() {
           // Retry after the first interaction if the browser blocks autoplay.
@@ -9113,6 +9125,9 @@ export function kellaDashboardHtml() {
           setOptionalLinkButtonState(scope, enabled);
           if (scope === "embed") updateEmbedPreview();
           return;
+        }
+        if (kind === "research-fit" || kind === "research-readable") {
+          fitLordResearchTree(kind === "research-readable"); return;
         }
         if (kind === "training-mode") {
           setTrainingMode(action.getAttribute("data-training-mode") || "points");

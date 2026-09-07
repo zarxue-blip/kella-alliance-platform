@@ -70,3 +70,10 @@ Localhost port 4173 now serves this repository. Migration fields are provided lo
 
 ## Approved release validation — September 7
 Shared, backend, and Discord bot production builds passed, along with the complete backend regression suite. Local frontend output and unrelated uncommitted files are excluded. Public production smoke checks follow the push; authenticated browser checks still require the owner’s session.
+
+## Desktop, export and mobile revision — September 8 (not deployed)
+Live audit found Research constrained the entire shell to 1540px and left-aligned it, with a dark research canvas over a second decorative board. The local revision uses full-width navigation, centered parchment workspaces and a quiet forest background on interior pages. Research panels match the palette, start at readable size, and offer Fit tree / Readable view controls. Wiki excerpts and actions are aligned.
+
+Migration review now has Download all applications (CSV). The server exports all pages/statuses within the authorized admin's alliance, including historical/custom answer fields. CSV uses UTF-8 and protects spreadsheet formulas and long identifiers. Password-admin and session-admin download methods are supported. No production applicants have been downloaded, changed or deleted during this task. Tests cover authorization, alliance scope, more than 30 records, preserved records, field completeness and CSV escaping.
+
+Mobile and Safari use a continuously looping transparent animated WebP generated from the existing 165 cutout frames, avoiding WebM alpha-decoder differences. Desktop Chromium keeps the smaller video. Verified transparent animation at 390px with no horizontal overflow; an actual iPhone hardware check remains for the owner. Desktop Research, Wiki and Training visually checked; build and backend suite passed. Local preview remains on port 4173, with authentication and production writes blocked. These new revisions await deployment approval.

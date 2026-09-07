@@ -1,3 +1,4 @@
+import { migrationCsv } from '../services/migrationExport.service.js';
 import { readMigrationIdentity } from '../services/migrationIdentity.service.js';
 import { assignMigrationRoles } from '../services/migrationRoles.service.js';
 import { AllianceModel } from '../models/alliance.model.js';
@@ -56,6 +57,13 @@ migrationRouter.post('/', (req,res,next)=>{
   await assignMigrationRoles(submission._id.toString());
   const current:any=await MigrationModel.findById(submission._id).lean();
   res.status(201).json({id:submission._id,deliveryStatus:current.deliveryStatus,roleStatus:current.roleStatus,roleError:current.roleError,message:current.deliveryStatus==='Sent'?'Application saved and posted to Discord.':'Application saved. Discord delivery is pending administrator review.'});
+}));
+// Export every application in the admin's alliance, independent of list pagination.
+migrationRouter.get('/export.csv',authenticateDashboardAdmin,asyncHandler(async(req:AuthenticatedRequest,res)=>{
+  const submissions=await MigrationModel.find({allianceId:await adminAlliance(req)}).sort({createdAt:-1}).lean();
+  res.setHeader('Cache-Control','private, no-store');
+  res.setHeader('Content-Disposition','attachment; filename="migration-applications-'+new Date().toISOString().slice(0,10)+'.csv"');
+  res.type('text/csv; charset=utf-8').send(migrationCsv(submissions));
 }));
 migrationRouter.get('/',authenticateDashboardAdmin,asyncHandler(async(req:AuthenticatedRequest,res)=>{
   const filter:any={allianceId:await adminAlliance(req)};

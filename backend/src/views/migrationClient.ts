@@ -20,7 +20,16 @@ export const migrationClient = String.raw`
 
             const data = await fetchJson('/api/migration?status=' + encodeURIComponent(status) + '&page=' + page, true);
 
-            app.innerHTML = header + '<label>Status <select id="migration-filter"><option value="">All</option>' + ['Pending','Reviewing','Accepted','Declined'].map(function(s){return '<option' + (s===status?' selected':'') + '>' + s + '</option>';}).join('') + '</select></label><p>' + data.total + ' applications</p><div id="migration-list"></div><div id="migration-pages"></div>';
+            app.innerHTML = header + '<div class="migration-export"><button class="primary" type="button" id="migration-export">Download all applications (CSV)</button><span>Includes every applicant and all answers, across all pages and statuses.</span></div><label>Status <select id="migration-filter"><option value="">All</option>' + ['Pending','Reviewing','Accepted','Declined'].map(function(s){return '<option' + (s===status?' selected':'') + '>' + s + '</option>';}).join('') + '</select></label><p>' + data.total + ' applications</p><div id="migration-list"></div><div id="migration-pages"></div>';
+
+            const exportButton=document.getElementById('migration-export');
+            exportButton.onclick=function(){withFeedback(exportButton,async function(){
+              const response=await fetch('/api/migration/export.csv',{credentials:'same-origin',headers:{...requestHeaders(false),accept:'text/csv'}});
+              if(!response.ok){await parseResponse(response);return;}
+              const url=URL.createObjectURL(await response.blob());
+              const link=document.createElement('a');link.href=url;link.download='migration-applications-'+new Date().toISOString().slice(0,10)+'.csv';
+              document.body.appendChild(link);link.click();link.remove();setTimeout(function(){URL.revokeObjectURL(url);},60000);
+            },'Applications downloaded');};
 
             document.getElementById('migration-filter').onchange = function(e){navigate('/migration/admin?status='+encodeURIComponent(e.target.value));};
 
