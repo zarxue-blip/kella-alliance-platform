@@ -55,3 +55,9 @@ body:not([data-route=home]) .topbar .top-actions{display:flex;align-items:center
 body:not([data-route=home]) .wiki-card{min-width:0;overflow:hidden}
 body:not([data-route=home]) .wiki-card :is(p,h3,.wiki-excerpt){overflow-wrap:anywhere;min-width:0}
 body:not([data-route=home]){color-scheme:light}
+
+body #migration-form label,body #migration-form summary{color:#513a25!important}
+body #migration-form input,body #migration-form textarea,body #migration-form select{background:#fff6db!important;color:#513a25!important;border-color:#b89956!important}
+body #migration-form .migration-section{background:linear-gradient(120deg,#fff3cf,#eddbac)!important;color:#513a25!important;border-color:#b89956!important}
+body .migration-table th,body .migration-table td:first-child{background:#ead39b!important;color:#513a25!important}
+body .migration-table .selected td,body .migration-table .selected td:first-child{background:#e3bb66!important;color:#422d19!important}

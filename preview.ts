@@ -1,3 +1,4 @@
+import { migrationFields } from './backend/src/services/migrationFields.js';
 import { canonicalAllianceTag } from './backend/src/services/memberIdentity.service.js';
 // Local inspection only: no database, credentials, bot, scheduler, or write proxy.
 import express from 'express';
@@ -8,6 +9,8 @@ const allowed = new Set(['/api/dashboard/summary','/api/dashboard/settings','/ap
 const cache = new Map<string,{at:number,status:number,body:string}>();
 app.get('/assets/:file', (req,res,next) => { const item=kellaPageAssets.get(req.path); if(!item)return next(); res.type(item.type).send(item.body); });
 app.use('/assets', express.static('backend/public'));
+app.get('/api/migration/fields', (_req,res) => res.json({fields:migrationFields}));
+app.get('/api/migration/identity', (_req,res) => res.json({discordId:null}));
 app.use(async (req,res,next) => {
   if(req.path.startsWith('/api') || req.path.startsWith('/auth')) {
     if(req.method !== 'GET' || !allowed.has(req.path)) return res.status(req.path === '/api/auth/me' ? 401 : 403).json({message:'This local preview cannot sign in or change live data. An isolated staging backend is required.'});

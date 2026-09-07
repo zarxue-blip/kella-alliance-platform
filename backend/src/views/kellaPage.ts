@@ -11,7 +11,8 @@ function asset(body:string, extension:string):string {
   assets.set(path,{type:extension === 'js' ? 'application/javascript' : 'text/css',body});
   return path;
 }
+// Extract scripts first so style strings inside page renderers stay in JavaScript.
 export const kellaPageHtml = kellaDashboardHtml()
-  .replace(/<style>([\s\S]*?)<\/style>/g,(_match,css:string)=>`<link rel="stylesheet" href="${asset(css,'css')}" />`)
-  .replace(/<script>([\s\S]*?)<\/script>/g,(_match,js:string)=>`<script src="${asset(js,'js')}"></script>`);
+  .replace(/<script>([\s\S]*?)<\/script>/g,(_match,js:string)=>`<script src="${asset(js,'js')}"></script>`)
+  .replace(/<style>([\s\S]*?)<\/style>/g,(_match,css:string)=>`<link rel="stylesheet" href="${asset(css,'css')}" />`);
 export const kellaPageAssets = assets;

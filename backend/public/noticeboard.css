@@ -29,3 +29,9 @@ body[data-route=home] .topbar{display:none!important}
 @media(max-width:900px){.board-profile{top:-3%;right:-3%;font-size:11px;min-width:40px}.board-profile img{width:34px;height:34px}.board-brand{align-self:flex-start;margin-left:0;max-width:78%;font-size:10px}.board-heading{margin:17px 0 8px;padding:12px 14px;width:100%}.board-heading h2{font-size:24px}.board-notes{gap:10px 3px}}
 @media(max-width:480px){.board-profile img{width:30px;height:30px}.board-heading{padding:10px;margin:12px 0 8px}.board-heading h2{font-size:22px}.board-heading p{font-size:11px}.board-brand{font-size:9px;letter-spacing:.04em}.board-brand img{width:21px;height:21px}.board-profile{top:-2%;font-size:10px}.board-notes .board-note{min-height:64px}}
 @media(prefers-reduced-motion:reduce){.board-profile img{transition:none}}
+
+/* The character itself is the accessible playback control. */
+.board-character .character-body-toggle{position:absolute;left:8%;top:36%;width:76%;height:64%;padding:0!important;margin:0!important;border:0!important;border-radius:40%;background:transparent!important;box-shadow:none!important;cursor:pointer;transform:none!important}
+.board-character .character-body-toggle:focus-visible{outline:3px solid #f4d276;outline-offset:3px}
+.board-notes{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:900px){.board-notes{grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}.board-notes .board-note{min-height:52px;padding:1px}.board-note img{width:40px;height:40px}.board-note strong{font-size:12px}}
