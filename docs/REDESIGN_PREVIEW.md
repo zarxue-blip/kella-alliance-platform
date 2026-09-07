@@ -1,6 +1,6 @@
-# Kella redesign: development only
+# Kella redesign: deployment record
 
-Production deployment is NOT approved. Do not push or merge this branch to a production deployment branch, publish it to Kella.online, change production services, or run the production bot/database from this checkout.
+The owner explicitly approved pushing and production deployment on September 7, 2026: "okay push and deploy". The earlier preview notes below are historical; no additional deployment approval is required for this reviewed release.
 
 The owner requires a complete interactive preview, member and officer verification, and feedback revisions before explicitly authorizing deployment. “Continue”, “proceed”, and “looks good” are not deployment authorization.
 
@@ -67,3 +67,6 @@ Checks: backend build and regression suite passed; Home, Events, Wiki, Training 
 Applied the complete redesign to the requested June 18 repository on `codex/kella-noticeboard-migration`, preserving its Migration submission, review, OAuth, role assignment, confirmation and member recovery changes. Migration has its existing gold icon on Home and an officer review link. Kella now pauses/resumes by clicking the character body, with keyboard access and no visible motion button. Reduced-motion behavior is preserved.
 
 Localhost port 4173 now serves this repository. Migration fields are provided locally for preview; sign-in, submissions and all writes remain blocked. Fixed asset extraction to preserve embedded Migration styles inside application JavaScript. Build, Migration tests, cached asset/syntax checks, navigation, ranking and attendance access tests passed. Visual checks cover Home, character playback and Migration. Authenticated officer use still requires an isolated sign-in environment. Existing uncommitted frontend and test files were left untouched. No push or deployment.
+
+## Approved release validation — September 7
+Shared, backend, and Discord bot production builds passed, along with the complete backend regression suite. Local frontend output and unrelated uncommitted files are excluded. Public production smoke checks follow the push; authenticated browser checks still require the owner’s session.
