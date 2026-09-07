@@ -58,3 +58,13 @@ assert.equal(chooseEvent([past,next],now)?.id,'next');
 assert.equal(chooseEvent([past],now),null);
 assert.equal(chooseEvent([],now),null);
 console.log('Current event selection checks passed.');
+
+// Home exposes the tools hub only to the existing authorized admin role.
+function homeForRole(admin:boolean) {
+  return new Function('document','boardCurrentEvent','hasAdminAccess','escapeHtml',
+    extract('renderAllianceBoard','initializeCharacterVideo')+'return renderAllianceBoard([]);'
+  )({body:{classList:{contains:()=>false}}},()=>null,()=>admin,(text:string)=>text);
+}
+assert.match(homeForRole(true), /href="\/officer"[^>]*>[\s\S]*?<strong>Admin Tools<\/strong>/);
+assert.ok(!homeForRole(false).includes('href="/officer"'));
+console.log('Home admin tools visibility checks passed.');
