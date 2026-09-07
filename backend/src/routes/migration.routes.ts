@@ -64,6 +64,12 @@ migrationRouter.get('/',authenticateDashboardAdmin,asyncHandler(async(req:Authen
   const [submissions,total]=await Promise.all([MigrationModel.find(filter).sort({createdAt:-1}).skip((page-1)*30).limit(30).lean(),MigrationModel.countDocuments(filter)]);
   res.json({submissions,total,page});
 }));
+migrationRouter.delete('/:id',authenticateDashboardAdmin,asyncHandler(async(req:AuthenticatedRequest,res)=>{
+  const id=z.string().regex(/^[a-f0-9]{24}$/i).parse(req.params.id);
+  const item=await MigrationModel.findOneAndDelete({_id:id,allianceId:await adminAlliance(req)});
+  if(!item) throw new HttpError(404,'Application not found');
+  res.json({message:'Application deleted.'});
+}));
 migrationRouter.patch('/:id',authenticateDashboardAdmin,asyncHandler(async(req:AuthenticatedRequest,res)=>{
   const status=z.enum(migrationStatuses).parse(req.body.status);
   const item=await MigrationModel.findOneAndUpdate({_id:z.string().regex(/^[a-f0-9]{24}$/i).parse(req.params.id),allianceId:await adminAlliance(req)},{$set:{status}},{new:true});

@@ -27,6 +27,10 @@ globalThis.fetch=async(input:any,init:any)=>{
 };
 (MigrationModel as any).findById=(id:any)=>{const value=docs.find(d=>String(d._id)===String(id));return {lean:async()=>value,then:(resolve:any)=>Promise.resolve(value).then(resolve)};};
 (MigrationModel as any).findOne=async(filter:any)=>docs.find(d=>String(d._id)===String(filter._id)&&String(d.allianceId)===String(filter.allianceId));
+(MigrationModel as any).findOneAndDelete=async(filter:any)=>{
+ const index=docs.findIndex(d=>String(d._id)===String(filter._id)&&String(d.allianceId)===String(filter.allianceId));
+ return index<0?null:docs.splice(index,1)[0];
+};
 const app=express();app.use(express.json());app.use(cookieParser());app.use('/migration',migrationRouter);app.use(errorHandler);const server=app.listen(0,'127.0.0.1');await new Promise<void>(r=>server.once('listening',r));const base='http://127.0.0.1:'+(server.address() as any).port;
 const token=signSessionToken({id:String(user._id),allianceId:String(user.allianceId),discordId:user.discordId,role:'Member'});const headers={'content-type':'application/json',cookie:'cod_amp_session='+token};
 const answers:any={};for(const f of migrationFields)answers[f.key]=f.type==='multi'?f.options.slice(0,1):f.type==='single'?f.options.at(-1):f.type==='number'?100:'Example';answers.playerId='24055137';answers.groupMigration='No';
@@ -46,5 +50,14 @@ try{
  const linkedHeaders={'content-type':'application/json',cookie:migrationIdentityCookie+'='+signMigrationIdentity(user.discordId)};
  r=await fetch(base+'/migration/connect-discord',{method:'POST',headers:linkedHeaders,body:receipt});assert.equal(r.status,200);assert.equal((await r.json()).roleStatus,'Assigned');assert.equal(docs.at(-1).discordId,user.discordId);
  r=await fetch(base+'/migration/connect-discord',{method:'POST',headers:{...linkedHeaders,cookie:migrationIdentityCookie+'='+signMigrationIdentity('987654321098765432')},body:receipt});assert.equal(r.status,404,'cannot replace a verified applicant identity');assert.equal(docs.at(-1).discordId,user.discordId);
+ const deleteId=String(docs[0]._id);const count=docs.length;
+ r=await fetch(base+'/migration/'+deleteId,{method:'DELETE'});assert.equal(r.status,401);
+ user.role='Member';r=await fetch(base+'/migration/'+deleteId,{method:'DELETE',headers});assert.equal(r.status,403);assert.equal(docs.length,count);
+ user.role='Leader';const ownAlliance=user.allianceId;user.allianceId=new Types.ObjectId();
+ r=await fetch(base+'/migration/'+deleteId,{method:'DELETE',headers});assert.equal(r.status,404);assert.equal(docs.length,count);user.allianceId=ownAlliance;
+ r=await fetch(base+'/migration/not-an-id',{method:'DELETE',headers});assert.equal(r.status,400);
+ r=await fetch(base+'/migration/'+deleteId,{method:'DELETE',headers});assert.equal(r.status,200);assert.equal(docs.length,count-1);
+ r=await fetch(base+'/migration/'+deleteId,{method:'DELETE',headers});assert.equal(r.status,404);
+ console.log('Migration deletion: guest/member denied, alliance scope, invalid ID, deletion and missing application passed.');
  console.log('Migration HTTP integration passed: auth, save-before-post, idempotency, failure persistence, admin retry. Database and Discord mocked.');
 }finally{server.close();globalThis.fetch=originalFetch;}

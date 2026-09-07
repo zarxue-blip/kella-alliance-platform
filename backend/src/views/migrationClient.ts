@@ -56,6 +56,16 @@ export const migrationClient = String.raw`
 
                 const save=document.createElement('button');save.className='primary';save.textContent='Save status';save.onclick=function(){withFeedback(save,async function(){await sendJson('PATCH','/api/migration/'+item._id,{status:select.value},true);item.status=select.value;row.children[2].textContent=item.status;},'Status updated');};detail.appendChild(save);
 
+                const remove=document.createElement('button');remove.className='danger';remove.textContent='Delete application';remove.onclick=function(){
+                  if(!window.confirm('Permanently delete the application for '+item.answers.ign+' ('+item.answers.playerId+')? This cannot be undone. Existing Discord messages and roles will remain.')) return;
+                  withFeedback(remove,async function(){
+                    await sendJson('DELETE','/api/migration/'+item._id,{},true);
+                    const remaining=data.total-1;
+                    const nextPage=Math.min(page,Math.max(1,Math.ceil(remaining/30)));
+                    navigate('/migration/admin?status='+encodeURIComponent(status)+'&page='+nextPage);
+                  },'Application deleted');
+                };detail.appendChild(remove);
+
                 if(item.deliveryStatus==='Failed'||item.deliveryStatus==='Pending'||item.roleStatus==='Failed'){const retry=document.createElement('button');retry.className='secondary';retry.textContent='Retry Discord / roles';retry.onclick=function(){withFeedback(retry,async function(){const result=await sendJson('POST','/api/migration/'+item._id+'/retry',{},true);item.deliveryStatus=result.submission.deliveryStatus;item.roleStatus=result.submission.roleStatus;selectRow();},'Delivery checked');};detail.appendChild(retry);}
 
               }
@@ -106,6 +116,7 @@ export const migrationClient = String.raw`
             const message=document.createElement('p');message.textContent='Your server 881 application is received. Our review team will be in touch.';dialog.appendChild(message);
             const roles=document.createElement('p');roles.textContent=saved.roleStatus==='Assigned'?'Both Discord applicant roles have been assigned.':saved.roleStatus==='NeedsDiscord'?'Connect Discord to receive your applicant roles.':saved.roleError||'';dialog.appendChild(roles);
             if(saved.roleStatus==='NeedsDiscord'){const connect=document.createElement('button');connect.className='primary';connect.textContent='Connect Discord';connect.onclick=connectDiscord;dialog.appendChild(connect);}
+            const join=document.createElement('a');join.className='primary';join.href='https://discord.gg/QmzkgQgQe';join.target='_blank';join.rel='noopener noreferrer';join.textContent='Join Discord';dialog.appendChild(join);
             const close=document.createElement('button');close.className='secondary';close.textContent='Done';close.onclick=function(){dialog.close();};dialog.appendChild(close);dialog.onclose=function(){dialog.remove();};document.body.appendChild(dialog);dialog.showModal();
           }
           const draftKey='kella-migration-draft';
