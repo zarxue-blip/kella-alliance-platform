@@ -7465,32 +7465,22 @@ export function kellaDashboardHtml() {
 
       function renderAllianceBoard(events = []) {
         const current = boardCurrentEvent(events);
-        const motionPaused = document.body.classList.contains("character-paused");
         const notes = [["/calendar", "events.png", "Events"], ["/wiki", "embed-sender.png", "Wiki"], ["/members", "members.png", "Members"], ["/attendance", "events.png", "Attendance"], ["/research", "research.png", "Research"], ["/training-tools", "training-tools.png", "Training"], ["/migration", "/assets/migration-gold.png", "Migration"]];
         if (hasAdminAccess()) notes.push(["/officer", "settings.png", "Admin Tools"]);
         const eventLabel = current ? (dayKey(current.startsAt) === dayKey(new Date()) ? "Today’s event" : "Next event") : "Alliance calendar";
-        return '<section class="alliance-board" aria-label="Alliance noticeboard"><picture><source media="(max-width: 900px)" srcset="/assets/alliance-board-portrait.png"/><img class="board-scene" src="/assets/alliance-board-wide.png" alt="Sunny fantasy meadow with the alliance noticeboard" width="1672" height="941" fetchpriority="high"/></picture><div class="board-character has-video"><video data-kella-video muted loop playsinline preload="auto" poster="/assets/kella-toss-poster.png" aria-label="Kella tossing a coin" width="480" height="672"><source src="/assets/kella-toss.webm" type="video/webm"/></video><button class="character-body-toggle" type="button" data-action="toggle-character-motion" aria-pressed="' + motionPaused + '" aria-label="' + (motionPaused ? 'Resume Kella animation' : 'Pause Kella animation') + '"></button></div><div class="board-paper"><a class="board-profile" href="/profile" data-link aria-label="My Profile"><img src="/assets/icons/members.png" alt="" width="44" height="44"/><span>Profile</span></a><a class="board-brand" href="/" data-link><img src="/assets/kella-logo.png?v=1" alt="" width="32" height="32"/>KING OF GLORY</a><div class="board-heading"><span>' + eventLabel + '</span><h2>' + escapeHtml(current?.title || 'No upcoming event') + '</h2><p>' + (current ? formatUtcDateTime(current.startsAt) : 'A new adventure will appear here when scheduled.') + '</p>' + (current ? '<a class="board-event-link" href="/attendance/' + escapeHtml(current.id) + '" data-link>View event →</a>' : '') + '</div><nav class="board-notes" aria-label="Noticeboard destinations">' + notes.map(function(note) { return '<a class="board-note" href="' + note[0] + '" data-link><img src="' + (note[1].startsWith("/") ? note[1] : "/assets/icons/" + note[1]) + '" alt="" width="68" height="68"/><strong>' + note[2] + '</strong></a>'; }).join('') + '</nav></div></section>';
+        return '<section class="alliance-board" aria-label="Alliance noticeboard"><picture><source media="(max-width: 900px)" srcset="/assets/alliance-board-portrait.png"/><img class="board-scene" src="/assets/alliance-board-wide.png" alt="Sunny fantasy meadow with the alliance noticeboard" width="1672" height="941" fetchpriority="high"/></picture><div class="board-character has-video"><video data-kella-video autoplay muted loop playsinline preload="auto" poster="/assets/kella-toss-poster.png" aria-label="Kella tossing a coin" width="480" height="672"><source src="/assets/kella-toss.webm" type="video/webm"/></video></div><div class="board-paper"><a class="board-profile" href="/profile" data-link aria-label="My Profile"><img src="/assets/icons/members.png" alt="" width="44" height="44"/><span>Profile</span></a><a class="board-brand" href="/" data-link><img src="/assets/kella-logo.png?v=1" alt="" width="32" height="32"/>KING OF GLORY</a><div class="board-heading"><span>' + eventLabel + '</span><h2>' + escapeHtml(current?.title || 'No upcoming event') + '</h2><p>' + (current ? formatUtcDateTime(current.startsAt) : 'A new adventure will appear here when scheduled.') + '</p>' + (current ? '<a class="board-event-link" href="/attendance/' + escapeHtml(current.id) + '" data-link>View event →</a>' : '') + '</div><nav class="board-notes" aria-label="Noticeboard destinations">' + notes.map(function(note) { return '<a class="board-note" href="' + note[0] + '" data-link><img src="' + (note[1].startsWith("/") ? note[1] : "/assets/icons/" + note[1]) + '" alt="" width="68" height="68"/><strong>' + note[2] + '</strong></a>'; }).join('') + '</nav></div></section>';
       }
 
       function initializeCharacterVideo() {
         const video = document.querySelector('[data-kella-video]');
         if (!video) return;
-        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (reducedMotion) document.body.classList.add('character-paused');
-        const button = document.querySelector('[data-action="toggle-character-motion"]');
-        function updateControl() {
-          const paused = video.paused;
-          document.body.classList.toggle('character-paused', paused);
-          if (!button) return;
-          button.setAttribute('aria-pressed', String(paused));
-          button.setAttribute('aria-label', paused ? 'Play Kella video' : 'Pause Kella video');
-          button.title = paused ? 'Click Kella to play' : 'Click Kella to pause';
-        }
-        video.addEventListener('play', updateControl);
-        video.addEventListener('pause', updateControl);
         video.muted = true;
-        if (!document.body.classList.contains('character-paused')) video.play().catch(updateControl);
-        else updateControl();
+        video.play().catch(function() {
+          // Retry after the first interaction if the browser blocks autoplay.
+          document.addEventListener('pointerdown', function() {
+            if (video.isConnected) video.play().catch(function() {});
+          }, { once: true });
+        });
       }
 
       function renderDashboardData(summary, members = [], events = []) {
@@ -9122,13 +9112,6 @@ export function kellaDashboardHtml() {
           const enabled = !action.classList.contains("on");
           setOptionalLinkButtonState(scope, enabled);
           if (scope === "embed") updateEmbedPreview();
-          return;
-        }
-        if (kind === "toggle-character-motion") {
-          const video = document.querySelector('[data-kella-video]');
-          if (!video) return;
-          if (video.paused) video.play().catch(function() { toast('Video playback is unavailable in this browser.'); });
-          else video.pause();
           return;
         }
         if (kind === "training-mode") {
