@@ -1,13 +1,8 @@
+import { kellaMention } from "../services/kellaMention.js";
 import type { Message } from "discord.js";
 import { kellaReply } from "../services/kellaPersona.js";
 import { config } from "../config.js";
 import { api } from "../services/api.js";
-
-function cleanMentionText(message: Message) {
-  const botId = message.client.user?.id;
-  if (!botId) return message.content.trim();
-  return message.content.replace(new RegExp(`<@!?${botId}>`, "g"), "").trim();
-}
 
 function hasAny(text: string, words: string[]) {
   return words.some((word) => text.includes(word));
@@ -118,7 +113,9 @@ let activeReplies = 0;
 export async function handleMessageMention(message: Message) {
   if (message.author.bot || message.webhookId || !message.guildId) return;
   const botUser = message.client.user;
-  if (!botUser || !message.mentions.users.has(botUser.id)) return;
+  if (!botUser) return;
+  const question = kellaMention(message.content, botUser.id, message.mentions.users.has(botUser.id), message.mentions.roles.values());
+  if (question === undefined) return;
   const now = Date.now();
   for (const [key, expires] of recentReplies) if (expires <= now) recentReplies.delete(key);
   const key = message.guildId + ':' + message.author.id;
@@ -130,7 +127,6 @@ export async function handleMessageMention(message: Message) {
   }
   activeReplies++;
   try {
-    const question = cleanMentionText(message);
     const memberAnswer = await answerMemberStats(message, question);
     let answer = memberAnswer || "My donkey is more talkative than the oracle today. Try again shortly; I've coins to count.";
     if (config.GROQ_API_KEY) {
