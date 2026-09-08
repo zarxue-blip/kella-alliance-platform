@@ -3340,7 +3340,7 @@ export function kellaDashboardHtml() {
       }
     </style>
     <link rel="stylesheet" href="/assets/command-center.css?v=1" />
-    <link rel="stylesheet" href="/assets/noticeboard.css?v=7" />
+    <link rel="stylesheet" href="/assets/noticeboard.css?v=8" />
     <link rel="stylesheet" href="/assets/parchment-workspace.css?v=4" />
   </head>
   <body>
@@ -7503,7 +7503,7 @@ export function kellaDashboardHtml() {
       function championRows(members, metric) {
         return members.slice(0,10).map(function(member,index) {
           const medal = ['gold','silver','bronze'][index] || '';
-          const crown = medal ? '<svg class="champion-crown" viewBox="0 0 40 24" aria-hidden="true"><path d="M5 18 2 5l10 6L20 1l8 10 10-6-3 13Z"/><path d="M5 21h30"/></svg>' : '';
+          const crown = medal ? '<svg class="champion-crown" viewBox="0 0 64 42" aria-hidden="true"><defs><linearGradient id="crown-' + medal + '" x1="0" y1="0" x2="1" y2="1"><stop stop-color="var(--metal-light)"/><stop offset=".24" stop-color="var(--metal-mid)"/><stop offset=".46" stop-color="var(--metal-light)"/><stop offset=".68" stop-color="var(--metal-dark)"/><stop offset=".86" stop-color="var(--metal-mid)"/><stop offset="1" stop-color="var(--metal-light)"/></linearGradient></defs><path fill="url(#crown-' + medal + ')" d="M8 31 4 12l14 9L22 8l10 14L42 8l4 13 14-9-4 19Z"/><path class="crown-engraving" d="m10 16 4 12h36l4-12M22 13l3 15m17-15-3 15"/><rect fill="url(#crown-' + medal + ')" x="8" y="30" width="48" height="9" rx="3"/><path class="crown-engraving" d="M11 33h42M11 37h42"/><g class="crown-pearls"><circle cx="4" cy="10" r="3"/><circle cx="22" cy="6" r="3"/><circle cx="42" cy="6" r="3"/><circle cx="60" cy="10" r="3"/></g><path class="crown-jewel" d="m32 29 4 5-4 5-4-5Z"/><circle class="crown-jewel" cx="17" cy="34" r="2"/><circle class="crown-jewel" cx="47" cy="34" r="2"/></svg>' : '';
           return '<li class="showcase-player '+medal+'"><span class="champion-rank">'+(index+1)+'</span><span class="champion-portrait">'+crown+memberAvatar(member,'champion-avatar')+'</span><span class="champion-info"><strong>'+escapeHtml(member.ign || memberDisplayName(member))+'</strong><small>Power '+formatNumber(member.power || 0)+'</small></span>'+(metric !== 'power' ? '<span class="champion-score">'+formatNumber(memberMetricValue(member,metric))+'<small>'+(metric==='merits'?'Merits':'Kills')+'</small></span>' : '')+'</li>';
         }).join('') || '<li class="showcase-message">No player stats yet.</li>';
       }

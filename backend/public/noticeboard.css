@@ -53,3 +53,17 @@ body[data-route=home] .topbar{display:none!important}
 @media(max-width:900px){.alliance-board{background:#294b33 url('/assets/castle-scenery.png') center bottom/auto 100% no-repeat}}
 
 .showcase-board label{color:#65451f}
+
+/* Polished circular medal settings with engraved rims and jeweled crowns. */
+.showcase-player.gold{--metal-light:#fff5b4;--metal-mid:#dfae39;--metal-dark:#80501b;--jewel:#b82f24}
+.showcase-player.silver{--metal-light:#ffffff;--metal-mid:#b8c8d5;--metal-dark:#526273;--jewel:#3174b7}
+.showcase-player.bronze{--metal-light:#ffe0ad;--metal-mid:#c3834d;--metal-dark:#69381f;--jewel:#347b61}
+.showcase-player:is(.gold,.silver,.bronze) .champion-portrait{border:0;padding:4px;border-radius:50%;outline:1px solid var(--metal-dark);background:conic-gradient(from -35deg,var(--metal-light),var(--metal-mid) 12%,var(--metal-dark) 25%,var(--metal-light) 39%,var(--metal-mid) 52%,var(--metal-dark) 67%,var(--metal-light) 83%,var(--metal-mid),var(--metal-light));box-shadow:inset 0 0 0 1px var(--metal-light),inset 0 0 0 2px var(--metal-dark),0 2px 3px #38200e88;isolation:isolate}
+.showcase-player:is(.gold,.silver,.bronze) .champion-portrait:after{content:'';position:absolute;inset:2px;border:1px dotted var(--metal-light);border-radius:50%;pointer-events:none;box-shadow:0 0 0 1px #49301944}
+.showcase-player:is(.gold,.silver,.bronze) .champion-avatar{border-radius:50%;box-shadow:0 0 0 1px var(--metal-dark),0 0 0 2px var(--metal-light)}
+.showcase-player .champion-crown{top:-17px;left:50%;transform:translateX(-50%);width:32px;height:22px;z-index:2;stroke:var(--metal-dark);stroke-width:1.3;stroke-linejoin:round;filter:drop-shadow(0 1px 1px #39261499)}
+.champion-crown .crown-engraving{fill:none;stroke:var(--metal-light);stroke-width:1}
+.champion-crown .crown-pearls{fill:var(--metal-light)}
+.champion-crown .crown-jewel{fill:var(--jewel);stroke:var(--metal-light);stroke-width:.8}
+
+.showcase-player .champion-crown{top:-13px;width:29px;height:18px}
