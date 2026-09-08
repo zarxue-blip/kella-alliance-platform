@@ -8,11 +8,18 @@ export async function summarizeWithGroq(chunks: string[], apiKey: string, reques
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(Math.min(30_000, deadline - Date.now())),
-      body: JSON.stringify({ model: 'llama-3.1-8b-instant', temperature: 0.2, max_completion_tokens: 350,
+      body: JSON.stringify({ model: 'openai/gpt-oss-20b', temperature: 0.2, reasoning_effort: 'low', include_reasoning: false, max_completion_tokens: 1500,
         messages: [{ role: 'system', content: SUMMARY_INSTRUCTIONS }, { role: 'user', content: text }] })
     });
     if (response.status === 429) throw new Error('Kella has reached the free summary quota. Please try again later.');
-    if (!response.ok) throw new Error('The summary service is unavailable. Ask an admin to check the Groq configuration.');
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({})) as { error?: { code?: string } };
+      // Only report status and known error categories, never provider bodies or credentials.
+      if (response.status === 401) throw new Error('Groq rejected the API key. An admin should check GROQ_API_KEY in Render.');
+      if (payload.error?.code === 'model_decommissioned') throw new Error('Groq retired the configured summary model. Kella needs a model update.');
+      if (response.status === 403 || response.status === 404) throw new Error('Groq denied access to the summary model. An admin should check model permissions in Groq.');
+      throw new Error('Groq could not process the summary (HTTP ' + response.status + '). Please try again later.');
+    }
     const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     const result = data.choices?.[0]?.message?.content?.trim();
     if (!result) throw new Error('The summary service returned no summary. Please try again.');

@@ -26,6 +26,8 @@ const mock = async (_url: unknown, init: any) => {
   requests++;
   const body=JSON.parse(init.body);
   assert.ok(body.messages[0].content.includes('untrusted data'));
+  assert.equal(body.model, 'openai/gpt-oss-20b');
+  assert.equal(body.include_reasoning, false);
   return new Response(JSON.stringify({choices:[{message:{content:'• Rally at 18:00. @everyone'}}]}),{status:200});
 };
 assert.ok((await summarizeWithGroq(['a','b'],'test-key',mock as typeof fetch)).includes('[mention]'));
@@ -34,3 +36,7 @@ await assert.rejects(summarizeWithGroq(['a'],'test',async()=>new Response('',{st
 await assert.rejects(summarizeWithGroq(['a'],'test',async()=>new Response('{}',{status:200})),/no summary/);
 assert.match(await summarizeWithGroq([],'test',async()=>{throw new Error('Must not call AI for empty history');}),/No text conversation/);
 console.log('Summary merge, prompt boundaries, mention suppression, quota and empty-history handling passed.');
+
+await assert.rejects(summarizeWithGroq(['a'],'test',async()=>new Response('{}',{status:401})),/rejected the API key/);
+await assert.rejects(summarizeWithGroq(['a'],'test',async()=>new Response(JSON.stringify({error:{code:'model_decommissioned',message:'private detail'}}),{status:400})),/retired/);
+await assert.rejects(summarizeWithGroq(['a'],'test',async()=>new Response('{}',{status:403})),/model permissions/);
