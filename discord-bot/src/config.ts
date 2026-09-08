@@ -13,6 +13,7 @@ function normalizeApiUrl(value: string) {
 }
 
 const configSchema = z.object({
+  GROQ_API_KEY: z.string().optional(),
   DISCORD_BOT_TOKEN: z.string().min(1),
   DISCORD_APPLICATION_ID: z.string().min(1),
   DISCORD_GUILD_ID: z.string().optional(),

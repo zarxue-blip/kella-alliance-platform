@@ -1,3 +1,4 @@
+import { sumCommand } from './sum.js';
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -179,6 +180,7 @@ function parseUtcTimer(input: string, now = new Date()) {
 }
 
 export const commands: BotCommand[] = [
+  sumCommand,
   {
     data: new SlashCommandBuilder()
       .setName("shield")
