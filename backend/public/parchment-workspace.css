@@ -99,3 +99,5 @@ body:not([data-route=home]) .wiki-card>.muted{font-size:12px}
 body:not([data-route=home]) .lord-research-summary-title{color:#51391e;border-color:#c6a46a}
 body:not([data-route=home]) .lord-research-summary{box-shadow:0 3px 10px #78501f22}
 body:not([data-route=home]) .lord-research-summary-speed{border-color:#c6a46a}
+
+body:not([data-route=home]){background:#264f3a url('/assets/castle-scenery.png') center/cover fixed}

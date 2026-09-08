@@ -3340,8 +3340,8 @@ export function kellaDashboardHtml() {
       }
     </style>
     <link rel="stylesheet" href="/assets/command-center.css?v=1" />
-    <link rel="stylesheet" href="/assets/noticeboard.css?v=6" />
-    <link rel="stylesheet" href="/assets/parchment-workspace.css?v=3" />
+    <link rel="stylesheet" href="/assets/noticeboard.css?v=7" />
+    <link rel="stylesheet" href="/assets/parchment-workspace.css?v=4" />
   </head>
   <body>
     <div class="shell">
@@ -7495,9 +7495,39 @@ export function kellaDashboardHtml() {
         });
       }
 
+      let homeRankMetric = 'power';
+      let homeRankRequest = 0;
+      function homeShowcaseHtml() {
+        return '<aside class="showcase-board" aria-label="Top player showcase"><header><span>KING OF GLORY</span><h2>Hall of Champions</h2><label>Top 10 by <select data-home-rank aria-label="Top player ranking"><option value="power">Power</option><option value="merits">Merits</option><option value="unitsKilled">Kills</option></select></label></header><ol class="showcase-players" aria-live="polite"><li class="showcase-message">Loading champions…</li></ol></aside>';
+      }
+      function championRows(members, metric) {
+        return members.slice(0,10).map(function(member,index) {
+          const medal = ['gold','silver','bronze'][index] || '';
+          const crown = medal ? '<svg class="champion-crown" viewBox="0 0 40 24" aria-hidden="true"><path d="M5 18 2 5l10 6L20 1l8 10 10-6-3 13Z"/><path d="M5 21h30"/></svg>' : '';
+          return '<li class="showcase-player '+medal+'"><span class="champion-rank">'+(index+1)+'</span><span class="champion-portrait">'+crown+memberAvatar(member,'champion-avatar')+'</span><span class="champion-info"><strong>'+escapeHtml(member.ign || memberDisplayName(member))+'</strong><small>Power '+formatNumber(member.power || 0)+'</small></span>'+(metric !== 'power' ? '<span class="champion-score">'+formatNumber(memberMetricValue(member,metric))+'<small>'+(metric==='merits'?'Merits':'Kills')+'</small></span>' : '')+'</li>';
+        }).join('') || '<li class="showcase-message">No player stats yet.</li>';
+      }
+      async function loadHomeShowcase() {
+        const request = ++homeRankRequest;
+        const metric = homeRankMetric;
+        const target = document.querySelector('.showcase-players');
+        if (!target) return;
+        target.innerHTML = '<li class="showcase-message">Loading champions…</li>';
+        try {
+          const data = await fetchJson('/api/dashboard/members?view=dashboard&limit=10&metric='+metric);
+          if (request !== homeRankRequest || !target.isConnected) return;
+          target.innerHTML = championRows(data.members || [],metric);
+        } catch (error) {
+          if (request === homeRankRequest && target.isConnected) target.innerHTML='<li class="showcase-message">Rankings unavailable. <button type="button" data-action="retry-home-rank">Retry</button></li>';
+        }
+      }
+
       function renderDashboardData(summary, members = [], events = []) {
         app.innerHTML = renderAllianceBoard(events);
         initializeCharacterVideo();
+        app.querySelector('.alliance-board').insertAdjacentHTML('beforeend',homeShowcaseHtml());
+        app.querySelector('[data-home-rank]').value=homeRankMetric;
+        loadHomeShowcase();
       }
 
       async function renderMemberCalendar() {
@@ -7613,8 +7643,8 @@ export function kellaDashboardHtml() {
         skeleton("Loading members...");
         try {
           const members = await loadMembers();
-          const adminActions = hasAdminAccess() && new URLSearchParams(location.search).has("manage")
-            ? '<button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-action="open-add-member">Add Member</button>'
+          const adminActions = hasAdminAccess()
+            ? '<a class="primary" href="/members?manage=1" data-link>Upload stats</a><button class="secondary" data-action="sync-discord-members">Sync Discord</button><button class="primary" data-action="open-add-member">Add Member</button>'
             : "";
           if (renderVersion !== navigationVersion) return;
           app.innerHTML = pageHeader("Members", "", '<input class="search" data-member-search placeholder="Search members" />' + adminActions) + (hasAdminAccess() && new URLSearchParams(location.search).has("manage") ? renderMemberUploadCard() : "") + renderMembersTable(members);
@@ -9126,6 +9156,7 @@ export function kellaDashboardHtml() {
           if (scope === "embed") updateEmbedPreview();
           return;
         }
+        if (kind === "retry-home-rank") { loadHomeShowcase(); return; }
         if (kind === "research-fit" || kind === "research-readable") {
           fitLordResearchTree(kind === "research-readable"); return;
         }
@@ -10353,6 +10384,12 @@ export function kellaDashboardHtml() {
           return;
         }
         syncLordResearchFullscreenState(document.fullscreenElement === target);
+      });
+      document.addEventListener('change',function(event){
+        if(event.target.matches('[data-home-rank]')) {
+          homeRankMetric = ['power','merits','unitsKilled'].includes(event.target.value) ? event.target.value : 'power';
+          loadHomeShowcase();
+        }
       });
       document.addEventListener("selectionchange", rememberWikiTextSelection);
       updateServerClock();
