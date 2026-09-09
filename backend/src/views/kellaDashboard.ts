@@ -3674,7 +3674,6 @@ export function kellaDashboardHtml() {
         if (!nav) return;
         const primary = ["/", "/calendar", "/wiki", "/members", "/profile"];
         nav.innerHTML = primary.map(function(path) { return navItemHtml(dashboardNavItems.find(function(item) { return item.path === path; })); }).join("") +
-          '<details class="nav-more"><summary>More</summary>' + (hasWikiEditAccess() ? '<a href="/wiki?edit=1" data-link>Wiki Editor</a>' : '') + dashboardNavItems.filter(function(item) { return !item.adminOnly && !primary.includes(item.path); }).map(navItemHtml).join("") + '</details>' +
           (hasAdminAccess() ? '<div class="nav-section-label">Alliance management</div>' + navItemHtml(dashboardNavItems.find(function(item) { return item.path === "/officer"; })) : "");
         setActiveNav();
       }
