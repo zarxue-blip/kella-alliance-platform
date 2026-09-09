@@ -7,7 +7,7 @@ import { MemberModel } from "../models/member.model.js";
 import { emitAlliance } from "../services/realtime.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
-import type { AuthenticatedRequest } from "../middleware/auth.js";
+import { isDashboardAdminUser, type AuthenticatedRequest } from "../middleware/auth.js";
 
 const attendanceSchema = z.object({
   title: z.string().min(1),
@@ -56,6 +56,7 @@ export const checkInAttendance = asyncHandler(async (req: AuthenticatedRequest, 
     ? await MemberModel.findOne({ _id: body.memberId, allianceId: req.user.allianceId })
     : await MemberModel.findOne({ discordId: body.discordId ?? req.user.discordId, allianceId: req.user.allianceId });
   if (!member) throw new HttpError(404, "Member not found");
+  if (!isDashboardAdminUser(req.user) && (member.discordId !== req.user.discordId || body.method === "manual")) throw new HttpError(403, "You may only check in your own member profile");
 
   const alreadyCheckedIn = event.checkIns.some((entry: any) => entry.memberId.toString() === member._id.toString());
   if (!alreadyCheckedIn) {

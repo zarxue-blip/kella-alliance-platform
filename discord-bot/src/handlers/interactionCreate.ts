@@ -12,7 +12,7 @@ import {
 } from "discord.js";
 import { botName } from "@cod-amp/shared";
 import { api } from "../services/api.js";
-import { commandMap, rootsPollButtons, rootsPollEmbed } from "../commands/index.js";
+import { commandMap } from "../commands/index.js";
 
 function displayName(interaction: Interaction) {
   return interaction.member instanceof GuildMember ? interaction.member.displayName : interaction.user.globalName || interaction.user.username;
@@ -55,41 +55,6 @@ async function submitComplaintFromCommand(interaction: ChatInputCommandInteracti
   });
 }
 
-function rootsDayMenus(monthValue: string) {
-  const [year, month] = monthValue.split("-").map(Number);
-  const totalDays = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  const menus: Array<ActionRowBuilder<StringSelectMenuBuilder>> = [];
-  for (let day = 1; day <= totalDays; day += 1) {
-    const group = day <= 16 ? 0 : 1;
-    if (!menus[group]) {
-      const range = group === 0 ? "1-16" : `17-${totalDays}`;
-      menus[group] = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-        new StringSelectMenuBuilder()
-          .setCustomId(`roots-day:${monthValue}:${group}`)
-          .setPlaceholder(`Choose day ${range}`)
-      );
-    }
-    const eventDate = `${monthValue}-${String(day).padStart(2, "0")}`;
-    menus[group].components[0].addOptions({
-      label: new Date(`${eventDate}T00:00:00.000Z`).toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        timeZone: "UTC"
-      }),
-      value: eventDate
-    });
-  }
-  return menus;
-}
-
-function rootsConfirmation(eventDate: string) {
-  return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setCustomId(`roots-confirm:${eventDate}`).setLabel("Confirm and Publish").setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId("roots-cancel").setLabel("Cancel").setStyle(ButtonStyle.Secondary)
-  );
-}
-
 async function replyError(interaction: Interaction, error: unknown) {
   const message = error instanceof Error ? error.message : "Kella could not complete that action.";
   if (interaction.isRepliable()) {
@@ -123,10 +88,7 @@ export async function handleInteraction(interaction: Interaction) {
         return;
       }
 
-      if (interaction.commandName === "suggest") {
-        await submitComplaintFromCommand(interaction, "Suggestion");
-        return;
-      }
+
 
       const command = commandMap.get(interaction.commandName);
       if (!command) {
@@ -137,51 +99,8 @@ export async function handleInteraction(interaction: Interaction) {
       return;
     }
 
-    if (interaction.isStringSelectMenu() && interaction.customId === "roots-month") {
-      const monthValue = interaction.values[0];
-      if (!monthValue) return;
-      await interaction.update({
-        content: "Choose the Roots of War day.",
-        components: rootsDayMenus(monthValue)
-      });
-      return;
-    }
-
-    if (interaction.isStringSelectMenu() && interaction.customId.startsWith("roots-day:")) {
-      const eventDate = interaction.values[0];
-      if (!eventDate) return;
-      const unix = Math.floor(new Date(`${eventDate}T00:00:00.000Z`).getTime() / 1000);
-      await interaction.update({
-        content: `Publish Roots of War registration for <t:${unix}:D>?`,
-        components: [rootsConfirmation(eventDate)]
-      });
-      return;
-    }
-
-    if (interaction.isButton() && interaction.customId === "roots-cancel") {
-      await interaction.update({ content: "Roots of War registration cancelled.", components: [] });
-      return;
-    }
-
-    if (interaction.isButton() && interaction.customId.startsWith("roots-confirm:")) {
-      const eventDate = interaction.customId.slice("roots-confirm:".length);
-      await interaction.deferUpdate();
-      const { session } = await api.rootsSession({
-        officerDiscordId: interaction.user.id,
-        officerName: displayName(interaction),
-        eventDate
-      });
-      if (!interaction.channel?.isSendable()) throw new Error("Kella cannot publish in this channel.");
-      const message = await interaction.channel.send({
-        embeds: [rootsPollEmbed(eventDate)],
-        components: [rootsPollButtons(session._id)]
-      });
-      await api.updateRootsSession(session._id, {
-        guildId: interaction.guildId ?? undefined,
-        channelId: message.channelId,
-        messageId: message.id
-      });
-      await interaction.editReply({ content: `Roots of War registration published for ${eventDate}.`, components: [] });
+    if ((interaction.isButton() || interaction.isStringSelectMenu()) && /^roots(?:[:-]|$)/.test(interaction.customId)) {
+      await interaction.reply({ ephemeral: true, content: "Roots of War has been retired. Please use the alliance calendar for current events." });
       return;
     }
 
@@ -220,14 +139,6 @@ export async function handleInteraction(interaction: Interaction) {
       return;
     }
 
-    if (interaction.isButton() && interaction.customId.startsWith("roots:")) {
-      const [, reportId, slot, statusValue] = interaction.customId.split(":");
-      if (!reportId || !slot || !statusValue) return;
-      const status = statusValue === "Unsure" ? "Not Sure" : statusValue;
-      await api.rootsResponse({ discordId: interaction.user.id, displayName: displayName(interaction), reportId, slot, status });
-      await interaction.reply({ ephemeral: true, content: `${botName} recorded ${status} for Roots of War ${slot}.` });
-      return;
-    }
 
     if (interaction.isButton() && interaction.customId.startsWith("summit:")) {
       const [, status] = interaction.customId.split(":");

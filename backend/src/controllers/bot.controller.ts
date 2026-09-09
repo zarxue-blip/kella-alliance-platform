@@ -10,7 +10,6 @@ import { TaskModel } from "../models/task.model.js";
 import { OperationModel } from "../models/operation.model.js";
 import { CallToArmsModel } from "../models/callToArms.model.js";
 import { UserModel } from "../models/user.model.js";
-import { RootsOfWarRegistrationModel } from "../models/rootsOfWarRegistration.model.js";
 import { KellaActionModel } from "../models/kellaAction.model.js";
 import { PollModel } from "../models/poll.model.js";
 import { publishCallToArms } from "../services/alert.service.js";
@@ -287,92 +286,8 @@ export const botEventResponse = asyncHandler(async (req, res) => {
   res.status(201).json({ response });
 });
 
-export const botRootsResponse = asyncHandler(async (req, res) => {
-  const body = serviceContextSchema
-    .extend({
-      discordId: z.string(),
-      displayName: z.string().optional(),
-      reportId: z.string().optional(),
-      slot: z.enum(["14UTC", "20UTC"]),
-      status: z.enum(["Available", "Absent", "Not Sure"])
-    })
-    .parse(req.body);
-  const allianceId = await resolveAllianceId(body.allianceId);
-  const response = body.reportId
-    ? await KellaActionModel.findOneAndUpdate(
-        {
-          allianceId,
-          type: "roots_response",
-          reportId: body.reportId,
-          actorDiscordId: body.discordId
-        },
-        {
-          $setOnInsert: {
-            allianceId,
-            type: "roots_response",
-            reportId: body.reportId,
-            actorDiscordId: body.discordId
-          },
-          $set: {
-            actorName: body.displayName,
-            eventType: "Roots of War",
-            slot: body.slot,
-            status: body.status,
-            sentAt: new Date()
-          }
-        },
-        { upsert: true, new: true }
-      )
-    : await recordKellaAction(allianceId, {
-        type: "roots_response",
-        actorDiscordId: body.discordId,
-        actorName: body.displayName,
-        eventType: "Roots of War",
-        slot: body.slot,
-        status: body.status
-      });
-  emitAlliance(allianceId, realtimeEvents.attendanceCheckedIn, response);
-  res.status(201).json({ response });
-});
 
-export const botRootsSession = asyncHandler(async (req, res) => {
-  const body = serviceContextSchema
-    .extend({
-      officerDiscordId: z.string(),
-      officerName: z.string().optional(),
-      eventDate: z.coerce.date()
-    })
-    .parse(req.body);
-  const allianceId = await resolveAllianceId(body.allianceId);
-  const session = await recordKellaAction(allianceId, {
-    type: "roots_registration",
-    actorDiscordId: body.officerDiscordId,
-    actorName: body.officerName,
-    eventType: "Roots of War",
-    status: "Open",
-    payload: { eventDate: body.eventDate.toISOString() }
-  });
-  res.status(201).json({ session });
-});
 
-export const botRootsSessionUpdate = asyncHandler(async (req, res) => {
-  const body = z
-    .object({
-      guildId: z.string().optional(),
-      channelId: z.string().optional(),
-      messageId: z.string().optional()
-    })
-    .parse(req.body);
-  const session = await KellaActionModel.findById(req.params.id);
-  if (!session) throw new HttpError(404, "Roots registration session not found");
-  const messageLink =
-    body.guildId && body.channelId && body.messageId
-      ? `https://discord.com/channels/${body.guildId}/${body.channelId}/${body.messageId}`
-      : undefined;
-  session.payload = { ...session.payload, ...body, messageLink };
-  await session.save();
-  res.json({ session });
-});
 
 export const botSummitResponse = asyncHandler(async (req, res) => {
   const body = serviceContextSchema
@@ -487,36 +402,6 @@ export const botComplaint = asyncHandler(async (req, res) => {
   res.status(201).json({ complaint });
 });
 
-export const botLatestRootsList = asyncHandler(async (req, res) => {
-  const query = serviceContextSchema.parse(req.query);
-  const allianceId = await resolveAllianceId(query.allianceId);
-  const session = (await KellaActionModel.findOne({ allianceId, type: "roots_registration" }).sort({ "payload.eventDate": -1, sentAt: -1 }).lean()) as any;
-  if (!session) throw new HttpError(404, "No Roots of War registration has been published yet");
-  const rawResponses = (await KellaActionModel.find({ allianceId, type: "roots_response", reportId: session._id.toString(), status: "Available" }).sort({ sentAt: -1 }).lean()) as any[];
-  const responseByMember = new Map<string, any>();
-  rawResponses.forEach((item) => {
-    const key = String(item.actorDiscordId || item.actorName || item._id);
-    if (!responseByMember.has(key)) responseByMember.set(key, item);
-  });
-  const responses = Array.from(responseByMember.values()).sort((left, right) =>
-    String(left.actorName || left.actorDiscordId || "").localeCompare(String(right.actorName || right.actorDiscordId || ""))
-  );
-  const names = (slot: "14UTC" | "20UTC") => responses.filter((item) => item.slot === slot).map((item) => item.actorName || item.actorDiscordId || "Unknown player");
-  const at14 = names("14UTC");
-  const at20 = names("20UTC");
-  res.json({
-    report: {
-      id: session._id.toString(),
-      eventDate: session.payload?.eventDate || session.sentAt,
-      messageLink: session.payload?.messageLink || "",
-      at14,
-      at20,
-      total14: at14.length,
-      total20: at20.length,
-      total: at14.length + at20.length
-    }
-  });
-});
 
 export const botEventReminder = asyncHandler(async (req, res) => {
   const body = serviceContextSchema
@@ -555,84 +440,7 @@ export const botAlert = asyncHandler(async (req, res) => {
   res.status(201).json({ alert });
 });
 
-export const botRootsOfWarRegister = asyncHandler(async (req, res) => {
-  const body = serviceContextSchema
-    .extend({
-      discordId: z.string(),
-      slot: z.enum(["14UTC", "20UTC"])
-    })
-    .parse(req.body);
-  const allianceId = await resolveAllianceId(body.allianceId);
-  const member = await MemberModel.findOne({ allianceId, discordId: body.discordId });
-  if (!member) throw new HttpError(404, "Register with /register before joining Roots of War");
 
-  const registration = await RootsOfWarRegistrationModel.findOneAndUpdate(
-    { allianceId, memberId: member._id },
-    {
-      $set: {
-        allianceId,
-        memberId: member._id,
-        discordId: member.discordId,
-        slot: body.slot,
-        status: "Registered"
-      },
-      $setOnInsert: { registeredAt: new Date() }
-    },
-    { upsert: true, new: true, runValidators: true }
-  );
-  emitAlliance(allianceId, realtimeEvents.attendanceCheckedIn, {
-    rootsOfWar: true,
-    action: "registered",
-    slot: body.slot,
-    memberId: member._id
-  });
-  res.json({ registration, member });
-});
-
-export const botRootsOfWarCheckIn = asyncHandler(async (req, res) => {
-  const body = serviceContextSchema
-    .extend({
-      discordId: z.string(),
-      slot: z.enum(["14UTC", "20UTC"])
-    })
-    .parse(req.body);
-  const allianceId = await resolveAllianceId(body.allianceId);
-  const member = await MemberModel.findOne({ allianceId, discordId: body.discordId });
-  if (!member) throw new HttpError(404, "Register with /register before checking in");
-
-  const existing = await RootsOfWarRegistrationModel.findOne({ allianceId, memberId: member._id });
-  const alreadyCheckedIn = existing?.status === "Checked In";
-  const registration = await RootsOfWarRegistrationModel.findOneAndUpdate(
-    { allianceId, memberId: member._id },
-    {
-      $set: {
-        allianceId,
-        memberId: member._id,
-        discordId: member.discordId,
-        slot: body.slot,
-        status: "Checked In",
-        checkedInAt: new Date()
-      },
-      $setOnInsert: { registeredAt: new Date() }
-    },
-    { upsert: true, new: true, runValidators: true }
-  );
-
-  if (!alreadyCheckedIn) {
-    await MemberModel.updateOne(
-      { _id: member._id },
-      { $inc: { attendanceScore: 1, warScore: 1 }, $set: { lastActivity: new Date() } }
-    );
-  }
-
-  emitAlliance(allianceId, realtimeEvents.attendanceCheckedIn, {
-    rootsOfWar: true,
-    action: "checked-in",
-    slot: body.slot,
-    memberId: member._id
-  });
-  res.json({ checkedIn: !alreadyCheckedIn, registration, member });
-});
 
 export const botCallToArmsResponse = asyncHandler(async (req, res) => {
   const body = serviceContextSchema

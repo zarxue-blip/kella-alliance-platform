@@ -46,12 +46,6 @@ interface SendEventAttendanceInput extends SendEmbedInput {
   startsAt: Date;
 }
 
-interface SendRootsRegistrationInput {
-  channelId: string;
-  roleMentionId?: string;
-  reportId: string;
-  eventDate?: Date | string;
-}
 
 interface SendPollInput {
   pollId: string;
@@ -372,51 +366,6 @@ export async function sendEventAttendanceEmbed(input: SendEventAttendanceInput) 
             button("Attending", "Attending", 3),
             button("Absent", "Absent", 4),
             button("Unsure", "Not Sure", 2)
-          ]
-        }
-      ]
-    })
-  });
-}
-
-export async function sendRootsRegistration(input: SendRootsRegistrationInput) {
-  if (!input.channelId) throw new HttpError(400, "Target channel is required");
-  if (!input.reportId) throw new HttpError(400, "Roots report id is required");
-
-  const button = (slot: "14UTC" | "20UTC", label: string, style: number) => ({
-    type: 2,
-    custom_id: `roots:${input.reportId}:${slot}:Available`,
-    label,
-    style
-  });
-  const eventDate = input.eventDate ? new Date(input.eventDate) : null;
-  const dateLabel = eventDate && !Number.isNaN(eventDate.getTime())
-    ? eventDate.toLocaleDateString("en-US", { timeZone: "UTC", year: "numeric", month: "long", day: "numeric" })
-    : "Date not specified";
-
-  return discordRequest<any>(`/channels/${input.channelId}/messages`, {
-    method: "POST",
-    body: JSON.stringify({
-      content: input.roleMentionId ? `<@&${input.roleMentionId}>` : undefined,
-      allowed_mentions: input.roleMentionId ? { roles: [input.roleMentionId] } : { parse: [] },
-      embeds: [
-        {
-          title: "ROOTS OF WAR REGISTRATION",
-          description: [
-            `Date: **${dateLabel}**`,
-            "",
-            "Choose the time you will attend. You may select either or both time slots."
-          ].join("\n"),
-          color: 0xfacc15,
-          footer: { text: "Kella Alliance Command Center" }
-        }
-      ],
-      components: [
-        {
-          type: 1,
-          components: [
-            button("14UTC", "14 UTC", 1),
-            button("20UTC", "20 UTC", 3)
           ]
         }
       ]

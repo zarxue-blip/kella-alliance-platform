@@ -1366,11 +1366,11 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
       KellaActionModel.countDocuments({ ...filter, type: { $in: ["attack_alert", "dm_alert"] }, sentAt: { $gte: recentWindow } }),
       KellaActionModel.countDocuments({ ...filter, type: "shield_alert", sentAt: { $gte: recentWindow } }),
       KellaActionModel.countDocuments({ ...filter, type: "application", status: "Pending" }),
-      KellaActionModel.find({ ...filter, type: "shield_alert" }).sort({ sentAt: -1 }).limit(5).lean(),
-      KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "dm_alert", "event_reminder", "embed_sent", "chat_sent", "discord_member_sync", "member_xlsx_import", "member_manual_add", "member_deleted", "event_deleted"] } })
+      res.locals.adminSummary ? KellaActionModel.find({ ...filter, type: "shield_alert" }).sort({ sentAt: -1 }).limit(5).lean() : Promise.resolve([]),
+      res.locals.adminSummary ? KellaActionModel.find({ ...filter, type: { $in: ["shield_alert", "attack_alert", "dm_alert", "event_reminder", "embed_sent", "chat_sent", "discord_member_sync", "member_xlsx_import", "member_manual_add", "member_deleted", "event_deleted"] } })
         .sort({ sentAt: -1 })
         .limit(8)
-        .lean()
+        .lean() : Promise.resolve([])
     ]);
   const shieldAlerts = latestShieldAlerts as DashboardAction[];
   const adminActions = recentAdminActions as DashboardAction[];
@@ -1437,7 +1437,11 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
     : queriedMembers;
 
   res.json({
-    members: members.map((member) => dashboardMemberDto(member, dashboardView ? { historyLimit: 10, compact: true, metricKey } : {}))
+    members: members.map((member) => {
+      const dto = dashboardMemberDto(member, dashboardView ? { historyLimit: 10, compact: true, metricKey } : {});
+      if (!res.locals.memberManagement) delete (dto as any).notes;
+      return dto;
+    })
   });
 });
 
@@ -1488,7 +1492,9 @@ async function findOrCreateProfileMember(user: { id: string; discordId: string; 
 export const dashboardProfile = asyncHandler(async (req, res) => {
   const user = (req as AuthenticatedRequest).user;
   const member = await findOrCreateProfileMember(user);
-  res.json({ member: dashboardMemberDto(member) });
+  const profile = dashboardMemberDto(member);
+  delete (profile as any).notes;
+  res.json({ member: profile });
 });
 
 export const dashboardProfileUpdate = asyncHandler(async (req, res) => {
@@ -1501,7 +1507,9 @@ export const dashboardProfileUpdate = asyncHandler(async (req, res) => {
     { new: true, runValidators: true }
   ).lean();
   if (!updated) throw new HttpError(404, "Profile not found");
-  res.json({ member: dashboardMemberDto(updated) });
+  const profile = dashboardMemberDto(updated);
+  delete (profile as any).notes;
+  res.json({ member: profile });
 });
 
 export const dashboardMemberCreate = asyncHandler(async (req, res) => {

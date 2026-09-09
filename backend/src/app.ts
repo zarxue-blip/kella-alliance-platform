@@ -8,6 +8,7 @@ import morgan from "morgan";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { env } from "./config/env.js";
+import { authenticateDashboardAdmin, authenticateDashboardWikiEditor } from "./middleware/auth.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { botRouter } from "./routes/bot.routes.js";
 import { apiRouter } from "./routes/index.js";
@@ -79,8 +80,16 @@ export function createApp() {
       "/complaints",
       "/settings"
     ],
-    (_req, res) => {
-      res.type("html").send(kellaPageHtml);
+    (req, res) => {
+      const adminPaths = ["/officer", "/migration/admin", "/tools", "/events", "/alerts", "/shield-alerts", "/embed-sender", "/complaints", "/settings"];
+      const guard = adminPaths.includes(req.path) || (req.path === "/members" && req.query.manage === "1")
+        ? authenticateDashboardAdmin : req.path === "/wiki" && req.query.edit === "1" ? authenticateDashboardWikiEditor : null;
+      const sendPage = (error?: unknown) => {
+        // The shared shell renders the safe sign-in/access screen on denial.
+        // All protected data and mutations also require API authorization.
+        res.set("Cache-Control", "private, no-store").status(error ? 403 : 200).type("html").send(kellaPageHtml);
+      };
+      if (guard) guard(req, res, sendPage); else sendPage();
     }
   );
 

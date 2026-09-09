@@ -7,7 +7,7 @@ import { membersToCsv } from "../services/csv.service.js";
 import { emitAlliance } from "../services/realtime.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
-import type { AuthenticatedRequest } from "../middleware/auth.js";
+import { isDashboardAdminUser, type AuthenticatedRequest } from "../middleware/auth.js";
 
 const memberSchema = z.object({
   discordId: z.string().min(1),
@@ -42,6 +42,7 @@ export const listMembers = asyncHandler(async (req: AuthenticatedRequest, res) =
   const direction = order === "asc" ? 1 : -1;
   const [members, total] = await Promise.all([
     MemberModel.find(filter)
+      .select(isDashboardAdminUser(req.user) ? "" : "-notes")
       .sort({ [String(sort)]: direction })
       .skip((page - 1) * limit)
       .limit(limit)

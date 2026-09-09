@@ -16,7 +16,7 @@ const client = new Client({
 
 client.once(Events.ClientReady, (readyClient) => {
   readyClient.user.setPresence({
-    activities: [{ name: "Roots of War registrations", type: ActivityType.Watching }],
+    activities: [{ name: "the alliance", type: ActivityType.Watching }],
     status: "online"
   });
   console.log(`${botName} ready as ${readyClient.user.tag}`);

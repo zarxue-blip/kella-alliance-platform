@@ -1,4 +1,4 @@
-import type { MessageReaction, PartialMessageReaction, PartialUser, User } from "discord.js";
+import { EmbedBuilder, type MessageReaction, PartialMessageReaction, PartialUser, User } from "discord.js";
 import { getLanguageFromFlag, translateForFlag } from "../services/translation.js";
 
 async function fetchReaction(reaction: MessageReaction | PartialMessageReaction) {
@@ -20,6 +20,8 @@ function describeError(error: unknown) {
   return String(error);
 }
 
+const translations = new Map<string, number>();
+
 export async function handleMessageReactionAdd(
   reactionInput: MessageReaction | PartialMessageReaction,
   userInput: User | PartialUser
@@ -32,14 +34,18 @@ export async function handleMessageReactionAdd(
     if (!getLanguageFromFlag(flag)) return;
 
     const message = await fetchMessage(reaction);
+    if (message.author?.bot) return;
+    const translationKey = message.id + ':' + getLanguageFromFlag(flag)?.code;
+    for (const [key, expires] of translations) if (expires <= Date.now()) translations.delete(key);
+    if (translations.has(translationKey)) return;
+    translations.set(translationKey, Date.now() + 60_000);
     const sourceText = message.content?.trim();
     if (!sourceText) {
       if (message.attachments.size > 0) return;
 
       await message.reply({
-        content:
-          "I saw the flag, but Discord is hiding the message text from me. Turn on Message Content Intent for Kella in the Discord Developer Portal, make sure ENABLE_MESSAGE_CONTENT_INTENT is true on Render, then redeploy.",
-        allowedMentions: { repliedUser: false }
+        embeds: [new EmbedBuilder().setTitle("🌐 Kella Translation").setDescription("I cannot read this message. Ask an officer to check my message access.").setColor(0xd6aa49)],
+        allowedMentions: { parse: [], repliedUser: false }
       });
       return;
     }
@@ -47,14 +53,14 @@ export async function handleMessageReactionAdd(
     const translation = await translateForFlag(sourceText, flag);
     if (!translation) return;
 
-    const trimNote = translation.wasTrimmed ? "\n\n_Note: I translated the readable portion that fits in one Discord reply._" : "";
-    const heading = translation.alreadyTargetLanguage
-      ? `${flag} **This message already appears to be ${translation.language.label}.**`
-      : `${flag} **${translation.language.label} translation**`;
-    await message.reply({
-      content: `${heading}\n${translation.translatedText}${trimNote}`,
-      allowedMentions: { repliedUser: false }
-    });
+    const pages = translation.translatedText.match(/[\s\S]{1,3900}/g) || [];
+    const embeds = pages.slice(0, 2).map((text, index) => new EmbedBuilder()
+      .setTitle(index ? "🌐 Kella Translation · continued" : "🌐 Kella Translation")
+      .setDescription(text).setColor(0xd6aa49)
+      .setFooter({text: 'Kella • Alliance Translator · ' + translation.language.label}));
+    if (pages.length > 2) throw new Error('Translation too long');
+    // Discord limits aggregate embed text per message, so send each page separately.
+    for (const embed of embeds) await message.reply({ embeds: [embed], allowedMentions: { parse: [], repliedUser: false } });
   } catch (error) {
     const reaction = reactionInput.partial ? null : reactionInput;
     const message = reaction?.message.partial ? null : reaction?.message;
@@ -64,8 +70,8 @@ export async function handleMessageReactionAdd(
     }
 
     await message.reply({
-      content: `I could not translate that right now: ${describeError(error)}`,
-      allowedMentions: { repliedUser: false }
-    });
+      embeds: [new EmbedBuilder().setTitle("🌐 Kella Translation").setDescription("Translation is unavailable right now. Please try again shortly.").setColor(0xd6aa49).setFooter({text:"Kella • Alliance Translator"})],
+      allowedMentions: { parse: [], repliedUser: false }
+    }).catch(() => console.warn("Kella could not send a translation reply."));
   }
 }

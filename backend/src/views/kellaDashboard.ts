@@ -3341,35 +3341,21 @@ export function kellaDashboardHtml() {
     </style>
     <link rel="stylesheet" href="/assets/command-center.css?v=1" />
     <link rel="stylesheet" href="/assets/noticeboard.css?v=8" />
-    <link rel="stylesheet" href="/assets/parchment-workspace.css?v=4" />
+    <link rel="stylesheet" href="/assets/parchment-workspace.css?v=5" />
+    <link rel="stylesheet" href="/assets/command-workspace.css?v=1" />
   </head>
   <body>
     <div class="shell">
       <aside class="sidebar">
         <div class="brand">
-          <img class="brand-logo" src="/assets/kella-logo.png?v=1" alt="Kella logo" />
+          <img id="guildAvatar" class="brand-logo" src="/assets/kella-logo.png?v=1" alt="Kella logo" />
           <div>
-            <strong>KING OF GLORY</strong>
-            <span>Command Center</span>
+            <strong id="guildName">KING OF GLORY</strong>
+            <span id="guildTagline">Command Center</span>
           </div>
         </div>
         <nav aria-label="Dashboard navigation" data-sidebar-nav>${navItems.filter((item) => !item.adminOnly).map(navLink).join("")}</nav>
-        <div class="side-spacer"></div>
-        <div class="side-footer">
-          <button type="button" class="secondary collapse-sidebar" data-collapse-sidebar aria-label="Collapse sidebar" aria-expanded="true">Collapse sidebar</button><span class="companion"><img src="/assets/kella-logo.png?v=1" alt="" width="32" height="32" /> Kella · Alliance companion</span>
-        </div>
-      </aside>
-      <button class="mobile-nav-backdrop" type="button" data-mobile-nav-close aria-label="Close navigation"></button>
-      <main>
-        <header class="topbar">
-          <div class="guild">
-            <button class="mobile-nav-toggle" type="button" data-mobile-nav-toggle aria-label="Open navigation" aria-expanded="false">☰</button>
-            <img class="avatar-img" id="guildAvatar" src="/assets/kella-logo.png?v=1" alt="Kella logo" />
-            <div>
-              <h1 id="guildName">KING OF GLORY</h1>
-              <span class="muted" id="guildTagline">Command Center</span>
-            </div>
-          </div>
+        <button class="mobile-nav-toggle" type="button" data-mobile-nav-toggle aria-label="Open navigation" aria-expanded="false">☰</button>
           <div class="top-actions" aria-label="Quick actions">
             <div class="server-clock" title="Call of Dragons server time">
               <span>Server Time</span>
@@ -3381,7 +3367,14 @@ export function kellaDashboardHtml() {
             <button class="auth-button" type="button" data-action="discord-login" data-auth-login title="Discord Login">Login</button>
             <button class="auth-button" type="button" data-action="discord-logout" data-auth-logout title="Logout" style="display:none">Logout</button><a href="https://ko-fi.com/exuz19" target="_blank" rel="noreferrer">Support Kella</a></div></details>
           </div>
-        </header>
+        <div class="side-spacer"></div>
+        <div class="side-footer">
+          <button type="button" class="secondary collapse-sidebar" data-collapse-sidebar aria-label="Collapse sidebar" aria-expanded="true">Collapse sidebar</button><span class="companion"><img src="/assets/kella-logo.png?v=1" alt="" width="32" height="32" /> Kella · Alliance companion</span>
+        </div>
+      </aside>
+      <button class="mobile-nav-backdrop" type="button" data-mobile-nav-close aria-label="Close navigation"></button>
+      <main>
+
         <div class="content">
           <section id="app" aria-live="polite"><div class="skeleton">Loading Kella dashboard...</div></section>
         </div>
@@ -3432,7 +3425,6 @@ export function kellaDashboardHtml() {
         { name: "absence", label: "Absence Notice", description: "Let members submit time-away notices." },
         { name: "apply", label: "Alliance Application", description: "Open the alliance application form." },
         { name: "complain", label: "Complaint", description: "Let members privately contact R4s." },
-        { name: "suggest", label: "Suggestion", description: "Let members send private suggestions." },
         { name: "wiki-admin", label: "Wiki", description: "Post the Kella Wiki reader link." },
         { name: "dashboard", label: "Dashboard Link", description: "Give members the Kella website link." }
       ];
@@ -3660,7 +3652,7 @@ export function kellaDashboardHtml() {
       }
 
       function hasAdminAccess() {
-        return isDashboardAdmin() || Boolean(adminToken());
+        return isDashboardAdmin() || Boolean(state.adminTokenVerified);
       }
 
       function hasWikiEditAccess() {
@@ -3682,7 +3674,7 @@ export function kellaDashboardHtml() {
         if (!nav) return;
         const primary = ["/", "/calendar", "/wiki", "/members", "/profile"];
         nav.innerHTML = primary.map(function(path) { return navItemHtml(dashboardNavItems.find(function(item) { return item.path === path; })); }).join("") +
-          '<details class="nav-more"><summary>More</summary>' + dashboardNavItems.filter(function(item) { return !item.adminOnly && !primary.includes(item.path); }).map(navItemHtml).join("") + '</details>' +
+          '<details class="nav-more"><summary>More</summary>' + (hasWikiEditAccess() ? '<a href="/wiki?edit=1" data-link>Wiki Editor</a>' : '') + dashboardNavItems.filter(function(item) { return !item.adminOnly && !primary.includes(item.path); }).map(navItemHtml).join("") + '</details>' +
           (hasAdminAccess() ? '<div class="nav-section-label">Alliance management</div>' + navItemHtml(dashboardNavItems.find(function(item) { return item.path === "/officer"; })) : "");
         setActiveNav();
       }
@@ -4781,18 +4773,19 @@ export function kellaDashboardHtml() {
       }
 
       async function loadSummary() {
-        if (!state.summary) state.summary = await fetchJson("/api/dashboard/summary");
+        if (!state.summary) state.summary = await fetchJson(hasAdminAccess() ? "/api/dashboard/summary/admin" : "/api/dashboard/summary", hasAdminAccess());
         return state.summary;
       }
 
 
       async function loadMembers(query = "") {
-        const data = await fetchJson("/api/dashboard/members" + (query ? "?q=" + encodeURIComponent(query) : ""));
+        const memberEndpoint = hasAdminAccess() ? "/api/dashboard/members/manage" : "/api/dashboard/members";
+        const data = await fetchJson(memberEndpoint + (query ? "?q=" + encodeURIComponent(query) : ""), hasAdminAccess());
         state.members = data.members || [];
         if (!query) {
           state.allMembers = state.members.slice();
         } else if (!state.allMembers.length) {
-          const allData = await fetchJson("/api/dashboard/members");
+          const allData = await fetchJson(memberEndpoint, hasAdminAccess());
           state.allMembers = allData.members || [];
         }
         return state.members;
@@ -4819,7 +4812,7 @@ export function kellaDashboardHtml() {
         const ign = existing?.ign || "";
         const query = uid ? uid : ign;
         if (!query) return null;
-        const data = await fetchJson("/api/dashboard/members?q=" + encodeURIComponent(query));
+        const data = await fetchJson((hasAdminAccess() ? "/api/dashboard/members/manage?q=" : "/api/dashboard/members?q=") + encodeURIComponent(query), hasAdminAccess());
         const full = (data.members || []).find(function(m) { return String(m.id || "") === String(memberId); });
         if (full) {
           state.members = state.members.slice();
@@ -4839,7 +4832,7 @@ export function kellaDashboardHtml() {
       }
 
       async function loadAlerts() {
-        const data = await fetchJson("/api/dashboard/alerts");
+        const data = await fetchJson("/api/dashboard/alerts", true);
         state.alerts = data.alerts || [];
         return state.alerts;
       }
@@ -4940,6 +4933,10 @@ export function kellaDashboardHtml() {
           }
         } catch {
           state.auth = { authenticated: false, isDashboardAdmin: false, isDashboardWikiEditor: false };
+        }
+        state.adminTokenVerified = false;
+        if (adminToken()) {
+          try { const access = await fetchJson('/api/dashboard/access', true); state.adminTokenVerified = access.admin === true; } catch (_) {}
         }
         updateAuthStatus();
         return state.auth;
@@ -7550,11 +7547,17 @@ export function kellaDashboardHtml() {
 
       function renderOfficer() {
         const groups = [
-          { title: "Events & war", links: [["Attendance", "/attendance"], ["Create event", "/tools?tool=events"], ["Polls & roles", "/tools?tool=polls"]] },
-          { title: "Alliance", links: [["Migration applications", "/migration/admin"], ["Member management", "/members?manage=1"], ["Feedback", "/complaints"], ["Settings & uploads", "/settings"]] },
-          { title: "Discord", links: [["Announcements", "/tools?tool=chat"], ["War alerts", "/tools?tool=alerts"], ["Shield alerts", "/tools?tool=shield"], ["Embeds", "/tools?tool=embed"], ["Thumbnail editor", "/tools?tool=thumbnails"]] }
+          { title: "Events & War", tools: [["Attendance", "/attendance", "events.png"], ["Create Event", "/tools?tool=events", "events.png"], ["Polls & Roles", "/tools?tool=polls", "members.png"], ["War Alerts", "/tools?tool=alerts", "alerts.png"], ["Shield Alerts", "/tools?tool=shield", "shield-alerts.png"]] },
+          { title: "Members & Alliance", tools: [["Migration", "/migration/admin", "members.png"], ["Member Management", "/members?manage=1", "members.png"], ["Feedback", "/complaints", "complaints.png"]] },
+          { title: "Content / Wiki", tools: hasWikiEditAccess() ? [["Wiki Editor", "/wiki?edit=1", "embed-sender.png"]] : [] },
+          { title: "Discord", tools: [["Announcements", "/tools?tool=chat", "alerts.png"], ["Discord Embeds", "/tools?tool=embed", "embed-sender.png"], ["Thumbnail Editor", "/tools?tool=thumbnails", "embed-sender.png"]] },
+          { title: "Settings", tools: [["Settings & Uploads", "/settings", "settings.png"]] }
         ];
-        app.innerHTML = pageHeader("Officer workspace", "") + '<div class="officer-groups">' + groups.map(function(group) { return '<section><h3>' + group.title + '</h3><div class="officer-links">' + group.links.map(function(link) { return '<a href="' + link[1] + '" data-link>' + link[0] + '<span aria-hidden="true">→</span></a>'; }).join('') + '</div></section>'; }).join('') + '</div>';
+        app.innerHTML = pageHeader("Officer Workspace", "") + '<div class="officer-groups">' + groups.filter(function(group){return group.tools.length;}).map(function(group) {
+          return '<section class="officer-group"><h3>' + group.title + '</h3><div class="officer-tools">' + group.tools.map(function(tool) {
+            return '<a class="officer-tool" href="' + tool[1] + '" data-link><img src="/assets/icons/' + tool[2] + '" alt="" width="44" height="44"/><strong>' + tool[0] + '</strong><span aria-hidden="true">›</span></a>';
+          }).join('') + '</div></section>';
+        }).join('') + '</div>';
       }
 
       async function renderDashboard() {
@@ -7577,11 +7580,11 @@ export function kellaDashboardHtml() {
           if (byPower) return byPower;
           return String(a.ign || "").localeCompare(String(b.ign || ""));
         });
-        return '<div class="table-wrap"><table><thead><tr><th>Member</th><th>IGN</th><th>Lord ID</th><th>Power</th><th>Game Rank</th><th>Alliance Role</th><th>Attendance</th><th>Officer Notes</th></tr></thead><tbody>' +
+        return '<div class="table-wrap"><table><thead><tr><th>Member</th><th>IGN</th><th>Lord ID</th><th>Power</th><th>Game Rank</th><th>Alliance Role</th><th>Attendance</th>' + (hasAdminAccess() ? '<th>Officer Notes</th>' : '') + '</tr></thead><tbody>' +
           sorted.map(function(member) {
             const displayName = memberDisplayName(member);
             const rowId = escapeHtml(member.id || "");
-            return '<tr class="member-row" data-member-row data-member-id="' + rowId + '" tabindex="0" role="button" aria-label="View stats for ' + escapeHtml(displayName) + '"><td><div class="member-cell">' + memberAvatar(member, "member-avatar") + '<span><span class="member-name">' + escapeHtml(displayName) + '</span><span class="member-username">' + escapeHtml(memberUsername(member)) + '</span></span></div></td><td>' + escapeHtml(member.ign) + '</td><td>' + escapeHtml(memberLordId(member) || "Not linked") + '</td><td>' + formatNumber(member.power) + '</td><td>' + escapeHtml(member.rank || "") + '</td><td>' + escapeHtml(member.role) + '</td><td>' + escapeHtml(member.attendance) + '</td><td>' + escapeHtml(member.notes || "") + '</td></tr>';
+            return '<tr class="member-row" data-member-row data-member-id="' + rowId + '" tabindex="0" role="button" aria-label="View stats for ' + escapeHtml(displayName) + '"><td><div class="member-cell">' + memberAvatar(member, "member-avatar") + '<span><span class="member-name">' + escapeHtml(displayName) + '</span><span class="member-username">' + escapeHtml(memberUsername(member)) + '</span></span></div></td><td>' + escapeHtml(member.ign) + '</td><td>' + escapeHtml(memberLordId(member) || "Not linked") + '</td><td>' + formatNumber(member.power) + '</td><td>' + escapeHtml(member.rank || "") + '</td><td>' + escapeHtml(member.role) + '</td><td>' + escapeHtml(member.attendance) + '</td>' + (hasAdminAccess() ? '<td>' + escapeHtml(member.notes || "") + '</td>' : '') + '</tr>';
           }).join("") + '</tbody></table></div>';
       }
 
@@ -8665,7 +8668,7 @@ export function kellaDashboardHtml() {
       function renderAdminAccessRequired() {
         app.innerHTML =
           pageHeader("Admin Access Required", "This section is only visible to Kella admins and officers with dashboard access.", '<button class="primary" data-action="discord-login">Login as Admin</button>') +
-          '<section class="card">' + empty("Members can use Dashboard, Members, Attendance, and My Profile. Admin tools stay hidden until Kella confirms admin access.") + '</section>';
+          '<section class="card">' + empty("Admin tools require an authorized Discord account or the existing dashboard password.") + '<label>Dashboard password<input type="password" data-admin-unlock autocomplete="current-password" /></label><div class="toolbar"><button class="secondary" data-action="unlock-admin">Unlock</button><a href="/" data-link>Return Home</a></div>' + '</section>';
       }
 
       ${migrationClient}
@@ -8682,7 +8685,7 @@ export function kellaDashboardHtml() {
         const path = location.pathname;
         document.body.dataset.route = path.split("/")[1] || "home";
         state.currentReport = null;
-        if (pathRequiresAdmin(path) && !hasAdminAccess()) {
+        if ((pathRequiresAdmin(path) || (path === "/members" && new URLSearchParams(location.search).has("manage"))) && !hasAdminAccess()) {
           setActiveNav();
           return renderAdminAccessRequired();
         }
@@ -8696,6 +8699,9 @@ export function kellaDashboardHtml() {
         if (path === "/lord-tools") return navigate("/profile?section=lord");
         if (path === "/research") return renderLordTools(true, "research");
         if (path === "/training-tools") return renderTrainingTools();
+        if (path === "/wiki" && new URLSearchParams(location.search).has("edit") && !hasWikiEditAccess()) {
+          app.innerHTML = pageHeader("Wiki Editor access required", "", '<a class="primary" href="/wiki" data-link>Read Wiki</a>'); return;
+        }
         if (path === "/wiki") return renderWiki();
         if (path.startsWith("/wiki/")) return renderWiki(path.slice("/wiki/".length));
         if (path === "/profile") return renderProfile();
@@ -8885,7 +8891,7 @@ export function kellaDashboardHtml() {
         setLordResearchZoom(state.lordResearchZoom * factor, event.clientX, event.clientY);
       }, { passive: false });
 
-      document.addEventListener("click", function(event) {
+      document.addEventListener("click", async function(event) {
         document.querySelectorAll(".profile-radar-controls details[open]").forEach(function(panel) {
           if (!panel.contains(event.target)) panel.removeAttribute("open");
         });
@@ -8895,6 +8901,18 @@ export function kellaDashboardHtml() {
         }
         if (event.target.closest("[data-mobile-nav-close]")) {
           closeMobileNav();
+          return;
+        }
+        if (event.target.closest('[data-action="unlock-admin"]')) {
+          const input = document.querySelector('[data-admin-unlock]');
+          const value = input?.value || "";
+          if (!value) { toast("Enter the dashboard password.", "error"); return; }
+          try {
+            await parseResponse(await fetch('/api/dashboard/access', { credentials: 'same-origin', headers: { 'x-dashboard-admin-token': value } }));
+            localStorage.setItem('kellaAdminKey', value);
+            await loadAuth(true);
+            await route();
+          } catch { toast("Access was not verified. Check your login or password.", "error"); }
           return;
         }
         const modalClose = event.target.closest("[data-member-modal-close]");

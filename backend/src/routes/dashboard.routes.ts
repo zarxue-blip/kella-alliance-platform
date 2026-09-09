@@ -44,8 +44,12 @@ import { authenticate, authenticateDashboardAdmin, authenticateDashboardWikiEdit
 
 export const dashboardRouter = Router();
 
+dashboardRouter.get("/access", authenticateDashboardAdmin, (_req, res) => res.json({admin: true}));
+
 dashboardRouter.get("/summary", dashboardSummary);
+dashboardRouter.get("/summary/admin", authenticateDashboardAdmin, (_req, res, next) => { res.locals.adminSummary = true; next(); }, dashboardSummary);
 dashboardRouter.get("/members", dashboardMembers);
+dashboardRouter.get("/members/manage", authenticateDashboardAdmin, (_req, res, next) => { res.locals.memberManagement = true; next(); }, dashboardMembers);
 dashboardRouter.post("/members", authenticateDashboardAdmin, dashboardMemberCreate);
 dashboardRouter.patch("/members/:id", authenticateDashboardAdmin, dashboardMemberUpdate);
 dashboardRouter.delete("/members/:id", authenticateDashboardAdmin, dashboardMemberDelete);
@@ -57,7 +61,7 @@ dashboardRouter.patch("/uploads/:id", authenticateDashboardAdmin, dashboardRoste
 dashboardRouter.delete("/uploads", authenticateDashboardAdmin, dashboardRosterUploadsClear);
 dashboardRouter.delete("/uploads/:id", authenticateDashboardAdmin, dashboardRosterUploadDelete);
 dashboardRouter.post("/sync-discord-members", authenticateDashboardAdmin, dashboardDiscordMemberSync);
-dashboardRouter.get("/alerts", dashboardAlerts);
+dashboardRouter.get("/alerts", authenticateDashboardAdmin, dashboardAlerts);
 dashboardRouter.get("/events", dashboardEvents);
 dashboardRouter.get("/my-attendance", authenticate, dashboardPersonalAttendance);
 dashboardRouter.post("/events", authenticateDashboardAdmin, dashboardEventSend);

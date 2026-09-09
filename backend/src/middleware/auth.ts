@@ -9,6 +9,7 @@ export interface AuthUser {
   id: string;
   discordId: string;
   role: UserRole;
+  discordRoleIds?: string[];
   allianceId: string;
 }
 
@@ -76,6 +77,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
       id: user._id.toString(),
       discordId: user.discordId,
       role: user.role,
+      discordRoleIds: user.discordRoleIds || [],
       allianceId: user.allianceId.toString()
     };
     next();
@@ -101,7 +103,7 @@ export function authenticateDashboardAdmin(req: Request, _res: Response, next: N
     return;
   }
 
-  const sessionToken = req.cookies?.[env.SESSION_COOKIE_NAME];
+  const sessionToken = req.header("authorization")?.replace(/^Bearer\s+/i, "") || req.cookies?.[env.SESSION_COOKIE_NAME];
   if (!sessionToken) {
     next(new HttpError(401, "Discord admin login or Password required"));
     return;
@@ -142,7 +144,7 @@ export function authenticateDashboardWikiEditor(req: Request, _res: Response, ne
     return;
   }
 
-  const sessionToken = req.cookies?.[env.SESSION_COOKIE_NAME];
+  const sessionToken = req.header("authorization")?.replace(/^Bearer\s+/i, "") || req.cookies?.[env.SESSION_COOKIE_NAME];
   if (!sessionToken) {
     next(new HttpError(401, "Discord wiki login or Password required"));
     return;

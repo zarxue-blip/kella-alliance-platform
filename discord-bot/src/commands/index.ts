@@ -7,7 +7,6 @@ import {
   ModalBuilder,
   PermissionFlagsBits,
   SlashCommandBuilder,
-  StringSelectMenuBuilder,
   TextInputBuilder,
   TextInputStyle
 } from "discord.js";
@@ -23,36 +22,6 @@ interface SlashCommandData {
 export interface BotCommand {
   data: SlashCommandData;
   execute(interaction: ChatInputCommandInteraction): Promise<void>;
-}
-
-export function rootsPollButtons(reportId: string) {
-  return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setCustomId(`roots:${reportId}:14UTC:Available`).setLabel("14 UTC").setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId(`roots:${reportId}:20UTC:Available`).setLabel("20 UTC").setStyle(ButtonStyle.Primary)
-  );
-}
-
-export function rootsPollEmbed(eventDate: string) {
-  const unix = Math.floor(new Date(`${eventDate}T00:00:00.000Z`).getTime() / 1000);
-  return {
-    title: "ROOTS OF WAR REGISTRATION",
-    description: [`Date: <t:${unix}:D>`, "", "Choose the slot you can attend:", "14 UTC", "20 UTC"].join("\n"),
-    color: 0xfacc15,
-    footer: { text: "Choose one slot. Selecting again updates your answer." }
-  };
-}
-
-function rootsMonthMenu() {
-  const now = new Date();
-  const menu = new StringSelectMenuBuilder().setCustomId("roots-month").setPlaceholder("Choose a month");
-  for (let offset = 0; offset < 12; offset += 1) {
-    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1));
-    menu.addOptions({
-      label: date.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" }),
-      value: `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`
-    });
-  }
-  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu);
 }
 
 function summitButtons() {
@@ -242,39 +211,6 @@ export const commands: BotCommand[] = [
     }
   },
   {
-    data: new SlashCommandBuilder().setName("roots").setDescription("Create a dated Roots of War registration."),
-    async execute(interaction) {
-      await interaction.reply({
-        ephemeral: true,
-        content: "Choose the Roots of War month.",
-        components: [rootsMonthMenu()]
-      });
-    }
-  },
-  {
-    data: new SlashCommandBuilder().setName("rowlist").setDescription("Show the latest Roots of War attendance list."),
-    async execute(interaction) {
-      await interaction.deferReply();
-      const { report } = await api.latestRoots();
-      const groups = [
-        { label: "14 UTC", names: report.at14, count: report.total14 },
-        { label: "20 UTC", names: report.at20, count: report.total20 }
-      ];
-      const lines = groups.flatMap((group) => [
-        `**${group.label} (${group.count})**`,
-        group.names.length ? group.names.join(", ") : "No members yet.",
-        ""
-      ]);
-      await interaction.editReply({
-        embeds: [{
-          title: "ROOTS OF WAR LIST",
-          description: [`Date: ${report.eventDate}`, "", ...lines, `**Total: ${report.total}**`].join("\n"),
-          color: 0xfacc15
-        }]
-      });
-    }
-  },
-  {
     data: new SlashCommandBuilder().setName("summit").setDescription("Create Summit registration buttons."),
     async execute(interaction) {
       await interaction.reply({
@@ -328,7 +264,7 @@ export const commands: BotCommand[] = [
       .addStringOption((option) =>
         option
           .setName("note")
-          .setDescription("Optional event label, like Roots, Summit, or buff")
+          .setDescription("Optional event label, like Summit or alliance event")
           .setRequired(false)
           .setMaxLength(120)
       ),
@@ -367,7 +303,6 @@ export const commands: BotCommand[] = [
           .setRequired(true)
           .addChoices(
             { name: "Summit", value: "Summit" },
-            { name: "Roots", value: "Roots" },
             { name: "Fortress", value: "Fortress" },
             { name: "Stronghold", value: "Stronghold" },
             { name: "Pass Defense", value: "Pass Defense" },
@@ -465,42 +400,13 @@ export const commands: BotCommand[] = [
   },
   {
     data: new SlashCommandBuilder()
-      .setName("suggest")
-      .setDescription("Send a private suggestion to admins.")
-      .addStringOption((option) =>
-        option
-          .setName("message")
-          .setDescription("What should admins consider?")
-          .setRequired(false)
-          .setMaxLength(1800)
-      )
-      .addBooleanOption((option) => option.setName("anonymous").setDescription("Hide your identity from reviewers").setRequired(false)),
-    async execute(interaction) {
-      const anonymous = interaction.options.getBoolean("anonymous") === true;
-      const modal = new ModalBuilder().setCustomId(`complaint-modal:Suggestion:${anonymous ? "1" : "0"}`).setTitle("Suggestion for Admins");
-      modal.addComponents(
-        new ActionRowBuilder<TextInputBuilder>().addComponents(
-          new TextInputBuilder()
-            .setCustomId("message")
-            .setLabel("What should admins know?")
-            .setStyle(TextInputStyle.Paragraph)
-            .setRequired(true)
-            .setMaxLength(1800)
-        )
-      );
-      await interaction.showModal(modal);
-    }
-  },
-  {
-    data: new SlashCommandBuilder()
       .setName("wiki-admin")
       .setDescription("Post the Kella Wiki reader button for members.")
       .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
     async execute(interaction) {
       const wikiUrl = `${config.PUBLIC_APP_URL.replace(/\/$/, "")}/wiki`;
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder().setLabel("Read Kella Wiki").setStyle(ButtonStyle.Link).setURL(wikiUrl),
-        new ButtonBuilder().setLabel("Open Wiki Admin").setStyle(ButtonStyle.Link).setURL(wikiUrl)
+        new ButtonBuilder().setLabel("Read Kella Wiki").setStyle(ButtonStyle.Link).setURL(wikiUrl)
       );
 
       await interaction.reply({

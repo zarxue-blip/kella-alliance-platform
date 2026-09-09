@@ -1,9 +1,10 @@
+import { MemberModel } from "../models/member.model.js";
 import { z } from "zod";
 import { EventModel } from "../models/event.model.js";
 import { emitNotification, moduleNotification } from "../services/realtime.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
-import type { AuthenticatedRequest } from "../middleware/auth.js";
+import { isDashboardAdminUser, type AuthenticatedRequest } from "../middleware/auth.js";
 
 const eventSchema = z.object({
   title: z.string().min(1),
@@ -28,6 +29,8 @@ export const createEvent = asyncHandler(async (req: AuthenticatedRequest, res) =
 
 export const rsvpEvent = asyncHandler(async (req: AuthenticatedRequest, res) => {
   const body = z.object({ memberId: z.string(), status: z.enum(["Going", "Maybe", "Unavailable"]) }).parse(req.body);
+  const member = await MemberModel.findOne({ _id: body.memberId, allianceId: req.user.allianceId }).lean() as { discordId?: string } | null;
+  if (!member || (!isDashboardAdminUser(req.user) && member.discordId !== req.user.discordId)) throw new HttpError(403, "You may only register your own member profile");
   const event = await EventModel.findOne({ _id: req.params.id, allianceId: req.user.allianceId });
   if (!event) throw new HttpError(404, "Event not found");
   event.set(

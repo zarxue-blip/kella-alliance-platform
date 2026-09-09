@@ -1,3 +1,4 @@
+import { groqTranslate, protectTranslationText } from "./translationProtection.js";
 import { config } from "../config.js";
 
 type TranslationResult = {
@@ -98,32 +99,8 @@ function flagToCountryCode(flag: string) {
   return codePoints.map((point) => String.fromCharCode((point as number) - 0x1f1e6 + 65)).join("");
 }
 
-function trimToUtf8Bytes(value: string, maxBytes: number) {
-  const encoder = new TextEncoder();
-  let output = "";
-
-  for (const char of value) {
-    const next = `${output}${char}`;
-    if (encoder.encode(next).length > maxBytes) break;
-    output = next;
-  }
-
-  return output;
-}
-
 function normalizeMessageText(value: string) {
-  return value
-    .replace(/<a?:[a-zA-Z0-9_]+:\d+>/g, "")
-    .replace(/<@!?(\d+)>/g, "@user")
-    .replace(/<@&(\d+)>/g, "@role")
-    .replace(/<#(\d+)>/g, "#channel")
-    .replace(/[^\S\r\n]+/g, " ")
-    .replace(/\r\n?/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .split("\n")
-    .map((line) => line.trim())
-    .join("\n")
-    .trim();
+  return value.replace(/\r\n?/g, "\n").trim();
 }
 
 function decodeTranslationEntities(value: string) {
@@ -165,6 +142,7 @@ async function requestMyMemoryTranslation(text: string, sourceLanguage: string, 
   if (config.TRANSLATION_CONTACT_EMAIL) url.searchParams.set("de", config.TRANSLATION_CONTACT_EMAIL);
 
   const response = await fetch(url, {
+    signal: AbortSignal.timeout(7000),
     headers: {
       Accept: "application/json",
       "User-Agent": "Kella Discord Bot"
@@ -207,6 +185,7 @@ async function requestGooglePublicTranslation(text: string, targetLanguage: stri
   url.searchParams.set("q", text);
 
   const response = await fetch(url, {
+    signal: AbortSignal.timeout(7000),
     headers: {
       Accept: "application/json",
       "User-Agent": "Kella Discord Bot"
@@ -271,23 +250,20 @@ async function firstUsefulTranslation(text: string, targetLanguage: string) {
   throw new Error("No translation service produced a useful result.");
 }
 
-function translationChunks(value: string, maxLength = 900) {
+export function translationChunks(value: string, maxBytes = 450) {
   const chunks: string[] = [];
-  let remaining = value.trim();
-
-  while (remaining.length > maxLength) {
-    const window = remaining.slice(0, maxLength + 1);
-    const paragraphBreak = window.lastIndexOf("\n\n");
-    const lineBreak = window.lastIndexOf("\n");
-    const sentenceBreak = Math.max(window.lastIndexOf(". "), window.lastIndexOf("! "), window.lastIndexOf("? "));
-    const wordBreak = window.lastIndexOf(" ");
-    const splitAt = Math.max(paragraphBreak, lineBreak, sentenceBreak, wordBreak);
-    const safeSplit = splitAt >= Math.floor(maxLength * 0.55) ? splitAt + (splitAt === sentenceBreak ? 1 : 0) : maxLength;
-    chunks.push(remaining.slice(0, safeSplit).trim());
-    remaining = remaining.slice(safeSplit).trim();
+  let chunk = "";
+  // Keep protected tokens intact and retain whitespace at every boundary.
+  for (const word of value.match(/\S+|\s+/gu) || []) {
+    if (Buffer.byteLength(chunk + word, "utf8") > maxBytes && chunk) { chunks.push(chunk); chunk = ""; }
+    if (Buffer.byteLength(word, "utf8") > maxBytes) {
+      for (const char of word) {
+        if (Buffer.byteLength(chunk + char, "utf8") > maxBytes) { chunks.push(chunk); chunk = ""; }
+        chunk += char;
+      }
+    } else chunk += word;
   }
-
-  if (remaining) chunks.push(remaining);
+  if (chunk) chunks.push(chunk);
   return chunks;
 }
 
@@ -298,16 +274,28 @@ export async function translateForFlag(messageText: string, flag: string) {
   const normalized = normalizeMessageText(messageText);
   if (!normalized) throw new Error("There is no readable text to translate.");
 
-  const trimmed = trimToUtf8Bytes(normalized, 5_200);
-  const chunks = translationChunks(trimmed);
+  const trimmed = normalized;
   const results: TranslationResult[] = [];
-
-  for (const chunk of chunks) {
-    results.push(await firstUsefulTranslation(chunk, language.code));
+  if (config.GROQ_API_KEY) {
+    try {
+      const translatedText = await groqTranslate(trimmed, language.label, config.GROQ_API_KEY);
+      results.push({ translatedText, provider: "Groq", alreadyTargetLanguage: isSameTranslation(trimmed, translatedText) });
+    } catch { /* Preserve the existing translators as a free fallback. */ }
   }
-
+  if (!results.length) {
+    const protectedText = protectTranslationText(trimmed);
+    const chunks = translationChunks(protectedText.text, 450);
+    const parts: TranslationResult[] = [];
+    for (const chunk of chunks) {
+      const core = chunk.trim();
+      const part = core ? await firstUsefulTranslation(core, language.code) : { translatedText: "", provider: "", alreadyTargetLanguage: true };
+      parts.push({ ...part, translatedText: (chunk.match(/^\s*/)?.[0] || "") + part.translatedText + (core ? chunk.match(/\s*$/)?.[0] || "" : "") });
+    }
+    const restored = protectedText.restore(parts.map(result => result.translatedText).join(""));
+    results.push({ translatedText: restored, provider: parts.map(part=>part.provider).join(' + '), detectedSource: parts[0]?.detectedSource, alreadyTargetLanguage: parts.every(part=>part.alreadyTargetLanguage) });
+  }
   const combinedTranslation = results.map((result) => result.translatedText).join("\n");
-  const translatedText = [...combinedTranslation].slice(0, 1_750).join("");
+  const translatedText = combinedTranslation;
   const alreadyTargetLanguage = results.every((result) => result.alreadyTargetLanguage);
 
   return {
