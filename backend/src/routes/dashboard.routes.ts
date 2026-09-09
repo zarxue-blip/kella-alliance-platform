@@ -42,7 +42,11 @@ import {
 } from "../controllers/dashboard.controller.js";
 import { authenticate, authenticateDashboardAdmin, authenticateDashboardWikiEditor } from "../middleware/auth.js";
 
+import { listChatImages, uploadChatImage, deleteChatImage } from '../controllers/chatImages.controller.js';
 export const dashboardRouter = Router();
+dashboardRouter.get('/chat-images', authenticateDashboardAdmin, listChatImages);
+dashboardRouter.post('/chat-images', authenticateDashboardAdmin, uploadChatImage);
+dashboardRouter.delete('/chat-images/:id', authenticateDashboardAdmin, deleteChatImage);
 
 dashboardRouter.get("/access", authenticateDashboardAdmin, (_req, res) => res.json({admin: true}));
 

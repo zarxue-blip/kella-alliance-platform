@@ -1,4 +1,5 @@
 import { isAiLocationAllowed, redactSensitiveText } from '../services/privacy.js';
+import { chatImageButton } from '../services/chatImages.js';
 import { kellaMention } from "../services/kellaMention.js";
 import type { Message } from "discord.js";
 import { kellaReply } from "../services/kellaPersona.js";
@@ -135,7 +136,7 @@ export async function handleMessageMention(message: Message) {
       try { answer = await kellaReply(question, memberAnswer, config.GROQ_API_KEY, config.PUBLIC_APP_URL); }
       catch { /* Keep factual roster output or an in-character free-quota fallback. */ }
     }
-    await message.reply({ content: redactSensitiveText(answer).slice(0,1900), allowedMentions: { parse: [], repliedUser: false } });
+    await message.reply({ content: redactSensitiveText(answer).slice(0,1900), components: await chatImageButton(message), allowedMentions: { parse: [], repliedUser: false } });
   } catch {
     console.warn('Kella could not send a mention reply. Check channel permissions and service availability.');
   } finally { activeReplies--; }

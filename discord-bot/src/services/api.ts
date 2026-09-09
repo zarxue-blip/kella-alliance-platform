@@ -27,6 +27,9 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
 let commandSettingsCache: { disabledCommands: string[]; expiresAt: number } | null = null;
 
 export const api = {
+  chatImages(input: {guildId:string;discordId:string;roleIds:string[];id?:string}) {
+    return request<{images?:Array<{_id:string;name:string}>;image?:{_id:string;name:string;dataUrl:string}}>('POST','/bot/chat-images',input);
+  },
   async isCommandEnabled(commandName: string) {
     if (!commandSettingsCache || commandSettingsCache.expiresAt <= Date.now()) {
       try {

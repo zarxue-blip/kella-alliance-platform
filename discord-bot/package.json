@@ -9,7 +9,7 @@
     "start": "node dist/index.js",
     "deploy:commands": "tsx src/deploy-commands.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx test/translation.test.ts && tsx test/chatSummary.test.ts && tsx test/kellaPersona.test.ts && tsx test/privacy.test.ts"
+    "test": "tsx test/translation.test.ts && tsx test/chatSummary.test.ts && tsx test/kellaPersona.test.ts && tsx test/privacy.test.ts && tsx test/chatImages.test.ts"
   },
   "dependencies": {
     "@cod-amp/shared": "1.0.0",

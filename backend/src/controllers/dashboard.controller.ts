@@ -1,3 +1,4 @@
+import { validateChatImage } from '../services/chatImageValidation.js';
 import { personalAttendanceByEvent } from "../services/personalAttendance.service.js";
 import { rankMembers } from "../services/ranking.service.js";
 import { createHash } from "node:crypto";
@@ -122,12 +123,14 @@ const dmAlertToolSchema = z.object({
 
 const chatToolSchema = z.object({
   channelId: z.string().min(1, "Target channel is required"),
-  message: z.string().min(1, "Message is required").max(1800),
+  message: z.string().max(1800).optional().default(""),
+  imageDataUrl: z.string().max(6_700_000).optional(),
   roleMentionId: z.string().optional(),
   buttonEnabled: z.boolean().optional().default(false),
   buttonLabel: z.string().max(80).optional().default(""),
   buttonUrl: z.union([z.string().url(), z.literal("")]).optional().default("")
 }).superRefine((body, context) => {
+  if (!body.message.trim() && !body.imageDataUrl) context.addIssue({code:z.ZodIssueCode.custom,path:["message"],message:"Add a message or an image."});
   if (!body.buttonEnabled) return;
   if (!body.buttonLabel.trim()) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ["buttonLabel"], message: "Button name is required" });
@@ -2567,6 +2570,7 @@ export const dashboardAttackSend = asyncHandler(async (req, res) => {
 
 export const dashboardChatSend = asyncHandler(async (req, res) => {
   const body = chatToolSchema.parse(req.body);
+  if (body.imageDataUrl) validateChatImage(body.imageDataUrl, 5_000_000);
   const allianceId = await resolveAllianceId();
   const messageInput = {
     channelId: body.channelId,
@@ -2576,7 +2580,11 @@ export const dashboardChatSend = asyncHandler(async (req, res) => {
     buttonLabel: body.buttonEnabled ? body.buttonLabel.trim() : "",
     buttonUrl: body.buttonEnabled ? body.buttonUrl : ""
   };
-  const message = await sendDiscordMessage(messageInput);
+  const imageType = body.imageDataUrl?.slice(5, body.imageDataUrl.indexOf(';'));
+  const message = body.imageDataUrl ? await sendDiscordImage({...messageInput,
+    imageBuffer:Buffer.from(body.imageDataUrl.split(',')[1],'base64'),
+    mimeType:imageType,filename:'kella-chat.'+imageType?.split('/')[1]
+  }) : await sendDiscordMessage(messageInput);
   const action = await KellaActionModel.create({
     allianceId,
     type: "chat_sent",

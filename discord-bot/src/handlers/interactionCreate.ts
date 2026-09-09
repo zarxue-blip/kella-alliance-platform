@@ -10,6 +10,7 @@ import {
   type ChatInputCommandInteraction,
   type Interaction
 } from "discord.js";
+import { handleChatImages } from '../services/chatImages.js';
 import { botName } from "@cod-amp/shared";
 import { api } from "../services/api.js";
 import { commandMap } from "../commands/index.js";
@@ -72,6 +73,7 @@ async function replyError(interaction: Interaction, error: unknown) {
 
 export async function handleInteraction(interaction: Interaction) {
   try {
+    if (await handleChatImages(interaction)) return;
     if (interaction.isChatInputCommand()) {
       const commandEnabled = await api.isCommandEnabled(interaction.commandName);
       if (!commandEnabled) {

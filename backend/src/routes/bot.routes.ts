@@ -26,7 +26,9 @@ import { authenticateService } from "../middleware/auth.js";
 
 export const botRouter = Router();
 
+import { botChatImages } from '../controllers/chatImages.controller.js';
 botRouter.use(authenticateService);
+botRouter.post('/chat-images', botChatImages);
 botRouter.post("/register", botRegister);
 botRouter.get("/profile", botProfile);
 botRouter.post("/polls", botPollCreate);

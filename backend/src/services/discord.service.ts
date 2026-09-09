@@ -34,6 +34,10 @@ interface SendMessageInput {
 }
 
 interface SendImageInput {
+  mimeType?: string;
+  buttonEnabled?: boolean;
+  buttonLabel?: string;
+  buttonUrl?: string;
   channelId: string;
   imageBuffer: Buffer;
   filename?: string;
@@ -281,12 +285,13 @@ export async function sendDiscordImage(input: SendImageInput) {
     JSON.stringify({
       content: [roleMention, input.content?.trim()].filter(Boolean).join("\n") || undefined,
       allowed_mentions: input.roleMentionId ? { roles: [input.roleMentionId] } : { parse: [] },
-      attachments: [{ id: 0, filename }]
+      attachments: [{ id: 0, filename }],
+      components: linkButtonComponents(input)
     })
   );
   const imageBytes = new Uint8Array(input.imageBuffer.length);
   imageBytes.set(input.imageBuffer);
-  form.append("files[0]", new Blob([imageBytes], { type: "image/png" }), filename);
+  form.append("files[0]", new Blob([imageBytes], { type: input.mimeType || "image/png" }), filename);
 
   const response = await fetch(`https://discord.com/api/v10/channels/${input.channelId}/messages`, {
     method: "POST",

@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+Object.assign(process.env,{DISCORD_BOT_TOKEN:'test',DISCORD_APPLICATION_ID:'test',BOT_API_TOKEN:'local-test-only-service-token',DISCORD_GUILD_ID:'guild'});
+const {api}=await import('../src/services/api.js');
+const {chatImageButton,handleChatImages}=await import('../src/services/chatImages.js');
+let admin=true;let sends=0;const replies:any[]=[];
+const guild:any={id:'guild',members:{fetch:async()=>({id:'user',roles:{cache:new Map([['role',{}]])}})}};
+api.chatImages=async(input:any)=>{if(!admin)throw new Error('Forbidden');return input.id?{image:{_id:'id',name:'Coins',dataUrl:'data:image/png;base64,aGVsbG8='}}:{images:[{_id:'id',name:'Coins'}]};};
+assert.equal((await chatImageButton({guild,author:{id:'user'}} as any)).length,1);
+admin=false;assert.equal((await chatImageButton({guild,author:{id:'user'}} as any)).length,0);
+const interaction:any={isButton:()=>false,isStringSelectMenu:()=>true,customId:'chat-images:send',values:['id'],guild,user:{id:'user'},channel:{isDMBased:()=>false,isThread:()=>false},memberPermissions:{has:()=>true},appPermissions:{has:()=>true},deferReply:async(value:any)=>assert.equal(value.ephemeral,true),editReply:async(value:any)=>replies.push(value),followUp:async(value:any)=>{sends++;assert.equal(value.ephemeral,false);assert.deepEqual(value.allowedMentions,{parse:[]});}};
+assert.equal(await handleChatImages(interaction),true);assert.equal(sends,0);
+admin=true;await handleChatImages(interaction);assert.equal(sends,1);assert.ok(replies.includes('Sending image…'));
+interaction.appPermissions.has=()=>false;await handleChatImages(interaction);assert.equal(sends,1);
+console.log('Discord images: admin-only buttons, click-time reauthorization, attachment permissions and public send with private picker passed.');

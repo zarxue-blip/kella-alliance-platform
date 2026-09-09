@@ -1,3 +1,4 @@
+import { validateChatImage } from './backend/src/services/chatImageValidation.js';
 import { migrationFields } from './backend/src/services/migrationFields.js';
 import { canonicalAllianceTag } from './backend/src/services/memberIdentity.service.js';
 // Local inspection only: no database, credentials, bot, scheduler, or write proxy.
@@ -5,12 +6,29 @@ import express from 'express';
 import { kellaPageHtml, kellaPageAssets } from './backend/src/views/kellaPage.js';
 import { rankMembers } from './backend/src/services/ranking.service.js';
 const app = express();
+app.use(express.json({limit:'1mb'}));
+const previewImages:Array<{_id:string;name:string;dataUrl:string}>=[];
 // Role fixtures are exclusive to this loopback preview, never production auth.
 app.use((req,res,next) => {
   const requested = String(req.query.__role || '');
   const role = ['member','editor','admin'].includes(requested) ? requested : /kella_preview_role=(member|editor|admin)/.exec(req.headers.cookie || '')?.[1] || 'member';
   if (requested) res.cookie('kella_preview_role', role, {httpOnly:true,sameSite:'strict'});
   res.locals.previewRole = role;
+  if(req.path.startsWith('/api/dashboard/chat-images')) {
+    if(role !== 'admin') return res.status(403).json({message:'Admin access required.'});
+    if(req.method === 'GET') return res.json({images:previewImages});
+    if(req.method === 'POST') {
+      try {
+        if(previewImages.length>=20) throw new Error('Library full.');
+        if(typeof req.body.name!=='string'||!req.body.name.trim()||req.body.name.length>60) throw new Error('Enter a name.');
+        validateChatImage(req.body.dataUrl);
+        previewImages.push({_id:crypto.randomUUID(),name:req.body.name.trim(),dataUrl:req.body.dataUrl});
+        return res.status(201).json({ok:true});
+      } catch {return res.status(400).json({message:'Use a named PNG, JPEG, GIF or WebP image up to 500 KB.'});}
+    }
+    if(req.method === 'DELETE') {const index=previewImages.findIndex(image=>image._id===req.path.split('/').pop());if(index>=0)previewImages.splice(index,1);return res.json({ok:true});}
+    return res.sendStatus(405);
+  }
   if(req.method !== 'GET') return res.status(403).json({message:'Preview only: changes are not saved or sent to Discord.'});
   if(req.path === '/api/auth/me') return res.json({authenticated:true,user:{username:'Preview '+role,role:role==='admin'?'Owner':'Member'},isDashboardAdmin:role==='admin',isDashboardWikiEditor:role!=='member'});
   if(req.path === '/api/dashboard/my-attendance') return res.json({byEvent:{}});
@@ -65,5 +83,5 @@ const previewHtml = kellaPageHtml
   .replace('</head>', '<style>#preview-notice{padding:8px 16px;background:#29251e;color:#e4d3b4;font:14px/1.5 "Segoe UI",sans-serif;border-bottom:1px solid #5b503e}#preview-notice:focus{outline:2px solid #c7a86e;outline-offset:-2px}</style><script src="/__preview/info.js" defer></script></head>')
   .replace('<body>', '<body><aside id="preview-notice" role="status" tabindex="-1">Local preview · Sign-in and saving are unavailable.</aside>');
 app.use(['/buff-schedule','/roots-of-war','/roots-registration','/roots-reports'],(_req,res)=>res.status(404).send('This feature has been removed.'));
-app.get('*',(_req,res)=>res.type('html').send(previewHtml.replace('Local preview · Sign-in and saving are unavailable.', 'Local preview · '+res.locals.previewRole+' view · Saving disabled. <a href="/calendar?__role=member">Member</a> · <a href="/wiki?__role=editor">Wiki Editor</a> · <a href="/officer?__role=admin">Admin</a>')));
-app.listen(4173,'127.0.0.1',()=>console.log('Local preview: http://127.0.0.1:4173'));
+app.get('*',(_req,res)=>res.type('html').send(previewHtml.replace('Local preview · Sign-in and saving are unavailable.', 'Local preview · '+res.locals.previewRole+' view · Image library changes are temporary; other saving disabled. <a href="/calendar?__role=member">Member</a> · <a href="/wiki?__role=editor">Wiki Editor</a> · <a href="/officer?__role=admin">Admin</a>')));
+app.listen(Number(process.env.KELLA_PREVIEW_PORT || 4173),'127.0.0.1',()=>console.log('Local preview: http://127.0.0.1:4173'));

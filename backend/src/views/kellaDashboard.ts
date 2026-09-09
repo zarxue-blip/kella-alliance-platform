@@ -7544,12 +7544,49 @@ export function kellaDashboardHtml() {
         catch(error) { app.innerHTML = '<div class="error">' + escapeHtml(error.message) + '</div>'; }
       }
 
+      async function renderChatImageLibrary() {
+        const version = navigationVersion;
+        skeleton("Loading image library…");
+        try {
+          const data = await fetchJson('/api/dashboard/chat-images', true);
+          if (version !== navigationVersion) return;
+          app.innerHTML = pageHeader("Kella Image Library", "Admins can upload images, then use Images on Kella’s Discord replies to share them.", '<a href="/officer" data-link>Back to Admin Tools</a>') +
+            '<section class="card"><form id="chat-image-upload" style="display:grid;gap:14px"><label>Image name<input name="imageName" maxlength="60" required placeholder="Give this image a short name" /></label><label>Image file<input name="imageFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp" required /></label><p class="muted">PNG, JPEG, GIF or WebP · Up to 500 KB each · 20 images maximum. Images you send in Discord are visible to everyone in that channel.</p><button class="primary" type="submit">Upload image</button><p id="image-library-status" role="status"></p></form></section>' +
+            '<section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px;margin-top:18px">' + (data.images.length ? data.images.map(function(image) {
+              return '<article class="card"><img src="' + escapeHtml(image.dataUrl) + '" alt="' + escapeHtml(image.name) + '" style="width:100%;height:180px;object-fit:contain"/><h3>' + escapeHtml(image.name) + '</h3><button type="button" data-delete-chat-image="' + escapeHtml(image._id) + '">Delete image</button></article>';
+            }).join('') : '<p class="card">No images yet. Upload your first image above.</p>') + '</section>';
+          document.getElementById('chat-image-upload').onsubmit = async function(event) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const button = form.querySelector('button');
+            const status = document.getElementById('image-library-status');
+            button.disabled = true;
+            try {
+              const file = form.elements.imageFile.files[0];
+              if (!file || file.size > 500000) throw new Error('Choose an image no larger than 500 KB.');
+              if (data.images.length >= 20) throw new Error('Delete an image first. The library holds 20 images.');
+              const dataUrl = await new Promise(function(resolve,reject) { const reader=new FileReader(); reader.onload=function(){resolve(reader.result);};reader.onerror=function(){reject(new Error('Could not read image.'));};reader.readAsDataURL(file); });
+              await sendJson('POST','/api/dashboard/chat-images',{name:form.elements.imageName.value.trim(),dataUrl:dataUrl},true);
+              toast('Image uploaded');
+              if (version === navigationVersion) renderChatImageLibrary();
+            } catch(error) { status.textContent=error.message; button.disabled=false; }
+          };
+          app.querySelectorAll('[data-delete-chat-image]').forEach(function(button) { button.onclick=async function() {
+            if (!confirm('Delete this image from Kella’s library? Copies already sent in Discord will remain.')) return;
+            button.disabled=true;
+            try { await sendJson('DELETE','/api/dashboard/chat-images/'+button.dataset.deleteChatImage,null,true); if(version === navigationVersion) renderChatImageLibrary(); }
+            catch(error){toast(error.message,'error');button.disabled=false;}
+          }; });
+        } catch(error) { if(version === navigationVersion) app.innerHTML=pageHeader('Image library unavailable','')+'<p class="card">'+escapeHtml(error.message)+'</p>'; }
+      }
+
       function renderOfficer() {
+        if (new URLSearchParams(location.search).get('images') === '1') return renderChatImageLibrary();
         const groups = [
           { title: "Events & War", tools: [["Attendance", "/attendance", "events.png"], ["Create Event", "/tools?tool=events", "events.png"], ["Polls & Roles", "/tools?tool=polls", "members.png"], ["War Alerts", "/tools?tool=alerts", "alerts.png"], ["Shield Alerts", "/tools?tool=shield", "shield-alerts.png"]] },
           { title: "Members & Alliance", tools: [["Migration", "/migration/admin", "members.png"], ["Member Management", "/members?manage=1", "members.png"], ["Feedback", "/complaints", "complaints.png"]] },
           { title: "Content / Wiki", tools: hasWikiEditAccess() ? [["Wiki Editor", "/wiki?edit=1", "embed-sender.png"]] : [] },
-          { title: "Discord", tools: [["Announcements", "/tools?tool=chat", "alerts.png"], ["Discord Embeds", "/tools?tool=embed", "embed-sender.png"], ["Thumbnail Editor", "/tools?tool=thumbnails", "embed-sender.png"]] },
+          { title: "Discord", tools: [["Image Library", "/officer?images=1", "embed-sender.png"], ["Announcements", "/tools?tool=chat", "alerts.png"], ["Discord Embeds", "/tools?tool=embed", "embed-sender.png"], ["Thumbnail Editor", "/tools?tool=thumbnails", "embed-sender.png"]] },
           { title: "Settings", tools: [["Settings & Uploads", "/settings", "settings.png"]] }
         ];
         app.innerHTML = pageHeader("Officer Workspace", "") + '<div class="officer-groups">' + groups.filter(function(group){return group.tools.length;}).map(function(group) {
@@ -8005,6 +8042,7 @@ export function kellaDashboardHtml() {
           channelHtml +
           '<label>Role Mention ID<input data-chat="roleMentionId" placeholder="Optional role ID" /></label>' +
           '<label class="wide">Message<textarea data-chat="message" placeholder="Type the message Kella should send..."></textarea></label>' +
+          '<div class="wide"><label>Image (optional)<input type="file" data-chat-image accept="image/png,image/jpeg,image/gif,image/webp" /></label><p class="muted">Attach an image up to 5 MB, or leave this empty to send text only.</p><div data-chat-image-preview></div><button type="button" data-action="remove-chat-image" hidden>Remove image</button></div>' +
           optionalLinkButtonFields("chat") +
         '</div><p class="muted" style="margin-top:12px">This posts as the Kella bot account, not as your Discord user. Use it for normal alliance chat, reminders, and officer notes.</p></section>';
       }
@@ -8291,6 +8329,12 @@ export function kellaDashboardHtml() {
         return document.querySelector('[data-chat="' + name + '"]')?.value?.trim() || "";
       }
 
+      async function chatImageData() {
+        const file = document.querySelector('[data-chat-image]')?.files[0];
+        if (!file) return undefined;
+        if (file.size > 5000000 || !['image/png','image/jpeg','image/gif','image/webp'].includes(file.type)) throw new Error('Choose a PNG, JPEG, GIF or WebP image up to 5 MB.');
+        return new Promise(function(resolve,reject) { const reader=new FileReader();reader.onload=function(){resolve(reader.result);};reader.onerror=function(){reject(new Error('Could not read image.'));};reader.readAsDataURL(file); });
+      }
       function chatPayload() {
         return {
           channelId: chatFormValue("channelId") || chatFormValue("channelManual"),
@@ -9906,8 +9950,15 @@ export function kellaDashboardHtml() {
           await loadAlerts();
           await renderTools("alerts");
         }, "Attack alert sent.");
+        if (kind === "remove-chat-image") {
+          document.querySelector('[data-chat-image]').value='';
+          document.querySelector('[data-chat-image-preview]').replaceChildren();
+          action.hidden=true;
+        }
         if (kind === "send-chat") withFeedback(action, async function() {
-          await sendJson("POST", "/api/dashboard/tools/chat", chatPayload(), true);
+          const payload = chatPayload();
+          payload.imageDataUrl = await chatImageData();
+          await sendJson("POST", "/api/dashboard/tools/chat", payload, true);
           state.summary = null;
           await renderTools("chat");
         }, "Kella chat message sent.");
@@ -10216,6 +10267,16 @@ export function kellaDashboardHtml() {
       });
 
       document.addEventListener("change", async function(event) {
+        if (event.target.matches('[data-chat-image]')) {
+          const input=event.target;const file=input.files[0];
+          const preview=document.querySelector('[data-chat-image-preview]');
+          const remove=document.querySelector('[data-action="remove-chat-image"]');
+          preview.replaceChildren();remove.hidden=true;
+          try { const data=await chatImageData();if(input.files[0]!==file || !input.isConnected)return;
+            if(data){const image=document.createElement('img');image.src=data;image.alt='Image attachment preview';image.style.cssText='display:block;max-width:100%;max-height:240px;object-fit:contain;margin:12px 0';preview.appendChild(image);remove.hidden=false;}
+          } catch(error){input.value='';toast(error.message,'error');}
+          return;
+        }
         if (event.target.matches("[data-lord-view-select]")) {
           state.lordView = event.target.value || "overview";
           state.lordSearch = "";
