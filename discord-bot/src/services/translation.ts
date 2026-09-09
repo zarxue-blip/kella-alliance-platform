@@ -1,3 +1,4 @@
+import { redactSensitiveText } from './privacy.js';
 import { groqTranslate, protectTranslationText } from "./translationProtection.js";
 import { config } from "../config.js";
 
@@ -271,7 +272,7 @@ export async function translateForFlag(messageText: string, flag: string) {
   const language = getLanguageFromFlag(flag);
   if (!language) return null;
 
-  const normalized = normalizeMessageText(messageText);
+  const normalized = normalizeMessageText(redactSensitiveText(messageText));
   if (!normalized) throw new Error("There is no readable text to translate.");
 
   const trimmed = normalized;
@@ -283,6 +284,7 @@ export async function translateForFlag(messageText: string, flag: string) {
     } catch { /* Preserve the existing translators as a free fallback. */ }
   }
   if (!results.length) {
+    if (!config.ENABLE_PUBLIC_TRANSLATION_FALLBACK) throw new Error("Translation unavailable");
     const protectedText = protectTranslationText(trimmed);
     const chunks = translationChunks(protectedText.text, 450);
     const parts: TranslationResult[] = [];
@@ -295,7 +297,7 @@ export async function translateForFlag(messageText: string, flag: string) {
     results.push({ translatedText: restored, provider: parts.map(part=>part.provider).join(' + '), detectedSource: parts[0]?.detectedSource, alreadyTargetLanguage: parts.every(part=>part.alreadyTargetLanguage) });
   }
   const combinedTranslation = results.map((result) => result.translatedText).join("\n");
-  const translatedText = combinedTranslation;
+  const translatedText = redactSensitiveText(combinedTranslation);
   const alreadyTargetLanguage = results.every((result) => result.alreadyTargetLanguage);
 
   return {

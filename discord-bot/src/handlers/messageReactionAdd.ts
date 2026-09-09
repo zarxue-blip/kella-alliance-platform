@@ -1,4 +1,6 @@
+import { isAiLocationAllowed } from '../services/privacy.js';
 import { EmbedBuilder, type MessageReaction, PartialMessageReaction, PartialUser, User } from "discord.js";
+import { config } from "../config.js";
 import { getLanguageFromFlag, translateForFlag } from "../services/translation.js";
 
 async function fetchReaction(reaction: MessageReaction | PartialMessageReaction) {
@@ -15,11 +17,6 @@ function getEmojiName(reaction: MessageReaction) {
   return reaction.emoji.name ?? "";
 }
 
-function describeError(error: unknown) {
-  if (error instanceof Error) return error.message;
-  return String(error);
-}
-
 const translations = new Map<string, number>();
 
 export async function handleMessageReactionAdd(
@@ -34,7 +31,8 @@ export async function handleMessageReactionAdd(
     if (!getLanguageFromFlag(flag)) return;
 
     const message = await fetchMessage(reaction);
-    if (message.author?.bot) return;
+    if (message.author?.bot || message.webhookId) return;
+    if (!isAiLocationAllowed(message.guildId, message.channelId, "parentId" in message.channel ? message.channel.parentId : null, config.DISCORD_GUILD_ID, config.AI_ALLOWED_CHANNEL_IDS)) return;
     const translationKey = message.id + ':' + getLanguageFromFlag(flag)?.code;
     for (const [key, expires] of translations) if (expires <= Date.now()) translations.delete(key);
     if (translations.has(translationKey)) return;
@@ -65,7 +63,7 @@ export async function handleMessageReactionAdd(
     const reaction = reactionInput.partial ? null : reactionInput;
     const message = reaction?.message.partial ? null : reaction?.message;
     if (!message?.reply) {
-      console.warn(`Kella translation failed: ${describeError(error)}`);
+      console.warn("Kella translation failed.");
       return;
     }
 

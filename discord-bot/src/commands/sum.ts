@@ -1,3 +1,4 @@
+import { isAiLocationAllowed } from '../services/privacy.js';
 import { EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 import type { BotCommand } from './index.js';
 import { config } from '../config.js';
@@ -13,8 +14,11 @@ export const sumCommand: BotCommand = {
     if (!interaction.inGuild() || !channel?.isTextBased() || channel.isDMBased()) {
       await interaction.reply({ ephemeral: true, content: 'Use /sum in a server text channel or thread.' }); return;
     }
+    if (!isAiLocationAllowed(interaction.guildId, channel.id, "parentId" in channel ? channel.parentId : null, config.DISCORD_GUILD_ID, config.AI_ALLOWED_CHANNEL_IDS)) {
+      await interaction.reply({ ephemeral: true, content: "AI features are not enabled here. Ask an admin to check the server and channel settings." }); return;
+    }
     const required = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory];
-    if (!interaction.memberPermissions?.has(required) || !interaction.appPermissions?.has([...required, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])) {
+    if (!interaction.memberPermissions?.has(required) || !interaction.appPermissions?.has([...required, channel.isThread() ? PermissionFlagsBits.SendMessagesInThreads : PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])) {
       await interaction.reply({ ephemeral: true, content: 'You and Kella need access to this channel’s message history, and Kella needs permission to send embeds.' }); return;
     }
     if (!config.ENABLE_MESSAGE_CONTENT_INTENT || !config.GROQ_API_KEY) {
@@ -36,7 +40,7 @@ export const sumCommand: BotCommand = {
         .setFooter({ text: `${messages.length} text messages · Current channel only · AI summary` }).setTimestamp(now);
       await interaction.editReply({ embeds: [embed], allowedMentions: { parse: [] } });
     } catch (error) {
-      const content = error instanceof Error && !error.name.includes('Abort') ? error.message : 'The summary timed out. Please try again later.';
+      const content = 'The summary is unavailable right now. Please try again later.';
       if (interaction.deferred) await interaction.editReply({ content, allowedMentions: { parse: [] } });
       else throw error;
     } finally { busy = false; }

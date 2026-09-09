@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-Object.assign(process.env,{DISCORD_BOT_TOKEN:'test',DISCORD_APPLICATION_ID:'test',BOT_API_TOKEN:'test-only-service-token',GROQ_API_KEY:'test-only-key'});
+Object.assign(process.env,{DISCORD_GUILD_ID:'test-guild',ENABLE_PUBLIC_TRANSLATION_FALLBACK:'true',DISCORD_BOT_TOKEN:'test',DISCORD_APPLICATION_ID:'test',BOT_API_TOKEN:'test-only-service-token',GROQ_API_KEY:'test-only-key'});
 const {protectTranslationText,groqTranslate}=await import('../src/services/translationProtection.js');
 const {translateForFlag,translationChunks}=await import('../src/services/translation.js');
 const {handleMessageReactionAdd}=await import('../src/handlers/messageReactionAdd.js');
@@ -12,7 +12,7 @@ globalThis.fetch=async(input:any,init:any)=>{calls++;if(String(input).includes('
 try {
  assert.equal(await groqTranslate(source,'Spanish','test'),source.replace('Hello','Hola'));
  fail=true;assert.equal((await translateForFlag(source,'🇪🇸'))?.translatedText,source.replace('Hello','Hola'));fail=false;
- const replies:any[]=[];const reaction:any={partial:false,emoji:{name:'🇪🇸'},message:{id:'test-message',partial:false,author:{bot:false},content:source,attachments:{size:0},reply:async(x:any)=>replies.push(x)}};
+ const replies:any[]=[];const reaction:any={partial:false,emoji:{name:'🇪🇸'},message:{id:'test-message',guildId:'test-guild',channelId:'test-channel',channel:{},partial:false,author:{bot:false},content:source,attachments:{size:0},reply:async(x:any)=>replies.push(x)}};
  await handleMessageReactionAdd(reaction,{bot:false} as any);const before=calls;await handleMessageReactionAdd(reaction,{bot:false} as any);assert.equal(calls,before);assert.equal(replies.length,1);assert.equal(replies[0].content,undefined);assert.equal(replies[0].embeds[0].toJSON().title,'🌐 Kella Translation');assert.deepEqual(replies[0].allowedMentions,{parse:[],repliedUser:false});
  const names=commands.map(x=>x.data.name);for(const name of ['roots','rowlist','suggest'])assert.ok(!names.includes(name));for(const name of ['sum','poll','summit','shield','attack','complain'])assert.ok(names.includes(name));
  console.log('Translation protection, free fallback, embeds, deduplication and command removal checks passed.');

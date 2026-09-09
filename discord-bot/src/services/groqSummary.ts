@@ -1,3 +1,4 @@
+import { redactSensitiveText } from './privacy.js';
 import { SUMMARY_INSTRUCTIONS } from './chatSummary.js';
 
 export async function summarizeWithGroq(chunks: string[], apiKey: string, request: typeof fetch = fetch): Promise<string> {
@@ -9,7 +10,7 @@ export async function summarizeWithGroq(chunks: string[], apiKey: string, reques
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(Math.min(30_000, deadline - Date.now())),
       body: JSON.stringify({ model: 'openai/gpt-oss-20b', temperature: 0.2, reasoning_effort: 'low', include_reasoning: false, max_completion_tokens: 1500,
-        messages: [{ role: 'system', content: SUMMARY_INSTRUCTIONS }, { role: 'user', content: text }] })
+        messages: [{ role: 'system', content: SUMMARY_INSTRUCTIONS }, { role: 'user', content: redactSensitiveText(text, [apiKey]) }] })
     });
     if (response.status === 429) throw new Error('Kella has reached the free summary quota. Please try again later.');
     if (!response.ok) {
@@ -23,7 +24,7 @@ export async function summarizeWithGroq(chunks: string[], apiKey: string, reques
     const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     const result = data.choices?.[0]?.message?.content?.trim();
     if (!result) throw new Error('The summary service returned no summary. Please try again.');
-    return result.slice(0, 3000);
+    return redactSensitiveText(result, [apiKey]).slice(0, 3000);
   }
   if (!chunks.length) return 'No text conversation in this channel during the past five hours.';
   const notes: string[] = [];

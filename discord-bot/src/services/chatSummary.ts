@@ -1,3 +1,4 @@
+import { redactSensitiveText } from './privacy.js';
 export interface SummaryMessage {
   id: string;
   createdTimestamp: number;
@@ -39,7 +40,7 @@ export function summaryChunks(messages: SummaryMessage[], maxCharacters = 24_000
   const chunks: string[] = [];
   let chunk = '';
   for (const message of messages) {
-    const line = JSON.stringify({ time: new Date(message.createdTimestamp).toISOString(), speaker: message.member?.displayName || message.author.username, text: message.content }) + '\n';
+    const line = JSON.stringify({ time: new Date(message.createdTimestamp).toISOString(), speaker: redactSensitiveText(message.member?.displayName || message.author.username), text: redactSensitiveText(message.content) }) + '\n';
     for (let offset = 0; offset < line.length; offset += maxCharacters) {
       const part = line.slice(offset, offset + maxCharacters);
       if (chunk.length + part.length > maxCharacters) { chunks.push(chunk); chunk = ''; }

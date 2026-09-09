@@ -13,6 +13,8 @@ function normalizeApiUrl(value: string) {
 }
 
 const configSchema = z.object({
+  AI_ALLOWED_CHANNEL_IDS: z.string().default(""),
+  ENABLE_PUBLIC_TRANSLATION_FALLBACK: booleanEnv,
   GROQ_API_KEY: z.string().optional(),
   DISCORD_BOT_TOKEN: z.string().min(1),
   DISCORD_APPLICATION_ID: z.string().min(1),

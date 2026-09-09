@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import { redactSensitiveText, isAiLocationAllowed } from '../src/services/privacy.js';
+import { kellaReply } from '../src/services/kellaPersona.js';
+import { summarizeWithGroq } from '../src/services/groqSummary.js';
+import { summaryChunks } from '../src/services/chatSummary.js';
+import { groqTranslate } from '../src/services/translationProtection.js';
+const secret = 'synthetic-private-value-123456';
+process.env.BOT_API_TOKEN = secret;
+const input = `Hello password=superprivate user@example.com ${secret} gsk_12345678901234567890 mongodb+srv://user:pass@cluster/db`;
+const filtered = redactSensitiveText(input);
+for (const value of ['superprivate', 'user@example.com', secret, 'gsk_', 'user:pass']) assert.ok(!filtered.includes(value));
+assert.equal(isAiLocationAllowed(null, 'channel', null, 'guild'), false);
+assert.equal(isAiLocationAllowed('other', 'channel', null, 'guild'), false);
+assert.equal(isAiLocationAllowed('guild', 'channel', null, undefined), false);
+assert.equal(isAiLocationAllowed('guild', 'channel', null, 'guild'), true);
+assert.equal(isAiLocationAllowed('guild', 'private', null, 'guild', 'public'), false);
+assert.equal(isAiLocationAllowed('guild', 'thread', 'public', 'guild', 'public'), true);
+const chunks = summaryChunks([{id:'1', createdTimestamp:Date.now(),content:input,author:{bot:false,username:'player'}}], 10);
+assert.ok(!chunks.join('').includes(secret));
+const request: typeof fetch = async (_url, init) => {
+  const body = String(init?.body);
+  for (const value of ['superprivate', 'user@example.com', secret]) assert.ok(!body.includes(value));
+  return Response.json({choices:[{message:{content:`Summary ${secret}`}}]});
+};
+assert.ok(!(await kellaReply(input, undefined, 'synthetic-api-key', 'https://example.com', request)).includes(secret));
+assert.ok(!(await summarizeWithGroq([input], 'synthetic-api-key', request)).includes(secret));
+const translated = await groqTranslate(input, 'Spanish', 'synthetic-api-key', async (_url, init) => {
+  assert.ok(!String(init?.body).includes(secret));
+  const body = JSON.parse(String(init?.body));
+  return Response.json({choices:[{message:{content:JSON.parse(body.messages[1].content).message}}]});
+});
+assert.ok(!translated.includes(secret));
+console.log('Privacy: server/channel boundaries, input/output filtering and pre-chunk redaction passed.');

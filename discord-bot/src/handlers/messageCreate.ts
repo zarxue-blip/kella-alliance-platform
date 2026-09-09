@@ -1,3 +1,4 @@
+import { isAiLocationAllowed, redactSensitiveText } from '../services/privacy.js';
 import { kellaMention } from "../services/kellaMention.js";
 import type { Message } from "discord.js";
 import { kellaReply } from "../services/kellaPersona.js";
@@ -112,6 +113,7 @@ let activeReplies = 0;
 
 export async function handleMessageMention(message: Message) {
   if (message.author.bot || message.webhookId || !message.guildId) return;
+  if (!isAiLocationAllowed(message.guildId, message.channelId, "parentId" in message.channel ? message.channel.parentId : null, config.DISCORD_GUILD_ID, config.AI_ALLOWED_CHANNEL_IDS)) return;
   const botUser = message.client.user;
   if (!botUser) return;
   const question = kellaMention(message.content, botUser.id, message.mentions.users.has(botUser.id), message.mentions.roles.values());
@@ -129,11 +131,11 @@ export async function handleMessageMention(message: Message) {
   try {
     const memberAnswer = await answerMemberStats(message, question);
     let answer = memberAnswer || "My donkey is more talkative than the oracle today. Try again shortly; I've coins to count.";
-    if (config.GROQ_API_KEY) {
+    if (config.GROQ_API_KEY && !memberAnswer) {
       try { answer = await kellaReply(question, memberAnswer, config.GROQ_API_KEY, config.PUBLIC_APP_URL); }
       catch { /* Keep factual roster output or an in-character free-quota fallback. */ }
     }
-    await message.reply({ content: answer.slice(0,1900), allowedMentions: { parse: [], repliedUser: false } });
+    await message.reply({ content: redactSensitiveText(answer).slice(0,1900), allowedMentions: { parse: [], repliedUser: false } });
   } catch {
     console.warn('Kella could not send a mention reply. Check channel permissions and service availability.');
   } finally { activeReplies--; }

@@ -1,3 +1,4 @@
+import { redactSensitiveText } from './privacy.js';
 export function protectTranslationText(text: string) {
   const values: string[] = [];
   let prefix = 'KELLAPRESERVETOKEN';
@@ -20,7 +21,7 @@ export function protectTranslationText(text: string) {
 }
 
 export async function groqTranslate(text: string, target: string, key: string, request: typeof fetch = fetch) {
-  const protectedText = protectTranslationText(text);
+  const protectedText = protectTranslationText(redactSensitiveText(text, [key]));
   const response = await request('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(8000),
     body: JSON.stringify({ model: 'openai/gpt-oss-20b', reasoning_effort: 'low', include_reasoning: false, temperature: 0,
@@ -34,5 +35,5 @@ export async function groqTranslate(text: string, target: string, key: string, r
   if (data.choices?.[0]?.finish_reason === 'length') throw new Error('Translation incomplete');
   const output = data.choices?.[0]?.message?.content?.trim();
   if (!output) throw new Error('Empty translation');
-  return protectedText.restore(output);
+  return redactSensitiveText(protectedText.restore(output), [key]);
 }
