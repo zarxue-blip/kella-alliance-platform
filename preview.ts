@@ -1,3 +1,4 @@
+import { memberForViewer } from './backend/src/services/memberPrivacy.service.js';
 import { validateChatImage } from './backend/src/services/chatImageValidation.js';
 import { migrationFields } from './backend/src/services/migrationFields.js';
 import { canonicalAllianceTag } from './backend/src/services/memberIdentity.service.js';
@@ -62,8 +63,10 @@ app.use(async (req,res,next) => {
       if(req.path === '/api/dashboard/members' && req.query.view === 'dashboard' && data.status === 200) {
         const payload=JSON.parse(data.body);
         payload.members=rankMembers((payload.members || []).filter((member:any) => ["kog","lwl","mf"].includes(canonicalAllianceTag(member.alliance))),String(req.query.metric || 'power'),Number(req.query.limit) || 10);
+        payload.members=payload.members.map((member:any)=>memberForViewer(member,false));
         return res.json(payload);
       }
+      if(req.path === '/api/dashboard/members'){const payload=JSON.parse(data.body);payload.members=(payload.members||[]).map((m:any)=>memberForViewer(m,res.locals.previewRole==='admin'));return res.status(data.status).json(payload);}
       return res.status(data.status).type('json').send(data.body);
     } catch { return res.status(502).json({message:'Live read-only data is unavailable. Try again shortly.'}); }
   }

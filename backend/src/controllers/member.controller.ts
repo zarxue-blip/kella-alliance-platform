@@ -42,7 +42,7 @@ export const listMembers = asyncHandler(async (req: AuthenticatedRequest, res) =
   const direction = order === "asc" ? 1 : -1;
   const [members, total] = await Promise.all([
     MemberModel.find(filter)
-      .select(isDashboardAdminUser(req.user) ? "" : "-notes")
+      .select(isDashboardAdminUser(req.user) ? "" : "-notes -discordUsername")
       .sort({ [String(sort)]: direction })
       .skip((page - 1) * limit)
       .limit(limit)

@@ -1,3 +1,5 @@
+import { memberForViewer } from '../services/memberPrivacy.service.js';
+import { isDashboardAdminUser } from '../middleware/auth.js';
 import { validateChatImage } from '../services/chatImageValidation.js';
 import { personalAttendanceByEvent } from "../services/personalAttendance.service.js";
 import { rankMembers } from "../services/ranking.service.js";
@@ -1004,7 +1006,7 @@ function dashboardMemberDto(member: any, options: { historyLimit?: number; compa
     discordId: member.discordId,
     discordName: member.discordDisplayName || member.ign || member.discordId,
     discordUsername: member.discordUsername || member.discordId,
-    discordDisplayName: member.discordDisplayName || member.ign || member.discordUsername || member.discordId,
+    discordDisplayName: member.discordDisplayName || member.ign || member.discordId,
     discordAvatarUrl: member.discordAvatarUrl || "",
     profilePhotoUrl: member.profilePhotoUrl || "",
     ign: member.ign,
@@ -1414,8 +1416,8 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
       { ign: { $regex: q, $options: "i" } },
       { uid: { $regex: q, $options: "i" } },
       { discordId: { $regex: q, $options: "i" } },
-      { discordUsername: { $regex: q, $options: "i" } },
       { discordDisplayName: { $regex: q, $options: "i" } },
+      ...(res.locals.memberManagement ? [{ discordUsername: { $regex: q, $options: "i" } }] : []),
       { role: { $regex: q, $options: "i" } }
     ];
   }
@@ -1441,7 +1443,7 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
     members: members.map((member) => {
       const dto = dashboardMemberDto(member, dashboardView ? { historyLimit: 10, compact: true, metricKey } : {});
       if (!res.locals.memberManagement) delete (dto as any).notes;
-      return dto;
+      return memberForViewer(dto, Boolean(res.locals.memberManagement));
     })
   });
 });
@@ -1495,7 +1497,7 @@ export const dashboardProfile = asyncHandler(async (req, res) => {
   const member = await findOrCreateProfileMember(user);
   const profile = dashboardMemberDto(member);
   delete (profile as any).notes;
-  res.json({ member: profile });
+  res.json({ member: memberForViewer(profile, isDashboardAdminUser(user)) });
 });
 
 export const dashboardProfileUpdate = asyncHandler(async (req, res) => {
@@ -1510,7 +1512,7 @@ export const dashboardProfileUpdate = asyncHandler(async (req, res) => {
   if (!updated) throw new HttpError(404, "Profile not found");
   const profile = dashboardMemberDto(updated);
   delete (profile as any).notes;
-  res.json({ member: profile });
+  res.json({ member: memberForViewer(profile, isDashboardAdminUser(user)) });
 });
 
 export const dashboardMemberCreate = asyncHandler(async (req, res) => {

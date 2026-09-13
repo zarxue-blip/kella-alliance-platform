@@ -1,3 +1,4 @@
+import { memberForViewer } from './memberPrivacy.service.js';
 import { randomUUID } from "node:crypto";
 import type { Server } from "socket.io";
 import { realtimeEvents, type DashboardModule, type NotificationDto, type Priority } from "@cod-amp/shared";
@@ -9,7 +10,7 @@ export function registerRealtimeServer(server: Server) {
 }
 
 export function emitAlliance(allianceId: string, event: string, payload: unknown) {
-  io?.to(`alliance:${allianceId}`).emit(event, payload);
+  io?.to(`alliance:${allianceId}`).emit(event, event === realtimeEvents.memberUpdated && payload && typeof payload === "object" ? memberForViewer(JSON.parse(JSON.stringify(payload))) : payload);
 }
 
 export function emitNotification(allianceId: string, notification: Omit<NotificationDto, "id" | "createdAt">) {
