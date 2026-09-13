@@ -25,10 +25,10 @@ const modules = [
   { id: "wiki", name: "Wiki", badge: "Guides", command: "Dashboard", description: "Publish alliance rules, guides, images, and readable member notes." },
   { id: "summit", name: "Summit Registration", badge: "Fast", command: "/summit", description: "Simple Summit attendance buttons for Attending, Absent, and Not Sure." },
   { id: "polls", name: "Polls + Roles", badge: "New", command: "/poll", description: "Create one-click polls, map answers to Discord roles, and review participation in Attendance." },
-  { id: "besttime", name: "Best Online Time", badge: "UTC", command: "/besttime", description: "Collect members' usual online windows and compare the results in Attendance." },
+  { id: "besttime", name: "Best Online Time", badge: "UTC", command: "Dashboard", description: "Collect members' usual online windows and compare the results in Attendance." },
   { id: "checkin", name: "Daily Check-In", badge: "Activity", command: "/checkin", description: "One button daily activity tracking for weekly and inactive member reports." },
   { id: "absence", name: "Absence Notices", badge: "Modal", command: "/absence", description: "Members submit reason, start date, and end date. Officers see who is away." },
-  { id: "applications", name: "Applications", badge: "Recruiting", command: "/apply", description: "Simple application modal for IGN, power, timezone, and main legion." },
+  { id: "applications", name: "Applications", badge: "Recruiting", command: "Dashboard", description: "Simple application modal for IGN, power, timezone, and main legion." },
   { id: "reminders", name: "Event Reminders", badge: "Auto", command: "/remind", description: "Queue reminders for Summit, Fortress, Stronghold, Pass Defense, or Behemoth." },
   { id: "members", name: "Members", badge: "Roster", command: "Dashboard", description: "Search members, see Discord User ID, Lord ID, alliance role, attendance, and notes." },
   { id: "settings", name: "Settings", badge: "Setup", command: "Dashboard", description: "Admin key, channels, alliance label, and module switches." }
@@ -3416,16 +3416,15 @@ export function kellaDashboardHtml() {
       const dashboardNavItems = ${JSON.stringify(navItems)};
       const dashboardModules = ${JSON.stringify(modules)};
       const dashboardCommands = [
+        { name: "sum", label: "Chat Summary", description: "Summarize the last five hours in the current channel." },
         { name: "shield", label: "Shield Alert", description: "DM a shield warning to one player." },
         { name: "attack", label: "Attack Alert", description: "Post an emergency alliance attack alert." },
         { name: "summit", label: "Summit Registration", description: "Open a Summit attendance panel." },
         { name: "poll", label: "Poll + Role", description: "Post a poll and optionally map answers to roles." },
-        { name: "besttime", label: "Best Online Time", description: "Collect member UTC availability." },
         { name: "time", label: "UTC Timer", description: "Post a live Discord countdown." },
         { name: "remind", label: "Event Reminder", description: "Queue a reminder for an alliance event." },
         { name: "checkin", label: "Daily Check-In", description: "Post the daily member check-in button." },
         { name: "absence", label: "Absence Notice", description: "Let members submit time-away notices." },
-        { name: "apply", label: "Alliance Application", description: "Open the alliance application form." },
         { name: "complain", label: "Complaint", description: "Let members privately contact R4s." },
         { name: "wiki-admin", label: "Wiki", description: "Post the Kella Wiki reader link." },
         { name: "dashboard", label: "Dashboard Link", description: "Give members the Kella website link." }

@@ -1,4 +1,5 @@
-import { ActivityType, Client, Events, GatewayIntentBits, Partials, REST, Routes } from "discord.js";
+import { syncCommands } from './services/commandRegistration.js';
+import { ActivityType, Client, Events, GatewayIntentBits, Partials, REST } from "discord.js";
 import { botName } from "@cod-amp/shared";
 import { config } from "./config.js";
 import { commands } from "./commands/index.js";
@@ -40,11 +41,7 @@ const commandScope = config.DISCORD_GUILD_ID ? `guild ${config.DISCORD_GUILD_ID}
 console.log(`${botName} deploying ${commands.length} commands to ${commandScope}.`);
 try {
   const body = commands.map((command) => command.data.toJSON());
-  if (config.DISCORD_GUILD_ID) {
-    await rest.put(Routes.applicationGuildCommands(config.DISCORD_APPLICATION_ID, config.DISCORD_GUILD_ID), { body });
-  } else {
-    await rest.put(Routes.applicationCommands(config.DISCORD_APPLICATION_ID), { body });
-  }
+  await syncCommands(rest, config.DISCORD_APPLICATION_ID, config.DISCORD_GUILD_ID, body);
   for (const command of commands) console.log(`${botName} command deployed: /${command.data.name}`);
 } catch (error) {
   console.error(`${botName} command deploy failed: ${describeError(error)}`);

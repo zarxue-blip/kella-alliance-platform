@@ -86,12 +86,6 @@ const pollCommand = new SlashCommandBuilder()
   .addRoleOption((option) => option.setName("role4").setDescription("Role assigned for option 4").setRequired(false))
   .addRoleOption((option) => option.setName("role5").setDescription("Role assigned for option 5").setRequired(false));
 
-const bestTimeCommand = new SlashCommandBuilder()
-  .setName("besttime")
-  .setDescription("Ask members for their usual best online UTC window.")
-  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-  .addStringOption((option) => option.setName("question").setDescription("Optional custom question").setRequired(false).setMaxLength(256));
-
 async function publishPoll(
   interaction: ChatInputCommandInteraction,
   kind: "poll" | "best_online_time",
@@ -239,18 +233,6 @@ export const commands: BotCommand[] = [
     }
   },
   {
-    data: bestTimeCommand,
-    async execute(interaction) {
-      const options = ["00-04 UTC", "04-08 UTC", "08-12 UTC", "12-16 UTC", "16-20 UTC", "20-24 UTC"].map((label) => ({ label }));
-      await publishPoll(
-        interaction,
-        "best_online_time",
-        interaction.options.getString("question")?.trim() || "When are you usually online?",
-        options
-      );
-    }
-  },
-  {
     data: new SlashCommandBuilder()
       .setName("time")
       .setDescription("Post a live Discord countdown for a 24-hour UTC server time.")
@@ -345,19 +327,6 @@ export const commands: BotCommand[] = [
         new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("reason").setLabel("Reason").setStyle(TextInputStyle.Paragraph).setRequired(true)),
         new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("startDate").setLabel("Start Date").setStyle(TextInputStyle.Short).setRequired(true)),
         new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("endDate").setLabel("End Date").setStyle(TextInputStyle.Short).setRequired(true))
-      );
-      await interaction.showModal(modal);
-    }
-  },
-  {
-    data: new SlashCommandBuilder().setName("apply").setDescription("Apply to the alliance."),
-    async execute(interaction) {
-      const modal = new ModalBuilder().setCustomId("application-modal").setTitle("Alliance Application");
-      modal.addComponents(
-        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("ign").setLabel("IGN").setStyle(TextInputStyle.Short).setRequired(true)),
-        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("power").setLabel("Power").setStyle(TextInputStyle.Short).setRequired(true)),
-        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("timezone").setLabel("Timezone").setStyle(TextInputStyle.Short).setRequired(true)),
-        new ActionRowBuilder<TextInputBuilder>().addComponents(new TextInputBuilder().setCustomId("mainLegion").setLabel("Main Legion").setStyle(TextInputStyle.Short).setRequired(true))
       );
       await interaction.showModal(modal);
     }

@@ -86,14 +86,12 @@ const dashboardSettingsSchema = z.object({
             "attack",
             "summit",
             "poll",
-            "besttime",
             "time",
             "remind",
             "checkin",
             "absence",
-            "apply",
             "complain",
-            "suggest",
+            "sum",
             "wiki-admin",
             "dashboard"
           ])
