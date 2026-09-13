@@ -31,6 +31,7 @@ app.use((req,res,next) => {
   }
   if(req.method !== 'GET') return res.status(403).json({message:'Preview only: changes are not saved or sent to Discord.'});
   if(req.path === '/api/auth/me') return res.json({authenticated:true,user:{username:'Preview '+role,role:role==='admin'?'Owner':'Member'},isDashboardAdmin:role==='admin',isDashboardWikiEditor:role!=='member'});
+  if(req.path === '/api/dashboard/profile') return res.json({member:{id:'preview-member',ign:'Preview member',discordUsername:'preview',discordDisplayName:'Preview member (sample only)',role:role==='admin'?'Owner':'Member',alliance:'KoG',timezone:'UTC',country:'',power:0,powerHistory:[],statHistory:[]}});
   if(req.path === '/api/dashboard/my-attendance') return res.json({byEvent:{}});
   if(req.path === '/api/dashboard/summary/admin' && role==='admin') req.url='/api/dashboard/summary';
   if(req.path === '/api/dashboard/wiki/admin' && role!=='member') { req.url='/api/dashboard/wiki'; }
@@ -84,4 +85,5 @@ const previewHtml = kellaPageHtml
   .replace('<body>', '<body><aside id="preview-notice" role="status" tabindex="-1">Local preview · Sign-in and saving are unavailable.</aside>');
 app.use(['/buff-schedule','/roots-of-war','/roots-registration','/roots-reports'],(_req,res)=>res.status(404).send('This feature has been removed.'));
 app.get('*',(_req,res)=>res.type('html').send(previewHtml.replace('Local preview · Sign-in and saving are unavailable.', 'Local preview · '+res.locals.previewRole+' view · Image library changes are temporary; other saving disabled. <a href="/calendar?__role=member">Member</a> · <a href="/wiki?__role=editor">Wiki Editor</a> · <a href="/officer?__role=admin">Admin</a>')));
-app.listen(Number(process.env.KELLA_PREVIEW_PORT || 4173),'127.0.0.1',()=>console.log('Local preview: http://127.0.0.1:4173'));
+const previewPort=Number(process.env.KELLA_PREVIEW_PORT || 4173);
+app.listen(previewPort,'127.0.0.1',()=>console.log('Local preview: http://127.0.0.1:'+previewPort));

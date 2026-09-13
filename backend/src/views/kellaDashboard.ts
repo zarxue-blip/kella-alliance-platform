@@ -1,3 +1,4 @@
+import { portalHomeClient } from './portalHome.js';
 import { migrationClient } from './migrationClient.js';
 import { lordResearchLevelCosts, lordResearchTreeData } from "../data/researchTree.data.js";
 
@@ -252,7 +253,7 @@ export function kellaDashboardHtml() {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Kella Dashboard</title>
+    <title>Kella | Alliance Platform</title>
     <link rel="icon" type="image/png" href="/assets/kella-favicon.png?v=1" />
     <link rel="shortcut icon" type="image/png" href="/assets/kella-favicon.png?v=1" />
     <link rel="apple-touch-icon" href="/assets/kella-logo.png?v=1" />
@@ -3341,19 +3342,20 @@ export function kellaDashboardHtml() {
     </style>
     <link rel="stylesheet" href="/assets/command-center.css?v=1" />
     <link rel="stylesheet" href="/assets/noticeboard.css?v=8" />
-    <link rel="stylesheet" href="/assets/parchment-workspace.css?v=5" />
     <link rel="stylesheet" href="/assets/command-workspace.css?v=1" />
+    <link rel="stylesheet" href="/assets/fantasy-portal.css?v=1" />
   </head>
   <body>
+    <div class="realm-coins" aria-hidden="true"><i style="--x:5%;--y:7%;--size:10px;--duration:12s;--delay:-0s" class="portal-coin"><span>✦</span></i><i style="--x:42%;--y:26%;--size:15px;--duration:13s;--delay:-2s" class="portal-coin"><span>✦</span></i><i style="--x:79%;--y:45%;--size:20px;--duration:14s;--delay:-4s" class="portal-coin"><span>✦</span></i><i style="--x:19%;--y:64%;--size:25px;--duration:15s;--delay:-6s" class="portal-coin"><span>✦</span></i><i style="--x:56%;--y:83%;--size:10px;--duration:16s;--delay:-8s" class="portal-coin"><span>✦</span></i><i style="--x:93%;--y:6%;--size:15px;--duration:17s;--delay:-10s" class="portal-coin"><span>✦</span></i><i style="--x:33%;--y:25%;--size:20px;--duration:18s;--delay:-12s" class="portal-coin"><span>✦</span></i><i style="--x:70%;--y:44%;--size:25px;--duration:12s;--delay:-14s" class="portal-coin"><span>✦</span></i><i style="--x:10%;--y:63%;--size:10px;--duration:13s;--delay:-16s" class="portal-coin"><span>✦</span></i><i style="--x:47%;--y:82%;--size:15px;--duration:14s;--delay:-18s" class="portal-coin"><span>✦</span></i><i style="--x:84%;--y:5%;--size:20px;--duration:15s;--delay:-20s" class="portal-coin"><span>✦</span></i><i style="--x:24%;--y:24%;--size:25px;--duration:16s;--delay:-22s" class="portal-coin"><span>✦</span></i><i style="--x:61%;--y:43%;--size:10px;--duration:17s;--delay:-24s" class="portal-coin"><span>✦</span></i><i style="--x:1%;--y:62%;--size:15px;--duration:18s;--delay:-26s" class="portal-coin"><span>✦</span></i><i style="--x:38%;--y:81%;--size:20px;--duration:12s;--delay:-28s" class="portal-coin"><span>✦</span></i><i style="--x:75%;--y:4%;--size:25px;--duration:13s;--delay:-30s" class="portal-coin"><span>✦</span></i><i style="--x:15%;--y:23%;--size:10px;--duration:14s;--delay:-32s" class="portal-coin"><span>✦</span></i><i style="--x:52%;--y:42%;--size:15px;--duration:15s;--delay:-34s" class="portal-coin"><span>✦</span></i></div>
     <div class="shell">
-      <aside class="sidebar">
-        <div class="brand">
-          <img id="guildAvatar" class="brand-logo" src="/assets/kella-logo.png?v=1" alt="Kella logo" />
+      <aside class="sidebar"><canvas class="header-coins" aria-hidden="true"></canvas>
+        <a class="brand" href="/" data-link aria-label="Kella home">
+          <picture><source media="(prefers-reduced-motion: reduce)" srcset="/assets/kella-header-v2-still.png"/><img id="guildAvatar" class="brand-logo" src="/assets/kella-header-v2.webp" alt="Kella waving with her coin pouch" width="180" height="270" /></picture>
           <div>
-            <strong id="guildName">KING OF GLORY</strong>
+            <b class="kella-wordmark">Kella</b><strong id="guildName">Alliance Platform</strong>
             <span id="guildTagline">Command Center</span>
           </div>
-        </div>
+        </a>
         <nav aria-label="Dashboard navigation" data-sidebar-nav>${navItems.filter((item) => !item.adminOnly).map(navLink).join("")}</nav>
         <button class="mobile-nav-toggle" type="button" data-mobile-nav-toggle aria-label="Open navigation" aria-expanded="false">☰</button>
           <div class="top-actions" aria-label="Quick actions">
@@ -4953,7 +4955,7 @@ export function kellaDashboardHtml() {
         const name = alliance.name || "KING OF GLORY";
         const tag = alliance.tag || "COD";
         document.getElementById("guildAvatar").alt = name + " logo";
-        document.getElementById("guildName").textContent = name;
+        document.getElementById("guildName").textContent = "Alliance Platform";
         document.getElementById("guildTagline").textContent = "Command Center";
       }
 
@@ -4970,8 +4972,7 @@ export function kellaDashboardHtml() {
         return Math.max(0, Math.min(100, Math.round((Number(value || 0) / Number(total || 1)) * 100)));
       }
 
-      function currentMonthDays() {
-        const now = new Date();
+      function currentMonthDays(now = new Date()) {
         const year = now.getUTCFullYear();
         const month = now.getUTCMonth();
         const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
@@ -4980,8 +4981,8 @@ export function kellaDashboardHtml() {
         });
       }
 
-      function monthTitle() {
-        return new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date());
+      function monthTitle(date = new Date()) {
+        return new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
       }
 
       function dayKey(value) {
@@ -5130,9 +5131,9 @@ export function kellaDashboardHtml() {
         }).join("") + '</div>';
       }
 
-      function renderEventsCalendar(events) {
+      function renderEventsCalendar(events, date = new Date()) {
         const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        return '<div class="calendar-weekdays" aria-hidden="true">' + weekdays.map(function(day) { return '<span>' + day + '</span>'; }).join("") + '</div><div class="calendar-grid event-calendar">' + currentMonthDays().map(function(date) {
+        return '<div class="calendar-weekdays" aria-hidden="true">' + weekdays.map(function(day) { return '<span>' + day + '</span>'; }).join("") + '</div><div class="calendar-grid event-calendar">' + currentMonthDays(date).map(function(date) {
           const key = dayKey(date);
           return (date.getUTCDate() === 1 ? '<span class="calendar-offset" style="grid-column:span ' + date.getUTCDay() + '"' + (date.getUTCDay() ? "" : " hidden") + '></span>' : "") + renderCalendarCell(date, "events", calendarItemsForDay(events, key));
         }).join("") + '</div>';
@@ -7459,42 +7460,12 @@ export function kellaDashboardHtml() {
         return today.find(function(event) { return new Date(event.startsAt) >= now; }) || today[today.length - 1] || ordered.find(function(event) { return new Date(event.startsAt) >= now; }) || null;
       }
 
-      function renderAllianceBoard(events = []) {
-        const current = boardCurrentEvent(events);
-        const notes = [["/calendar", "events.png", "Events"], ["/wiki", "embed-sender.png", "Wiki"], ["/members", "members.png", "Members"], ["/attendance", "events.png", "Attendance"], ["/research", "research.png", "Research"], ["/training-tools", "training-tools.png", "Training"], ["/migration", "/assets/migration-gold.png", "Migration"]];
-        if (hasAdminAccess()) notes.push(["/officer", "settings.png", "Admin Tools"]);
-        const eventLabel = current ? (dayKey(current.startsAt) === dayKey(new Date()) ? "Today’s event" : "Next event") : "Alliance calendar";
-        return '<section class="alliance-board" aria-label="Alliance noticeboard"><picture><source media="(max-width: 900px)" srcset="/assets/alliance-board-portrait.png"/><img class="board-scene" src="/assets/alliance-board-wide.png" alt="Sunny fantasy meadow with the alliance noticeboard" width="1672" height="941" fetchpriority="high"/></picture><div class="board-character has-video"><video data-kella-video autoplay muted loop playsinline preload="auto" poster="/assets/kella-toss-poster.png" aria-label="Kella tossing a coin" width="480" height="672"></video></div><div class="board-paper"><a class="board-profile" href="/profile" data-link aria-label="My Profile"><img src="/assets/icons/members.png" alt="" width="44" height="44"/><span>Profile</span></a><a class="board-brand" href="/" data-link><img src="/assets/kella-logo.png?v=1" alt="" width="32" height="32"/>KING OF GLORY</a><div class="board-heading"><span>' + eventLabel + '</span><h2>' + escapeHtml(current?.title || 'No upcoming event') + '</h2><p>' + (current ? formatUtcDateTime(current.startsAt) : 'A new adventure will appear here when scheduled.') + '</p>' + (current ? '<a class="board-event-link" href="/attendance/' + escapeHtml(current.id) + '" data-link>View event →</a>' : '') + '</div><nav class="board-notes" aria-label="Noticeboard destinations">' + notes.map(function(note) { return '<a class="board-note" href="' + note[0] + '" data-link><img src="' + (note[1].startsWith("/") ? note[1] : "/assets/icons/" + note[1]) + '" alt="" width="68" height="68"/><strong>' + note[2] + '</strong></a>'; }).join('') + '</nav></div></section>';
-      }
-
-      function initializeCharacterVideo() {
-        const video = document.querySelector('[data-kella-video]');
-        if (!video) return;
-        const mobile = window.matchMedia('(max-width: 900px)').matches;
-        const safari = /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Edg/.test(navigator.userAgent);
-        if (mobile || safari) {
-          const animation = document.createElement('img');
-          animation.src = '/assets/kella-toss-transparent.webp';
-          animation.alt = 'Kella tossing a coin';
-          animation.className = 'kella-transparent-loop';
-          animation.width = 360; animation.height = 504;
-          video.replaceWith(animation);
-          return;
-        }
-        video.src = '/assets/kella-toss.webm';
-        video.muted = true;
-        video.play().catch(function() {
-          // Retry after the first interaction if the browser blocks autoplay.
-          document.addEventListener('pointerdown', function() {
-            if (video.isConnected) video.play().catch(function() {});
-          }, { once: true });
-        });
-      }
+${portalHomeClient}
 
       let homeRankMetric = 'power';
       let homeRankRequest = 0;
       function homeShowcaseHtml() {
-        return '<aside class="showcase-board" aria-label="Top player showcase"><header><span>KING OF GLORY</span><h2>Hall of Champions</h2><label>Top 10 by <select data-home-rank aria-label="Top player ranking"><option value="power">Power</option><option value="merits">Merits</option><option value="unitsKilled">Kills</option></select></label></header><ol class="showcase-players" aria-live="polite"><li class="showcase-message">Loading champions…</li></ol></aside>';
+        return '<aside class="showcase-board" aria-label="Top player showcase"><header><span>KELLA</span><h2>Hall of Champions</h2><label>Top 10 by <select data-home-rank aria-label="Top player ranking"><option value="power">Power</option><option value="merits">Merits</option><option value="unitsKilled">Kills</option></select></label></header><ol class="showcase-players" aria-live="polite"><li class="showcase-message">Loading champions…</li></ol></aside>';
       }
       function championRows(members, metric) {
         return members.slice(0,10).map(function(member,index) {
@@ -7521,11 +7492,15 @@ export function kellaDashboardHtml() {
       function renderDashboardData(summary, members = [], events = []) {
         app.innerHTML = renderAllianceBoard(events);
         initializeCharacterVideo();
-        app.querySelector('.alliance-board').insertAdjacentHTML('beforeend',homeShowcaseHtml());
+        app.querySelector('.portal-champions').innerHTML = homeShowcaseHtml();
+        loadPortalParticipation();
+        loadPortalStats();
+        app.querySelector('[data-portal-live]').insertAdjacentHTML('afterend',renderPortalUpcoming(events));
         app.querySelector('[data-home-rank]').value=homeRankMetric;
         loadHomeShowcase();
       }
 
+      let portalCalendarDate = new Date();
       async function renderMemberCalendar() {
         const renderVersion = navigationVersion;
         skeleton("Loading events…");
@@ -7533,7 +7508,8 @@ export function kellaDashboardHtml() {
           const results = await Promise.all([loadDashboardEvents()]);
           if (renderVersion !== navigationVersion) return;
           app.innerHTML = pageHeader("Events", "", hasAdminAccess() ? '<button class="primary" data-link-button="/tools?tool=events">+ Add event</button>' : '') +
-            '<section class="card"><div class="card-header"><h3>' + monthTitle() + '</h3><a href="/attendance" data-link>Attendance →</a></div>' + renderEventsCalendar(results[0]) + '</section>';
+            '<section class="card alliance-calendar"><div class="card-header"><div><span class="portal-eyebrow">ALL TIMES UTC</span><h3>' + monthTitle(portalCalendarDate) + '</h3></div><div class="calendar-controls"><button type="button" data-calendar-shift="-1" aria-label="Previous month">‹</button><button type="button" data-calendar-shift="0">Today</button><button type="button" data-calendar-shift="1" aria-label="Next month">›</button></div></div>' + renderEventsCalendar(results[0],portalCalendarDate) + '<p class="calendar-hint">Select a date to view events and attendance.</p></section>' + '<section class="calendar-agenda"><div class="portal-section-heading"><h2>This month</h2><a href="/attendance" data-link>Attendance →</a></div>' + (results[0].filter(function(e){return Number.isFinite(Date.parse(e.startsAt)) && monthTitle(new Date(e.startsAt)) === monthTitle(portalCalendarDate);}).sort(function(a,b){return Date.parse(a.startsAt)-Date.parse(b.startsAt);}).map(function(e){return '<a class="calendar-agenda-item" href="/attendance/'+encodeURIComponent(e.id)+'" data-link><time><strong>'+new Date(e.startsAt).getUTCDate()+'</strong>'+formatUtcTime(e.startsAt)+' UTC</time><div><h3>'+escapeHtml(e.title)+'</h3><span>Event details & attendance</span></div><span aria-hidden="true">→</span></a>';}).join('') || '<p class="portal-empty">No events scheduled this month.</p>') + '</section>';
+          app.querySelectorAll('[data-calendar-shift]').forEach(function(button){button.onclick=function(){const shift=Number(button.dataset.calendarShift);portalCalendarDate=shift?new Date(Date.UTC(portalCalendarDate.getUTCFullYear(),portalCalendarDate.getUTCMonth()+shift,1)):new Date();renderMemberCalendar();};});
         } catch(error) { app.innerHTML = '<div class="error">' + escapeHtml(error.message) + '</div>'; }
       }
 
