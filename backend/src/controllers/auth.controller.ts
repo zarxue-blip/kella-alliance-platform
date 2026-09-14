@@ -1,6 +1,6 @@
 import { migrationIdentityCookie, signMigrationIdentity } from '../services/migrationIdentity.service.js';
 import type { Request, Response } from "express";
-import { randomBytes } from "node:crypto";
+import { createOAuthState, verifyOAuthState, oauthStateCookie } from "../services/oauthState.service.js";
 import { env, isProduction } from "../config/env.js";
 import { AllianceModel } from "../models/alliance.model.js";
 import { UserModel } from "../models/user.model.js";
@@ -9,8 +9,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
 import { isDashboardAdminUser, isDashboardWikiEditorUser, signSessionToken, type AuthenticatedRequest } from "../middleware/auth.js";
 
-const oauthStates = new Set<string>();
-const migrationOauthStates = new Set<string>();
+
 
 function csvSet(value?: string) {
   return new Set(
@@ -28,27 +27,31 @@ function hasAnyRole(userRoleIds: string[], allowedRoleIds?: string) {
 }
 
 export const startDiscordLogin = asyncHandler(async (_req: Request, res: Response) => {
-  const state = randomBytes(24).toString("hex");
-  oauthStates.add(state);
-  if (_req.query.migration === '1') {
-    migrationOauthStates.add(state);
-    res.cookie('kella_migration_oauth_state', state, {httpOnly:true,secure:isProduction,sameSite:'lax',maxAge:600000});
+  // Start on the callback origin so the same browser cookie returns from Discord.
+  const callbackOrigin = new URL(env.DISCORD_REDIRECT_URI);
+  if (isProduction && _req.get("host") !== callbackOrigin.host) {
+    res.redirect(callbackOrigin.origin + "/api/auth/discord" + (_req.query.migration === "1" ? "?migration=1" : ""));
+    return;
   }
+  const { state, cookie } = createOAuthState(_req.query.migration === "1");
+  res.set("Cache-Control", "no-store");
+  res.cookie(oauthStateCookie, cookie, { httpOnly: true, secure: isProduction, sameSite: "lax", path: "/", maxAge: 600000 });
   res.redirect(getDiscordAuthorizationUrl(state));
 });
 
 export const discordCallback = asyncHandler(async (req: Request, res: Response) => {
   const { code, state } = req.query;
-  if (typeof code !== "string" || typeof state !== "string" || !oauthStates.has(state)) {
-    throw new HttpError(400, "Invalid OAuth callback");
+  const login = verifyOAuthState(state, req.cookies?.[oauthStateCookie]);
+  res.set("Cache-Control", "no-store");
+  res.clearCookie(oauthStateCookie, { httpOnly: true, secure: isProduction, sameSite: "lax", path: "/" });
+  if (typeof code !== "string" || !login) {
+    res.status(400).type("html").send('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Restart Discord login</title></head><body style="background:#171b29;color:#ead5a8;font:18px system-ui;padding:40px;max-width:600px;margin:auto"><h1>Please restart Discord login</h1><p>This login link expired or no longer matches your browser. Your account permissions have not been checked yet.</p><p><a style="color:#a7afff" href="/api/auth/discord">Try Discord login again</a></p><a style="color:#ead5a8" href="/">Return to Kella</a></body></html>');
+    return;
   }
-  oauthStates.delete(state);
-  const migrationLogin = migrationOauthStates.delete(state);
-  if(migrationLogin && req.cookies?.kella_migration_oauth_state !== state) throw new HttpError(400,'Invalid migration login session');
+  const migrationLogin = login.migration;
 
   const { token: discordToken, identity } = await exchangeDiscordCode(code);
   if(migrationLogin) {
-    res.clearCookie('kella_migration_oauth_state');
     res.cookie(migrationIdentityCookie,signMigrationIdentity(identity.id),{httpOnly:true,secure:isProduction,sameSite:'lax',maxAge:3600000});
     res.redirect('/migration');
     return;
