@@ -1403,10 +1403,10 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
 
 export const dashboardMembers = asyncHandler(async (req, res) => {
   const allianceId = await resolveAllianceId();
-  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
-  const dashboardView = req.query.view === "dashboard" || req.query.compact === "1";
-  const metricKey = typeof req.query.metric === "string" && /^[a-z][a-zA-Z0-9]*$/.test(req.query.metric) ? req.query.metric : "power";
-  const requestedLimit = Number(req.query.limit || 0);
+  const q = !res.locals.publicChampions && typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const dashboardView = res.locals.publicChampions || req.query.view === "dashboard" || req.query.compact === "1";
+  const metricKey = typeof req.query.metric === "string" && /^[a-z][a-zA-Z0-9]*$/.test(req.query.metric) && (!res.locals.publicChampions || ["power", "merits", "unitsKilled"].includes(req.query.metric)) ? req.query.metric : "power";
+  const requestedLimit = res.locals.publicChampions ? 10 : Number(req.query.limit || 0);
   const limit = dashboardView
     ? Math.max(1, Math.min(Number.isFinite(requestedLimit) && requestedLimit > 0 ? requestedLimit : 10, 500))
     : 2000;
@@ -1442,6 +1442,11 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
   res.json({
     members: members.map((member) => {
       const dto = dashboardMemberDto(member, dashboardView ? { historyLimit: 10, compact: true, metricKey } : {});
+      if (res.locals.publicChampions) {
+        return { ign: dto.ign || dto.discordDisplayName, discordDisplayName: dto.ign || dto.discordDisplayName,
+          discordAvatarUrl: dto.discordAvatarUrl, profilePhotoUrl: dto.profilePhotoUrl,
+          power: dto.power, statHistory: dto.statHistory };
+      }
       if (!res.locals.memberManagement) delete (dto as any).notes;
       return memberForViewer(dto, Boolean(res.locals.memberManagement));
     })

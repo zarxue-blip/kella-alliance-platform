@@ -52,7 +52,8 @@ dashboardRouter.get("/access", authenticateDashboardAdmin, (_req, res) => res.js
 
 dashboardRouter.get("/summary", dashboardSummary);
 dashboardRouter.get("/summary/admin", authenticateDashboardAdmin, (_req, res, next) => { res.locals.adminSummary = true; next(); }, dashboardSummary);
-dashboardRouter.get("/members", dashboardMembers);
+dashboardRouter.get("/champions", (_req, res, next) => { res.locals.publicChampions = true; next(); }, dashboardMembers);
+dashboardRouter.get("/members", authenticate, dashboardMembers);
 dashboardRouter.get("/members/manage", authenticateDashboardAdmin, (_req, res, next) => { res.locals.memberManagement = true; next(); }, dashboardMembers);
 dashboardRouter.post("/members", authenticateDashboardAdmin, dashboardMemberCreate);
 dashboardRouter.patch("/members/:id", authenticateDashboardAdmin, dashboardMemberUpdate);
@@ -66,15 +67,15 @@ dashboardRouter.delete("/uploads", authenticateDashboardAdmin, dashboardRosterUp
 dashboardRouter.delete("/uploads/:id", authenticateDashboardAdmin, dashboardRosterUploadDelete);
 dashboardRouter.post("/sync-discord-members", authenticateDashboardAdmin, dashboardDiscordMemberSync);
 dashboardRouter.get("/alerts", authenticateDashboardAdmin, dashboardAlerts);
-dashboardRouter.get("/events", dashboardEvents);
+dashboardRouter.get("/events", authenticate, dashboardEvents);
 dashboardRouter.get("/my-attendance", authenticate, dashboardPersonalAttendance);
 dashboardRouter.post("/events", authenticateDashboardAdmin, dashboardEventSend);
 dashboardRouter.delete("/events/:id", authenticateDashboardAdmin, dashboardEventDelete);
-dashboardRouter.get("/polls", dashboardPolls);
+dashboardRouter.get("/polls", authenticate, dashboardPolls);
 dashboardRouter.post("/polls", authenticateDashboardAdmin, dashboardPollCreate);
 dashboardRouter.patch("/polls/:id/status", authenticateDashboardAdmin, dashboardPollStatusUpdate);
 dashboardRouter.delete("/polls/:id", authenticateDashboardAdmin, dashboardPollDelete);
-dashboardRouter.get("/wiki", dashboardWikiList);
+dashboardRouter.get("/wiki", authenticate, dashboardWikiList);
 dashboardRouter.get("/wiki/admin", authenticateDashboardWikiEditor, dashboardWikiAdminList);
 dashboardRouter.post("/wiki", authenticateDashboardWikiEditor, dashboardWikiCreate);
 dashboardRouter.patch("/wiki/:id", authenticateDashboardWikiEditor, dashboardWikiUpdate);

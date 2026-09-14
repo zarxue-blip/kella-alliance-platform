@@ -12,7 +12,7 @@ const previewImages:Array<{_id:string;name:string;dataUrl:string}>=[];
 // Role fixtures are exclusive to this loopback preview, never production auth.
 app.use((req,res,next) => {
   const requested = String(req.query.__role || '');
-  const role = ['member','editor','admin'].includes(requested) ? requested : /kella_preview_role=(member|editor|admin)/.exec(req.headers.cookie || '')?.[1] || 'member';
+  const role = ['guest','member','editor','admin'].includes(requested) ? requested : /kella_preview_role=(guest|member|editor|admin)/.exec(req.headers.cookie || '')?.[1] || 'member';
   if (requested) res.cookie('kella_preview_role', role, {httpOnly:true,sameSite:'strict'});
   res.locals.previewRole = role;
   if(req.path.startsWith('/api/dashboard/chat-images')) {
@@ -31,6 +31,7 @@ app.use((req,res,next) => {
     return res.sendStatus(405);
   }
   if(req.method !== 'GET') return res.status(403).json({message:'Preview only: changes are not saved or sent to Discord.'});
+  if(req.path === '/api/auth/me' && role==='guest') return res.status(401).json({authenticated:false});
   if(req.path === '/api/auth/me') return res.json({authenticated:true,user:{username:'Preview '+role,role:role==='admin'?'Owner':'Member'},isDashboardAdmin:role==='admin',isDashboardWikiEditor:role!=='member'});
   if(req.path === '/api/dashboard/profile') return res.json({member:{id:'preview-member',ign:'Preview member',discordUsername:'preview',discordDisplayName:'Preview member (sample only)',role:role==='admin'?'Owner':'Member',alliance:'KoG',timezone:'UTC',country:'',power:0,powerHistory:[],statHistory:[]}});
   if(req.path === '/api/dashboard/my-attendance') return res.json({byEvent:{}});
@@ -45,7 +46,7 @@ app.use((req,res,next) => {
   }
   next();
 });
-const allowed = new Set(['/api/dashboard/summary','/api/dashboard/settings','/api/dashboard/members','/api/dashboard/events','/api/dashboard/wiki','/api/dashboard/polls','/api/dashboard/alerts']);
+const allowed = new Set(['/api/dashboard/champions','/api/dashboard/summary','/api/dashboard/settings','/api/dashboard/members','/api/dashboard/events','/api/dashboard/wiki','/api/dashboard/polls','/api/dashboard/alerts']);
 const cache = new Map<string,{at:number,status:number,body:string}>();
 app.get('/assets/:file', (req,res,next) => { const item=kellaPageAssets.get(req.path); if(!item)return next(); res.type(item.type).send(item.body); });
 app.use('/assets', express.static('backend/public'));

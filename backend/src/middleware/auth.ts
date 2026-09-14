@@ -21,7 +21,6 @@ export interface TokenPayload extends AuthUser {
   type: "user";
 }
 
-const dashboardAdminRoles: UserRole[] = ["Owner", "Leader", "R4 Officer", "War Marshal", "Recruiter", "Event Manager"];
 const fallbackDashboardAdminRoleIds = ["1524118642353111214"];
 const fallbackDashboardWikiRoleIds = ["1529826271813570650"];
 
@@ -35,7 +34,6 @@ function csvSet(value?: string) {
 }
 
 export function isDashboardAdminUser(user: { discordId?: string; role?: UserRole; discordRoleIds?: string[] }) {
-  if (user.role && dashboardAdminRoles.includes(user.role)) return true;
   if (user.discordId && csvSet(env.DASHBOARD_ADMIN_DISCORD_IDS).has(user.discordId)) return true;
   const configuredRoleIds = csvSet(env.DASHBOARD_ADMIN_ROLE_IDS);
   fallbackDashboardAdminRoleIds.forEach((roleId) => configuredRoleIds.add(roleId));

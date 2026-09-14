@@ -3343,11 +3343,11 @@ export function kellaDashboardHtml() {
     <link rel="stylesheet" href="/assets/command-center.css?v=1" />
     <link rel="stylesheet" href="/assets/noticeboard.css?v=8" />
     <link rel="stylesheet" href="/assets/command-workspace.css?v=1" />
-    <link rel="stylesheet" href="/assets/fantasy-portal.css?v=2" />
+    <link rel="stylesheet" href="/assets/fantasy-portal.css?v=creator-2" />
   </head>
   <body>
     <div class="realm-coins" aria-hidden="true"><i style="--x:5%;--y:7%;--size:10px;--duration:12s;--delay:-0s" class="portal-coin"><span>✦</span></i><i style="--x:42%;--y:26%;--size:15px;--duration:13s;--delay:-2s" class="portal-coin"><span>✦</span></i><i style="--x:79%;--y:45%;--size:20px;--duration:14s;--delay:-4s" class="portal-coin"><span>✦</span></i><i style="--x:19%;--y:64%;--size:25px;--duration:15s;--delay:-6s" class="portal-coin"><span>✦</span></i><i style="--x:56%;--y:83%;--size:10px;--duration:16s;--delay:-8s" class="portal-coin"><span>✦</span></i><i style="--x:93%;--y:6%;--size:15px;--duration:17s;--delay:-10s" class="portal-coin"><span>✦</span></i><i style="--x:33%;--y:25%;--size:20px;--duration:18s;--delay:-12s" class="portal-coin"><span>✦</span></i><i style="--x:70%;--y:44%;--size:25px;--duration:12s;--delay:-14s" class="portal-coin"><span>✦</span></i><i style="--x:10%;--y:63%;--size:10px;--duration:13s;--delay:-16s" class="portal-coin"><span>✦</span></i><i style="--x:47%;--y:82%;--size:15px;--duration:14s;--delay:-18s" class="portal-coin"><span>✦</span></i><i style="--x:84%;--y:5%;--size:20px;--duration:15s;--delay:-20s" class="portal-coin"><span>✦</span></i><i style="--x:24%;--y:24%;--size:25px;--duration:16s;--delay:-22s" class="portal-coin"><span>✦</span></i><i style="--x:61%;--y:43%;--size:10px;--duration:17s;--delay:-24s" class="portal-coin"><span>✦</span></i><i style="--x:1%;--y:62%;--size:15px;--duration:18s;--delay:-26s" class="portal-coin"><span>✦</span></i><i style="--x:38%;--y:81%;--size:20px;--duration:12s;--delay:-28s" class="portal-coin"><span>✦</span></i><i style="--x:75%;--y:4%;--size:25px;--duration:13s;--delay:-30s" class="portal-coin"><span>✦</span></i><i style="--x:15%;--y:23%;--size:10px;--duration:14s;--delay:-32s" class="portal-coin"><span>✦</span></i><i style="--x:52%;--y:42%;--size:15px;--duration:15s;--delay:-34s" class="portal-coin"><span>✦</span></i></div>
-    <a class="mobile-feedback" href="/complains" data-link aria-label="Send feedback"><img src="/assets/icons/complaints.png" alt="" width="22" height="22"/>Feedback</a>
+    <a class="creator-companion" href="https://paypal.me/exuzz" target="_blank" rel="noopener noreferrer" aria-label="Support Creator on PayPal"><span class="creator-bubble">Support Creator</span><picture><source media="(prefers-reduced-motion: reduce)" srcset="/assets/support-creator-still.png"/><img src="/assets/support-creator.webp" alt="" width="144" height="256" decoding="async"/></picture></a>
     <div class="shell">
       <aside class="sidebar"><canvas class="header-coins" aria-hidden="true"></canvas>
         <a class="brand" href="/" data-link aria-label="Kella home">
@@ -3654,7 +3654,7 @@ export function kellaDashboardHtml() {
       }
 
       function hasAdminAccess() {
-        return isDashboardAdmin() || Boolean(state.adminTokenVerified);
+        return isDashboardAdmin();
       }
 
       function hasWikiEditAccess() {
@@ -3674,7 +3674,7 @@ export function kellaDashboardHtml() {
       function renderSidebarNav() {
         const nav = document.querySelector("[data-sidebar-nav]");
         if (!nav) return;
-        const primary = ["/", "/calendar", "/wiki", "/members", "/profile"];
+        const primary = state.auth?.authenticated ? ["/", "/calendar", "/wiki", "/members", "/profile"] : ["/"];
         nav.innerHTML = primary.map(function(path) { return navItemHtml(dashboardNavItems.find(function(item) { return item.path === path; })); }).join("") +
           (hasAdminAccess() ? '<div class="nav-section-label">Alliance management</div>' + navItemHtml(dashboardNavItems.find(function(item) { return item.path === "/officer"; })) : "");
         setActiveNav();
@@ -7482,7 +7482,7 @@ ${portalHomeClient}
         if (!target) return;
         target.innerHTML = '<li class="showcase-message">Loading champions…</li>';
         try {
-          const data = await fetchJson('/api/dashboard/members?view=dashboard&limit=10&metric='+metric);
+          const data = await fetchJson('/api/dashboard/champions?metric='+metric);
           if (request !== homeRankRequest || !target.isConnected) return;
           target.innerHTML = championRows(data.members || [],metric);
         } catch (error) {
@@ -7495,7 +7495,7 @@ ${portalHomeClient}
         initializeCharacterVideo();
         initializeMiniCalendar(events);
         app.querySelector('.portal-champions').innerHTML = homeShowcaseHtml();
-        loadPortalParticipation();
+        if (state.auth?.authenticated) loadPortalParticipation();
         loadPortalStats();
         app.querySelector('[data-portal-live]').insertAdjacentHTML('afterend',renderPortalUpcoming(events));
         app.querySelector('[data-home-rank]').value=homeRankMetric;
@@ -7578,7 +7578,7 @@ ${portalHomeClient}
         const renderVersion = navigationVersion;
         skeleton("Loading dashboard...");
         try {
-          const results = await Promise.all([loadSettings(), loadDashboardEvents()]);
+          const results = await Promise.all([loadSettings(), state.auth?.authenticated ? loadDashboardEvents() : Promise.resolve([])]);
           if (renderVersion !== navigationVersion) return;
           renderDashboardData({}, [], results[1]);
         } catch (error) {
@@ -8689,7 +8689,7 @@ ${portalHomeClient}
       function renderAdminAccessRequired() {
         app.innerHTML =
           pageHeader("Admin Access Required", "This section is only visible to Kella admins and officers with dashboard access.", '<button class="primary" data-action="discord-login" aria-label="Login as Admin" title="Login as Admin"><svg viewBox="0 0 24 24" width="23" height="23" fill="currentColor" aria-hidden="true"><path d="M20.3 4.4a19.8 19.8 0 0 0-4.9-1.5l-.6 1.2a18.3 18.3 0 0 0-5.5 0l-.6-1.2a19.7 19.7 0 0 0-4.9 1.5C.7 9 .1 13.5.4 17.9a20 20 0 0 0 6 3l1.2-2a12 12 0 0 1-1.9-.9l.5-.4a14 14 0 0 0 11.6 0l.5.4a12 12 0 0 1-1.9.9l1.2 2a20 20 0 0 0 6-3c.4-5.1-.8-9.5-3.3-13.5ZM8 15.2c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.1 1.1 2.1 2.4-.9 2.4-2.1 2.4Zm8 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.1 1.1 2.1 2.4-.9 2.4-2.1 2.4Z"/></svg></button>') +
-          '<section class="card">' + empty("Admin tools require an authorized Discord account or the existing dashboard password.") + '<label>Dashboard password<input type="password" data-admin-unlock autocomplete="current-password" /></label><div class="toolbar"><button class="secondary" data-action="unlock-admin">Unlock</button><a href="/" data-link>Return Home</a></div>' + '</section>';
+          '<section class="card">' + empty("Admin tools require an authorized KOG officers/admin Discord account.") + '<a href="/" data-link>Return Home</a>'  + '</section>';
       }
 
       ${migrationClient}
@@ -8706,6 +8706,10 @@ ${portalHomeClient}
         const path = location.pathname;
         document.body.dataset.route = path.split("/")[1] || "home";
         state.currentReport = null;
+        if (path !== "/" && path !== "/migration" && !state.auth?.authenticated) {
+          app.innerHTML = pageHeader("Log in to continue", "Sign in with Discord to open alliance features.", '<button class="primary" data-action="discord-login">Login with Discord</button><a class="secondary" href="/" data-link>Return Home</a>');
+          return;
+        }
         if ((pathRequiresAdmin(path) || (path === "/members" && new URLSearchParams(location.search).has("manage"))) && !hasAdminAccess()) {
           setActiveNav();
           return renderAdminAccessRequired();

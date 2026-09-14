@@ -85,3 +85,15 @@ body :is(.realm-coins,.portal-coins) .portal-coin:nth-child(even){animation-dire
 @media(max-width:650px){.portal-hero{display:flex;flex-direction:column;align-items:stretch;padding:42px 22px 230px;gap:28px;min-height:0}.portal-hero-copy{width:100%;max-width:none}.portal-hero h1{font-size:64px}.hero-calendar{width:100%;box-sizing:border-box;padding:18px}.hero-calendar h2{font-size:23px}.mini-days a{min-height:33px}.portal-character{width:150px;height:240px;right:calc(50% - 75px);bottom:25px}.portal-character img.is-animated{width:125%;height:140%}.portal-hero-foot{bottom:12px}}
 
 .mobile-feedback{display:none}@media(max-width:900px){body .mobile-feedback{display:flex;align-items:center;gap:7px;position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:40;min-height:44px;padding:0 13px;border:1px solid #c7a45b;border-radius:24px;background:#232639;color:#ead19b;box-shadow:0 3px 15px #0006;text-decoration:none;font-size:12px}body .account-panel .feedback-top-button span{display:block}body .account-panel{max-width:calc(100vw - 28px)}}
+
+/* Small creator companion, separate from the Account menu. */
+body [data-action="discord-login"] svg{color:#5865f2;fill:#5865f2}
+.creator-companion{position:fixed;right:14px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:40;display:block;width:72px;height:128px;text-decoration:none;filter:drop-shadow(0 3px 5px #0006)}
+.creator-companion picture,.creator-companion img{display:block;width:100%;height:100%;object-fit:contain}
+.creator-bubble{position:absolute;right:64px;top:18px;white-space:nowrap;padding:7px 10px;border:1px solid #ac9158;border-radius:12px;background:#212535;color:#ead5a8;font:11px/1.2 'Segoe UI',sans-serif;animation:creator-bubble-float 4s ease-in-out infinite}
+.creator-bubble:after{content:'';position:absolute;right:-5px;bottom:9px;width:8px;height:8px;background:#212535;border-right:1px solid #ac9158;border-top:1px solid #ac9158;transform:rotate(45deg)}
+.creator-companion:hover .creator-bubble{background:#303348}.creator-companion:focus-visible{outline:2px solid #e9c374;outline-offset:4px}
+@keyframes creator-bubble-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@media(max-width:900px){body .account-panel .feedback-top-button{display:flex!important;width:100%;justify-content:flex-start;gap:10px;min-height:44px}body .account-panel .feedback-top-button span{display:block!important}body .account-panel .feedback-top-button em{display:none}body .account-panel .feedback-top-button strong{display:block!important}}
+@media(max-width:600px){.creator-companion{width:54px;height:96px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom))}.creator-bubble{right:49px;top:9px;font-size:10px;padding:6px 8px}}
+@media(prefers-reduced-motion:reduce){.creator-bubble{animation:none}}
