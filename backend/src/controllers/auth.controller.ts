@@ -26,16 +26,17 @@ function hasAnyRole(userRoleIds: string[], allowedRoleIds?: string) {
   return userRoleIds.some((roleId) => allowed.has(roleId));
 }
 
+function oauthCookieOptions(req: Request) {
+  const callbackHost = new URL(env.DISCORD_REDIRECT_URI).hostname.replace(/^www\./, "");
+  const sameSiteHost = req.hostname === callbackHost || req.hostname === "www." + callbackHost;
+  return { httpOnly: true, secure: isProduction, sameSite: "lax" as const, path: "/",
+    ...(isProduction && sameSiteHost ? { domain: callbackHost } : {}) };
+}
+
 export const startDiscordLogin = asyncHandler(async (_req: Request, res: Response) => {
-  // Start on the callback origin so the same browser cookie returns from Discord.
-  const callbackOrigin = new URL(env.DISCORD_REDIRECT_URI);
-  if (isProduction && _req.get("host") !== callbackOrigin.host) {
-    res.redirect(callbackOrigin.origin + "/api/auth/discord" + (_req.query.migration === "1" ? "?migration=1" : ""));
-    return;
-  }
   const { state, cookie } = createOAuthState(_req.query.migration === "1");
   res.set("Cache-Control", "no-store");
-  res.cookie(oauthStateCookie, cookie, { httpOnly: true, secure: isProduction, sameSite: "lax", path: "/", maxAge: 600000 });
+  res.cookie(oauthStateCookie, cookie, { ...oauthCookieOptions(_req), maxAge: 600000 });
   res.redirect(getDiscordAuthorizationUrl(state));
 });
 
@@ -43,7 +44,7 @@ export const discordCallback = asyncHandler(async (req: Request, res: Response) 
   const { code, state } = req.query;
   const login = verifyOAuthState(state, req.cookies?.[oauthStateCookie]);
   res.set("Cache-Control", "no-store");
-  res.clearCookie(oauthStateCookie, { httpOnly: true, secure: isProduction, sameSite: "lax", path: "/" });
+  res.clearCookie(oauthStateCookie, oauthCookieOptions(req));
   if (typeof code !== "string" || !login) {
     res.status(400).type("html").send('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Restart Discord login</title></head><body style="background:#171b29;color:#ead5a8;font:18px system-ui;padding:40px;max-width:600px;margin:auto"><h1>Please restart Discord login</h1><p>This login link expired or no longer matches your browser. Your account permissions have not been checked yet.</p><p><a style="color:#a7afff" href="/api/auth/discord">Try Discord login again</a></p><a style="color:#ead5a8" href="/">Return to Kella</a></body></html>');
     return;
