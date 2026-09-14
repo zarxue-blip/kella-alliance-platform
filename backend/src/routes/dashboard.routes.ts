@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   dashboardAlerts,
+  dashboardResponseReports,
   dashboardMembers,
   dashboardMemberCreate,
   dashboardMemberDelete,
@@ -66,6 +67,7 @@ dashboardRouter.patch("/uploads/:id", authenticateDashboardAdmin, dashboardRoste
 dashboardRouter.delete("/uploads", authenticateDashboardAdmin, dashboardRosterUploadsClear);
 dashboardRouter.delete("/uploads/:id", authenticateDashboardAdmin, dashboardRosterUploadDelete);
 dashboardRouter.post("/sync-discord-members", authenticateDashboardAdmin, dashboardDiscordMemberSync);
+dashboardRouter.get("/responses", authenticateDashboardAdmin, dashboardResponseReports);
 dashboardRouter.get("/alerts", authenticateDashboardAdmin, dashboardAlerts);
 dashboardRouter.get("/events", authenticate, dashboardEvents);
 dashboardRouter.get("/my-attendance", authenticate, dashboardPersonalAttendance);

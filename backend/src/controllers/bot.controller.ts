@@ -230,6 +230,8 @@ export const botAttackResponse = asyncHandler(async (req, res) => {
     .extend({
       discordId: z.string(),
       displayName: z.string().optional(),
+      messageId: z.string().optional(),
+      channelId: z.string().optional(),
       status: z.enum(["Joining Fight", "Defending", "On The Way", "Unavailable"])
     })
     .parse(req.body);
@@ -238,7 +240,9 @@ export const botAttackResponse = asyncHandler(async (req, res) => {
     type: "attack_response",
     actorDiscordId: body.discordId,
     actorName: body.displayName,
-    status: body.status
+    status: body.status,
+    reportId: body.messageId,
+    payload: { messageId: body.messageId, channelId: body.channelId }
   });
   emitAlliance(allianceId, realtimeEvents.callToArmsResponse, response);
   res.status(201).json({ response });

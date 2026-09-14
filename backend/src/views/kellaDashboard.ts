@@ -3343,7 +3343,7 @@ export function kellaDashboardHtml() {
     <link rel="stylesheet" href="/assets/command-center.css?v=1" />
     <link rel="stylesheet" href="/assets/noticeboard.css?v=8" />
     <link rel="stylesheet" href="/assets/command-workspace.css?v=1" />
-    <link rel="stylesheet" href="/assets/fantasy-portal.css?v=creator-2" />
+    <link rel="stylesheet" href="/assets/fantasy-portal.css?v=responses-2" />
   </head>
   <body>
     <div class="realm-coins" aria-hidden="true"><i style="--x:5%;--y:7%;--size:10px;--duration:12s;--delay:-0s" class="portal-coin"><span>✦</span></i><i style="--x:42%;--y:26%;--size:15px;--duration:13s;--delay:-2s" class="portal-coin"><span>✦</span></i><i style="--x:79%;--y:45%;--size:20px;--duration:14s;--delay:-4s" class="portal-coin"><span>✦</span></i><i style="--x:19%;--y:64%;--size:25px;--duration:15s;--delay:-6s" class="portal-coin"><span>✦</span></i><i style="--x:56%;--y:83%;--size:10px;--duration:16s;--delay:-8s" class="portal-coin"><span>✦</span></i><i style="--x:93%;--y:6%;--size:15px;--duration:17s;--delay:-10s" class="portal-coin"><span>✦</span></i><i style="--x:33%;--y:25%;--size:20px;--duration:18s;--delay:-12s" class="portal-coin"><span>✦</span></i><i style="--x:70%;--y:44%;--size:25px;--duration:12s;--delay:-14s" class="portal-coin"><span>✦</span></i><i style="--x:10%;--y:63%;--size:10px;--duration:13s;--delay:-16s" class="portal-coin"><span>✦</span></i><i style="--x:47%;--y:82%;--size:15px;--duration:14s;--delay:-18s" class="portal-coin"><span>✦</span></i><i style="--x:84%;--y:5%;--size:20px;--duration:15s;--delay:-20s" class="portal-coin"><span>✦</span></i><i style="--x:24%;--y:24%;--size:25px;--duration:16s;--delay:-22s" class="portal-coin"><span>✦</span></i><i style="--x:61%;--y:43%;--size:10px;--duration:17s;--delay:-24s" class="portal-coin"><span>✦</span></i><i style="--x:1%;--y:62%;--size:15px;--duration:18s;--delay:-26s" class="portal-coin"><span>✦</span></i><i style="--x:38%;--y:81%;--size:20px;--duration:12s;--delay:-28s" class="portal-coin"><span>✦</span></i><i style="--x:75%;--y:4%;--size:25px;--duration:13s;--delay:-30s" class="portal-coin"><span>✦</span></i><i style="--x:15%;--y:23%;--size:10px;--duration:14s;--delay:-32s" class="portal-coin"><span>✦</span></i><i style="--x:52%;--y:42%;--size:15px;--duration:15s;--delay:-34s" class="portal-coin"><span>✦</span></i></div>
@@ -7558,10 +7558,38 @@ ${portalHomeClient}
         } catch(error) { if(version === navigationVersion) app.innerHTML=pageHeader('Image library unavailable','')+'<p class="card">'+escapeHtml(error.message)+'</p>'; }
       }
 
+      async function renderResponseCenter() {
+        const version=navigationVersion;
+        skeleton("Loading attendance and responses...");
+        try {
+          const data=await fetchJson('/api/dashboard/responses',true);
+          if(version!==navigationVersion)return;
+          const reports=data.reports || [];
+          const kinds=[['events','Events / attendance','events'],['war','War alert responses','alerts'],['polls','Poll results','polls'],['shields','Shield alerts','shield']];
+          let kind=new URLSearchParams(location.search).get('kind') || 'war';
+          if(!kinds.some(k=>k[0]===kind))kind='war';
+          let selected='';
+          function draw(){
+            const matches=reports.filter(r=>r.kind===kind);
+            const report=matches.find(r=>r.id===selected) || matches[0];
+            selected=report?.id || '';
+            const current=kinds.find(k=>k[0]===kind);
+            app.innerHTML=pageHeader('Attendance & Responses','Select a tool and report to see each response group.', '<a class="secondary" href="/officer" data-link>Officer</a><a class="primary" href="/tools?tool='+current[2]+'" data-link>Create / send</a>')+
+              '<section class="card response-controls"><label>Show<select data-response-kind>'+kinds.map(k=>'<option value="'+k[0]+'" '+(k[0]===kind?'selected':'')+'>'+k[1]+'</option>').join('')+'</select></label><label>Report<select data-response-report>'+matches.map(r=>'<option value="'+escapeHtml(r.id)+'" '+(r.id===selected?'selected':'')+'>'+escapeHtml(r.title.slice(0,90))+' · '+formatUtcDateTime(r.at)+'</option>').join('')+'</select></label><button class="secondary" data-response-refresh>Refresh</button></section>'+
+              (report?'<section class="card response-summary"><h3>'+escapeHtml(report.title)+'</h3><p>'+formatUtcDateTime(report.at)+' · '+report.groups.reduce((n,g)=>n+g.players.length,0)+' recorded responses</p>'+(report.note?'<p class="muted">'+escapeHtml(report.note)+'</p>':'')+'</section><div class="response-groups">'+report.groups.map(g=>'<section class="card"><div class="card-header"><h3>'+escapeHtml(g.label)+'</h3><span class="badge">'+g.players.length+'</span></div><ul>'+g.players.map(p=>'<li><strong>'+escapeHtml(p.name)+'</strong><small>'+formatUtcDateTime(p.at)+'</small></li>').join('')+'</ul>'+(!g.players.length?'<p class="muted">No responses yet.</p>':'')+'</section>').join('')+'</div>':'<section class="card">'+empty('No reports yet for this tool.')+'</section>');
+            app.querySelector('[data-response-kind]').onchange=e=>{kind=e.target.value;selected='';history.replaceState(null,'','/officer?section=attendance&kind='+kind);draw();};
+            app.querySelector('[data-response-report]').onchange=e=>{selected=e.target.value;draw();};
+            app.querySelector('[data-response-refresh]').onclick=()=>renderResponseCenter();
+          }
+          draw();
+        }catch(error){if(version===navigationVersion)app.innerHTML=pageHeader('Attendance & Responses','Unable to load reports.')+'<section class="card">'+escapeHtml(error.message)+'<button data-link-button="/officer?section=attendance">Retry</button></section>';}
+      }
+
       function renderOfficer() {
+        if(new URLSearchParams(location.search).get("section")==="attendance")return renderResponseCenter();
         if (new URLSearchParams(location.search).get('images') === '1') return renderChatImageLibrary();
         const groups = [
-          { title: "Events & War", tools: [["Attendance", "/attendance", "events.png"], ["Create Event", "/tools?tool=events", "events.png"], ["Polls & Roles", "/tools?tool=polls", "members.png"], ["War Alerts", "/tools?tool=alerts", "alerts.png"], ["Shield Alerts", "/tools?tool=shield", "shield-alerts.png"]] },
+          { title: "Events & War", tools: [["Attendance & Responses", "/officer?section=attendance", "events.png"], ["Create Event", "/tools?tool=events", "events.png"], ["Polls & Roles", "/tools?tool=polls", "members.png"], ["War Alerts", "/tools?tool=alerts", "alerts.png"], ["Shield Alerts", "/tools?tool=shield", "shield-alerts.png"]] },
           { title: "Members & Alliance", tools: [["Migration", "/migration/admin", "members.png"], ["Member Management", "/members?manage=1", "members.png"], ["Feedback", "/complaints", "complaints.png"]] },
           { title: "Content / Wiki", tools: hasWikiEditAccess() ? [["Wiki Editor", "/wiki?edit=1", "embed-sender.png"]] : [] },
           { title: "Discord", tools: [["Image Library", "/officer?images=1", "embed-sender.png"], ["Announcements", "/tools?tool=chat", "alerts.png"], ["Discord Embeds", "/tools?tool=embed", "embed-sender.png"], ["Thumbnail Editor", "/tools?tool=thumbnails", "embed-sender.png"]] },
@@ -8027,7 +8055,7 @@ ${portalHomeClient}
 
       function alertsToolContent(alerts) {
         return '<section class="two" style="margin-top:18px">' + renderAttackTool() + renderDmAlertTool() + '</section>' +
-          '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Recent Alerts</h3><button class="secondary" data-action="refresh-alerts">Refresh</button></div>' + renderAlertsTable(alerts) + '</section>';
+          '<section class="card" style="margin-top:18px"><div class="card-header"><h3>Recent Alerts</h3><a class="secondary" href="/officer?section=attendance&kind=war" data-link>View response groups</a><button class="secondary" data-action="refresh-alerts">Refresh</button></div>' + renderAlertsTable(alerts) + '</section>';
       }
 
       function shieldToolContent(alerts) {

@@ -55,7 +55,7 @@ export const api = {
   attackAlert(input: { officerDiscordId: string; officerName?: string; channelId?: string; messageId?: string }) {
     return request("POST", "/bot/attack", { ...allianceContext(), ...input });
   },
-  attackResponse(input: { discordId: string; displayName?: string; status: string }) {
+  attackResponse(input: { discordId: string; displayName?: string; status: string; messageId?: string; channelId?: string }) {
     return request("POST", "/bot/attack/response", { ...allianceContext(), ...input });
   },
   eventResponse(input: { discordId: string; displayName?: string; eventId: string; status: string }) {

@@ -40,7 +40,7 @@ app.use((req,res,next) => {
   if(req.path === '/api/dashboard/members/manage' && role==='admin') { req.url='/api/dashboard/members'+(req.query.q?'?q='+encodeURIComponent(String(req.query.q)):''); }
   if(role==='admin') {
     const fixtures:Record<string,unknown>={
-      '/api/migration':{submissions:[],total:0,page:1},'/api/dashboard/access':{admin:true},'/api/dashboard/alerts':{alerts:[]},'/api/dashboard/uploads':{uploads:[]},'/api/dashboard/complaints':{complaints:[]},'/api/embed/channels':{channels:[]},'/api/embed/templates':{templates:[]}
+      '/api/dashboard/responses':{reports:['war','events','polls','shields'].map(kind=>({id:kind,kind,title:'Preview sample · '+kind,at:new Date().toISOString(),groups:[{label:'Joining Fight',players:[{name:'Sample player',at:new Date().toISOString()}]},{label:'On The Way',players:[]},{label:'Unavailable',players:[]}]}))},'/api/migration':{submissions:[],total:0,page:1},'/api/dashboard/access':{admin:true},'/api/dashboard/alerts':{alerts:[]},'/api/dashboard/uploads':{uploads:[]},'/api/dashboard/complaints':{complaints:[]},'/api/embed/channels':{channels:[]},'/api/embed/templates':{templates:[]}
     };
     if(req.path in fixtures) return res.json(fixtures[req.path]);
   }

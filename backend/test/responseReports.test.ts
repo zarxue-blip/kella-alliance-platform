@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {attackReports,responseGroups} from '../src/services/responseReports.service.js';
+const alerts=[{_id:'a',payload:{messageId:'m1'}},{_id:'b',payload:{messageId:'m2'}}];
+const replies=[{_id:'1',actorDiscordId:'u',actorName:'Player',reportId:'m1',status:'Joining Fight',sentAt:'2026-09-14T01:00:00Z'},{_id:'2',actorDiscordId:'u',actorName:'Player',reportId:'m1',status:'Unavailable',sentAt:'2026-09-14T02:00:00Z'},{_id:'3',actorDiscordId:'v',reportId:'m2',status:'Defending'},{_id:'4',actorDiscordId:'old',status:'On The Way'}];
+const reports=attackReports(alerts,replies);
+assert.equal(reports[0].groups.find(g=>g.label==='Joining Fight')!.players.length,0);
+assert.equal(reports[0].groups.find(g=>g.label==='Unavailable')!.players.length,1);
+assert.equal(reports[1].groups.find(g=>g.label==='Defending')!.players.length,1);
+assert.equal(reports[1].groups.reduce((n,g)=>n+g.players.length,0),1);
+assert.equal(reports[2].id,'legacy');assert.equal(reports[2].groups[0].players[0].name,'old');
+assert.equal(responseGroups([]).length,0);
+console.log('Attack reports stay separate, latest answers counted once, and legacy responses remain unlinked.');

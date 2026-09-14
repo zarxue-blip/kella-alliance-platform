@@ -36,10 +36,10 @@ try {
   const data=await response.json();assert.equal(data.members[0].power,12345);assert.equal(data.members[0].discordDisplayName,'Public nickname');
   assert.equal('discordUsername' in data.members[0],false);assert.equal(JSON.stringify(lastFilter).includes('discordUsername'),false);
  }
- for(const route of ['/api/dashboard/members','/api/dashboard/events','/api/dashboard/wiki','/api/dashboard/polls','/api/migration','/api/migration/export.csv']) {
+ for(const route of ['/api/dashboard/responses','/api/dashboard/members','/api/dashboard/events','/api/dashboard/wiki','/api/dashboard/polls','/api/migration','/api/migration/export.csv']) {
   assert.equal((await fetch(origin+route)).status,401,route);
  }
- for(const route of ['/api/dashboard/access','/api/migration','/api/migration/export.csv']) {
+ for(const route of ['/api/dashboard/responses','/api/dashboard/access','/api/migration','/api/migration/export.csv']) {
   assert.equal((await fetch(origin+route,{headers:memberHeaders})).status,403,route);
  }
  const champions=await fetch(origin+'/api/dashboard/champions?limit=500&q=private.handle');

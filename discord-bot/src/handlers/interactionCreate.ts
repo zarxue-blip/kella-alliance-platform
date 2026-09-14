@@ -109,7 +109,7 @@ export async function handleInteraction(interaction: Interaction) {
     if (interaction.isButton() && interaction.customId.startsWith("attack:")) {
       const [, status] = interaction.customId.split(":");
       if (!status) return;
-      await api.attackResponse({ discordId: interaction.user.id, displayName: displayName(interaction), status });
+      await api.attackResponse({ discordId: interaction.user.id, displayName: displayName(interaction), status, messageId: interaction.message.id, channelId: interaction.channelId });
       await interaction.reply({ ephemeral: true, content: `${botName} recorded you as ${status}.` });
       return;
     }

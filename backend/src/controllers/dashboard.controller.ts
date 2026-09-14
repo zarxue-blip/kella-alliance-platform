@@ -1,3 +1,4 @@
+import { attackReports, responseGroups } from "../services/responseReports.service.js";
 import { memberForViewer } from '../services/memberPrivacy.service.js';
 import { isDashboardAdminUser } from '../middleware/auth.js';
 import { validateChatImage } from '../services/chatImageValidation.js';
@@ -1843,12 +1844,25 @@ export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
   res.json({ total: discordMembers.length, created, updated, merged, skipped, failures, syncedAt });
 });
 
+export const dashboardResponseReports = asyncHandler(async (_req, res) => {
+  const filter=allianceFilter(await resolveAllianceId());
+  const parents=await KellaActionModel.find({...filter,type:{$in:['attack_alert','event_created','shield_alert']}}).sort({sentAt:-1}).limit(200).lean() as any[];
+  const keys=parents.flatMap(p=>[String(p._id),p.payload?.messageId].filter(Boolean));
+  const responses=await KellaActionModel.find({...filter,type:{$in:['attack_response','event_response']},$or:[{reportId:{$in:keys}},{'payload.messageId':{$in:keys}},{reportId:{$exists:false}},{reportId:''}]}).sort({sentAt:-1}).lean() as any[];
+  const polls=await PollModel.find(filter).sort({createdAt:-1}).limit(100).lean() as any[];
+  const reports:any[]=attackReports(parents.filter(p=>p.type==='attack_alert'),responses.filter(r=>r.type==='attack_response'));
+  for(const p of parents.filter(p=>p.type==='event_created')) reports.push({id:String(p._id),kind:'events',title:p.eventType || p.payload?.title || 'Event',at:p.payload?.startsAt || p.sentAt,groups:responseGroups(responses.filter(r=>r.type==='event_response' && r.reportId===String(p._id)),['Attending','Absent','Not Sure'])});
+  for(const p of parents.filter(p=>p.type==='shield_alert')) reports.push({id:String(p._id),kind:'shields',title:'Shield · '+(p.targetName || p.targetDiscordId || 'Player'),at:p.sentAt,note:'Delivery record only. This does not confirm the player activated a shield.',groups:[{label:p.status || 'Sent',players:[{name:p.targetName || p.targetDiscordId || 'Unknown player',at:p.sentAt}]}]});
+  for(const p of polls) reports.push({id:String(p._id),kind:'polls',title:p.question,at:p.createdAt,groups:(p.options || []).map((o:any)=>({label:o.label,players:(p.votes || []).filter((v:any)=>v.optionKey===o.key).map((v:any)=>({name:v.displayName || v.discordId,at:v.votedAt}))}))});
+  res.json({reports:reports.sort((a,b)=>new Date(b.at || 0).getTime()-new Date(a.at || 0).getTime())});
+});
+
 export const dashboardAlerts = asyncHandler(async (_req, res) => {
   const allianceId = await resolveAllianceId();
   const filter = allianceFilter(allianceId);
   const alerts = (await KellaActionModel.find({
     ...filter,
-    type: { $in: ["shield_alert", "attack_alert", "dm_alert", "attack_response"] }
+    type: { $in: ["shield_alert", "attack_alert", "dm_alert"] }
   })
     .sort({ sentAt: -1 })
     .limit(100)
