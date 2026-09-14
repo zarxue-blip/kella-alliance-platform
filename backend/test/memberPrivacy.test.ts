@@ -22,7 +22,7 @@ const account={_id:'user',id:'user',discordId:'member',role:'Member',discordRole
 (UserModel as any).findById=()=>({lean:async()=>account});
 const memberHeaders={authorization:'Bearer '+signSessionToken(account as any)};
 for (const role of ['Member','Leader','R4 Officer','War Marshal','Recruiter','Event Manager']) assert.equal(isDashboardAdminUser({role:role as any}),false);
-assert.equal(isDashboardAdminUser({discordRoleIds:['1524118642353111214']}),true);
+assert.equal(isDashboardAdminUser({discordRoleIds:['1522274495728062475']}),true);
 
 let lastFilter:any;
 const chain=(value:any)=>{const query:any={lean:async()=>value};for(const method of ['sort','select','limit','slice'])query[method]=()=>query;return query;};

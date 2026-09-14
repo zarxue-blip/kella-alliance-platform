@@ -21,7 +21,7 @@ export interface TokenPayload extends AuthUser {
   type: "user";
 }
 
-const fallbackDashboardAdminRoleIds = ["1524118642353111214"];
+const fallbackDashboardAdminRoleIds = ["1522274495728062475"];
 const fallbackDashboardWikiRoleIds = ["1529826271813570650"];
 
 function csvSet(value?: string) {
