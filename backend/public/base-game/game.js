@@ -1,9 +1,22 @@
 import { findPath, simplifyPath } from './pathfinding.js';
+import { createSibylRenderer } from './sibyl-renderer.js';
 
 const ASSET = '/assets/base-game/assets/';
 const WORLD = { width: 1448, height: 1086 };
 const GRID = { columns: 24, rows: 18, cellWidth: WORLD.width / 24, cellHeight: WORLD.height / 18 };
-const SAVE_KEY = 'kella_private_base_v1';
+const BUILD_GRID = 28;
+const SAVE_KEY = 'kella_private_base_v2';
+
+const characterDefinitions = [
+  { name: 'Elven Seer', asset: 'elf-1.mp4', scale: .74 },
+  { name: 'Elven Ranger', asset: 'elf-4.mp4', scale: .72 },
+  { name: 'Goblin Guard', asset: 'goblin-1.mp4', scale: .68 },
+  { name: 'Goblin Scout', asset: 'goblin-5.mp4', scale: .66 },
+  { name: 'Meadow Pixie', asset: 'pixie-1.mp4', scale: .62 },
+  { name: 'Lantern Pixie', asset: 'pixie-4.mp4', scale: .6 },
+  { name: 'Star Wizard', asset: 'wizard-1.mp4', scale: .7 },
+  { name: 'Woodland Mage', asset: 'wizard-5.mp4', scale: .68 }
+];
 
 const buildingDefinitions = {
   hub: { name: 'Alliance Hub', category: 'Buildings', asset: 'alliance-hub.png', scale: .34, footprint: [78, 48], cost: { gold: 900, wood: 700, stone: 600 } },
@@ -17,8 +30,8 @@ const buildingDefinitions = {
 };
 
 const defaultBuildings = [
-  ['hub', 714, 530], ['archery', 500, 565], ['eagle', 900, 500], ['stable', 790, 728],
-  ['research', 1015, 680], ['sentry', 405, 690], ['arch', 370, 455], ['notice', 1035, 455]
+  ['hub', 724, 500], ['archery', 535, 560], ['eagle', 913, 535], ['stable', 600, 720],
+  ['research', 850, 720], ['sentry', 445, 695], ['arch', 480, 405], ['notice', 975, 420]
 ].map(([type, x, y], index) => ({ id: `starter-${index}`, type, x, y, level: 1 }));
 
 const canvas = document.querySelector('#base-world');
@@ -27,8 +40,8 @@ const viewport = document.querySelector('.base-viewport');
 const buildPanel = document.querySelector('#build-panel');
 const selectionPanel = document.querySelector('#selection-panel');
 const toast = document.querySelector('#game-toast');
-const freyaVideo = document.querySelector('#freya-video');
-const altarVideo = document.querySelector('#altar-video');
+const characterVideos = [...document.querySelectorAll('[data-character-video]')];
+const sibylView = createSibylRenderer(`${ASSET}sibyl.glb`);
 const resourceNodes = Object.fromEntries([...document.querySelectorAll('[data-resource]')].map((node) => [node.dataset.resource, node]));
 const images = new Map();
 let deviceScale = 1;
@@ -42,14 +55,37 @@ let saveTimer = 0;
 const state = loadState();
 const camera = { x: WORLD.width / 2, y: WORLD.height / 2, zoom: .72, targetZoom: .72 };
 const input = { pointers: new Map(), dragging: false, moved: false, lastX: 0, lastY: 0, pinchDistance: 0 };
-const npc = { x: 665, y: 765, path: [], segment: 0, state: 'IDLE', idleUntil: performance.now() + 2200, facing: 1, targetLabel: 'Taking in the city' };
+const roamingVillagers = characterDefinitions.map((definition, index) => ({
+  definition,
+  video: characterVideos[index],
+  frame: document.createElement('canvas'),
+  x: 565 + (index % 4) * 105,
+  y: 590 + Math.floor(index / 4) * 110,
+  path: [], segment: 0, state: 'IDLE',
+  idleUntil: performance.now() + 500 + index * 420,
+  facing: index % 2 ? -1 : 1,
+  targetLabel: 'Exploring the sanctuary', lastFrameAt: 0
+}));
+const npcs = [{
+  definition: { name: 'Sibyl', scale: 1 }, video: null, frame: null, isSibyl: true,
+  x: 724, y: 635, path: [], segment: 0, state: 'IDLE', idleUntil: performance.now() + 900,
+  facing: 1, targetLabel: 'Watching over the sanctuary', lastFrameAt: 0
+}, ...roamingVillagers];
 
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (saved?.version === 1 && Array.isArray(saved.buildings)) return saved;
+    if (saved?.version === 2 && Array.isArray(saved.buildings)) {
+      const seen = new Set();
+      const buildings = saved.buildings.filter((building) => {
+        if (!buildingDefinitions[building.type] || seen.has(building.type)) return false;
+        seen.add(building.type);
+        return isFootprintInside(building);
+      });
+      return { ...saved, buildings };
+    }
   } catch {}
-  return { version: 1, buildings: defaultBuildings, resources: { gold: 18420, wood: 12780, stone: 9360 } };
+  return { version: 2, buildings: defaultBuildings, resources: { gold: 18420, wood: 12780, stone: 9360 } };
 }
 
 function queueSave() {
@@ -118,6 +154,16 @@ function isInsideBase(x, y, margin = 0) {
   return dx * dx + dy * dy < 1;
 }
 
+function isFootprintInside(candidate) {
+  const footprint = buildingDefinitions[candidate.type].footprint;
+  return [
+    [candidate.x - footprint[0], candidate.y - footprint[1]],
+    [candidate.x + footprint[0], candidate.y - footprint[1]],
+    [candidate.x - footprint[0], candidate.y + footprint[1]],
+    [candidate.x + footprint[0], candidate.y + footprint[1]]
+  ].every(([x, y]) => isInsideBase(x, y, 18));
+}
+
 function overlaps(a, b) {
   const ad = buildingDefinitions[a.type];
   const bd = buildingDefinitions[b.type];
@@ -125,8 +171,8 @@ function overlaps(a, b) {
 }
 
 function canPlace(candidate) {
-  const definition = buildingDefinitions[candidate.type];
-  if (!isInsideBase(candidate.x, candidate.y, Math.max(...definition.footprint))) return false;
+  if (!isFootprintInside(candidate)) return false;
+  if (!placement?.movingId && state.buildings.some((building) => building.type === candidate.type)) return false;
   return !state.buildings.some((building) => building.id !== placement?.movingId && overlaps(candidate, building));
 }
 
@@ -148,7 +194,7 @@ function canWalkGrid(x, y) {
   });
 }
 
-function routeTo(target) {
+function routeTo(npc, target) {
   const start = gridFromWorld(npc.x, npc.y);
   const goal = gridFromWorld(target.x, target.y);
   const gridPath = simplifyPath(findPath(start, goal, canWalkGrid));
@@ -171,7 +217,7 @@ function randomOpenPoint() {
   return { x: 724, y: 760 };
 }
 
-function chooseNpcDestination(now) {
+function chooseNpcDestination(npc, now) {
   const roll = Math.random();
   let target;
   if (roll < .52 && state.buildings.length) {
@@ -188,15 +234,15 @@ function chooseNpcDestination(now) {
   } else {
     target = { ...randomOpenPoint(), label: 'Walking the green' };
   }
-  if (!routeTo(target)) {
+  if (!routeTo(npc, target)) {
     npc.state = 'IDLE';
     npc.idleUntil = now + 1800;
   }
 }
 
-function updateNpc(delta, now) {
+function updateNpc(npc, delta, now) {
   if (npc.state !== 'WALK') {
-    if (now > npc.idleUntil) chooseNpcDestination(now);
+    if (now > npc.idleUntil) chooseNpcDestination(npc, now);
     return;
   }
   const target = npc.path[npc.segment];
@@ -238,52 +284,91 @@ function drawBuilding(building, alpha = 1, valid = true) {
   context.restore();
   if (selectedId === building.id || alpha < 1) {
     context.save();
+    context.fillStyle = alpha < 1 ? (valid ? '#48f27c40' : '#ff4f5645') : '#e8c76822';
     context.strokeStyle = alpha < 1 ? (valid ? '#75ffa0' : '#ff7478') : '#f3cd73';
     context.lineWidth = 3 / camera.zoom;
-    context.setLineDash([8 / camera.zoom, 6 / camera.zoom]);
-    context.beginPath();
-    context.ellipse(building.x, building.y - 7, definition.footprint[0], definition.footprint[1], 0, 0, Math.PI * 2);
-    context.stroke();
+    context.setLineDash([]);
+    const left = building.x - definition.footprint[0];
+    const top = building.y - definition.footprint[1];
+    const boxWidth = definition.footprint[0] * 2;
+    const boxHeight = definition.footprint[1] * 2;
+    context.fillRect(left, top, boxWidth, boxHeight);
+    context.strokeRect(left, top, boxWidth, boxHeight);
     context.restore();
   }
 }
 
-function drawAltar() {
-  const x = 720, y = 345, width = 126, height = 126;
-  context.save();
-  context.shadowColor = '#8b5cff';
-  context.shadowBlur = 22;
-  context.beginPath();
-  context.ellipse(x, y - 50, width * .48, height * .44, 0, 0, Math.PI * 2);
-  context.clip();
-  if (altarVideo.readyState >= 2) context.drawImage(altarVideo, x - width / 2, y - height, width, height);
-  else { context.fillStyle = '#3e295d'; context.fill(); }
-  context.restore();
+function updateCharacterFrame(npc, now) {
+  if (!npc.video || npc.video.readyState < 2 || now - npc.lastFrameAt < 66) return;
+  npc.lastFrameAt = now;
+  const size = 86;
+  npc.frame.width = size;
+  npc.frame.height = size;
+  const frameContext = npc.frame.getContext('2d', { willReadFrequently: true });
+  frameContext.clearRect(0, 0, size, size);
+  frameContext.drawImage(npc.video, 0, 0, size, size);
+  const pixels = frameContext.getImageData(0, 0, size, size);
+  for (let offset = 0; offset < pixels.data.length; offset += 4) {
+    const red = pixels.data[offset];
+    const green = pixels.data[offset + 1];
+    const blue = pixels.data[offset + 2];
+    if (red > 155 && blue > 115 && green < 145 && red > green * 1.25 && blue > green * 1.1) pixels.data[offset + 3] = 0;
+  }
+  frameContext.putImageData(pixels, 0, 0);
 }
 
-function drawFreya(now) {
+function drawNpc(npc, now) {
+  if (!npc.isSibyl) updateCharacterFrame(npc, now);
   const bob = npc.state === 'WALK' ? Math.sin(now * .012) * 2 : Math.sin(now * .002) * 1.2;
-  const width = 74, height = 78;
+  const width = (npc.isSibyl ? 88 : 46) * npc.definition.scale;
+  const height = (npc.isSibyl ? 110 : 50) * npc.definition.scale;
   context.save();
   context.fillStyle = '#05110a66';
   context.beginPath();
-  context.ellipse(npc.x, npc.y - 3, 30, 11, 0, 0, Math.PI * 2);
+  context.ellipse(npc.x, npc.y - 2, width * .36, height * .12, 0, 0, Math.PI * 2);
   context.fill();
   context.translate(npc.x, npc.y - height + bob);
   context.scale(npc.facing < 0 ? -1 : 1, 1);
-  context.shadowColor = '#cab6ff';
-  context.shadowBlur = 12;
-  context.beginPath();
-  context.roundRect(-width / 2, 0, width, height, 24);
-  context.clip();
-  if (freyaVideo.readyState >= 2) context.drawImage(freyaVideo, -width / 2, 0, width, height);
-  else { context.fillStyle = '#2d2743'; context.fill(); context.fillStyle = '#efe5ff'; context.font = 'bold 24px Georgia'; context.textAlign = 'center'; context.fillText('F', 0, 47); }
+  context.shadowColor = '#f4cf72aa';
+  context.shadowBlur = 5;
+  if (npc.isSibyl) {
+    sibylView.render(now / 1000, npc.facing);
+    context.drawImage(sibylView.canvas, -width / 2, 0, width, height);
+  } else if (npc.frame.width) context.drawImage(npc.frame, -width / 2, 0, width, height);
   context.restore();
+}
+
+function drawBuildingLabel(building) {
+  const definition = buildingDefinitions[building.type];
   context.save();
-  context.strokeStyle = '#dcc47d';
-  context.lineWidth = 2 / camera.zoom;
+  context.font = '600 13px Georgia, serif';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  const labelWidth = context.measureText(definition.name).width + 16;
+  const labelY = building.y + 15;
+  context.fillStyle = '#101710ef';
+  context.strokeStyle = '#d6b45dcc';
+  context.lineWidth = 1.4 / camera.zoom;
   context.beginPath();
-  context.roundRect(npc.x - width / 2, npc.y - height + bob, width, height, 24);
+  context.roundRect(building.x - labelWidth / 2, labelY - 11, labelWidth, 22, 7);
+  context.fill();
+  context.stroke();
+  context.fillStyle = '#fff0c8';
+  context.fillText(definition.name, building.x, labelY + .5);
+  context.restore();
+}
+
+function drawPlacementGrid() {
+  if (!placement) return;
+  context.save();
+  context.beginPath();
+  context.ellipse(724, 575, 482, 317, 0, 0, Math.PI * 2);
+  context.clip();
+  context.strokeStyle = '#eef7db55';
+  context.lineWidth = 1 / camera.zoom;
+  context.beginPath();
+  for (let x = 220; x <= 1228; x += BUILD_GRID) { context.moveTo(x, 230); context.lineTo(x, 920); }
+  for (let y = 230; y <= 920; y += BUILD_GRID) { context.moveTo(210, y); context.lineTo(1238, y); }
   context.stroke();
   context.restore();
 }
@@ -302,10 +387,11 @@ function render(now) {
   context.scale(camera.zoom, camera.zoom);
   context.translate(-camera.x, -camera.y);
   if (mapImage.complete && mapImage.naturalWidth) context.drawImage(mapImage, 0, 0, WORLD.width, WORLD.height);
+  drawPlacementGrid();
   const layers = state.buildings.filter((building) => building.id !== placement?.movingId).map((building) => ({ y: building.y, draw: () => drawBuilding(building) }));
-  layers.push({ y: 345, draw: drawAltar });
-  layers.push({ y: npc.y, draw: () => drawFreya(now) });
+  npcs.forEach((npc) => layers.push({ y: npc.y, draw: () => drawNpc(npc, now) }));
   layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw());
+  state.buildings.filter((building) => building.id !== placement?.movingId).forEach(drawBuildingLabel);
   if (placement) drawBuilding(placement.preview, .68, placement.valid);
   context.restore();
   requestAnimationFrame(loop);
@@ -315,7 +401,7 @@ let previousTime = performance.now();
 function loop(now) {
   const delta = Math.min(.05, (now - previousTime) / 1000);
   previousTime = now;
-  updateNpc(delta, now);
+  npcs.forEach((npc) => updateNpc(npc, delta, now));
   render(now);
 }
 
@@ -335,10 +421,14 @@ function spend(definition) {
 function renderBuildMenu() {
   document.querySelectorAll('[data-build-category]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.buildCategory === category)));
   const list = document.querySelector('#build-list');
-  list.innerHTML = Object.entries(buildingDefinitions).filter(([, definition]) => definition.category === category).map(([key, definition]) => `
-    <button class="build-card" data-build="${key}" ${canAfford(definition) ? '' : 'disabled'}>
+  list.innerHTML = Object.entries(buildingDefinitions).filter(([, definition]) => definition.category === category).map(([key, definition]) => {
+    const alreadyPlaced = state.buildings.some((building) => building.type === key);
+    return `
+    <button class="build-card" data-build="${key}" ${canAfford(definition) && !alreadyPlaced ? '' : 'disabled'}>
       <img src="${ASSET}${definition.asset}" alt="" width="64" height="64"><span><strong>${definition.name}</strong><small>${definition.cost.gold} gold · ${definition.cost.wood} wood · ${definition.cost.stone} stone</small></span>
-    </button>`).join('');
+      ${alreadyPlaced ? '<em>Placed</em>' : ''}
+    </button>`;
+  }).join('');
   list.querySelectorAll('[data-build]').forEach((button) => button.addEventListener('click', () => beginPlacement(button.dataset.build)));
 }
 
@@ -376,7 +466,7 @@ function confirmPlacement() {
   }
   cancelPlacement();
   queueSave();
-  if (npc.state === 'WALK') chooseNpcDestination(performance.now());
+  npcs.filter((npc) => npc.state === 'WALK').forEach((npc) => chooseNpcDestination(npc, performance.now()));
 }
 
 function selectAt(point) {
@@ -411,8 +501,7 @@ canvas.addEventListener('pointerdown', (event) => {
     const [a, b] = [...input.pointers.values()];
     input.pinchDistance = Math.hypot(a.x - b.x, a.y - b.y);
   }
-  freyaVideo.play().catch(() => {});
-  altarVideo.play().catch(() => {});
+  characterVideos.forEach((video) => video.play().catch(() => {}));
 });
 
 canvas.addEventListener('pointermove', (event) => {
@@ -421,8 +510,8 @@ canvas.addEventListener('pointermove', (event) => {
   input.pointers.set(event.pointerId, position);
   if (placement) {
     const point = screenToWorld(position.x, position.y);
-    placement.preview.x = point.x;
-    placement.preview.y = point.y;
+    placement.preview.x = Math.round(point.x / BUILD_GRID) * BUILD_GRID;
+    placement.preview.y = Math.round(point.y / BUILD_GRID) * BUILD_GRID;
     placement.valid = canPlace(placement.preview);
     return;
   }
@@ -476,13 +565,18 @@ document.querySelector('#placement-cancel').addEventListener('click', cancelPlac
 document.querySelector('#move-building').addEventListener('click', () => { const building = state.buildings.find((item) => item.id === selectedId); if (building) beginPlacement(building.type, building.id); });
 document.querySelector('#building-info').addEventListener('click', () => notify('Production and detailed stats are coming in the next expansion.'));
 document.querySelector('#upgrade-building').addEventListener('click', () => notify('Building upgrades are coming soon.'));
-document.querySelector('#focus-freya').addEventListener('click', () => { camera.x = npc.x; camera.y = npc.y; camera.targetZoom = Math.max(.9, minimumZoom()); notify(npc.targetLabel); });
+document.querySelector('#focus-freya').addEventListener('click', () => {
+  const npc = npcs[Math.floor(Math.random() * npcs.length)];
+  camera.x = npc.x; camera.y = npc.y;
+  camera.targetZoom = Math.max(.9, minimumZoom());
+  notify(`${npc.definition.name} · ${npc.targetLabel}`);
+});
 document.querySelectorAll('[data-build-category]').forEach((button) => button.addEventListener('click', () => { category = button.dataset.buildCategory; renderBuildMenu(); }));
 
 window.addEventListener('resize', resize);
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { freyaVideo.pause(); altarVideo.pause(); }
-  else { freyaVideo.play().catch(() => {}); altarVideo.play().catch(() => {}); }
+  if (document.hidden) characterVideos.forEach((video) => video.pause());
+  else characterVideos.forEach((video) => video.play().catch(() => {}));
 });
 
 resize();

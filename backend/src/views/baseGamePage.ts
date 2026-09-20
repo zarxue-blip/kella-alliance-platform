@@ -4,12 +4,13 @@ export const baseGameHtml = `<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>Freya's Sanctuary · Private Base</title>
+  <title>Sibyl's Sanctuary · Private Base</title>
   <link rel="icon" href="/assets/kella-favicon.png">
-  <link rel="stylesheet" href="/assets/base-game/base-game.css?v=1">
+  <link rel="stylesheet" href="/assets/base-game/base-game.css?v=3">
+  <script type="importmap">{"imports":{"three":"/assets/base-game/vendor/three.module.js"}}</script>
 </head>
 <body>
-  <main class="base-app" aria-label="Freya's private sanctuary">
+  <main class="base-app" aria-label="Sibyl's private sanctuary">
     <section class="base-viewport" aria-label="Playable base world">
       <canvas id="base-world"></canvas>
     </section>
@@ -17,7 +18,7 @@ export const baseGameHtml = `<!doctype html>
     <header class="base-topbar">
       <a class="brand-chip back-home" href="/" aria-label="Return to Kella home">
         <img src="/assets/base-game/assets/alliance-hub.png" alt="">
-        <span><strong>Freya's Sanctuary</strong><span>Owner-only prototype</span></span>
+        <span><strong>Sibyl's Sanctuary</strong><span>Owner-only prototype</span></span>
       </a>
       <div class="resource-bar" aria-label="Resources">
         <div class="resource gold"><i>●</i><span>Gold</span><b data-resource="gold">0</b></div>
@@ -27,8 +28,8 @@ export const baseGameHtml = `<!doctype html>
       <nav class="top-actions"><a class="game-button back-home" href="/">Return to Kella</a></nav>
     </header>
 
-    <button class="freya-status" id="focus-freya" type="button"><i></i> Find Freya</button>
-    <p class="base-hint">Drag to explore · Scroll or pinch to zoom · Select a building to manage it</p>
+    <button class="freya-status" id="focus-freya" type="button"><i></i> Find a villager</button>
+    <p class="base-hint">Drag to explore · Select a building, then Move to rearrange it</p>
     <span class="privacy-mark">Private owner workspace</span>
 
     <div class="build-dock">
@@ -50,10 +51,9 @@ export const baseGameHtml = `<!doctype html>
 
     <div class="placement-bar" id="placement-bar" hidden><strong id="placement-name">Building</strong><span>Choose a clear spot</span><button class="game-button" id="placement-cancel" type="button">Cancel</button></div>
     <div class="game-toast" id="game-toast" role="status"></div>
-    <video class="media-source" id="freya-video" src="/assets/base-game/assets/freya.mp4" muted loop autoplay playsinline preload="auto"></video>
-    <video class="media-source" id="altar-video" src="/assets/base-game/assets/altar.mp4" muted loop autoplay playsinline preload="metadata"></video>
+    ${['elf-1', 'elf-4', 'goblin-1', 'goblin-5', 'pixie-1', 'pixie-4', 'wizard-1', 'wizard-5'].map((name) => `<video class="media-source" data-character-video src="/assets/base-game/assets/characters/${name}.mp4" muted loop autoplay playsinline preload="auto"></video>`).join('')}
   </main>
-  <script type="module" src="/assets/base-game/game.js?v=1"></script>
+  <script type="module" src="/assets/base-game/game.js?v=3"></script>
 </body>
 </html>`;
 
