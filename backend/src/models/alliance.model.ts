@@ -6,6 +6,9 @@ const allianceSchema = new Schema(
     tag: { type: String, required: true, uppercase: true, trim: true, index: true },
     kingdom: { type: String, trim: true },
     discordGuildId: { type: String, index: true },
+    rosterImportToken: String,
+    rosterImportUntil: Date,
+    latestRosterAt: Date,
     timezone: { type: String, default: "UTC" },
     settings: {
       attendanceGraceMinutes: { type: Number, default: 10 },

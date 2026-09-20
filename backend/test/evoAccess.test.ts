@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+Object.assign(process.env,{NODE_ENV:'test',MONGODB_URI:'mongodb://127.0.0.1/test',JWT_SECRET:'local-test-only-session-secret-123456',DISCORD_CLIENT_ID:'123456789012345678',DISCORD_CLIENT_SECRET:'test',DISCORD_REDIRECT_URI:'http://127.0.0.1/callback',BOT_API_TOKEN:'local-test-only-service-token',DISCORD_GUILD_ID:'111111111111111111'});
+const {UserModel}=await import('../src/models/user.model.js');
+const {createApp}=await import('../src/app.js');
+const {signSessionToken,isDashboardAdminUser}=await import('../src/middleware/auth.js');
+const {env}=await import('../src/config/env.js');
+const {migrationPower}=await import('../src/services/migrationData.service.js');
+assert.equal(migrationPower(105000000),'105M');assert.equal(migrationPower(52500000),'52.5M');assert.equal(migrationPower(50100000),'50.1M');
+assert.equal(isDashboardAdminUser({discordRoleIds:['1522274495728062475']}),true);
+assert.equal(isDashboardAdminUser({discordRoleIds:['1524118642353111214']}),true);
+assert.equal(isDashboardAdminUser({role:'Owner',discordRoleIds:[]}),false);
+const records:any={a:{_id:'a',discordId:'222222222222222222',role:'Member',allianceId:'aaaaaaaaaaaaaaaaaaaaaaaa',commanderTools:{identity:{name:'Alpha'}}},b:{_id:'b',discordId:'333333333333333333',role:'Member',allianceId:'aaaaaaaaaaaaaaaaaaaaaaaa',commanderTools:{identity:{name:'Beta'}}}};
+(UserModel as any).findById=(id:string)=>({select(){return this;},lean:async()=>records[id]});
+(UserModel as any).updateOne=async(filter:any,update:any)=>{records[filter._id].commanderTools=update.$set.commanderTools;return {modifiedCount:1};};
+const server=createApp().listen(0,'127.0.0.1');await new Promise<void>(r=>server.once('listening',r));const base='http://127.0.0.1:'+(server.address() as any).port;
+const headers=(id:string)=>({'content-type':'application/json',cookie:env.SESSION_COOKIE_NAME+'='+signSessionToken({id,...records[id]})});
+try {
+ assert.equal((await fetch(base+'/api/dashboard/commander')).status,401);
+ const a=await (await fetch(base+'/api/dashboard/commander?userId=b',{headers:headers('a')})).json();assert.equal(a.data.identity.name,'Alpha');
+ assert.equal((await fetch(base+'/api/dashboard/commander',{method:'PUT',headers:headers('a'),body:JSON.stringify({userId:'b',data:{identity:{name:'Alpha saved'}}})})).status,200);
+ assert.equal(records.b.commanderTools.identity.name,'Beta');assert.equal(records.a.commanderTools.identity.name,'Alpha saved');
+ for(const data of [[],null,{'constructor':{}},{text:'a'.repeat(200001)}])assert.equal((await fetch(base+'/api/dashboard/commander',{method:'PUT',headers:headers('a'),body:JSON.stringify({data})})).status,400);
+ for(const path of ['/api/dashboard/tickets','/api/dashboard/tickets/aaaaaaaaaaaaaaaaaaaaaaaa','/api/dashboard/responses','/api/dashboard/members/manage','/api/migration/export.csv'])assert.equal((await fetch(base+path,{headers:headers('a')})).status,403,path);
+ const {MemberModel}=await import('../src/models/member.model.js');const {AllianceModel}=await import('../src/models/alliance.model.js');
+ const member:any={_id:'bbbbbbbbbbbbbbbbbbbbbbbb',allianceId:records.a.allianceId,discordId:records.a.discordId,ign:'Alpha',uid:'12345',powerHistory:[],statHistory:[]};
+ (AllianceModel as any).findById=()=>({lean:async()=>({tag:'KoG'})});
+ (MemberModel as any).findOne=()=>({lean:async()=>member});
+ (MemberModel as any).findByIdAndUpdate=()=>({lean:async()=>member});
+ (UserModel as any).updateOne=async()=>({modifiedCount:1});
+ (MemberModel as any).findOneAndUpdate=(filter:any,update:any)=>{assert.equal(filter.discordId,records.a.discordId);assert.equal(filter.allianceId,records.a.allianceId);assert.equal(String(filter._id),member._id);Object.assign(member,update.$set);return {lean:async()=>member};};
+ const png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZQAAAABJRU5ErkJggg==';
+ const uploaded=await fetch(base+'/api/dashboard/profile',{method:'PATCH',headers:headers('a'),body:JSON.stringify({memberId:'other',profilePhotoUrl:png})});assert.equal(uploaded.status,200);assert.equal((await uploaded.json()).member.profilePhotoUrl,png);
+ for(const image of ['data:image/svg+xml;base64,PHN2Zz4=',png.replace('image/png','image/jpeg')])assert.equal((await fetch(base+'/api/dashboard/profile',{method:'PATCH',headers:headers('a'),body:JSON.stringify({profilePhotoUrl:image})})).status,400);
+ console.log('EVO access: Discord roles, member-owned Commander data, cross-user isolation, private admin endpoints and power formatting passed.');
+}finally{server.close();}

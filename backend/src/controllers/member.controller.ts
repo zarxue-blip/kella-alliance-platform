@@ -1,3 +1,4 @@
+import { validatedRosterUids,syncActiveMembership,withRosterImport } from '../services/rosterMembership.service.js';
 import { realtimeEvents } from "@cod-amp/shared";
 import { Types } from "mongoose";
 import { z } from "zod";
@@ -26,7 +27,7 @@ export const listMembers = asyncHandler(async (req: AuthenticatedRequest, res) =
   const { q, role, rank, country, sort = "power", order = "desc" } = req.query;
   const page = Math.max(Number(req.query.page ?? 1), 1);
   const limit = Math.min(Math.max(Number(req.query.limit ?? 50), 1), 500);
-  const filter: Record<string, unknown> = { allianceId: req.user.allianceId };
+  const filter: Record<string, unknown> = { allianceId: req.user.allianceId,membershipStatus:{$ne:'inactive'} };
 
   if (typeof q === "string" && q.trim()) {
     filter.$or = [
@@ -121,7 +122,12 @@ export const importMembers = asyncHandler(async (req: AuthenticatedRequest, res)
       upsert: true
     }
   }));
-  const result = operations.length ? await MemberModel.bulkWrite(operations) : undefined;
+  const ids=validatedRosterUids(body.members);
+  const result=await withRosterImport(req.user.allianceId,async()=>{
+    const result=await MemberModel.bulkWrite(operations);
+    await syncActiveMembership(req.user.allianceId,ids,new Date());
+    return result;
+  });
   emitAlliance(req.user.allianceId, realtimeEvents.memberUpdated, { import: true, count: body.members.length });
   res.json({ upsertedCount: result?.upsertedCount ?? 0, modifiedCount: result?.modifiedCount ?? 0 });
 });

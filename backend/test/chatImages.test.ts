@@ -24,7 +24,7 @@ try {
  assert.equal((await fetch(base+'/api/dashboard/chat-images')).status,401);
  assert.equal((await fetch(base+'/api/dashboard/chat-images',{method:'POST',headers:admin,body:JSON.stringify({name:'Coins',dataUrl:png})})).status,201);
  assert.equal((await (await fetch(base+'/api/dashboard/chat-images',{headers:admin})).json()).images.length,1);
- const lookup=async (discordId:string,id?:string,guildId='guild')=>fetch(base+'/bot/chat-images',{method:'POST',headers:service,body:JSON.stringify({guildId,discordId,roleIds:[],id})});
+ const lookup=async (discordId:string,id?:string,guildId='guild')=>fetch(base+'/bot/chat-images',{method:'POST',headers:service,body:JSON.stringify({guildId,discordId,roleIds:discordId==='admin'?['1522274495728062475']:[],id})});
  for(const id of ['member','disabled'])assert.equal((await lookup(id)).status,403);
  assert.equal((await lookup('admin',undefined,'other')).status,403);
  const list=await (await lookup('admin')).json();assert.equal(list.images[0].dataUrl,undefined);

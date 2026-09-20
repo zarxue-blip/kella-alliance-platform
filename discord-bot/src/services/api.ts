@@ -27,6 +27,9 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
 let commandSettingsCache: { disabledCommands: string[]; expiresAt: number } | null = null;
 
 export const api = {
+  createTicket(input:{guildId:string;discordId:string;category:string}) {return request<{channelId:string}>('POST','/bot/tickets',input);},
+  closeTicket(id:string,input:{guildId:string;discordId:string;action:string}) {return request('POST','/bot/tickets/'+id+'/close',input);},
+  adminAccess(input:{guildId:string;discordId:string}) {return request('POST','/bot/admin-access',input);},
   chatImages(input: {guildId:string;discordId:string;roleIds:string[];id?:string}) {
     return request<{images?:Array<{_id:string;name:string}>;image?:{_id:string;name:string;dataUrl:string}}>('POST','/bot/chat-images',input);
   },

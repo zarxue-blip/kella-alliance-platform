@@ -34,13 +34,17 @@ app.use((req,res,next) => {
   if(req.path === '/api/auth/me' && role==='guest') return res.status(401).json({authenticated:false});
   if(req.path === '/api/auth/me') return res.json({authenticated:true,user:{username:'Preview '+role,role:role==='admin'?'Owner':'Member'},isDashboardAdmin:role==='admin',isDashboardWikiEditor:role!=='member'});
   if(req.path === '/api/dashboard/profile') return res.json({member:{id:'preview-member',ign:'Preview member',discordUsername:'preview',discordDisplayName:'Preview member (sample only)',role:role==='admin'?'Owner':'Member',alliance:'KoG',timezone:'UTC',country:'',power:0,powerHistory:[],statHistory:[]}});
+  if(req.path === '/api/dashboard/events')return res.json({events:[{id:'sample-event',title:'Alliance rally · sample',startsAt:new Date().toISOString(),description:'Preview event',groups:{attending:[],absent:[]}}]});
+  if(req.path === '/api/dashboard/polls')return res.json({polls:[]});
+  if(req.path === '/api/dashboard/members' && req.query.view!=='dashboard')return res.json({members:[{id:'preview-member',ign:'Preview member',uid:'123456',alliance:'KoG',power:52000000,powerHistory:[{date:'2026-09-01',power:48000000},{date:'2026-09-20',power:52000000}],statHistory:[{date:'2026-09-01',metrics:{power:48000000,merits:3000000}},{date:'2026-09-20',metrics:{power:52000000,merits:4000000}}]}]});
+  if(req.path === '/api/dashboard/commander')return res.json({data:{}});
   if(req.path === '/api/dashboard/my-attendance') return res.json({byEvent:{}});
   if(req.path === '/api/dashboard/summary/admin' && role==='admin') req.url='/api/dashboard/summary';
   if(req.path === '/api/dashboard/wiki/admin' && role!=='member') { req.url='/api/dashboard/wiki'; }
   if(req.path === '/api/dashboard/members/manage' && role==='admin') { req.url='/api/dashboard/members'+(req.query.q?'?q='+encodeURIComponent(String(req.query.q)):''); }
   if(role==='admin') {
     const fixtures:Record<string,unknown>={
-      '/api/dashboard/responses':{reports:['war','events','polls','shields'].map(kind=>({id:kind,kind,title:'Preview sample · '+kind,at:new Date().toISOString(),groups:[{label:'Joining Fight',players:[{name:'Sample player',at:new Date().toISOString()}]},{label:'On The Way',players:[]},{label:'Unavailable',players:[]}]}))},'/api/migration':{submissions:[],total:0,page:1},'/api/dashboard/access':{admin:true},'/api/dashboard/alerts':{alerts:[]},'/api/dashboard/uploads':{uploads:[]},'/api/dashboard/complaints':{complaints:[]},'/api/embed/channels':{channels:[]},'/api/embed/templates':{templates:[]}
+      '/api/dashboard/tickets':{tickets:[{_id:'aaaaaaaaaaaaaaaaaaaaaaaa',category:'Technical Help',creatorName:'Sample player',status:'closed',openedAt:new Date().toISOString(),closedAt:new Date().toISOString()}]},'/api/dashboard/responses':{reports:['war','events','polls','shields'].map(kind=>({id:kind,kind,title:'Preview sample · '+kind,at:new Date().toISOString(),groups:[{label:'Fighting',players:[{name:'Sample player',at:new Date().toISOString()}]},{label:'Unavailable',players:[]}]}))},'/api/migration':{submissions:[],total:0,page:1},'/api/dashboard/access':{admin:true},'/api/dashboard/alerts':{alerts:[]},'/api/dashboard/uploads':{uploads:[]},'/api/dashboard/complaints':{complaints:[]},'/api/embed/channels':{channels:[]},'/api/embed/templates':{templates:[]}
     };
     if(req.path in fixtures) return res.json(fixtures[req.path]);
   }

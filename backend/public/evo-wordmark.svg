@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" role="img" aria-label="EVO">
+<defs><linearGradient id="gold" x1="0" y1="0" x2="0.5" y2="1"><stop stop-color="#fff2cb"/><stop offset=".42" stop-color="#c6a156"/><stop offset=".48" stop-color="#997136"/><stop offset=".52" stop-color="#f1d48e"/><stop offset="1" stop-color="#b48b40"/></linearGradient></defs>
+<g fill="url(#gold)" stroke="#f5dfa4" stroke-width=".6" stroke-linejoin="bevel">
+<path d="M10 14H105L93 32H33V51H84L73 69H33V88H104L92 106H10Z"/>
+<path d="M114 14H139L180 82L221 14H246L189 106H171Z"/>
+<path fill-rule="evenodd" d="M273 14H329L350 35V85L329 106H273L252 85V35ZM280 33L271 42V78L280 87H322L331 78V42L322 33Z"/>
+</g><g fill="none" stroke="#fff0c2" opacity=".48" stroke-width="1"><path d="M15 20H92M16 99H83M125 20L180 96L234 20M279 20H325L344 39V81L325 100H279"/></g>
+<path fill="#d7b365" d="m180 3 4 4-4 4-4-4zm0 106 4 4-4 4-4-4z"/>
+</svg>

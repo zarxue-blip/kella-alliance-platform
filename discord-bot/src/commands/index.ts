@@ -10,7 +10,7 @@ import {
   TextInputBuilder,
   TextInputStyle
 } from "discord.js";
-import { botName } from "@cod-amp/shared";
+import { botName, kellaDiscordRoles } from "@cod-amp/shared";
 import { config } from "../config.js";
 import { api } from "../services/api.js";
 
@@ -24,11 +24,15 @@ export interface BotCommand {
   execute(interaction: ChatInputCommandInteraction): Promise<void>;
 }
 
+async function commandReply(interaction:ChatInputCommandInteraction,options:any) {
+ if(interaction.deferred){const {ephemeral,...body}=options;return interaction.editReply(body);}
+ return interaction.reply(options);
+}
+
 function summitButtons() {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder().setCustomId("summit:Attending").setLabel("Attending").setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId("summit:Absent").setLabel("Absent").setStyle(ButtonStyle.Danger),
-    new ButtonBuilder().setCustomId("summit:Not Sure").setLabel("Not Sure").setStyle(ButtonStyle.Secondary)
   );
 }
 
@@ -73,7 +77,7 @@ export function pollEmbed(input: {
 const pollCommand = new SlashCommandBuilder()
   .setName("poll")
   .setDescription("Create a poll, optionally assigning a role for each answer.")
-  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+
   .addStringOption((option) => option.setName("question").setDescription("Question to ask").setRequired(true).setMaxLength(256))
   .addStringOption((option) => option.setName("option1").setDescription("First answer").setRequired(true).setMaxLength(80))
   .addStringOption((option) => option.setName("option2").setDescription("Second answer").setRequired(true).setMaxLength(80))
@@ -92,7 +96,7 @@ async function publishPoll(
   question: string,
   options: Array<{ label: string; roleId?: string }>
 ) {
-  await interaction.deferReply();
+  if(!interaction.deferred)await interaction.deferReply();
   const { poll } = await api.createPoll({
     kind,
     question,
@@ -168,21 +172,19 @@ export const commands: BotCommand[] = [
         playerDiscordId: player.id,
         playerName: player.username
       });
-      await interaction.reply({ ephemeral: true, content: `${botName} sent a shield warning to ${player}.` });
+      await commandReply(interaction,{ ephemeral: true, content: `${botName} sent a shield warning to ${player}.` });
     }
   },
   {
     data: new SlashCommandBuilder().setName("attack").setDescription("Post an emergency attack alert."),
     async execute(interaction) {
-      const mention = await allianceMention(interaction);
+      const mention = { content: `<@&${kellaDiscordRoles.attack}>`, roles: [kellaDiscordRoles.attack] };
       const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder().setCustomId("attack:Joining Fight").setLabel("Joining Fight").setStyle(ButtonStyle.Danger),
-        new ButtonBuilder().setCustomId("attack:Defending").setLabel("Defending").setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId("attack:On The Way").setLabel("On The Way").setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId("attack:Fighting").setLabel("Fighting").setStyle(ButtonStyle.Danger),
         new ButtonBuilder().setCustomId("attack:Unavailable").setLabel("Unavailable").setStyle(ButtonStyle.Secondary)
       );
 
-      await interaction.reply({
+      await commandReply(interaction,{
         content: mention.content,
         allowedMentions: { roles: mention.roles },
         embeds: [
@@ -207,7 +209,7 @@ export const commands: BotCommand[] = [
   {
     data: new SlashCommandBuilder().setName("summit").setDescription("Create Summit registration buttons."),
     async execute(interaction) {
-      await interaction.reply({
+      await commandReply(interaction,{
         embeds: [
           {
             title: "🏔 SUMMIT REGISTRATION",
@@ -253,7 +255,7 @@ export const commands: BotCommand[] = [
     async execute(interaction) {
       const timer = parseUtcTimer(interaction.options.getString("utc", true));
       if (!timer) {
-        await interaction.reply({
+        await commandReply(interaction,{
           ephemeral: true,
           content: "Use 24-hour UTC time, like `/time utc:13 UTC`, `/time utc:13:30`, or `/time utc:2026-07-16 20:00 UTC`."
         });
@@ -262,7 +264,7 @@ export const commands: BotCommand[] = [
 
       const note = interaction.options.getString("note")?.trim();
       const title = note ? `Timer: ${note}` : "Server Time Countdown";
-      await interaction.reply({
+      await commandReply(interaction,{
         embeds: [
           {
             title,
@@ -298,7 +300,7 @@ export const commands: BotCommand[] = [
         officerName: interaction.user.username,
         eventType
       });
-      await interaction.reply({ ephemeral: true, content: `${botName} queued reminders for ${eventType}.` });
+      await commandReply(interaction,{ ephemeral: true, content: `${botName} queued reminders for ${eventType}.` });
     }
   },
   {
@@ -307,7 +309,7 @@ export const commands: BotCommand[] = [
       const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder().setCustomId("checkin:daily").setLabel("Daily Check-In").setStyle(ButtonStyle.Success)
       );
-      await interaction.reply({
+      await commandReply(interaction,{
         embeds: [
           {
             title: "✅ DAILY CHECK-IN",
@@ -371,14 +373,14 @@ export const commands: BotCommand[] = [
     data: new SlashCommandBuilder()
       .setName("wiki-admin")
       .setDescription("Post the Kella Wiki reader button for members.")
-      .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+      ,
     async execute(interaction) {
       const wikiUrl = `${config.PUBLIC_APP_URL.replace(/\/$/, "")}/wiki`;
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder().setLabel("Read Kella Wiki").setStyle(ButtonStyle.Link).setURL(wikiUrl)
       );
 
-      await interaction.reply({
+      await commandReply(interaction,{
         embeds: [
           {
             title: "Kella Alliance Wiki",
@@ -394,9 +396,14 @@ export const commands: BotCommand[] = [
   {
     data: new SlashCommandBuilder().setName("dashboard").setDescription("Open the Kella dashboard."),
     async execute(interaction) {
-      await interaction.reply({ ephemeral: true, content: `Dashboard: ${config.PUBLIC_APP_URL}` });
+      await commandReply(interaction,{ ephemeral: true, content: `Dashboard: ${config.PUBLIC_APP_URL}` });
     }
   }
 ];
+
+commands.push({
+ data:new SlashCommandBuilder().setName('ticket-panel').setDescription('Post the private support ticket panel.'),
+ async execute(interaction){await commandReply(interaction,{embeds:[{title:'Contact the team',description:'Choose a category to open a private support ticket.',color:0xb99b58}],components:[{type:1,components:[{type:3,custom_id:'ticket-create',placeholder:'Choose ticket category',options:['Migration','Report Player','Technical Help','Other'].map(label=>({label,value:label}))}]}]});}
+});
 
 export const commandMap = new Map(commands.map((command) => [command.data.name, command]));

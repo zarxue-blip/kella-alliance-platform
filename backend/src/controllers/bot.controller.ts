@@ -232,7 +232,7 @@ export const botAttackResponse = asyncHandler(async (req, res) => {
       displayName: z.string().optional(),
       messageId: z.string().optional(),
       channelId: z.string().optional(),
-      status: z.enum(["Joining Fight", "Defending", "On The Way", "Unavailable"])
+      status: z.enum(["Fighting", "Unavailable"])
     })
     .parse(req.body);
   const allianceId = await resolveAllianceId(body.allianceId);
@@ -254,7 +254,7 @@ export const botEventResponse = asyncHandler(async (req, res) => {
       discordId: z.string(),
       displayName: z.string().optional(),
       eventId: z.string(),
-      status: z.enum(["Attending", "Absent", "Not Sure"])
+      status: z.enum(["Attending", "Absent"])
     })
     .parse(req.body);
   const allianceId = await resolveAllianceId(body.allianceId);
@@ -298,7 +298,7 @@ export const botSummitResponse = asyncHandler(async (req, res) => {
     .extend({
       discordId: z.string(),
       displayName: z.string().optional(),
-      status: z.enum(["Attending", "Absent", "Not Sure"])
+      status: z.enum(["Attending", "Absent"])
     })
     .parse(req.body);
   const allianceId = await resolveAllianceId(body.allianceId);

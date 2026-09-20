@@ -43,7 +43,7 @@ try{
  assert.deepEqual(messages[0].allowed_mentions,{parse:[]});assert.equal(messages[0].enforce_nonce,true);
  failDiscord=true;r=await fetch(base+'/migration',{method:'POST',headers,body:JSON.stringify({...body,requestKey:crypto.randomUUID()})});assert.equal(r.status,201);assert.equal((await r.json()).deliveryStatus,'Failed');assert.equal(docs.length,2);assert.deepEqual(docs[1].answers.ign,'Example');
  r=await fetch(base+'/migration/'+docs[1]._id+'/retry',{method:'POST',headers,body:'{}'});assert.equal(r.status,403,'member cannot retry administrative delivery');
- user.role='Leader';failDiscord=false;r=await fetch(base+'/migration/'+docs[1]._id+'/retry',{method:'POST',headers,body:'{}'});assert.equal(r.status,200);assert.equal((await r.json()).submission.deliveryStatus,'Sent');
+ user.role='Leader';(user as any).discordRoleIds=['1522274495728062475'];failDiscord=false;r=await fetch(base+'/migration/'+docs[1]._id+'/retry',{method:'POST',headers,body:'{}'});assert.equal(r.status,200);assert.equal((await r.json()).submission.deliveryStatus,'Sent');
  const visitor=await fetch(base+'/migration',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...body,requestKey:crypto.randomUUID()})});assert.equal(visitor.status,201);assert.equal(docs.at(-1).discordId,'');assert.equal(docs.at(-1).roleStatus,'NeedsDiscord');
  const {signMigrationIdentity,migrationIdentityCookie}=await import('../src/services/migrationIdentity.service.js');
  const receipt=JSON.stringify({requestKey:docs.at(-1).requestKey});
@@ -52,8 +52,8 @@ try{
  r=await fetch(base+'/migration/connect-discord',{method:'POST',headers:linkedHeaders,body:receipt});assert.equal(r.status,200);assert.equal((await r.json()).roleStatus,'Assigned');assert.equal(docs.at(-1).discordId,user.discordId);
  r=await fetch(base+'/migration/connect-discord',{method:'POST',headers:{...linkedHeaders,cookie:migrationIdentityCookie+'='+signMigrationIdentity('987654321098765432')},body:receipt});assert.equal(r.status,404,'cannot replace a verified applicant identity');assert.equal(docs.at(-1).discordId,user.discordId);
  r=await fetch(base+'/migration/export.csv');assert.equal(r.status,401);
- user.role='Member';r=await fetch(base+'/migration/export.csv',{headers});assert.equal(r.status,403);
- user.role='Leader';const originalCount=docs.length;
+ user.role='Member';(user as any).discordRoleIds=[];r=await fetch(base+'/migration/export.csv',{headers});assert.equal(r.status,403);
+ user.role='Leader';(user as any).discordRoleIds=['1522274495728062475'];const originalCount=docs.length;
  for(let i=0;i<35;i++)docs.push({_id:new Types.ObjectId(),allianceId:user.allianceId,answers:{ign:'Export Player '+i,legacy:'Older answer'},fields:[{key:'legacy',label:'Previous question'}],status:'Pending'});
  docs.push({_id:new Types.ObjectId(),allianceId:new Types.ObjectId(),answers:{ign:'Other alliance private'}});
  r=await fetch(base+'/migration/export.csv',{headers});assert.equal(r.status,200);assert.match(r.headers.get('content-disposition')||'',/attachment/);assert.match(r.headers.get('cache-control')||'',/no-store/);
@@ -64,8 +64,8 @@ try{
  console.log('Migration CSV: authorization, alliance scope, all pages, archived answers, escaping and record preservation passed.');
  const deleteId=String(docs[0]._id);const count=docs.length;
  r=await fetch(base+'/migration/'+deleteId,{method:'DELETE'});assert.equal(r.status,401);
- user.role='Member';r=await fetch(base+'/migration/'+deleteId,{method:'DELETE',headers});assert.equal(r.status,403);assert.equal(docs.length,count);
- user.role='Leader';const ownAlliance=user.allianceId;user.allianceId=new Types.ObjectId();
+ user.role='Member';(user as any).discordRoleIds=[];r=await fetch(base+'/migration/'+deleteId,{method:'DELETE',headers});assert.equal(r.status,403);assert.equal(docs.length,count);
+ user.role='Leader';(user as any).discordRoleIds=['1522274495728062475'];const ownAlliance=user.allianceId;user.allianceId=new Types.ObjectId();
  r=await fetch(base+'/migration/'+deleteId,{method:'DELETE',headers});assert.equal(r.status,404);assert.equal(docs.length,count);user.allianceId=ownAlliance;
  r=await fetch(base+'/migration/not-an-id',{method:'DELETE',headers});assert.equal(r.status,400);
  r=await fetch(base+'/migration/'+deleteId,{method:'DELETE',headers});assert.equal(r.status,200);assert.equal(docs.length,count-1);

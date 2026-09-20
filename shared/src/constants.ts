@@ -39,3 +39,5 @@ export const moduleLabels: Record<DashboardModule, string> = {
 };
 
 export const shieldAlertMinutes = [1440, 720, 360, 60, 15] as const;
+
+export const kellaDiscordRoles = { admin: "1522274495728062475", attack: "1485933229168005282", legacyAdmin: "1524118642353111214" } as const;

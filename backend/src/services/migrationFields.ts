@@ -1,6 +1,7 @@
 export type MigrationField = { key: string; label: string; type: string; required: boolean; options: string[]; section: string };
 // Adapted from the user-provided 881 application form, retrieved 2026-09-06.
 export const migrationFields: MigrationField[] = [
+  {key:"currentPower",label:"Current Power",type:"number",required:false,options:[],section:"Player"},
   {
     "key": "ign",
     "label": "In-game name",

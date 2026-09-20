@@ -3,9 +3,11 @@ type AttendanceResponse = { reportId?: string; status?: string; sentAt?: Date | 
 export function personalAttendanceByEvent(responses: AttendanceResponse[]) {
   const byEvent: Record<string, string> = Object.create(null);
   const latest = responses.slice().sort((a,b) => new Date(b.sentAt || 0).getTime() - new Date(a.sentAt || 0).getTime());
+  const seen=new Set<string>();
   for (const response of latest) {
-    if (!response.reportId || Object.hasOwn(byEvent,response.reportId)) continue;
-    if (!['Attending','Absent','Not Sure'].includes(response.status || '')) continue;
+    if (!response.reportId || seen.has(response.reportId)) continue;
+    seen.add(response.reportId);
+    if (!['Attending','Absent'].includes(response.status || '')) continue;
     byEvent[response.reportId] = response.status!;
   }
   return byEvent;

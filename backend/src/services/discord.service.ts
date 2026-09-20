@@ -1,3 +1,4 @@
+import { kellaDiscordRoles } from "@cod-amp/shared";
 import { env } from "../config/env.js";
 import { HttpError } from "../utils/httpError.js";
 
@@ -92,7 +93,7 @@ function parseJsonText(text: string) {
   }
 }
 
-async function discordRequest<T>(path: string, init: RequestInit = {}) {
+export async function discordRequest<T>(path: string, init: RequestInit = {}) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const response = await fetch(`https://discord.com/api/v10${path}`, {
       ...init,
@@ -312,8 +313,8 @@ export async function sendAttackAlert(input: SendAttackInput) {
   return discordRequest<any>(`/channels/${input.channelId}/messages`, {
     method: "POST",
     body: JSON.stringify({
-      content: input.roleMentionId ? `<@&${input.roleMentionId}>` : undefined,
-      allowed_mentions: input.roleMentionId ? { roles: [input.roleMentionId] } : { parse: [] },
+      content: kellaDiscordRoles.attack ? `<@&${kellaDiscordRoles.attack}>` : undefined,
+      allowed_mentions: kellaDiscordRoles.attack ? { roles: [kellaDiscordRoles.attack] } : { parse: [] },
       embeds: [
         {
           title: "🚨 ATTACK ALERT",
@@ -325,10 +326,8 @@ export async function sendAttackAlert(input: SendAttackInput) {
         {
           type: 1,
           components: [
-            { type: 2, custom_id: "attack:Joining Fight", label: "⚔ Joining", style: 4 },
-            { type: 2, custom_id: "attack:Defending", label: "🛡 Defending", style: 1 },
-            { type: 2, custom_id: "attack:On The Way", label: "⌛ On the way", style: 3 },
-            { type: 2, custom_id: "attack:Unavailable", label: "❌ Unavailable", style: 2 }
+            { type: 2, custom_id: "attack:Fighting", label: "Fighting", style: 4 },
+            { type: 2, custom_id: "attack:Unavailable", label: "Unavailable", style: 2 }
           ]
         }
       ]
@@ -343,7 +342,7 @@ export async function sendEventAttendanceEmbed(input: SendEventAttendanceInput) 
 
   const unix = Math.floor(input.startsAt.getTime() / 1000);
   const content = [input.roleMentionId ? `<@&${input.roleMentionId}>` : "", input.title ? `# ${input.title}` : ""].filter(Boolean).join("\n");
-  const button = (status: "Attending" | "Absent" | "Unsure", label: string, style: number) => ({
+  const button = (status: "Attending" | "Absent", label: string, style: number) => ({
     type: 2,
     custom_id: `event:${input.eventId}:${status}`,
     label,
@@ -370,7 +369,6 @@ export async function sendEventAttendanceEmbed(input: SendEventAttendanceInput) 
           components: [
             button("Attending", "Attending", 3),
             button("Absent", "Absent", 4),
-            button("Unsure", "Not Sure", 2)
           ]
         }
       ]

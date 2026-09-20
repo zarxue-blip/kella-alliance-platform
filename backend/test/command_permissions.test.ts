@@ -4,7 +4,7 @@ const {UserModel}=await import('../src/models/user.model.js');
 const {signSessionToken}=await import('../src/middleware/auth.js');
 const {env}=await import('../src/config/env.js');
 const {createApp}=await import('../src/app.js');
-const users:any={member:{role:'Member'},editor:{role:'Member',discordRoleIds:['1529826271813570650']},officer:{role:'R4 Officer'},owner:{role:'Owner'},disabled:{role:'Owner',disabled:true}};
+const users:any={member:{role:'Member'},editor:{role:'Member',discordRoleIds:['1529826271813570650']},officer:{role:'R4 Officer',discordRoleIds:['1522274495728062475']},owner:{role:'Owner',discordRoleIds:['1524118642353111214']},disabled:{role:'Owner',disabled:true}};
 for(const [id,user] of Object.entries(users) as any) Object.assign(user,{_id:id,discordId:'123456789012345678',allianceId:'123456789012345678901234'});
 (UserModel as any).findById=(id:string)=>({lean:async()=>users[id]});
 const server=createApp().listen(0,'127.0.0.1');await new Promise<void>(resolve=>server.once('listening',resolve));

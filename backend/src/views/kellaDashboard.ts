@@ -23,7 +23,7 @@ const modules = [
   { id: "attack", name: "Attack Alert", badge: "Critical", command: "/attack", description: "Post an alliance-wide attack alert with one-click response buttons." },
   { id: "embed", name: "Embed Sender", badge: "Admin", command: "Dashboard", description: "Build, preview, save, and send Discord embeds from the website." },
   { id: "wiki", name: "Wiki", badge: "Guides", command: "Dashboard", description: "Publish alliance rules, guides, images, and readable member notes." },
-  { id: "summit", name: "Summit Registration", badge: "Fast", command: "/summit", description: "Simple Summit attendance buttons for Attending, Absent, and Not Sure." },
+  { id: "summit", name: "Summit Registration", badge: "Fast", command: "/summit", description: "Simple Summit attendance buttons for Attending and Absent." },
   { id: "polls", name: "Polls + Roles", badge: "New", command: "/poll", description: "Create one-click polls, map answers to Discord roles, and review participation in Attendance." },
   { id: "besttime", name: "Best Online Time", badge: "UTC", command: "Dashboard", description: "Collect members' usual online windows and compare the results in Attendance." },
   { id: "checkin", name: "Daily Check-In", badge: "Activity", command: "/checkin", description: "One button daily activity tracking for weekly and inactive member reports." },
@@ -3784,7 +3784,7 @@ export function kellaDashboardHtml() {
 
       function memberAvatar(member, className) {
         const displayName = memberDisplayName(member);
-        const photoUrl = member?.discordAvatarUrl || member?.profilePhotoUrl;
+        const photoUrl = member?.profilePhotoUrl || member?.discordAvatarUrl;
         if (photoUrl) {
           return '<img class="' + className + '" src="' + escapeHtml(photoUrl) + '" alt="" loading="lazy" />';
         }
@@ -3901,6 +3901,17 @@ export function kellaDashboardHtml() {
         });
       }
 
+      document.addEventListener('change',async function(event){
+        if(!event.target.matches('[data-own-avatar]'))return;
+        const file=event.target.files[0];if(!file)return;
+        try{
+          if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024)throw new Error('Choose a PNG, JPEG or WebP image under 5 MB.');
+          const url=URL.createObjectURL(file);
+          let data;try{data=await cropAvatarToDataUrl(url,1);}finally{URL.revokeObjectURL(url);}
+          await sendJson('PATCH','/api/dashboard/profile',{profilePhotoUrl:data});
+          state.profile=null;await loadProfile(true);await renderProfile();toast('Profile picture updated.');
+        }catch(error){toast(error.message);}
+      });
       function setAvatarFormPhoto(dataUrl, mode, memberId) {
         const fieldSelector = mode === "manual" ? '[data-manual-member="profilePhotoUrl"]' : '[data-admin-member="profilePhotoUrl"]';
         const field = memberModalContent?.querySelector(fieldSelector);
@@ -4298,7 +4309,7 @@ export function kellaDashboardHtml() {
         const memberId = String(member?.id || "profile");
         const dots = points.map(function(point) {
           const date = point.point.date.toISOString().slice(0, 10);
-          return '<circle class="profile-trend-dot ' + (point.index === selectedIndex ? "active" : "") + '" cx="' + point.x.toFixed(1) + '" cy="' + point.y.toFixed(1) + '" r="' + (point.index === selectedIndex ? "6" : "4") + '" data-action="set-profile-radar-date" data-member-id="' + escapeHtml(memberId) + '" data-radar-date="' + escapeHtml(date) + '"><title>' + escapeHtml(formatDate(point.point.date) + ": " + formatCompactNumber(point.point.value)) + '</title></circle>';
+          return '<circle class="profile-trend-dot ' + (point.index === selectedIndex ? "active" : "") + '" cx="' + point.x.toFixed(1) + '" cy="' + point.y.toFixed(1) + '" r="' + (point.index === selectedIndex ? "6" : "4") + '" data-trend-member-id="' + escapeHtml(memberId) + '" data-radar-date="' + escapeHtml(date) + '"><title>' + escapeHtml(formatDate(point.point.date) + ": " + formatCompactNumber(point.point.value)) + '</title></circle>';
         }).join("");
         const selectedPoint = history[selectedIndex];
         const previousPoint = selectedIndex > 0 ? history[selectedIndex - 1] : null;
@@ -4367,22 +4378,38 @@ export function kellaDashboardHtml() {
           const selected = metricKeys.includes(option.key);
           return '<button class="metric-button ' + (selected ? "active" : "") + '" type="button" data-action="toggle-profile-radar-metric" data-member-id="' + escapeHtml(memberId) + '" data-metric="' + escapeHtml(option.key) + '">' + escapeHtml(option.label) + '</button>';
         }).join("");
-        const dateButtons = availableDates.map(function(date) {
-          return '<button class="secondary profile-radar-date ' + (date === selectedDate ? "active" : "") + '" type="button" data-action="set-profile-radar-date" data-member-id="' + escapeHtml(memberId) + '" data-radar-date="' + escapeHtml(date) + '" aria-pressed="' + String(date === selectedDate) + '" title="Show stats from ' + escapeHtml(formatDate(new Date(date + "T00:00:00Z"))) + '">' + escapeHtml(compactDate(new Date(date + "T00:00:00Z"))) + '</button>';
-        }).join("");
-        const dateOptions = availableDates.map(function(date) {
-          return '<option value="' + escapeHtml(date) + '" ' + (date === selectedDate ? "selected" : "") + '>' + escapeHtml(formatDate(new Date(date + "T00:00:00Z"))) + '</option>';
-        }).join("");
         const graphToggle = '<button class="profile-graph-toggle ' + (graphMode === "trend" ? "active" : "") + '" type="button" data-action="toggle-profile-graph" data-member-id="' + escapeHtml(memberId) + '" aria-pressed="' + String(graphMode === "trend") + '" title="Switch to ' + (graphMode === "trend" ? "radar stats" : "power trend") + '"><img src="/assets/icons/change-graph.png?v=1" alt="" width="30" height="30" loading="lazy" decoding="async"><span class="profile-graph-toggle-copy"><strong>Change graph</strong><small>' + (graphMode === "trend" ? "Power trend" : "Radar stats") + '</small></span><span class="profile-graph-switch" aria-hidden="true"></span></button>';
         const graph = graphMode === "trend"
           ? profilePowerTrend(member, selectedDate)
           : '<svg class="profile-radar" viewBox="0 0 560 348" role="img" aria-label="Current season player statistics radar chart" data-radar-date="' + escapeHtml(selectedDate) + '">' + rings + spokes + '<polygon class="radar-area" key="' + areaKey + '" points="' + areaPoints.join(" ") + '"></polygon>' + dots + labels + "</svg>";
         const radarSelector = graphMode === "radar" ? '<details class="metric-selector"><summary><span class="metric-selector-label">Radar stats</span><span class="metric-selector-value">' + axes.length + ' selected</span></summary><div class="metric-picker">' + metricButtons + '</div></details>' : '';
-        return '<section class="profile-season-card"><div class="profile-season-topbar"><div class="profile-season-head"><h4>Current Season</h4><p>' + escapeHtml(selectedDate ? "Roster snapshot " + formatDate(new Date(selectedDate + "T00:00:00Z")) : "Compared with the current alliance roster") + '</p></div>' + graphToggle + '</div>' + graph +
+        return '<section class="profile-season-card" tabindex="0" data-swipe-member="'+escapeHtml(memberId)+'" data-swipe-dates="'+escapeHtml(JSON.stringify(availableDates))+'" data-swipe-selected="'+escapeHtml(selectedDate)+'"><div class="profile-season-topbar"><div class="profile-season-head"><h4>Current Season</h4><p>' + escapeHtml(selectedDate ? "Roster snapshot " + formatDate(new Date(selectedDate + "T00:00:00Z")) : "Compared with the current alliance roster") + '</p></div>' + graphToggle + '</div>' + graph +
           '<div class="profile-radar-controls">' + radarSelector +
-          (dateButtons ? '<div class="profile-radar-snapshots"><span class="profile-radar-snapshots-label">Roster snapshot</span><label class="profile-radar-date-select-shell"><span>Selected date</span><select class="profile-radar-date-select" data-radar-date-select data-member-id="' + escapeHtml(memberId) + '" aria-label="Choose roster snapshot date">' + dateOptions + '</select></label><div class="profile-radar-dates" aria-label="Choose roster snapshot date">' + dateButtons + '</div></div>' : '') + '</div></section>';
+          '<p class="radar-swipe-hint">Swipe or drag to change snapshot · '+escapeHtml(selectedDate || 'Current')+'</p></div></section>';
+
       }
 
+      let radarGesture=null;
+      function shiftRadar(card,direction){
+        const dates=JSON.parse(card.dataset.swipeDates || '[]');
+        const index=dates.indexOf(card.dataset.swipeSelected);
+        const date=dates[Math.max(0,Math.min(dates.length-1,index+direction))];
+        if(date && date!==card.dataset.swipeSelected)selectProfileRadarDate(card.dataset.swipeMember,date);
+      }
+      document.addEventListener('pointerdown',event=>{
+        const card=event.target.closest('[data-swipe-member]');
+        if(!card || event.target.closest('button,select,input,summary,a') || event.button>0)return;
+        radarGesture={card,x:event.clientX,y:event.clientY,id:event.pointerId};
+      });
+      document.addEventListener('pointerup',event=>{
+        const g=radarGesture;radarGesture=null;if(!g||event.pointerId!==g.id)return;
+        const dx=event.clientX-g.x,dy=event.clientY-g.y;
+        if(Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)*1.3)shiftRadar(g.card,dx<0?1:-1);
+      });
+      document.addEventListener('pointercancel',()=>{radarGesture=null;});
+      document.addEventListener('keydown',event=>{
+        if(event.target.matches('[data-swipe-member]')&&['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();shiftRadar(event.target,event.key==='ArrowRight'?1:-1);}
+      });
       function refreshMemberSeasonRadar(member) {
         if (!member) return;
         const modalIsOpen = Boolean(memberModal?.classList.contains("open"));
@@ -4667,7 +4694,7 @@ export function kellaDashboardHtml() {
         return '<div class="attendance-grid">' +
           attendanceGroup("Attending", groups.attending, "good") +
           attendanceGroup("Absent", groups.absent, "bad") +
-          attendanceGroup("Not Sure", groups.unsure, "warn") +
+
         '</div>';
       }
 
@@ -4716,7 +4743,7 @@ export function kellaDashboardHtml() {
         const date = new Date(key + "T00:00:00Z");
         const title = type === "events" ? "Attendance Calendar" : "Activity Calendar";
         const dayEvents = eventsForDay(state.events || [], key);
-        
+
         const items = type === "events"
           ? dayEvents.map(eventDetailItem)
           : calendarActivityItems(state.summary || {}, state.events || [], key);
@@ -6439,7 +6466,7 @@ export function kellaDashboardHtml() {
       function loadLordToolsData() {
         if (state.lordTools) return state.lordTools;
         let saved = {};
-        try { saved = JSON.parse(localStorage.getItem(LORD_TOOLS_KEY) || "{}"); } catch (error) { saved = {}; }
+        saved = state.commanderSaved || {};
         state.lordTools = lordMerge(lordDefaultData(), saved);
         if (!state.lordTools.identity.name && state.profile) {
           state.lordTools.identity.name = state.profile.ign || memberDisplayName(state.profile) || "";
@@ -6448,13 +6475,21 @@ export function kellaDashboardHtml() {
         return state.lordTools;
       }
 
-      function saveLordToolsData(showMessage) {
+      let commanderSaveQueue = Promise.resolve(), commanderSaveTimer;
+      function saveLordToolsData(showMessage, flush) {
+        clearTimeout(commanderSaveTimer);
+        if(!showMessage && !flush){commanderSaveTimer=setTimeout(()=>saveLordToolsData(false,true),400);return commanderSaveQueue;}
         const data = loadLordToolsData();
         data.updatedAt = new Date().toISOString();
-        localStorage.setItem(LORD_TOOLS_KEY, JSON.stringify(data));
-        const status = document.querySelector("[data-lord-save-status]");
-        if (status) status.textContent = "Saved " + formatDateTime(data.updatedAt);
-        if (showMessage) toast("My Lord profile saved.");
+        const snapshot=JSON.parse(JSON.stringify(data));
+        commanderSaveQueue=commanderSaveQueue.catch(()=>{}).then(async()=>{
+          await sendJson('PUT','/api/dashboard/commander',{data:snapshot});
+          const status=document.querySelector('[data-lord-save-status]');
+          if(status)status.textContent='Saved '+formatDateTime(snapshot.updatedAt);
+          if(showMessage)toast('Commander profile saved.');
+        }).catch(error=>{toast('Unable to save: '+error.message);throw error;});
+        commanderSaveQueue.catch(()=>{});
+        return commanderSaveQueue;
       }
 
       function lordSetPath(path, value) {
@@ -6989,7 +7024,16 @@ export function kellaDashboardHtml() {
         '</nav>';
       }
 
-      function renderLordTools(embeddedInProfile, forcedView) {
+      async function renderLordTools(embeddedInProfile, forcedView) {
+        if(!state.commanderLoaded){
+          try {
+            const result=await fetchJson('/api/dashboard/commander');
+            await loadProfile(true);
+            state.commanderSaved=result.data || {};
+            state.lordTools=null;
+            state.commanderLoaded=true;
+          } catch(error){app.innerHTML=pageHeader('Commander Tools','')+'<section class="card">'+escapeHtml(error.message)+'</section>';return;}
+        }
         const embedded = typeof embeddedInProfile === "boolean" ? embeddedInProfile : location.pathname === "/profile";
         const researchOnly = forcedView === "research" || location.pathname === "/research";
         const data = loadLordToolsData();
@@ -7031,7 +7075,7 @@ export function kellaDashboardHtml() {
           (researchOnly ? '' : standardHeader) +
           '<div class="lord-tools-shell">' +
             (researchOnly ? '' : standardIntro) +
-            '<section class="lord-intro"><img src="/assets/icons/lord-tools.svg" alt="" /><div><h3>' + escapeHtml(data.identity.name || "Commander Profile") + '</h3><p>Server ' + escapeHtml(data.identity.server || "-") + ' · Lord ID ' + escapeHtml(data.identity.lordId || "Not set") + '</p></div><div class="lord-save-state"><span data-lord-save-status>' + escapeHtml(updated) + '</span><button class="ghost" type="button" data-action="reset-lord-tools">Reset profile</button></div></section>' +
+            '<section class="lord-intro">'+memberAvatar(state.profile,'profile-avatar')+'<div><h3>' + escapeHtml(data.identity.name || "Commander Profile") + '</h3><p>Server ' + escapeHtml(data.identity.server || "-") + ' · Lord ID ' + escapeHtml(data.identity.lordId || "Not set") + '</p></div><div class="lord-save-state"><span data-lord-save-status>' + escapeHtml(updated) + '</span><button class="ghost" type="button" data-action="reset-lord-tools">Reset profile</button></div></section>' +
             (researchOnly ? '' : '<div class="lord-navigation"><nav class="lord-tabs" aria-label="Commander shortcuts">' + views.filter(function(item) { return featuredViews.includes(item.id); }).map(function(item) { return '<button class="lord-tab' + (item.id === state.lordView ? ' active' : '') + '" type="button" data-action="lord-view" data-lord-view="' + item.id + '">' + item.label + '</button>'; }).join("") + '</nav><select class="lord-view-select" data-lord-view-select aria-label="Choose commander tool">' + views.map(function(item) { return '<option value="' + item.id + '"' + (item.id === state.lordView ? ' selected' : '') + '>' + item.label + '</option>'; }).join("") + '</select></div>') +
             (panels[state.lordView] || lordOverview)(data) +
           '</div>';
@@ -7559,30 +7603,40 @@ ${portalHomeClient}
       }
 
       async function renderResponseCenter() {
-        const version=navigationVersion;
-        skeleton("Loading attendance and responses...");
-        try {
-          const data=await fetchJson('/api/dashboard/responses',true);
+        const version=navigationVersion;skeleton('Loading attendance and reports...');
+        try{
+          const [data,ticketData]=await Promise.all([fetchJson('/api/dashboard/responses',true),fetchJson('/api/dashboard/tickets',true)]);
           if(version!==navigationVersion)return;
-          const reports=data.reports || [];
-          const kinds=[['events','Events / attendance','events'],['war','War alert responses','alerts'],['polls','Poll results','polls'],['shields','Shield alerts','shield']];
-          let kind=new URLSearchParams(location.search).get('kind') || 'war';
+          const reports=(data.reports||[]).concat((ticketData.tickets||[]).map(t=>({id:t._id,kind:'tickets',title:t.category+' · '+(t.creatorName||'Player'),at:t.openedAt,ticket:t,groups:[]})));
+          const kinds=[['events','Events'],['war','War alerts'],['polls','Polls'],['shields','Shields'],['tickets','Tickets']];
+          let kind=new URLSearchParams(location.search).get('kind')||'war';
           if(!kinds.some(k=>k[0]===kind))kind='war';
-          let selected='';
+          const dateKey=value=>Number.isFinite(Date.parse(value))?new Date(value).toISOString().slice(0,10):'';
+          let selected=dateKey(reports.find(r=>r.kind===kind)?.at)||new Date().toISOString().slice(0,10);
+          let month=new Date(selected+'T00:00:00Z');
           function draw(){
-            const matches=reports.filter(r=>r.kind===kind);
-            const report=matches.find(r=>r.id===selected) || matches[0];
-            selected=report?.id || '';
-            const current=kinds.find(k=>k[0]===kind);
-            app.innerHTML=pageHeader('Attendance & Responses','Select a tool and report to see each response group.', '<a class="secondary" href="/officer" data-link>Officer</a><a class="primary" href="/tools?tool='+current[2]+'" data-link>Create / send</a>')+
-              '<section class="card response-controls"><label>Show<select data-response-kind>'+kinds.map(k=>'<option value="'+k[0]+'" '+(k[0]===kind?'selected':'')+'>'+k[1]+'</option>').join('')+'</select></label><label>Report<select data-response-report>'+matches.map(r=>'<option value="'+escapeHtml(r.id)+'" '+(r.id===selected?'selected':'')+'>'+escapeHtml(r.title.slice(0,90))+' · '+formatUtcDateTime(r.at)+'</option>').join('')+'</select></label><button class="secondary" data-response-refresh>Refresh</button></section>'+
-              (report?'<section class="card response-summary"><h3>'+escapeHtml(report.title)+'</h3><p>'+formatUtcDateTime(report.at)+' · '+report.groups.reduce((n,g)=>n+g.players.length,0)+' recorded responses</p>'+(report.note?'<p class="muted">'+escapeHtml(report.note)+'</p>':'')+'</section><div class="response-groups">'+report.groups.map(g=>'<section class="card"><div class="card-header"><h3>'+escapeHtml(g.label)+'</h3><span class="badge">'+g.players.length+'</span></div><ul>'+g.players.map(p=>'<li><strong>'+escapeHtml(p.name)+'</strong><small>'+formatUtcDateTime(p.at)+'</small></li>').join('')+'</ul>'+(!g.players.length?'<p class="muted">No responses yet.</p>':'')+'</section>').join('')+'</div>':'<section class="card">'+empty('No reports yet for this tool.')+'</section>');
-            app.querySelector('[data-response-kind]').onchange=e=>{kind=e.target.value;selected='';history.replaceState(null,'','/officer?section=attendance&kind='+kind);draw();};
-            app.querySelector('[data-response-report]').onchange=e=>{selected=e.target.value;draw();};
+            const matches=reports.filter(r=>r.kind===kind),active=matches.filter(r=>dateKey(r.at)===selected);
+            const year=month.getUTCFullYear(),m=month.getUTCMonth();
+            let days='<span></span>'.repeat(new Date(Date.UTC(year,m,1)).getUTCDay());
+            for(let d=1;d<=new Date(Date.UTC(year,m+1,0)).getUTCDate();d++){
+              const key=new Date(Date.UTC(year,m,d)).toISOString().slice(0,10),count=matches.filter(r=>dateKey(r.at)===key).length;
+              days+='<button data-report-date="'+key+'" aria-pressed="'+(key===selected)+'" aria-label="'+key+', '+count+' reports" class="'+(key===selected?'selected ':'')+(count?'has-report':'')+'">'+d+(count?'<i></i>':'')+'</button>';
+            }
+            app.innerHTML=pageHeader('Attendance & Reports','', '<a class="secondary" href="/officer" data-link>Officer</a>'+(kind!=='tickets'?'<a class="primary" href="/tools?tool='+({events:'events',war:'alerts',polls:'polls',shields:'shield'}[kind])+'" data-link>Create / send</a>':'')+'<button class="secondary" data-response-refresh>Refresh</button>')+
+              '<div class="report-tabs" role="group" aria-label="Report category">'+kinds.map(k=>'<button data-report-kind="'+k[0]+'" aria-pressed="'+(kind===k[0])+'">'+k[1]+'</button>').join('')+'</div><div class="report-layout"><section class="card report-calendar"><header><button data-report-month="-1" aria-label="Previous month">‹</button><h3>'+monthTitle(month)+'</h3><button data-report-month="1" aria-label="Next month">›</button></header><div class="report-days">'+['S','M','T','W','T','F','S'].map(d=>'<small>'+d+'</small>').join('')+days+'</div><p class="muted">Dates and times in UTC</p></section><div class="report-results"><h3>'+escapeHtml(selected)+'</h3>'+
+              (active.length?active.map(r=>'<article class="card report-combined"><header><h3>'+escapeHtml(r.title)+'</h3><time>'+formatUtcDateTime(r.at)+'</time></header>'+(r.note?'<p>'+escapeHtml(r.note)+'</p>':'')+(r.ticket?'<dl><dt>Ticket ID</dt><dd>'+escapeHtml(r.id)+'</dd><dt>Status</dt><dd>'+escapeHtml(r.ticket.status)+'</dd><dt>Closed</dt><dd>'+ (r.ticket.closedAt?formatUtcDateTime(r.ticket.closedAt):'Open')+'</dd></dl><button data-ticket-history="'+escapeHtml(r.id)+'">View history</button><div data-ticket-messages="'+escapeHtml(r.id)+'"></div>':'<div class="report-response-columns">'+r.groups.map(g=>'<section><h4>'+escapeHtml(g.label)+' <span class="badge">'+g.players.length+'</span></h4><ul>'+g.players.map(p=>'<li><strong>'+escapeHtml(p.name)+'</strong><small>'+formatUtcDateTime(p.at)+'</small></li>').join('')+'</ul>'+(!g.players.length?'<p class="muted">No responses</p>':'')+'</section>').join('')+'</div>')+'</article>').join(''):'<section class="card">'+empty('No records on this date.')+'</section>')+(kind==='tickets'?'<p class="muted">Use /ticket-panel in Discord to post the private support panel.</p>':'')+'</div></div>';
+            app.querySelectorAll('[data-report-kind]').forEach(b=>b.onclick=()=>{kind=b.dataset.reportKind;selected=dateKey(reports.find(r=>r.kind===kind)?.at)||new Date().toISOString().slice(0,10);month=new Date(selected+'T00:00:00Z');history.replaceState(null,'','/officer?section=attendance&kind='+kind);draw();});
+            app.querySelectorAll('[data-report-date]').forEach(b=>b.onclick=()=>{selected=b.dataset.reportDate;draw();});
+            app.querySelectorAll('[data-report-month]').forEach(b=>b.onclick=()=>{month=new Date(Date.UTC(year,m+Number(b.dataset.reportMonth),1));draw();});
             app.querySelector('[data-response-refresh]').onclick=()=>renderResponseCenter();
+            app.querySelectorAll('[data-ticket-history]').forEach(b=>b.onclick=async()=>{
+              b.disabled=true;
+              try{const result=await fetchJson('/api/dashboard/tickets/'+b.dataset.ticketHistory,true);const target=app.querySelector('[data-ticket-messages="'+b.dataset.ticketHistory+'"]');if(target)target.innerHTML=(result.messages||[]).map(message=>'<div class="ticket-message"><strong>'+escapeHtml(message.authorName||'Player')+'</strong><small>'+formatUtcDateTime(message.at)+'</small><p>'+escapeHtml(message.content)+'</p>'+(message.attachments||[]).map(a=>'<span class="muted">Attachment: '+escapeHtml(a.name)+'</span>').join('')+'</div>').join('')||'<p class="muted">Messages are saved when the ticket is closed.</p>';}
+              catch(error){toast(error.message);}finally{b.disabled=false;}
+            });
           }
           draw();
-        }catch(error){if(version===navigationVersion)app.innerHTML=pageHeader('Attendance & Responses','Unable to load reports.')+'<section class="card">'+escapeHtml(error.message)+'<button data-link-button="/officer?section=attendance">Retry</button></section>';}
+        }catch(error){if(version===navigationVersion)app.innerHTML=pageHeader('Attendance & Reports','')+'<section class="card">'+escapeHtml(error.message)+'<button data-link-button="/officer?section=attendance">Retry</button></section>';}
       }
 
       function renderOfficer() {
@@ -7675,7 +7729,7 @@ ${portalHomeClient}
               '<label>IGN<input data-profile="ign" value="' + escapeHtml(profile.ign || "") + '" /></label>' +
               '<label>Timezone<input data-profile="timezone" value="' + escapeHtml(profile.timezone || "") + '" placeholder="UTC+8, EST, etc." /></label>' +
               '<label>Country<input data-profile="country" value="' + escapeHtml(profile.country || "") + '" /></label>' +
-              '<label class="wide">Profile Photo URL<input data-profile="profilePhotoUrl" value="' + escapeHtml(profile.profilePhotoUrl || "") + '" placeholder="https://..." /></label>' +
+              '<label class="wide">Profile picture<input type="hidden" data-profile="profilePhotoUrl" value="' + escapeHtml(profile.profilePhotoUrl || "") + '" /><input type="file" accept="image/png,image/jpeg,image/webp" data-own-avatar /><small>PNG, JPEG or WebP · up to 5 MB</small></label>' +
             '</div><p class="muted" style="margin-top:12px">Only admins can change power, Lord ID, Discord User ID, rank, role, and officer notes.</p></div></section>';
         } catch (error) {
           if (renderVersion !== navigationVersion) return;
@@ -7769,7 +7823,7 @@ ${portalHomeClient}
 
       function attendanceBadges(event) {
         const groups = attendanceGroups(event);
-        return '<div class="toolbar"><span class="badge good">' + groups.attending.length + ' Attending</span><span class="badge bad">' + groups.absent.length + ' Absent</span><span class="badge warn">' + groups.unsure.length + ' Not Sure</span></div>';
+        return '<div class="toolbar"><span class="badge good">' + groups.attending.length + ' Attending</span><span class="badge bad">' + groups.absent.length + ' Absent</span></div>';
       }
 
       function attendanceEventCard(event) {
@@ -7915,7 +7969,7 @@ ${portalHomeClient}
           if (renderVersion !== navigationVersion) return;
           app.innerHTML =
             pageHeader("Events", "Create event embeds with attendance buttons using Call of Dragons 24-hour UTC server time.", '<button class="primary" data-action="send-event-embed">Send Event</button>') +
-            '<section class="card"><div class="card-header"><div><h3>Create Event Embed</h3><span class="muted">Kella sends Attending, Absent, and Not Sure buttons automatically.</span></div><span class="badge warn">24-hour UTC</span></div><div class="form-grid">' +
+            '<section class="card"><div class="card-header"><div><h3>Create Event Embed</h3><span class="muted">Kella sends Attending and Absent buttons automatically.</span></div><span class="badge warn">24-hour UTC</span></div><div class="form-grid">' +
               channelHtml +
               '<label>Role Mention ID<input data-event="roleMentionId" placeholder="Optional role ID" /></label>' +
               '<label>Event Title<input data-event="title" placeholder="Summit, Fortress..." /></label>' +
@@ -7957,7 +8011,7 @@ ${portalHomeClient}
         }
         const results = await Promise.all([loadDashboardEvents()]);
         const events = results[0];
-        return '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Create Event Embed</h3><span class="muted">Kella sends Attending, Absent, and Not Sure buttons automatically.</span></div><div class="toolbar"><span class="badge warn">24-hour UTC</span><button class="primary" data-action="send-event-embed">Send Event</button></div></div><div class="form-grid">' +
+        return '<section class="card" style="margin-top:18px"><div class="card-header"><div><h3>Create Event Embed</h3><span class="muted">Kella sends Attending and Absent buttons automatically.</span></div><div class="toolbar"><span class="badge warn">24-hour UTC</span><button class="primary" data-action="send-event-embed">Send Event</button></div></div><div class="form-grid">' +
             channelHtml +
             '<label>Role Mention ID<input data-event="roleMentionId" placeholder="Optional role ID" /></label>' +
             '<label>Event Title<input data-event="title" placeholder="Summit, Fortress..." /></label>' +
@@ -9065,9 +9119,10 @@ ${portalHomeClient}
           return;
         }
         if (kind === "reset-lord-tools") {
-          if (!window.confirm("Reset your entire My Lord profile on this device?")) return;
-          localStorage.removeItem(LORD_TOOLS_KEY);
+          if (!window.confirm("Reset your Commander Tools profile?")) return;
+
           state.lordTools = lordDefaultData();
+          await saveLordToolsData(false,true);
           state.lordView = "overview";
           state.lordSearch = "";
           renderLordTools();
@@ -9211,8 +9266,11 @@ ${portalHomeClient}
         }
         if (kind === "apply-avatar-crop") withFeedback(action, applyAvatarCrop, "Photo ready.");
         if (kind === "discord-logout") withFeedback(action, async function() {
+          clearTimeout(commanderSaveTimer);
+          if(state.commanderLoaded)await saveLordToolsData(false,true);
           await sendJson("POST", "/api/auth/logout", {}, false);
           state.auth = { authenticated: false, isDashboardAdmin: false, isDashboardWikiEditor: false };
+          state.commanderLoaded=false;state.commanderSaved=null;state.lordTools=null;
           state.channels = null;
           state.templates = null;
           state.profile = null;

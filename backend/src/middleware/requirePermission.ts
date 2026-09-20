@@ -6,7 +6,7 @@ import { HttpError } from "../utils/httpError.js";
 export function requirePermission(permission: Permission): RequestHandler {
   return (req, _res, next) => {
     const authReq = req as AuthenticatedRequest;
-    if (!isDashboardAdminUser(authReq.user) && !hasPermission(authReq.user.role, permission)) {
+    if (!isDashboardAdminUser(authReq.user) && !hasPermission("Member", permission) && permission!=="members:read") {
       next(new HttpError(403, `Missing permission: ${permission}`));
       return;
     }

@@ -1,3 +1,4 @@
+import { validatedRosterUids,syncActiveMembership,withRosterImport } from '../services/rosterMembership.service.js';
 import { attackReports, responseGroups } from "../services/responseReports.service.js";
 import { memberForViewer } from '../services/memberPrivacy.service.js';
 import { isDashboardAdminUser } from '../middleware/auth.js';
@@ -914,20 +915,7 @@ function allowedTopnRows(rows: ImportedTopnMember[]) {
   return { allowed, excluded };
 }
 
-async function removeUploadedMembersOutsideTopnAlliances(allianceId: string) {
-  const uploadedMembers = (await MemberModel.find({
-    allianceId,
-    discordId: /^(xlsx|topn):/
-  })
-    .select("_id alliance")
-    .limit(5000)
-    .lean()) as Array<{ _id: Types.ObjectId; alliance?: string }>;
 
-  const ids = uploadedMembers.filter((member) => !isAllowedTopnAlliance(member.alliance)).map((member) => member._id);
-  if (!ids.length) return 0;
-  const result = await MemberModel.deleteMany({ allianceId, _id: { $in: ids } });
-  return result.deletedCount || 0;
-}
 
 function dmAlertContent(input: z.infer<typeof dmAlertToolSchema>) {
   return [`**${input.title.trim()}**`, "", input.message.trim(), "", "Sent by Kella"].join("\n");
@@ -1365,7 +1353,7 @@ export const dashboardSummary = asyncHandler(async (_req, res) => {
     recentAdminActions
   ] =
     await Promise.all([
-      MemberModel.countDocuments(filter),
+      MemberModel.countDocuments({...filter,membershipStatus:{$ne:'inactive'}}),
       KellaActionModel.countDocuments({ ...filter, type: "daily_checkin", sentAt: { $gte: today } }),
       KellaActionModel.countDocuments({ ...filter, type: { $in: ["attack_alert", "dm_alert"] }, sentAt: { $gte: recentWindow } }),
       KellaActionModel.countDocuments({ ...filter, type: "shield_alert", sentAt: { $gte: recentWindow } }),
@@ -1411,7 +1399,7 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
   const limit = dashboardView
     ? Math.max(1, Math.min(Number.isFinite(requestedLimit) && requestedLimit > 0 ? requestedLimit : 10, 500))
     : 2000;
-  const filter: Record<string, unknown> = allianceFilter(allianceId);
+  const filter: Record<string, unknown> = {...allianceFilter(allianceId),membershipStatus:{$ne:'inactive'}};
   if (q) {
     filter.$or = [
       { ign: { $regex: q, $options: "i" } },
@@ -1486,6 +1474,7 @@ async function findOrCreateProfileMember(user: { id: string; discordId: string; 
     discordAvatarUrl: discordUserAvatarUrl(user.discordId, dbUser?.avatar),
     ign: displayName,
     uid: `discord-${user.discordId}`,
+    membershipStatus:alliance?.latestRosterAt?'inactive':'active',
     power: 0,
     alliance: alliance?.tag || alliance?.name || "Kella",
     rank: "R1",
@@ -1510,6 +1499,7 @@ export const dashboardProfileUpdate = asyncHandler(async (req, res) => {
   const user = (req as AuthenticatedRequest).user;
   const body = profileUpdateSchema.parse(req.body);
   const member = await findOrCreateProfileMember(user);
+  if(body.profilePhotoUrl && body.profilePhotoUrl!==member.profilePhotoUrl) validateChatImage(body.profilePhotoUrl,800000);
   const updated = await MemberModel.findOneAndUpdate(
     { _id: member._id, allianceId: user.allianceId, discordId: user.discordId },
     { $set: body },
@@ -1737,12 +1727,17 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
     snapshots.push({ rows: allowed.allowed, snapshotDate, source, filename });
   }
 
+  const currentRows=snapshots[snapshots.length-1].rows;
+  const currentUids=validatedRosterUids(currentRows);
+  const response=await withRosterImport(allianceId,async()=>{
   const result = await importGameStatSnapshots(
     alliance,
     snapshots,
     fileType === "xlsx" ? "xlsx" : "topn"
   );
-  const removedOtherAlliances = await removeUploadedMembersOutsideTopnAlliances(allianceId);
+  // Only a fully parsed and successfully imported roster changes active membership.
+  if(result.skipped)throw new HttpError(400,'Some roster rows were not imported. Membership status was left unchanged.');
+  const removedOtherAlliances=await syncActiveMembership(allianceId,currentUids,syncedAt);
 
   await KellaActionModel.create({
     allianceId,
@@ -1761,7 +1756,10 @@ export const dashboardMemberXlsxImport = asyncHandler(async (req, res) => {
     }
   });
 
-  res.json({ ...result, excluded, removedOtherAlliances, syncedAt, snapshotDate, fileType });
+  return { ...result, excluded, removedOtherAlliances, syncedAt, snapshotDate, fileType };
+  });
+  res.json(response);
+
 });
 
 export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
@@ -1792,6 +1790,7 @@ export const dashboardDiscordMemberSync = asyncHandler(async (_req, res) => {
           lastActivity: syncedAt
         },
         $setOnInsert: {
+          membershipStatus:alliance.latestRosterAt?'inactive':'active',
           allianceId,
           ign: member.discordDisplayName || member.discordUsername || member.discordId,
           uid: `discord-${member.discordId}`,
@@ -1851,7 +1850,7 @@ export const dashboardResponseReports = asyncHandler(async (_req, res) => {
   const responses=await KellaActionModel.find({...filter,type:{$in:['attack_response','event_response']},$or:[{reportId:{$in:keys}},{'payload.messageId':{$in:keys}},{reportId:{$exists:false}},{reportId:''}]}).sort({sentAt:-1}).lean() as any[];
   const polls=await PollModel.find(filter).sort({createdAt:-1}).limit(100).lean() as any[];
   const reports:any[]=attackReports(parents.filter(p=>p.type==='attack_alert'),responses.filter(r=>r.type==='attack_response'));
-  for(const p of parents.filter(p=>p.type==='event_created')) reports.push({id:String(p._id),kind:'events',title:p.eventType || p.payload?.title || 'Event',at:p.payload?.startsAt || p.sentAt,groups:responseGroups(responses.filter(r=>r.type==='event_response' && r.reportId===String(p._id)),['Attending','Absent','Not Sure'])});
+  for(const p of parents.filter(p=>p.type==='event_created')) reports.push({id:String(p._id),kind:'events',title:p.eventType || p.payload?.title || 'Event',at:p.payload?.startsAt || p.sentAt,groups:responseGroups(responses.filter(r=>r.type==='event_response' && r.reportId===String(p._id)),['Attending','Absent'])});
   for(const p of parents.filter(p=>p.type==='shield_alert')) reports.push({id:String(p._id),kind:'shields',title:'Shield · '+(p.targetName || p.targetDiscordId || 'Player'),at:p.sentAt,note:'Delivery record only. This does not confirm the player activated a shield.',groups:[{label:p.status || 'Sent',players:[{name:p.targetName || p.targetDiscordId || 'Unknown player',at:p.sentAt}]}]});
   for(const p of polls) reports.push({id:String(p._id),kind:'polls',title:p.question,at:p.createdAt,groups:(p.options || []).map((o:any)=>({label:o.label,players:(p.votes || []).filter((v:any)=>v.optionKey===o.key).map((v:any)=>({name:v.displayName || v.discordId,at:v.votedAt}))}))});
   res.json({reports:reports.sort((a,b)=>new Date(b.at || 0).getTime()-new Date(a.at || 0).getTime())});

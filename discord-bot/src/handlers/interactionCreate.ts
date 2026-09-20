@@ -74,13 +74,28 @@ async function replyError(interaction: Interaction, error: unknown) {
 export async function handleInteraction(interaction: Interaction) {
   try {
     if (await handleChatImages(interaction)) return;
+    if(interaction.isStringSelectMenu() && interaction.customId==='ticket-create'){
+      await interaction.deferReply({ephemeral:true});
+      const ticket=await api.createTicket({guildId:interaction.guildId||'',discordId:interaction.user.id,category:interaction.values[0]});
+      await interaction.editReply({content:'Your private ticket: <#'+ticket.channelId+'>'});return;
+    }
+    if(interaction.isButton() && /^ticket-(close|delete):/.test(interaction.customId)){
+      await interaction.deferReply({ephemeral:true});
+      const [action,id]=interaction.customId.split(':');
+      await api.closeTicket(id,{guildId:interaction.guildId||'',discordId:interaction.user.id,action:action==='ticket-delete'?'delete':'close'});
+      return;
+    }
     if (interaction.isChatInputCommand()) {
+      if (["attack","shield","poll","summit","checkin","remind","wiki-admin","ticket-panel"].includes(interaction.commandName)) {
+        if(!interaction.guildId) throw new Error('Use this in the alliance server.');
+        await interaction.deferReply({ephemeral:['shield','remind'].includes(interaction.commandName)});
+        await api.adminAccess({guildId:interaction.guildId,discordId:interaction.user.id});
+      }
+
       const commandEnabled = await api.isCommandEnabled(interaction.commandName);
       if (!commandEnabled) {
-        await interaction.reply({
-          ephemeral: true,
-          content: `/${interaction.commandName} is currently turned off by a Kella administrator.`
-        });
+        const content=`/${interaction.commandName} is currently turned off by a Kella administrator.`;
+        if(interaction.deferred)await interaction.editReply({content});else await interaction.reply({ephemeral:true,content});
         return;
       }
 
@@ -108,7 +123,7 @@ export async function handleInteraction(interaction: Interaction) {
 
     if (interaction.isButton() && interaction.customId.startsWith("attack:")) {
       const [, status] = interaction.customId.split(":");
-      if (!status) return;
+      if (!["Fighting","Unavailable"].includes(status)) { await interaction.reply({ephemeral:true,content:"This alert has older options. Please use a current Fighting / Unavailable alert."}); return; }
       await api.attackResponse({ discordId: interaction.user.id, displayName: displayName(interaction), status, messageId: interaction.message.id, channelId: interaction.channelId });
       await interaction.reply({ ephemeral: true, content: `${botName} recorded you as ${status}.` });
       return;
@@ -117,7 +132,8 @@ export async function handleInteraction(interaction: Interaction) {
     if (interaction.isButton() && interaction.customId.startsWith("event:")) {
       const [, eventId, statusValue] = interaction.customId.split(":");
       if (!eventId || !statusValue) return;
-      const status = statusValue === "Unsure" ? "Not Sure" : statusValue;
+      const status = statusValue;
+      if (!["Attending","Absent"].includes(status)) { await interaction.reply({ephemeral:true,content:"Please choose Attending or Absent on a current event."}); return; }
       await api.eventResponse({ discordId: interaction.user.id, displayName: displayName(interaction), eventId, status });
       await interaction.reply({ ephemeral: true, content: `${botName} recorded your event attendance as ${status}.` });
       return;
@@ -144,7 +160,7 @@ export async function handleInteraction(interaction: Interaction) {
 
     if (interaction.isButton() && interaction.customId.startsWith("summit:")) {
       const [, status] = interaction.customId.split(":");
-      if (!status) return;
+      if (!["Attending","Absent"].includes(status)) { await interaction.reply({ephemeral:true,content:"Please choose Attending or Absent on a current event."}); return; }
       await api.summitResponse({ discordId: interaction.user.id, displayName: displayName(interaction), status });
       await interaction.reply({ ephemeral: true, content: `${botName} recorded your Summit status as ${status}.` });
       return;

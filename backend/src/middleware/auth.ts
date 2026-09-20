@@ -1,3 +1,4 @@
+import { kellaDiscordRoles } from "@cod-amp/shared";
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import type { UserRole } from "@cod-amp/shared";
@@ -21,7 +22,7 @@ export interface TokenPayload extends AuthUser {
   type: "user";
 }
 
-const fallbackDashboardAdminRoleIds = ["1522274495728062475"];
+const fallbackDashboardAdminRoleIds = [kellaDiscordRoles.admin, kellaDiscordRoles.legacyAdmin];
 const fallbackDashboardWikiRoleIds = ["1529826271813570650"];
 
 function csvSet(value?: string) {

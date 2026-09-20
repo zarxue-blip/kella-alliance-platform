@@ -27,14 +27,16 @@ export function validateMigration(input: unknown) {
   if (String(answers.adaptability).startsWith('Depends') && !answers.otherDetails) throw new Error('Please explain your adaptability in Other details.');
   return answers;
 }
+export function migrationPower(value:unknown) { const n=Number(value); return Number.isFinite(n) ? String(Number((n/1000000).toFixed(3)))+"M" : String(value ?? "Not provided"); }
 export function migrationDescriptions(answers: Record<string,unknown>, discordId: string, fields = migrationFields) {
   const escape = (v: unknown) => String(v).replace(/([\\`*_~|>])/g,'\\$1').replace(/@/g,'@\u200b');
   const sections = [...new Set(fields.map(f=>f.section))];
   const blocks = [`**Requester Discord:** ${escape(discordId || 'Visitor (Discord name below is self-reported)')}`];
   for (const section of sections) {
     const lines = fields.filter(f=>f.section === section).map(f=> {
-      const value = answers[f.key];
-      return `${f.label}: ${escape(Array.isArray(value) ? value.join(', ') || 'None' : value === '' ? 'Not provided' : value)}`;
+      const raw = answers[f.key];
+      const value = /^(power|currentPower|highestPower)$/.test(f.key) && raw !== undefined && raw !== "" ? migrationPower(raw) : raw;
+      return `**${escape(f.label)}:** ${escape(Array.isArray(value) ? value.join(', ') || 'None' : value == null || value === '' ? 'Not provided' : value)}`;
     });
     blocks.push(`**${section}**\n${lines.join('\n')}`);
   }

@@ -9,7 +9,7 @@ const responses = [
 ];
 const result=personalAttendanceByEvent(responses);
 assert.equal(result.first,'Absent');
-assert.equal(result.second,'Not Sure');
+assert.equal(result.second,undefined);
 assert.equal(result.ignored,undefined);
 assert.equal(responses[0].status,'Attending');
 assert.equal(Object.keys(personalAttendanceByEvent([])).length,0);

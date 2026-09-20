@@ -4,6 +4,9 @@ import { roleValues } from "./user.model.js";
 const memberSchema = new Schema(
   {
     allianceId: { type: Schema.Types.ObjectId, ref: "Alliance", required: true, index: true },
+    membershipStatus: {type:String,enum:['active','inactive'],default:'active',index:true},
+    leftAt: Date,
+    lastRosterAt: Date,
     mainMemberId: { type: Schema.Types.ObjectId, ref: "Member", default: undefined, index: true },
     discordId: { type: String, required: true, index: true },
     discordUsername: { type: String, default: "", trim: true },

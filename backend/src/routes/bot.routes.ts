@@ -50,3 +50,13 @@ botRouter.post("/reminder", botEventReminder);
 botRouter.get("/summary", botSummary);
 botRouter.post("/alert", botAlert);
 botRouter.post("/alert/:id/respond", botCallToArmsResponse);
+
+import { requireBotAdmin } from '../services/botAdmin.service.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+botRouter.post('/admin-access',asyncHandler(async(req,res)=>{await requireBotAdmin(String(req.body.guildId),String(req.body.discordId));res.json({admin:true});}));
+
+import { z } from 'zod';
+import { createTicket,closeTicket } from '../services/ticket.service.js';
+const ticketActor=z.object({guildId:z.string().regex(/^\d{15,22}$/),discordId:z.string().regex(/^\d{15,22}$/)});
+botRouter.post('/tickets',asyncHandler(async(req,res)=>{const b=ticketActor.extend({category:z.string()}).parse(req.body);const ticket=await createTicket(b.guildId,b.discordId,b.category);res.json({channelId:ticket.channelId});}));
+botRouter.post('/tickets/:id/close',asyncHandler(async(req,res)=>{const b=ticketActor.extend({action:z.enum(['close','delete'])}).parse(req.body);await closeTicket(z.string().regex(/^[a-f0-9]{24}$/).parse(req.params.id),b.guildId,b.discordId,b.action);res.json({ok:true});}));

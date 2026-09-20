@@ -1,3 +1,7 @@
+import { UserModel } from "../models/user.model.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { HttpError } from "../utils/httpError.js";
+import type { AuthenticatedRequest } from "../middleware/auth.js";
 import { Router } from "express";
 import {
   dashboardAlerts,
@@ -59,6 +63,12 @@ dashboardRouter.get("/members/manage", authenticateDashboardAdmin, (_req, res, n
 dashboardRouter.post("/members", authenticateDashboardAdmin, dashboardMemberCreate);
 dashboardRouter.patch("/members/:id", authenticateDashboardAdmin, dashboardMemberUpdate);
 dashboardRouter.delete("/members/:id", authenticateDashboardAdmin, dashboardMemberDelete);
+dashboardRouter.get('/commander',authenticate,asyncHandler(async(req,res)=>{const user=await UserModel.findById((req as AuthenticatedRequest).user.id).select('+commanderTools').lean<any>();res.set('Cache-Control','no-store').json({data:user?.commanderTools || {}});}));
+dashboardRouter.put('/commander',authenticate,asyncHandler(async(req,res)=>{
+ const data=req.body?.data;
+ if(!data || Array.isArray(data) || typeof data!=='object' || JSON.stringify(data).length>200000 || /"(?:__proto__|constructor|prototype)"\s*:/.test(JSON.stringify(data))) throw new HttpError(400,'Invalid commander profile.');
+ await UserModel.updateOne({_id:(req as AuthenticatedRequest).user.id},{$set:{commanderTools:data}});res.json({ok:true});
+}));
 dashboardRouter.get("/profile", authenticate, dashboardProfile);
 dashboardRouter.patch("/profile", authenticate, dashboardProfileUpdate);
 dashboardRouter.post("/members/import-xlsx", authenticateDashboardAdmin, dashboardMemberXlsxImport);
@@ -94,3 +104,8 @@ dashboardRouter.post("/tools/chat", authenticateDashboardAdmin, dashboardChatSen
 dashboardRouter.post("/tools/thumbnail", authenticateDashboardAdmin, dashboardThumbnailSend);
 dashboardRouter.post("/tools/dm-alert", authenticateDashboardAdmin, dashboardDmAlertSend);
 dashboardRouter.post("/tools/dm-alert/:id/resend-failed", authenticateDashboardAdmin, dashboardDmAlertResendFailed);
+
+import { TicketModel,TicketMessageModel } from '../models/ticket.model.js';
+import { env as ticketEnv } from '../config/env.js';
+dashboardRouter.get('/tickets',authenticateDashboardAdmin,asyncHandler(async(_req,res)=>{const tickets=await TicketModel.find({guildId:ticketEnv.DISCORD_GUILD_ID}).sort({openedAt:-1}).limit(500).lean();res.set('Cache-Control','no-store').json({tickets});}));
+dashboardRouter.get('/tickets/:id',authenticateDashboardAdmin,asyncHandler(async(req,res)=>{if(!/^[a-f0-9]{24}$/.test(req.params.id))throw new HttpError(400,'Invalid ticket.');const ticket=await TicketModel.findOne({_id:req.params.id,guildId:ticketEnv.DISCORD_GUILD_ID}).lean();if(!ticket)throw new HttpError(404,'Ticket not found.');const messages=await TicketMessageModel.find({ticketId:ticket._id}).sort({at:1}).limit(2000).lean();res.set('Cache-Control','no-store').json({ticket,messages});}));
