@@ -41,7 +41,7 @@ const buildPanel = document.querySelector('#build-panel');
 const selectionPanel = document.querySelector('#selection-panel');
 const toast = document.querySelector('#game-toast');
 const characterVideos = [...document.querySelectorAll('[data-character-video]')];
-const sibylView = createSibylRenderer(`${ASSET}sibyl.glb`);
+const sibylView = createSibylRenderer(`${ASSET}sibyl/sibyl.gltf`);
 const resourceNodes = Object.fromEntries([...document.querySelectorAll('[data-resource]')].map((node) => [node.dataset.resource, node]));
 const images = new Map();
 let deviceScale = 1;

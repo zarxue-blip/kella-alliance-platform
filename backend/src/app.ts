@@ -28,7 +28,7 @@ export function createApp() {
     helmet({
       contentSecurityPolicy: {
         directives: {
-          "script-src": ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'"],
+          "script-src": ["'self'", "'unsafe-inline'"],
           "style-src": ["'self'", "'unsafe-inline'"],
           "img-src": ["'self'", "data:", "blob:", "https:"]
         }

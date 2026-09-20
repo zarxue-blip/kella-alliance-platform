@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
-import { MeshoptDecoder } from './vendor/meshopt_decoder.module.js';
 
 export function createSibylRenderer(modelUrl) {
   const canvas = document.createElement('canvas');
@@ -24,7 +23,6 @@ export function createSibylRenderer(modelUrl) {
   scene.add(rim);
   let model = null;
   const loader = new GLTFLoader();
-  loader.setMeshoptDecoder(MeshoptDecoder);
   loader.load(modelUrl, (gltf) => {
     model = gltf.scene;
     const bounds = new THREE.Box3().setFromObject(model);
