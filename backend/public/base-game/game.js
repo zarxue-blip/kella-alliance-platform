@@ -1,5 +1,5 @@
 import { findPath, simplifyPath } from './pathfinding.js';
-import { createSibylRenderer } from './sibyl-renderer.js';
+import { createSibylRenderer } from './sibyl-renderer.js?v=4';
 
 const ASSET = '/assets/base-game/assets/';
 const WORLD = { width: 1448, height: 1086 };
