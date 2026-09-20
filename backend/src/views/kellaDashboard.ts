@@ -4383,32 +4383,25 @@ export function kellaDashboardHtml() {
           ? profilePowerTrend(member, selectedDate)
           : '<svg class="profile-radar" viewBox="0 0 560 348" role="img" aria-label="Current season player statistics radar chart" data-radar-date="' + escapeHtml(selectedDate) + '">' + rings + spokes + '<polygon class="radar-area" key="' + areaKey + '" points="' + areaPoints.join(" ") + '"></polygon>' + dots + labels + "</svg>";
         const radarSelector = graphMode === "radar" ? '<details class="metric-selector"><summary><span class="metric-selector-label">Radar stats</span><span class="metric-selector-value">' + axes.length + ' selected</span></summary><div class="metric-picker">' + metricButtons + '</div></details>' : '';
-        return '<section class="profile-season-card" tabindex="0" data-swipe-member="'+escapeHtml(memberId)+'" data-swipe-dates="'+escapeHtml(JSON.stringify(availableDates))+'" data-swipe-selected="'+escapeHtml(selectedDate)+'"><div class="profile-season-topbar"><div class="profile-season-head"><h4>Current Season</h4><p>' + escapeHtml(selectedDate ? "Roster snapshot " + formatDate(new Date(selectedDate + "T00:00:00Z")) : "Compared with the current alliance roster") + '</p></div>' + graphToggle + '</div>' + graph +
-          '<div class="profile-radar-controls">' + radarSelector +
-          '<p class="radar-swipe-hint">Swipe or drag to change snapshot · '+escapeHtml(selectedDate || 'Current')+'</p></div></section>';
+        const selectedDateIndex = Math.max(0, availableDates.indexOf(selectedDate));
+        const dateSlider = availableDates.length > 1 ? '<div class="radar-date-control"><div class="radar-date-heading"><span>Season snapshot</span><strong data-radar-date-label>'+escapeHtml(formatDate(new Date(selectedDate+'T00:00:00Z')))+'</strong></div><input class="radar-date-slider" type="range" min="0" max="'+(availableDates.length-1)+'" step="1" value="'+selectedDateIndex+'" data-radar-date-slider data-member-id="'+escapeHtml(memberId)+'" data-radar-dates="'+escapeHtml(JSON.stringify(availableDates))+'" aria-label="Choose roster snapshot date"><div class="radar-date-ends"><span>'+escapeHtml(formatDate(new Date(availableDates[0]+'T00:00:00Z')))+'</span><span>'+escapeHtml(formatDate(new Date(availableDates[availableDates.length-1]+'T00:00:00Z')))+'</span></div></div>' : '';
+        return '<section class="profile-season-card"><div class="profile-season-topbar"><div class="profile-season-head"><h4>Current Season</h4><p>' + escapeHtml(selectedDate ? "Roster snapshot " + formatDate(new Date(selectedDate + "T00:00:00Z")) : "Compared with the current alliance roster") + '</p></div>' + graphToggle + '</div>' + graph +
+          '<div class="profile-radar-controls">' + radarSelector + dateSlider + '</div></section>';
 
       }
 
-      let radarGesture=null;
-      function shiftRadar(card,direction){
-        const dates=JSON.parse(card.dataset.swipeDates || '[]');
-        const index=dates.indexOf(card.dataset.swipeSelected);
-        const date=dates[Math.max(0,Math.min(dates.length-1,index+direction))];
-        if(date && date!==card.dataset.swipeSelected)selectProfileRadarDate(card.dataset.swipeMember,date);
-      }
-      document.addEventListener('pointerdown',event=>{
-        const card=event.target.closest('[data-swipe-member]');
-        if(!card || event.target.closest('button,select,input,summary,a') || event.button>0)return;
-        radarGesture={card,x:event.clientX,y:event.clientY,id:event.pointerId};
+      document.addEventListener('change',event=>{
+        if(!event.target.matches('[data-radar-date-slider]'))return;
+        const dates=JSON.parse(event.target.dataset.radarDates || '[]');
+        const date=dates[Number(event.target.value)];
+        if(date)selectProfileRadarDate(event.target.dataset.memberId,date);
       });
-      document.addEventListener('pointerup',event=>{
-        const g=radarGesture;radarGesture=null;if(!g||event.pointerId!==g.id)return;
-        const dx=event.clientX-g.x,dy=event.clientY-g.y;
-        if(Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)*1.3)shiftRadar(g.card,dx<0?1:-1);
-      });
-      document.addEventListener('pointercancel',()=>{radarGesture=null;});
-      document.addEventListener('keydown',event=>{
-        if(event.target.matches('[data-swipe-member]')&&['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();shiftRadar(event.target,event.key==='ArrowRight'?1:-1);}
+      document.addEventListener('input',event=>{
+        if(!event.target.matches('[data-radar-date-slider]'))return;
+        const dates=JSON.parse(event.target.dataset.radarDates || '[]');
+        const date=dates[Number(event.target.value)];
+        const label=event.target.closest('.radar-date-control')?.querySelector('[data-radar-date-label]');
+        if(label&&date)label.textContent=formatDate(new Date(date+'T00:00:00Z'));
       });
       function refreshMemberSeasonRadar(member) {
         if (!member) return;
@@ -7541,7 +7534,6 @@ ${portalHomeClient}
         app.querySelector('.portal-champions').innerHTML = homeShowcaseHtml();
         if (state.auth?.authenticated) loadPortalParticipation();
         loadPortalStats();
-        app.querySelector('[data-portal-live]').insertAdjacentHTML('afterend',renderPortalUpcoming(events));
         app.querySelector('[data-home-rank]').value=homeRankMetric;
         loadHomeShowcase();
       }

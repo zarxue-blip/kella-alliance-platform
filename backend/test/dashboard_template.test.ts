@@ -15,5 +15,8 @@ assert.match(html, /migration-gold.png/, "Migration navigation icon must be pres
 assert.doesNotMatch(html, /data-buff-day|realmBuff|renderRoots/, "Removed realm buff and Roots features must not remain in the application script");
 assert.match(html, /Poll Participation/, "Attendance must render poll participation");
 assert.match(html, /data-action="send-poll"/, "admin poll creator must render");
+assert.match(html, /data-radar-date-slider/, "member stats must render the date slider");
+assert.doesNotMatch(html, /data-swipe-member|radar-swipe-hint/, "retired radar drag navigation must stay removed");
+assert.doesNotMatch(html, /Alliance Chronicle|RALLY UNDER OUR BANNER|YOUR CARAVAN KEEPER|ON THE HORIZON/, "removed homepage containers must stay removed");
 
 console.log("Dashboard template syntax and feature checks passed.");
