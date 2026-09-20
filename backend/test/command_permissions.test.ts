@@ -16,6 +16,7 @@ for(const id of ['member','editor','officer','owner','disabled']) {
  assert.equal((await fetch(origin+'/api/dashboard/access',{headers})).status,admin?200:id==='disabled'?401:403,id+' admin API');
  assert.equal((await fetch(origin+'/officer',{headers})).status,admin?200:403,id+' admin page');
  assert.equal((await fetch(origin+'/wiki?edit=1',{headers})).status,admin||id==='editor'?200:403,id+' wiki page');
+ assert.equal((await fetch(origin+'/base',{headers})).status,id==='owner'?200:id==='disabled'?401:403,id+' private base page');
  if(!admin) for(const endpoint of ['/api/events','/api/attendance','/api/dashboard/wiki']) {
   if(endpoint.endsWith('/wiki')&&id==='editor') continue;
   assert.equal((await fetch(origin+endpoint,{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:'{}'})).status,id==='disabled'?401:403,id+' mutation '+endpoint);

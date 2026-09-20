@@ -6,6 +6,7 @@ import { canonicalAllianceTag } from './backend/src/services/memberIdentity.serv
 import express from 'express';
 import { kellaPageHtml, kellaPageAssets } from './backend/src/views/kellaPage.js';
 import { rankMembers } from './backend/src/services/ranking.service.js';
+import { baseGameDeniedHtml, baseGameHtml } from './backend/src/views/baseGamePage.js';
 const app = express();
 app.use(express.json({limit:'1mb'}));
 const previewImages:Array<{_id:string;name:string;dataUrl:string}>=[];
@@ -54,6 +55,7 @@ const allowed = new Set(['/api/dashboard/champions','/api/dashboard/summary','/a
 const cache = new Map<string,{at:number,status:number,body:string}>();
 app.get('/assets/:file', (req,res,next) => { const item=kellaPageAssets.get(req.path); if(!item)return next(); res.type(item.type).send(item.body); });
 app.use('/assets', express.static('backend/public'));
+app.get('/base',(req,res)=>res.locals.previewRole==='admin'?res.type('html').send(baseGameHtml):res.status(403).type('html').send(baseGameDeniedHtml(res.locals.previewRole!=='guest')));
 app.get('/api/migration/fields', (_req,res) => res.json({fields:migrationFields}));
 app.get('/api/migration/identity', (_req,res) => res.json({discordId:null}));
 app.use(async (req,res,next) => {

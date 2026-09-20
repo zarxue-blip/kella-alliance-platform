@@ -175,3 +175,38 @@ export function authenticateDashboardWikiEditor(req: Request, _res: Response, ne
     next(new HttpError(401, "Invalid session"));
   }
 }
+
+export function authenticateDashboardOwner(req: Request, _res: Response, next: NextFunction) {
+  const sessionToken = req.header("authorization")?.replace(/^Bearer\s+/i, "") || req.cookies?.[env.SESSION_COOKIE_NAME];
+  if (!sessionToken) {
+    next(new HttpError(401, "Owner Discord login required"));
+    return;
+  }
+
+  try {
+    const payload = jwt.verify(sessionToken, env.JWT_SECRET) as TokenPayload;
+    UserModel.findById(payload.id)
+      .lean()
+      .then((user: any) => {
+        if (!user || user.disabled) {
+          next(new HttpError(401, "Session is no longer valid"));
+          return;
+        }
+        if (user.role !== "Owner") {
+          next(new HttpError(403, "This page is private to the Kella owner"));
+          return;
+        }
+        (req as AuthenticatedRequest).user = {
+          id: user._id.toString(),
+          discordId: user.discordId,
+          role: user.role,
+          discordRoleIds: user.discordRoleIds || [],
+          allianceId: user.allianceId.toString()
+        };
+        next();
+      })
+      .catch(() => next(new HttpError(401, "Invalid session")));
+  } catch {
+    next(new HttpError(401, "Invalid session"));
+  }
+}

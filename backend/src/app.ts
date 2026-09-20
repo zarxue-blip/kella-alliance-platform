@@ -8,12 +8,14 @@ import morgan from "morgan";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { env } from "./config/env.js";
-import { authenticateDashboardAdmin, authenticateDashboardWikiEditor } from "./middleware/auth.js";
+import { authenticateDashboardAdmin, authenticateDashboardOwner, authenticateDashboardWikiEditor } from "./middleware/auth.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { botRouter } from "./routes/bot.routes.js";
 import { apiRouter } from "./routes/index.js";
 import { gameReviewRouter } from "./routes/gameReview.routes.js";
 import { kellaPageHtml, kellaPageAssets } from "./views/kellaPage.js";
+import { baseGameDeniedHtml, baseGameHtml } from "./views/baseGamePage.js";
+import { HttpError } from "./utils/httpError.js";
 
 const appDir = dirname(fileURLToPath(import.meta.url));
 const publicDir = join(appDir, "..", "public");
@@ -55,6 +57,17 @@ export function createApp() {
   app.get("/apple-touch-icon.png", (_req, res) => res.sendFile(join(publicDir, "kella-logo.png")));
   app.use("/bot", botRouter);
   app.use("/game-review", gameReviewRouter);
+
+  app.get("/base", (req, res) => {
+    authenticateDashboardOwner(req, res, (error?: unknown) => {
+      if (error) {
+        const status = error instanceof HttpError ? error.statusCode : 403;
+        res.set("Cache-Control", "private, no-store").status(status).type("html").send(baseGameDeniedHtml(status !== 401));
+        return;
+      }
+      res.set("Cache-Control", "private, no-store").type("html").send(baseGameHtml);
+    });
+  });
 
   app.get(
     [
