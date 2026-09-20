@@ -1,0 +1,12 @@
+import { randomBytes, createCipheriv } from 'node:crypto';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
+const names = ['index.html','style.css','app.js','freya.mp4','base.mp4','base.jpg','freya.jpg'];
+const keyPath = 'backend/private/kella-game-review-key';
+if (!existsSync(keyPath)) writeFileSync(keyPath,randomBytes(32).toString('hex'),{mode:0o600});
+const key = Buffer.from(readFileSync(keyPath,'utf8').trim(),'hex');
+const iv = randomBytes(12), cipher = createCipheriv('aes-256-gcm',key,iv);
+const payload = Object.fromEntries(names.map(n=>[n,readFileSync('backend/private/game-review/'+n).toString('base64')]));
+const encrypted = Buffer.concat([cipher.update(gzipSync(JSON.stringify(payload))),cipher.final()]);
+writeFileSync('backend/game-review.enc',Buffer.concat([Buffer.from('KGR1'),iv,cipher.getAuthTag(),encrypted]));
+console.log('Encrypted private review package prepared; key remains outside version control.');

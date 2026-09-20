@@ -12,6 +12,7 @@ import { authenticateDashboardAdmin, authenticateDashboardWikiEditor } from "./m
 import { errorHandler } from "./middleware/errorHandler.js";
 import { botRouter } from "./routes/bot.routes.js";
 import { apiRouter } from "./routes/index.js";
+import { gameReviewRouter } from "./routes/gameReview.routes.js";
 import { kellaPageHtml, kellaPageAssets } from "./views/kellaPage.js";
 
 const appDir = dirname(fileURLToPath(import.meta.url));
@@ -53,6 +54,7 @@ export function createApp() {
   app.get("/favicon.ico", (_req, res) => res.sendFile(join(publicDir, "kella-favicon.png")));
   app.get("/apple-touch-icon.png", (_req, res) => res.sendFile(join(publicDir, "kella-logo.png")));
   app.use("/bot", botRouter);
+  app.use("/game-review", gameReviewRouter);
 
   app.get(
     [

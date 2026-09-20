@@ -13,3 +13,4 @@ pnpm-debug.log*
 Dockerfile.local
 uploads
 exports
+backend/private/
