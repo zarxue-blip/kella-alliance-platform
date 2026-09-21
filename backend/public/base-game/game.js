@@ -1,19 +1,19 @@
 import { findPath, simplifyPath } from './pathfinding.js';
-import { createSibylRenderer } from './sibyl-renderer.js?v=4';
+import { createSibylRenderer } from './sibyl-renderer.js?v=5';
 
 const ASSET = '/assets/base-game/assets/';
 const WORLD = { width: 1448, height: 1086 };
 const GRID = { columns: 24, rows: 18, cellWidth: WORLD.width / 24, cellHeight: WORLD.height / 18 };
 const BUILD_GRID = 28;
-const SAVE_KEY = 'kella_private_base_v3';
+const SAVE_KEY = 'kella_private_base_v4';
 
 const characterDefinitions = [
   { name: 'Elven Seer', asset: 'elf-1.mp4', scale: .74 },
   { name: 'Elven Ranger', asset: 'elf-4.mp4', scale: .72 },
   { name: 'Goblin Guard', asset: 'goblin-1.mp4', scale: .68 },
   { name: 'Goblin Scout', asset: 'goblin-5.mp4', scale: .66 },
-  { name: 'Meadow Pixie', asset: 'pixie-1.mp4', scale: .62 },
-  { name: 'Lantern Pixie', asset: 'pixie-4.mp4', scale: .6 },
+  { name: 'Meadow Pixie', asset: 'pixie-1.mp4', scale: .62, flying: true },
+  { name: 'Lantern Pixie', asset: 'pixie-4.mp4', scale: .6, flying: true },
   { name: 'Star Wizard', asset: 'wizard-1.mp4', scale: .7 },
   { name: 'Woodland Mage', asset: 'wizard-5.mp4', scale: .68 }
 ];
@@ -23,15 +23,15 @@ const buildingDefinitions = {
   archery: { name: 'Archery Range', category: 'Buildings', asset: 'archery-range.png', scale: .31, footprint: [70, 40], cost: { gold: 480, wood: 850, stone: 220 } },
   eagle: { name: 'Eagle Nest', category: 'Buildings', asset: 'eagle-nest.png', scale: .29, footprint: [70, 42], cost: { gold: 760, wood: 520, stone: 420 } },
   stable: { name: 'Elk Stable', category: 'Buildings', asset: 'elk-stable.png', scale: .28, footprint: [82, 46], cost: { gold: 620, wood: 780, stone: 260 } },
-  research: { name: 'Research Sanctuary', category: 'Buildings', asset: 'research.png', scale: .28, footprint: [74, 44], cost: { gold: 820, wood: 400, stone: 720 } },
-  sentry: { name: 'Ranger Sentry Post', category: 'Buildings', asset: 'ranger-sentry-post.png', scale: .33, footprint: [56, 35], cost: { gold: 320, wood: 560, stone: 180 } },
-  arch: { name: 'Longleaf Arch', category: 'Decorations', asset: 'longleaf-arch.png', scale: .29, footprint: [72, 32], cost: { gold: 240, wood: 360, stone: 120 } },
-  notice: { name: 'Notice Board', category: 'Decorations', asset: 'notice-board.png', scale: .34, footprint: [45, 28], cost: { gold: 120, wood: 220, stone: 40 } }
+  research: { name: 'Research Sanctuary', category: 'Buildings', asset: 'research.png', scale: .23, footprint: [62, 38], cost: { gold: 820, wood: 400, stone: 720 } },
+  sentry: { name: 'Ranger Sentry Post', category: 'Buildings', asset: 'ranger-sentry-post.png', scale: .27, footprint: [48, 30], cost: { gold: 320, wood: 560, stone: 180 } },
+  arch: { name: 'Longleaf Arch', category: 'Decorations', asset: 'longleaf-arch.png', scale: .24, footprint: [60, 28], cost: { gold: 240, wood: 360, stone: 120 } },
+  notice: { name: 'Notice Board', category: 'Decorations', asset: 'notice-board.png', scale: .27, footprint: [38, 24], cost: { gold: 120, wood: 220, stone: 40 } }
 };
 
 const defaultBuildings = [
-  ['hub', 724, 500], ['archery', 560, 560], ['eagle', 888, 550], ['stable', 640, 720],
-  ['research', 835, 710], ['sentry', 470, 690], ['arch', 540, 400], ['notice', 900, 415]
+  ['hub', 460, 465], ['archery', 635, 465], ['eagle', 810, 465], ['stable', 985, 465],
+  ['research', 460, 690], ['sentry', 635, 690], ['arch', 810, 690], ['notice', 985, 690]
 ].map(([type, x, y], index) => ({ id: `starter-${index}`, type, x, y, level: 1 }));
 
 const canvas = document.querySelector('#base-world');
@@ -76,7 +76,7 @@ const npcs = [{
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (saved?.version === 3 && Array.isArray(saved.buildings)) {
+    if (saved?.version === 4 && Array.isArray(saved.buildings)) {
       const seen = new Set();
       const buildings = saved.buildings.filter((building) => {
         if (!buildingDefinitions[building.type] || seen.has(building.type)) return false;
@@ -86,7 +86,7 @@ function loadState() {
       return { ...saved, buildings };
     }
   } catch {}
-  return { version: 3, buildings: defaultBuildings, resources: { gold: 18420, wood: 12780, stone: 9360 } };
+  return { version: 4, buildings: defaultBuildings, resources: { gold: 18420, wood: 12780, stone: 9360 } };
 }
 
 function queueSave() {
@@ -320,20 +320,25 @@ function updateCharacterFrame(npc, now) {
 
 function drawNpc(npc, now) {
   if (!npc.isSibyl) updateCharacterFrame(npc, now);
-  const bob = npc.state === 'WALK' ? Math.sin(now * .012) * 2 : Math.sin(now * .002) * 1.2;
+  const isFlying = Boolean(npc.definition.flying);
+  const isWalking = npc.state === 'WALK';
+  const flightLift = isFlying ? 21 + Math.sin(now * .006 + npc.x * .01) * 5 : 0;
+  const bob = isFlying
+    ? Math.sin(now * .01 + npc.y * .01) * 3
+    : isWalking ? Math.abs(Math.sin(now * .011)) * 3 : Math.sin(now * .002) * 1.2;
   const width = (npc.isSibyl ? 88 : 46) * npc.definition.scale;
   const height = (npc.isSibyl ? 110 : 50) * npc.definition.scale;
   context.save();
-  context.fillStyle = '#05110a66';
+  context.fillStyle = isFlying ? '#d7f8ff2b' : '#05110a66';
   context.beginPath();
-  context.ellipse(npc.x, npc.y - 2, width * .36, height * .12, 0, 0, Math.PI * 2);
+  context.ellipse(npc.x, npc.y - 2, width * (isFlying ? .24 : .36), height * (isFlying ? .07 : .12), 0, 0, Math.PI * 2);
   context.fill();
-  context.translate(npc.x, npc.y - height + bob);
+  context.translate(npc.x, npc.y - height - flightLift + bob);
   context.scale(npc.facing < 0 ? -1 : 1, 1);
   context.shadowColor = '#f4cf72aa';
   context.shadowBlur = 5;
   if (npc.isSibyl) {
-    sibylView.render(now / 1000, npc.facing);
+    sibylView.render(now / 1000, npc.facing, isWalking);
     context.drawImage(sibylView.canvas, -width / 2, 0, width, height);
   } else if (npc.frame.width) context.drawImage(npc.frame, -width / 2, 0, width, height);
   context.restore();

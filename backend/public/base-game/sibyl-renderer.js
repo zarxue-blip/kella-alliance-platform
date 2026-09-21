@@ -22,23 +22,30 @@ export function createSibylRenderer(modelUrl) {
   rim.position.set(-3, 1.5, -2);
   scene.add(rim);
   let model = null;
+  let modelScale = 1;
   const loader = new GLTFLoader();
   loader.load(modelUrl, (gltf) => {
     model = gltf.scene;
     const bounds = new THREE.Box3().setFromObject(model);
     const size = bounds.getSize(new THREE.Vector3());
     const center = bounds.getCenter(new THREE.Vector3());
-    const scale = 1.82 / Math.max(size.y, .001);
-    model.scale.setScalar(scale);
-    model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+    modelScale = 1.82 / Math.max(size.y, .001);
+    model.scale.setScalar(modelScale);
+    model.position.set(-center.x * modelScale, -center.y * modelScale, -center.z * modelScale);
     scene.add(model);
   });
   return {
     canvas,
-    render(time, facing = 1) {
+    render(time, facing = 1, walking = false) {
       if (model) {
+        const stride = walking ? Math.sin(time * 8.2) : 0;
         model.rotation.y = (facing < 0 ? -.38 : .38) + Math.sin(time * .55) * .035;
-        model.position.y = Math.sin(time * 1.7) * .018;
+        model.rotation.z = walking ? stride * .045 : 0;
+        model.rotation.x = walking ? Math.abs(stride) * .035 : 0;
+        model.position.y = walking ? Math.abs(stride) * .075 - .025 : Math.sin(time * 1.7) * .018;
+        model.scale.y = modelScale * (1 + (walking ? Math.abs(stride) * .018 : 0));
+        model.scale.x = modelScale * (1 - (walking ? Math.abs(stride) * .01 : 0));
+        model.scale.z = modelScale;
       }
       renderer.render(scene, camera);
     }

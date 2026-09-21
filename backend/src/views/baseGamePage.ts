@@ -53,7 +53,7 @@ export const baseGameHtml = `<!doctype html>
     <div class="game-toast" id="game-toast" role="status"></div>
     ${['elf-1', 'elf-4', 'goblin-1', 'goblin-5', 'pixie-1', 'pixie-4', 'wizard-1', 'wizard-5'].map((name) => `<video class="media-source" data-character-video src="/assets/base-game/assets/characters/${name}.mp4" muted loop autoplay playsinline preload="auto"></video>`).join('')}
   </main>
-  <script type="module" src="/assets/base-game/game.js?v=6"></script>
+  <script type="module" src="/assets/base-game/game.js?v=7"></script>
 </body>
 </html>`;
 
