@@ -1,0 +1,29 @@
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> call-of-dragons-alliance-platform@1.0.0 typecheck
+> npm run typecheck --workspace @cod-amp/shared && npm run typecheck --workspace @cod-amp/backend && npm run typecheck --workspace @cod-amp/discord-bot && npm run typecheck --workspace @cod-amp/frontend
+
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @cod-amp/shared@1.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @cod-amp/backend@1.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @cod-amp/discord-bot@1.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @cod-amp/frontend@1.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+

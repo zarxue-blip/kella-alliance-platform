@@ -1,0 +1,70 @@
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> call-of-dragons-alliance-platform@1.0.0 build
+> npm run build --workspace @cod-amp/shared && npm run build --workspace @cod-amp/backend && npm run build --workspace @cod-amp/discord-bot && npm run build --workspace @cod-amp/frontend
+
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @cod-amp/shared@1.0.0 build
+> tsc -p tsconfig.json
+
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @cod-amp/backend@1.0.0 build
+> tsc -p tsconfig.json
+
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @cod-amp/discord-bot@1.0.0 build
+> tsc -p tsconfig.json
+
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @cod-amp/frontend@1.0.0 build
+> tsc -p tsconfig.json --noEmit && next build
+
+   ▲ Next.js 15.5.19
+   - Experiments (use with caution):
+     ⨯ webpackBuildWorker
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 3.8s
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+   Generating static pages (0/15) ...
+   Generating static pages (3/15) 
+   Generating static pages (7/15) 
+   Generating static pages (11/15) 
+ ✓ Generating static pages (15/15)
+   Finalizing page optimization ...
+   Collecting build traces ...
+   Exporting (0/2) ...
+ ✓ Exporting (2/2)
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    1.22 kB         216 kB
+├ ○ /_not-found                            998 B         104 kB
+├ ○ /analytics                           1.22 kB         216 kB
+├ ○ /announcements                         146 B         103 kB
+├ ○ /attendance                          1.22 kB         216 kB
+├ ○ /diplomacy                             146 B         103 kB
+├ ○ /events                                146 B         103 kB
+├ ○ /members                               146 B         103 kB
+├ ○ /recruitment                           146 B         103 kB
+├ ○ /settings                              146 B         103 kB
+├ ○ /shields                               146 B         103 kB
+├ ○ /tasks                                 146 B         103 kB
+└ ○ /war                                   146 B         103 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/131-b793d4d01fac8f3e.js       46.6 kB
+  ├ chunks/c7879cf7-93b1c04336dd24e6.js  54.2 kB
+  └ other shared chunks (total)          2.04 kB
+
+
+○  (Static)  prerendered as static content
+
