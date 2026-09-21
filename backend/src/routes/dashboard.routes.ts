@@ -45,7 +45,7 @@ import {
   dashboardWikiUpdate,
   dashboardDmAlertResendFailed,
 } from "../controllers/dashboard.controller.js";
-import { authenticate, authenticateDashboardAdmin, authenticateDashboardWikiEditor } from "../middleware/auth.js";
+import { authenticate, authenticateDashboardAdmin, authenticateDashboardWikiEditor, requireEvoMemberAccess } from "../middleware/auth.js";
 
 import { listChatImages, uploadChatImage, deleteChatImage } from '../controllers/chatImages.controller.js';
 export const dashboardRouter = Router();
@@ -68,6 +68,27 @@ dashboardRouter.put('/commander',authenticate,asyncHandler(async(req,res)=>{
  const data=req.body?.data;
  if(!data || Array.isArray(data) || typeof data!=='object' || JSON.stringify(data).length>200000 || /"(?:__proto__|constructor|prototype)"\s*:/.test(JSON.stringify(data))) throw new HttpError(400,'Invalid commander profile.');
  await UserModel.updateOne({_id:(req as AuthenticatedRequest).user.id},{$set:{commanderTools:data}});res.json({ok:true});
+}));
+const baseBuildingTypes = new Set(['hub','archery','eagle','stable','research','sentry','arch','notice','infantry','admin']);
+dashboardRouter.get('/base-layout',authenticate,requireEvoMemberAccess,asyncHandler(async(req,res)=>{
+ const user=await UserModel.findById((req as AuthenticatedRequest).user.id).select('+baseLayout').lean<any>();
+ res.set('Cache-Control','private, no-store').json({data:user?.baseLayout || null});
+}));
+dashboardRouter.put('/base-layout',authenticate,requireEvoMemberAccess,asyncHandler(async(req,res)=>{
+ const data=req.body?.data;
+ if(!data || data.version!==6 || !Array.isArray(data.buildings) || data.buildings.length>40) throw new HttpError(400,'Invalid base layout.');
+ const seen=new Set<string>();
+ const buildings=data.buildings.map((item:any)=>{
+  const type=typeof item?.type==='string'?item.type:'';
+  const id=typeof item?.id==='string'?item.id:'';
+  const x=Number(item?.x),y=Number(item?.y),level=Number(item?.level || 1);
+  if(!baseBuildingTypes.has(type)||seen.has(type)||!id||id.length>100||!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>1448||y<0||y>1086||!Number.isInteger(level)||level<1||level>100) throw new HttpError(400,'Invalid base layout.');
+  seen.add(type);
+  return {id,type,x,y,level};
+ });
+ const layout={version:6,buildings};
+ await UserModel.updateOne({_id:(req as AuthenticatedRequest).user.id},{$set:{baseLayout:layout}});
+ res.json({ok:true});
 }));
 dashboardRouter.get("/profile", authenticate, dashboardProfile);
 dashboardRouter.patch("/profile", authenticate, dashboardProfileUpdate);

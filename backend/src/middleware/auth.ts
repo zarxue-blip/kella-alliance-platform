@@ -24,6 +24,19 @@ export interface TokenPayload extends AuthUser {
 
 const fallbackDashboardAdminRoleIds = [kellaDiscordRoles.admin, kellaDiscordRoles.legacyAdmin];
 const fallbackDashboardWikiRoleIds = ["1529826271813570650"];
+export const evoMemberRoleId = "1485933229168005282";
+
+export function hasEvoMemberAccess(user: { discordRoleIds?: string[] }) {
+  return (user.discordRoleIds || []).includes(evoMemberRoleId);
+}
+
+export function requireEvoMemberAccess(req: Request, _res: Response, next: NextFunction) {
+  if (!hasEvoMemberAccess((req as AuthenticatedRequest).user)) {
+    next(new HttpError(403, "The @881 Discord role is required"));
+    return;
+  }
+  next();
+}
 
 function csvSet(value?: string) {
   return new Set(

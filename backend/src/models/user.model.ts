@@ -14,6 +14,7 @@ const userSchema = new Schema(
     allianceId: { type: Schema.Types.ObjectId, ref: "Alliance", required: true, index: true },
     memberId: { type: Schema.Types.ObjectId, ref: "Member" },
     commanderTools: { type: Schema.Types.Mixed, default: {}, select: false },
+    baseLayout: { type: Schema.Types.Mixed, default: {}, select: false },
     disabled: { type: Boolean, default: false },
     lastLoginAt: { type: Date }
   },

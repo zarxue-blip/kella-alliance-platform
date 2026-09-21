@@ -17,7 +17,7 @@ export const baseGameHtml = `<!doctype html>
 
   <link
     rel="stylesheet"
-    href="/assets/base-game/base-game.css?v=5"
+    href="/assets/base-game/base-game.css?v=6"
   >
 
   <script type="importmap">
@@ -202,7 +202,7 @@ export const baseGameHtml = `<!doctype html>
       hidden
       role="dialog"
       aria-modal="true"
-      aria-labelledby="research-modal-title"
+      aria-label="Research calculator"
     >
 
       <button
@@ -214,27 +214,12 @@ export const baseGameHtml = `<!doctype html>
         ×
       </button>
 
-      <img
-        src="/assets/base-game/assets/research.png"
-        alt=""
-      >
-
-      <p>
-        BUILDING PORTAL
-      </p>
-
-      <h2 id="research-modal-title">
-        Research Sanctuary
-      </h2>
-
-      <span>
-        Plan your next breakthrough in the alliance research calculator.
-      </span>
-
-      <a href="/research">
-        Open Research
-        <b>↗</b>
-      </a>
+      <iframe
+        class="research-frame"
+        src="/research"
+        title="Research calculator"
+        loading="lazy"
+      ></iframe>
 
     </section>
 
@@ -267,7 +252,7 @@ export const baseGameHtml = `<!doctype html>
 
   <script
     type="module"
-    src="/assets/base-game/game.js?v=11"
+    src="/assets/base-game/game.js?v=12"
   ></script>
 
 </body>

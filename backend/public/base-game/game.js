@@ -5,10 +5,10 @@ import { findPath, simplifyPath } from './pathfinding.js';
 const ASSET = '/assets/base-game/assets/';
 const WORLD = { width: 1448, height: 1086 };
 const GRID = { columns: 24, rows: 18, cellWidth: WORLD.width / 24, cellHeight: WORLD.height / 18 };
-const plotSizes = { hub: 5, archery: 4, eagle: 4, stable: 5, research: 4, sentry: 3, arch: 4, notice: 3 };
+const plotSizes = { hub: 5, archery: 4, eagle: 4, stable: 5, research: 4, sentry: 3, arch: 4, notice: 3, infantry: 4, admin: 4 };
 const BUILDING_SCALE = .82;
 let editorMode = false;
-const SAVE_KEY = 'kella_private_base_v5';
+const LAYOUT_VERSION = 6;
 const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
 let reducedMotion = motionPreference.matches;
 motionPreference.addEventListener('change', () => { reducedMotion = motionPreference.matches; });
@@ -27,17 +27,20 @@ const characterDefinitions = [
 const buildingDefinitions = {
   hub: { name: 'Alliance Hub', category: 'Buildings', asset: 'alliance-hub.png', scale: .28, footprint: [78, 48], cost: { gold: 900, wood: 700, stone: 600 } },
   archery: { name: 'Archery Range', category: 'Buildings', asset: 'archery-range.png', scale: .31, footprint: [70, 40], cost: { gold: 480, wood: 850, stone: 220 } },
-  eagle: { name: 'Eagle Nest', category: 'Buildings', asset: 'eagle-nest.png', scale: .29, footprint: [70, 42], cost: { gold: 760, wood: 520, stone: 420 } },
-  stable: { name: 'Elk Stable', category: 'Buildings', asset: 'elk-stable.png', scale: .28, footprint: [82, 46], cost: { gold: 620, wood: 780, stone: 260 } },
+  eagle: { name: 'Flying Unit', category: 'Buildings', asset: 'eagle-nest.png', scale: .29, footprint: [70, 42], cost: { gold: 760, wood: 520, stone: 420 } },
+  stable: { name: 'Cavalry', category: 'Buildings', asset: 'elk-stable.png', scale: .28, footprint: [82, 46], cost: { gold: 620, wood: 780, stone: 260 } },
   research: { name: 'Research Sanctuary', category: 'Buildings', asset: 'research.png', scale: .23, footprint: [62, 38], cost: { gold: 820, wood: 400, stone: 720 } },
-  sentry: { name: 'Ranger Sentry Post', category: 'Buildings', asset: 'ranger-sentry-post.png', scale: .27, footprint: [48, 30], cost: { gold: 320, wood: 560, stone: 180 } },
-  arch: { name: 'Longleaf Arch', category: 'Decorations', asset: 'longleaf-arch.png', scale: .24, footprint: [60, 28], cost: { gold: 240, wood: 360, stone: 120 } },
-  notice: { name: 'Notice Board', category: 'Decorations', asset: 'notice-board.png', scale: .27, footprint: [38, 24], cost: { gold: 120, wood: 220, stone: 40 } }
+  sentry: { name: 'Archer', category: 'Buildings', asset: 'ranger-sentry-post.png', scale: .27, footprint: [48, 30], cost: { gold: 320, wood: 560, stone: 180 } },
+  arch: { name: 'Mage', category: 'Decorations', asset: 'longleaf-arch.png', scale: .24, footprint: [60, 28], cost: { gold: 240, wood: 360, stone: 120 } },
+  notice: { name: 'Notice Board', category: 'Decorations', asset: 'notice-board.png', scale: .27, footprint: [38, 24], cost: { gold: 120, wood: 220, stone: 40 } },
+  infantry: { name: 'Infantry', category: 'Buildings', asset: 'infantry.png', scale: .39, footprint: [48, 34], cost: {} },
+  admin: { name: 'Admin Tools', category: 'Buildings', asset: 'admin-tools.png', scale: .34, footprint: [54, 38], cost: {} }
 };
 
 const defaultBuildings = [
   ['hub', 476, 532], ['archery', 700, 504], ['stable', 924, 504], ['sentry', 448, 616],
-  ['arch', 504, 700], ['notice', 644, 728], ['research', 784, 700], ['eagle', 924, 672]
+  ['arch', 504, 700], ['notice', 644, 728], ['research', 784, 700], ['eagle', 924, 672],
+  ['infantry', 590, 820], ['admin', 800, 820]
 ].map(([type, x, y], index) => ({ id: `starter-${index}`, type, x, y, level: 1 }));
 
 const canvas = document.querySelector('#base-world');
@@ -56,7 +59,9 @@ let placement = null;
 let category = 'Buildings';
 
 
-const state = loadState();
+const state = { version: LAYOUT_VERSION, buildings: defaultBuildings.map((building) => ({ ...building })) };
+let layoutLoaded = false;
+let saveTimer = 0;
 const camera = { x: WORLD.width / 2, y: WORLD.height / 2, zoom: .72, targetZoom: .72 };
 const input = { pointers: new Map(), dragging: false, moved: false, lastX: 0, lastY: 0, pinchDistance: 0 };
 const roamingVillagers = characterDefinitions.map((definition, index) => ({
@@ -72,25 +77,43 @@ const roamingVillagers = characterDefinitions.map((definition, index) => ({
 }));
 const npcs = roamingVillagers;
 
-function loadState() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (saved?.version === 5 && Array.isArray(saved.buildings)) {
-      const seen = new Set();
-      const buildings = saved.buildings.filter((building) => {
-        if (!buildingDefinitions[building.type] || seen.has(building.type)) return false;
-        seen.add(building.type);
-        return Number.isFinite(building.x) && Number.isFinite(building.y);
-      });
-      return { ...saved, buildings };
-    }
-  } catch {}
-  return { version: 5, buildings: defaultBuildings, resources: { gold: 18420, wood: 12780, stone: 9360 } };
+function normalizeBuildings(raw) {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set();
+  return raw.filter((building) => {
+    if (!buildingDefinitions[building?.type] || seen.has(building.type)) return false;
+    if (!Number.isFinite(building.x) || !Number.isFinite(building.y)) return false;
+    seen.add(building.type);
+    return true;
+  }).map((building) => ({ id: String(building.id || `building-${crypto.randomUUID()}`), type: building.type, x: building.x, y: building.y, level: Number(building.level || 1) }));
 }
 
 function queueSave() {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
-  catch { notify('Layout could not be saved in this browser.'); }
+  if (!layoutLoaded) return;
+  clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(() => persistLayout(), 300);
+}
+
+async function persistLayout(keepalive = false) {
+  try {
+    const response = await fetch('/api/dashboard/base-layout', {
+      method: 'PUT', credentials: 'same-origin', keepalive, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: { version: LAYOUT_VERSION, buildings: state.buildings } })
+    });
+    if (!response.ok) throw new Error('save failed');
+  } catch { if (!keepalive) notify('Your layout could not be saved. Please try again.'); }
+}
+
+async function loadMemberLayout() {
+  try {
+    const response = await fetch('/api/dashboard/base-layout', { credentials: 'same-origin', cache: 'no-store' });
+    if (!response.ok) throw new Error('load failed');
+    const payload = await response.json();
+    const saved = payload?.data?.version === LAYOUT_VERSION ? normalizeBuildings(payload.data.buildings) : [];
+    if (saved.length) state.buildings.splice(0, state.buildings.length, ...saved);
+  } catch { notify('Using the default layout until your saved base is available.'); }
+  layoutLoaded = true;
+  renderBuildMenu();
 }
 
 function notify(message) {
@@ -422,6 +445,7 @@ function renderBuildMenu() {
 }
 
 function beginPlacement(type, movingId = null) {
+  if (!layoutLoaded) return notify('Your base is still loading.');
   const source = movingId ? state.buildings.find((building) => building.id === movingId) : null;
   placement = { type, movingId, preview: { id: movingId || `building-${crypto.randomUUID()}`, type, x: source?.x ?? camera.x, y: source?.y ?? camera.y, level: source?.level || 1 }, valid: false };
   updatePlacement(placement.preview);
@@ -471,6 +495,7 @@ function selectAt(point) {
   if (hit.type === 'hub') window.location.assign('/members');
   else if (hit.type === 'notice') window.location.assign('/calendar');
   else if (hit.type === 'research') researchModal.hidden = false;
+  else if (hit.type === 'admin') window.location.assign('/officer');
 }
 
 function pointerPosition(event) {
@@ -565,6 +590,7 @@ researchModal.addEventListener('click', (event) => { if (event.target === resear
 document.querySelectorAll('[data-build-category]').forEach((button) => button.addEventListener('click', () => { category = button.dataset.buildCategory; renderBuildMenu(); }));
 
 window.addEventListener('resize', resize);
+window.addEventListener('pagehide', () => { if (layoutLoaded) persistLayout(true); });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) characterVideos.forEach((video) => video.pause());
   else characterVideos.forEach((video) => video.play().catch(() => {}));
@@ -572,4 +598,5 @@ document.addEventListener('visibilitychange', () => {
 
 resize();
 renderBuildMenu();
+loadMemberLayout();
 requestAnimationFrame(loop);

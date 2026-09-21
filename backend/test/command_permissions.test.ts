@@ -327,10 +327,7 @@ try {
         }
       );
 
-  (
-    AttendanceEventModel
-      as any
-  ).findOne =
+  (AttendanceEventModel as any).findOne =
     async () => ({
       qrToken:
         "test",

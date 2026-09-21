@@ -9,9 +9,9 @@ assert.equal(migrationPower(105000000),'105M');assert.equal(migrationPower(52500
 assert.equal(isDashboardAdminUser({discordRoleIds:['1522274495728062475']}),true);
 assert.equal(isDashboardAdminUser({discordRoleIds:['1524118642353111214']}),true);
 assert.equal(isDashboardAdminUser({role:'Owner',discordRoleIds:[]}),false);
-const records:any={a:{_id:'a',discordId:'222222222222222222',role:'Member',allianceId:'aaaaaaaaaaaaaaaaaaaaaaaa',commanderTools:{identity:{name:'Alpha'}}},b:{_id:'b',discordId:'333333333333333333',role:'Member',allianceId:'aaaaaaaaaaaaaaaaaaaaaaaa',commanderTools:{identity:{name:'Beta'}}}};
+const records:any={a:{_id:'a',discordId:'222222222222222222',role:'Member',discordRoleIds:['1485933229168005282'],allianceId:'aaaaaaaaaaaaaaaaaaaaaaaa',commanderTools:{identity:{name:'Alpha'}},baseLayout:{version:6,buildings:[{id:'a-hub',type:'hub',x:476,y:532,level:1}]}},b:{_id:'b',discordId:'333333333333333333',role:'Member',discordRoleIds:['1485933229168005282'],allianceId:'aaaaaaaaaaaaaaaaaaaaaaaa',commanderTools:{identity:{name:'Beta'}},baseLayout:{version:6,buildings:[{id:'b-hub',type:'hub',x:700,y:532,level:1}]}},c:{_id:'c',discordId:'444444444444444444',role:'Member',discordRoleIds:[],allianceId:'aaaaaaaaaaaaaaaaaaaaaaaa',commanderTools:{},baseLayout:{}}};
 (UserModel as any).findById=(id:string)=>({select(){return this;},lean:async()=>records[id]});
-(UserModel as any).updateOne=async(filter:any,update:any)=>{records[filter._id].commanderTools=update.$set.commanderTools;return {modifiedCount:1};};
+(UserModel as any).updateOne=async(filter:any,update:any)=>{Object.assign(records[filter._id],update.$set);return {modifiedCount:1};};
 const server=createApp().listen(0,'127.0.0.1');await new Promise<void>(r=>server.once('listening',r));const base='http://127.0.0.1:'+(server.address() as any).port;
 const headers=(id:string)=>({'content-type':'application/json',cookie:env.SESSION_COOKIE_NAME+'='+signSessionToken({id,...records[id]})});
 try {
@@ -20,6 +20,13 @@ try {
  assert.equal((await fetch(base+'/api/dashboard/commander',{method:'PUT',headers:headers('a'),body:JSON.stringify({userId:'b',data:{identity:{name:'Alpha saved'}}})})).status,200);
  assert.equal(records.b.commanderTools.identity.name,'Beta');assert.equal(records.a.commanderTools.identity.name,'Alpha saved');
  for(const data of [[],null,{'constructor':{}},{text:'a'.repeat(200001)}])assert.equal((await fetch(base+'/api/dashboard/commander',{method:'PUT',headers:headers('a'),body:JSON.stringify({data})})).status,400);
+ assert.equal((await fetch(base+'/api/dashboard/base-layout')).status,401);
+ assert.equal((await fetch(base+'/api/dashboard/base-layout',{headers:headers('c')})).status,403);
+ const baseA=await (await fetch(base+'/api/dashboard/base-layout?userId=b',{headers:headers('a')})).json();assert.equal(baseA.data.buildings[0].id,'a-hub');
+ const savedBase={version:6,buildings:[{id:'a-infantry',type:'infantry',x:590,y:820,level:1}]};
+ assert.equal((await fetch(base+'/api/dashboard/base-layout',{method:'PUT',headers:headers('a'),body:JSON.stringify({userId:'b',data:savedBase})})).status,200);
+ assert.equal(records.a.baseLayout.buildings[0].type,'infantry');assert.equal(records.b.baseLayout.buildings[0].id,'b-hub');
+ for(const data of [null,{version:5,buildings:[]},{version:6,buildings:[{id:'bad',type:'unknown',x:1,y:1,level:1}]},{version:6,buildings:[{id:'bad',type:'hub',x:9999,y:1,level:1}]}])assert.equal((await fetch(base+'/api/dashboard/base-layout',{method:'PUT',headers:headers('a'),body:JSON.stringify({data})})).status,400);
  for(const path of ['/api/dashboard/tickets','/api/dashboard/tickets/aaaaaaaaaaaaaaaaaaaaaaaa','/api/dashboard/responses','/api/dashboard/members/manage','/api/migration/export.csv'])assert.equal((await fetch(base+path,{headers:headers('a')})).status,403,path);
  const {MemberModel}=await import('../src/models/member.model.js');const {AllianceModel}=await import('../src/models/alliance.model.js');
  const member:any={_id:'bbbbbbbbbbbbbbbbbbbbbbbb',allianceId:records.a.allianceId,discordId:records.a.discordId,ign:'Alpha',uid:'12345',powerHistory:[],statHistory:[]};

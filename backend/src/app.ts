@@ -12,6 +12,7 @@ import {
   authenticate,
   authenticateDashboardAdmin,
   authenticateDashboardWikiEditor,
+  hasEvoMemberAccess,
   type AuthenticatedRequest
 } from "./middleware/auth.js";
 import { errorHandler } from "./middleware/errorHandler.js";
@@ -24,8 +25,6 @@ import { HttpError } from "./utils/httpError.js";
 
 const appDir = dirname(fileURLToPath(import.meta.url));
 const publicDir = join(appDir, "..", "public");
-
-const EVO_881_ROLE_ID = "1485933229168005282";
 
 export function createApp() {
   const app = express();
@@ -111,9 +110,7 @@ export function createApp() {
 
       const user = (req as AuthenticatedRequest).user;
 
-      const has881Role = (
-        user.discordRoleIds || []
-      ).includes(EVO_881_ROLE_ID);
+      const has881Role = hasEvoMemberAccess(user);
 
       if (!has881Role) {
         res
