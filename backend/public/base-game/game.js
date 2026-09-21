@@ -5,7 +5,8 @@ const ASSET = '/assets/base-game/assets/';
 const WORLD = { width: 1448, height: 1086 };
 const GRID = { columns: 24, rows: 18, cellWidth: WORLD.width / 24, cellHeight: WORLD.height / 18 };
 const BUILD_GRID = 28;
-const SAVE_KEY = 'kella_private_base_v4';
+const SAVE_KEY = 'kella_private_base_v5';
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const characterDefinitions = [
   { name: 'Elven Seer', asset: 'elf-1.mp4', scale: .74 },
@@ -30,9 +31,21 @@ const buildingDefinitions = {
 };
 
 const defaultBuildings = [
-  ['hub', 460, 465], ['archery', 635, 465], ['eagle', 810, 465], ['stable', 985, 465],
-  ['research', 460, 690], ['sentry', 635, 690], ['arch', 810, 690], ['notice', 985, 690]
+  ['hub', 476, 532], ['archery', 700, 504], ['stable', 924, 504], ['sentry', 448, 616],
+  ['arch', 504, 700], ['notice', 644, 728], ['research', 784, 700], ['eagle', 924, 672]
 ].map(([type, x, y], index) => ({ id: `starter-${index}`, type, x, y, level: 1 }));
+
+const floatingStones = [
+  { x: 188, y: 282, size: 11, phase: .2 }, { x: 1234, y: 330, size: 9, phase: 1.8 },
+  { x: 292, y: 830, size: 8, phase: 3.1 }, { x: 1128, y: 790, size: 12, phase: 4.5 },
+  { x: 1038, y: 238, size: 7, phase: 5.6 }
+];
+
+const swayingPlants = [
+  { x: 346, y: 540, phase: .2 }, { x: 400, y: 760, phase: 1.1 }, { x: 558, y: 818, phase: 2.4 },
+  { x: 724, y: 835, phase: 3.2 }, { x: 888, y: 814, phase: 4.1 }, { x: 1032, y: 718, phase: 5.2 },
+  { x: 1090, y: 535, phase: 1.7 }, { x: 850, y: 344, phase: 3.8 }, { x: 590, y: 350, phase: 5.7 }
+];
 
 const canvas = document.querySelector('#base-world');
 const context = canvas.getContext('2d', { alpha: false });
@@ -76,7 +89,7 @@ const npcs = [{
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (saved?.version === 4 && Array.isArray(saved.buildings)) {
+    if (saved?.version === 5 && Array.isArray(saved.buildings)) {
       const seen = new Set();
       const buildings = saved.buildings.filter((building) => {
         if (!buildingDefinitions[building.type] || seen.has(building.type)) return false;
@@ -86,7 +99,7 @@ function loadState() {
       return { ...saved, buildings };
     }
   } catch {}
-  return { version: 4, buildings: defaultBuildings, resources: { gold: 18420, wood: 12780, stone: 9360 } };
+  return { version: 5, buildings: defaultBuildings, resources: { gold: 18420, wood: 12780, stone: 9360 } };
 }
 
 function queueSave() {
@@ -268,7 +281,7 @@ function updateNpc(npc, delta, now) {
   }
 }
 
-function drawBuilding(building, alpha = 1, valid = true) {
+function drawBuilding(building, alpha = 1, valid = true, now = performance.now()) {
   const definition = buildingDefinitions[building.type];
   const image = images.get(definition.asset);
   if (!image?.complete || !image.naturalWidth) return;
@@ -276,6 +289,9 @@ function drawBuilding(building, alpha = 1, valid = true) {
   const height = image.naturalHeight * definition.scale;
   context.save();
   context.globalAlpha = alpha;
+  const glow = reducedMotion ? .13 : .11 + (Math.sin(now * .0016 + building.x * .01) + 1) * .035;
+  context.shadowColor = `rgba(180, 235, 117, ${glow})`;
+  context.shadowBlur = 13 + glow * 28;
   context.drawImage(image, building.x - width / 2, building.y - height, width, height);
   if (alpha < 1) {
     context.globalCompositeOperation = 'source-atop';
@@ -297,6 +313,50 @@ function drawBuilding(building, alpha = 1, valid = true) {
     context.strokeRect(left, top, boxWidth, boxHeight);
     context.restore();
   }
+}
+
+function drawFloatingStones(now) {
+  floatingStones.forEach((stone) => {
+    const drift = reducedMotion ? 0 : Math.sin(now * .00125 + stone.phase) * 8;
+    const sway = reducedMotion ? 0 : Math.cos(now * .0009 + stone.phase) * 3;
+    context.save();
+    context.translate(stone.x + sway, stone.y + drift);
+    context.rotate(Math.sin(now * .00055 + stone.phase) * .09);
+    context.shadowColor = '#74d4b455';
+    context.shadowBlur = 9;
+    context.fillStyle = '#596352';
+    context.strokeStyle = '#a7ba83aa';
+    context.lineWidth = 1.2;
+    context.beginPath();
+    context.moveTo(-stone.size, -stone.size * .22);
+    context.lineTo(-stone.size * .35, -stone.size * .75);
+    context.lineTo(stone.size * .78, -stone.size * .38);
+    context.lineTo(stone.size, stone.size * .2);
+    context.lineTo(stone.size * .22, stone.size * .72);
+    context.lineTo(-stone.size * .72, stone.size * .48);
+    context.closePath();
+    context.fill();
+    context.stroke();
+    context.restore();
+  });
+}
+
+function drawSwayingPlants(now) {
+  swayingPlants.forEach((plant) => {
+    const sway = reducedMotion ? 0 : Math.sin(now * .002 + plant.phase) * 4;
+    context.save();
+    context.translate(plant.x, plant.y);
+    context.lineCap = 'round';
+    [-1, 0, 1].forEach((blade, index) => {
+      context.strokeStyle = index === 1 ? '#9cd64fb8' : '#5ba53cb0';
+      context.lineWidth = 2.4;
+      context.beginPath();
+      context.moveTo(blade * 3, 0);
+      context.quadraticCurveTo(blade * 5 + sway * .55, -10, blade * 8 + sway, -18 - index * 2);
+      context.stroke();
+    });
+    context.restore();
+  });
 }
 
 function updateCharacterFrame(npc, now) {
@@ -393,13 +453,15 @@ function render(now) {
   context.scale(camera.zoom, camera.zoom);
   context.translate(-camera.x, -camera.y);
   if (mapImage.complete && mapImage.naturalWidth) context.drawImage(mapImage, 0, 0, WORLD.width, WORLD.height);
+  drawFloatingStones(now);
+  drawSwayingPlants(now);
   drawPlacementGrid();
-  const layers = state.buildings.filter((building) => building.id !== placement?.movingId).map((building) => ({ y: building.y, draw: () => drawBuilding(building) }));
+  const layers = state.buildings.filter((building) => building.id !== placement?.movingId).map((building) => ({ y: building.y, draw: () => drawBuilding(building, 1, true, now) }));
   npcs.forEach((npc) => layers.push({ y: npc.y, draw: () => drawNpc(npc, now) }));
   layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw());
   const hoveredBuilding = state.buildings.find((building) => building.id === hoveredId && building.id !== placement?.movingId);
   if (hoveredBuilding) drawBuildingLabel(hoveredBuilding);
-  if (placement) drawBuilding(placement.preview, .68, placement.valid);
+  if (placement) drawBuilding(placement.preview, .68, placement.valid, now);
   context.restore();
   requestAnimationFrame(loop);
 }
