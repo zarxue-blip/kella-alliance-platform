@@ -1,3 +1,4 @@
+import { GROUND, toGround, fromGround, snapPoint, corners, fits, collides } from './placement.js?v=1';
 import { createScenery, drawBuildingShadow, drawBuildingMagic, drawAtmosphere } from './scenery.js?v=1';
 import { findPath, simplifyPath } from './pathfinding.js';
 import { createSibylRenderer } from './sibyl-renderer.js?v=5';
@@ -5,7 +6,9 @@ import { createSibylRenderer } from './sibyl-renderer.js?v=5';
 const ASSET = '/assets/base-game/assets/';
 const WORLD = { width: 1448, height: 1086 };
 const GRID = { columns: 24, rows: 18, cellWidth: WORLD.width / 24, cellHeight: WORLD.height / 18 };
-const BUILD_GRID = 28;
+const plotSizes = { hub: 5, archery: 4, eagle: 4, stable: 5, research: 4, sentry: 3, arch: 4, notice: 3 };
+const BUILDING_SCALE = .84;
+let editorMode = false;
 const SAVE_KEY = 'kella_private_base_v5';
 const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
 let reducedMotion = motionPreference.matches;
@@ -55,7 +58,7 @@ let selectedId = null;
 let hoveredId = null;
 let placement = null;
 let category = 'Buildings';
-let saveTimer = 0;
+
 
 const state = loadState();
 const camera = { x: WORLD.width / 2, y: WORLD.height / 2, zoom: .72, targetZoom: .72 };
@@ -85,7 +88,7 @@ function loadState() {
       const buildings = saved.buildings.filter((building) => {
         if (!buildingDefinitions[building.type] || seen.has(building.type)) return false;
         seen.add(building.type);
-        return isFootprintInside(building);
+        return Number.isFinite(building.x) && Number.isFinite(building.y);
       });
       return { ...saved, buildings };
     }
@@ -94,8 +97,8 @@ function loadState() {
 }
 
 function queueSave() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => localStorage.setItem(SAVE_KEY, JSON.stringify(state)), 120);
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
+  catch { notify('Layout could not be saved in this browser.'); }
 }
 
 function notify(message) {
@@ -160,21 +163,8 @@ function isInsideBase(x, y, margin = 0) {
   return dx * dx + dy * dy < 1;
 }
 
-function isFootprintInside(candidate) {
-  const footprint = buildingDefinitions[candidate.type].footprint;
-  return [
-    [candidate.x - footprint[0], candidate.y - footprint[1]],
-    [candidate.x + footprint[0], candidate.y - footprint[1]],
-    [candidate.x - footprint[0], candidate.y + footprint[1]],
-    [candidate.x + footprint[0], candidate.y + footprint[1]]
-  ].every(([x, y]) => isInsideBase(x, y, 18));
-}
-
-function overlaps(a, b) {
-  const ad = buildingDefinitions[a.type];
-  const bd = buildingDefinitions[b.type];
-  return Math.abs(a.x - b.x) < ad.footprint[0] + bd.footprint[0] && Math.abs(a.y - b.y) < ad.footprint[1] + bd.footprint[1];
-}
+function isFootprintInside(candidate) { return fits(candidate, plotSizes[candidate.type]); }
+function overlaps(a,b) { return collides(a,plotSizes[a.type],b,plotSizes[b.type]); }
 
 function canPlace(candidate) {
   if (!isFootprintInside(candidate)) return false;
@@ -277,17 +267,12 @@ function drawBuilding(building, alpha = 1, valid = true, now = performance.now()
   const definition = buildingDefinitions[building.type];
   const image = images.get(definition.asset);
   if (!image?.complete || !image.naturalWidth) return;
-  const width = image.naturalWidth * definition.scale;
-  const height = image.naturalHeight * definition.scale;
+  const width = image.naturalWidth * definition.scale * BUILDING_SCALE;
+  const height = image.naturalHeight * definition.scale * BUILDING_SCALE;
   context.save();
   context.globalAlpha = alpha;
   if (alpha === 1) drawBuildingShadow(context, image, building.x, building.y, width, height);
   context.drawImage(image, building.x - width / 2, building.y - height, width, height);
-  if (alpha < 1) {
-    context.globalCompositeOperation = 'source-atop';
-    context.fillStyle = valid ? '#57f58a66' : '#ff5d616f';
-    context.fillRect(building.x - width / 2, building.y - height, width, height);
-  }
   context.restore();
   if (alpha === 1) drawBuildingMagic(context, building, width, height, now, reducedMotion);
   if (selectedId === building.id || alpha < 1) {
@@ -296,12 +281,9 @@ function drawBuilding(building, alpha = 1, valid = true, now = performance.now()
     context.strokeStyle = alpha < 1 ? (valid ? '#75ffa0' : '#ff7478') : '#f3cd73';
     context.lineWidth = 3 / camera.zoom;
     context.setLineDash([]);
-    const left = building.x - definition.footprint[0];
-    const top = building.y - definition.footprint[1];
-    const boxWidth = definition.footprint[0] * 2;
-    const boxHeight = definition.footprint[1] * 2;
-    context.fillRect(left, top, boxWidth, boxHeight);
-    context.strokeRect(left, top, boxWidth, boxHeight);
+    const points = corners(building, plotSizes[building.type]);
+    context.beginPath(); points.forEach((p,i) => i ? context.lineTo(p.x,p.y) : context.moveTo(p.x,p.y));
+    context.closePath(); context.fill(); context.stroke();
     context.restore();
   }
 }
@@ -372,18 +354,24 @@ function drawBuildingLabel(building) {
 }
 
 function drawPlacementGrid() {
-  if (!placement) return;
-  context.save();
-  context.beginPath();
-  context.ellipse(724, 575, 482, 317, 0, 0, Math.PI * 2);
-  context.clip();
-  context.strokeStyle = '#eef7db55';
-  context.lineWidth = 1 / camera.zoom;
-  context.beginPath();
-  for (let x = 220; x <= 1228; x += BUILD_GRID) { context.moveTo(x, 230); context.lineTo(x, 920); }
-  for (let y = 230; y <= 920; y += BUILD_GRID) { context.moveTo(210, y); context.lineTo(1238, y); }
-  context.stroke();
-  context.restore();
+  if (!placement && !editorMode) return;
+  context.save(); context.beginPath();
+  context.ellipse(GROUND.x,GROUND.y,GROUND.rx,GROUND.ry,0,0,Math.PI*2); context.clip();
+  context.strokeStyle='#e5f7c866'; context.lineWidth=.8/camera.zoom; context.beginPath();
+  for(let i=-50;i<=50;i++) {
+    for(const endpoints of [[[i,-50],[i,50]],[[-50,i],[50,i]]]) {
+      const a=fromGround(...endpoints[0]),b=fromGround(...endpoints[1]);context.moveTo(a.x,a.y);context.lineTo(b.x,b.y);
+    }
+  }
+  context.stroke();context.restore();
+}
+
+function updatePlacement(point) {
+  if(!placement) return;
+  Object.assign(placement.preview,snapPoint(point.x,point.y,plotSizes[placement.type]));
+  placement.valid=canPlace(placement.preview);
+  document.querySelector('#placement-confirm').disabled=!placement.valid;
+  document.querySelector('#placement-status').textContent=placement.valid?'Ready to place':'Blocked or outside walls';
 }
 
 function render(now) {
@@ -450,14 +438,14 @@ function renderBuildMenu() {
 function beginPlacement(type, movingId = null) {
   const source = movingId ? state.buildings.find((building) => building.id === movingId) : null;
   placement = { type, movingId, preview: { id: movingId || `building-${crypto.randomUUID()}`, type, x: source?.x ?? camera.x, y: source?.y ?? camera.y, level: source?.level || 1 }, valid: false };
-  placement.valid = canPlace(placement.preview);
+  updatePlacement(placement.preview);
   selectedId = null;
   selectionPanel.hidden = true;
   buildPanel.classList.remove('open');
   viewport.classList.add('placing');
   document.querySelector('#placement-name').textContent = buildingDefinitions[type].name;
   document.querySelector('#placement-bar').hidden = false;
-  notify('Move the preview, then tap the ground to place it.');
+  notify('Drag or tap a square, then confirm with the check mark.');
 }
 
 function cancelPlacement() {
@@ -494,6 +482,7 @@ function buildingAt(point) {
 
 function selectAt(point) {
   const hit = buildingAt(point);
+  if (hit && editorMode) { beginPlacement(hit.type,hit.id); return; }
   selectedId = hit?.id || null;
   if (!hit) { selectionPanel.hidden = true; return; }
   const definition = buildingDefinitions[hit.type];
@@ -530,13 +519,6 @@ canvas.addEventListener('pointermove', (event) => {
     return;
   }
   input.pointers.set(event.pointerId, position);
-  if (placement) {
-    const point = screenToWorld(position.x, position.y);
-    placement.preview.x = Math.round(point.x / BUILD_GRID) * BUILD_GRID;
-    placement.preview.y = Math.round(point.y / BUILD_GRID) * BUILD_GRID;
-    placement.valid = canPlace(placement.preview);
-    return;
-  }
   if (input.pointers.size === 2) {
     const [a, b] = [...input.pointers.values()];
     const distance = Math.hypot(a.x - b.x, a.y - b.y);
@@ -545,6 +527,7 @@ canvas.addEventListener('pointermove', (event) => {
     input.moved = true;
     return;
   }
+  if (placement) { updatePlacement(screenToWorld(position.x,position.y)); input.moved=true; return; }
   const dx = position.x - input.lastX;
   const dy = position.y - input.lastY;
   if (Math.hypot(dx, dy) > 2) input.dragging = input.moved = true;
@@ -561,7 +544,7 @@ canvas.addEventListener('pointerup', (event) => {
   const position = pointerPosition(event);
   input.pointers.delete(event.pointerId);
   if (!input.moved) {
-    if (placement) confirmPlacement();
+    if (placement) updatePlacement(screenToWorld(position.x,position.y));
     else selectAt(screenToWorld(position.x, position.y));
   }
   if (input.pointers.size < 2) input.pinchDistance = 0;
@@ -581,10 +564,20 @@ canvas.addEventListener('wheel', (event) => {
   clampCamera();
 }, { passive: false });
 
-document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { cancelPlacement(); buildPanel.classList.remove('open'); selectionPanel.hidden = true; } });
+document.addEventListener('keydown', (event) => { if (event.key === 'Enter' && placement) { event.preventDefault(); confirmPlacement(); } if (event.key === 'Escape') { cancelPlacement(); buildPanel.classList.remove('open'); selectionPanel.hidden = true; } });
 document.querySelector('#build-toggle').addEventListener('click', () => { buildPanel.classList.toggle('open'); selectionPanel.hidden = true; renderBuildMenu(); });
 document.querySelector('#build-close').addEventListener('click', () => buildPanel.classList.remove('open'));
 document.querySelector('#placement-cancel').addEventListener('click', cancelPlacement);
+document.querySelector('#placement-confirm').addEventListener('click',confirmPlacement);
+document.querySelector('#edit-layout').addEventListener('click', () => {
+  editorMode=!editorMode;cancelPlacement();selectionPanel.hidden=true;
+  document.querySelector('#edit-layout').textContent=editorMode?'Done':'Arrange';
+  document.querySelector('#edit-layout').setAttribute('aria-pressed',String(editorMode));
+  notify(editorMode?'Select a building to move it. Drag empty ground to explore.':'Layout saved.');
+});
+document.querySelector('#fit-base').addEventListener('click', () => {
+  camera.x=724;camera.y=560;camera.targetZoom=minimumZoom();
+});
 document.querySelector('#move-building').addEventListener('click', () => { const building = state.buildings.find((item) => item.id === selectedId); if (building) beginPlacement(building.type, building.id); });
 document.querySelector('#building-info').addEventListener('click', () => notify('Production and detailed stats are coming in the next expansion.'));
 document.querySelector('#upgrade-building').addEventListener('click', () => notify('Building upgrades are coming soon.'));

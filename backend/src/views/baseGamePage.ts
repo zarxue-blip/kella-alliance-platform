@@ -6,7 +6,7 @@ export const baseGameHtml = `<!doctype html>
   <meta name="robots" content="noindex,nofollow,noarchive">
   <title>Sibyl's Sanctuary · Private Base</title>
   <link rel="icon" href="/assets/kella-favicon.png">
-  <link rel="stylesheet" href="/assets/base-game/base-game.css?v=3">
+  <link rel="stylesheet" href="/assets/base-game/base-game.css?v=4">
   <script type="importmap">{"imports":{"three":"/assets/base-game/vendor/three.module.js"}}</script>
 </head>
 <body>
@@ -29,7 +29,8 @@ export const baseGameHtml = `<!doctype html>
     </header>
 
     <button class="freya-status" id="focus-freya" type="button"><i></i> Find a villager</button>
-    <p class="base-hint">Drag to explore · Select a building, then Move to rearrange it</p>
+    <p class="base-hint">Drag to explore · Scroll or pinch to zoom · Arrange to move buildings</p>
+    <div class="editor-controls"><button class="game-button" id="edit-layout" aria-pressed="false">Arrange</button><button class="game-button" id="fit-base">View base</button></div>
     <span class="privacy-mark">Private owner workspace</span>
 
     <div class="build-dock">
@@ -49,11 +50,11 @@ export const baseGameHtml = `<!doctype html>
       <div class="selection-actions"><button id="move-building" type="button">Move</button><button id="building-info" type="button">Info</button><button id="upgrade-building" type="button">Upgrade</button></div>
     </section>
 
-    <div class="placement-bar" id="placement-bar" hidden><strong id="placement-name">Building</strong><span>Choose a clear spot</span><button class="game-button" id="placement-cancel" type="button">Cancel</button></div>
+    <div class="placement-bar" id="placement-bar" hidden><strong id="placement-name">Building</strong><span id="placement-status" role="status">Choose a clear spot</span><button class="game-button primary" id="placement-confirm" type="button" aria-label="Confirm placement">✓</button><button class="game-button" id="placement-cancel" type="button">Cancel</button></div>
     <div class="game-toast" id="game-toast" role="status"></div>
     ${['elf-1', 'elf-4', 'goblin-1', 'goblin-5', 'pixie-1', 'pixie-4', 'wizard-1', 'wizard-5'].map((name) => `<video class="media-source" data-character-video src="/assets/base-game/assets/characters/${name}.mp4" muted loop autoplay playsinline preload="auto"></video>`).join('')}
   </main>
-  <script type="module" src="/assets/base-game/game.js?v=9"></script>
+  <script type="module" src="/assets/base-game/game.js?v=10"></script>
 </body>
 </html>`;
 
