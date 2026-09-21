@@ -4,31 +4,24 @@ export const baseGameHtml = `<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>Sibyl's Sanctuary · Private Base</title>
+  <title>EVO Alliance Base</title>
   <link rel="icon" href="/assets/kella-favicon.png">
-  <link rel="stylesheet" href="/assets/base-game/base-game.css?v=4">
+  <link rel="stylesheet" href="/assets/base-game/base-game.css?v=5">
   <script type="importmap">{"imports":{"three":"/assets/base-game/vendor/three.module.js"}}</script>
 </head>
 <body>
-  <main class="base-app" aria-label="Sibyl's private sanctuary">
+  <main class="base-app" aria-label="EVO alliance base">
     <section class="base-viewport" aria-label="Playable base world">
       <canvas id="base-world"></canvas>
     </section>
 
     <header class="base-topbar">
-      <a class="brand-chip back-home" href="/" aria-label="Return to Kella home">
-        <img src="/assets/base-game/assets/alliance-hub.png" alt="">
-        <span><strong>Sibyl's Sanctuary</strong><span>Owner-only prototype</span></span>
+      <a class="base-home-button" href="/" aria-label="Return to Kella home">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.1 12 3l9 8.1v9.4a.5.5 0 0 1-.5.5h-5.3v-6.5H8.8V21H3.5a.5.5 0 0 1-.5-.5z"/><path d="m1.7 12.2 10.3-9.3 10.3 9.3"/></svg>
+        <span>Home</span>
       </a>
-      <div class="resource-bar" aria-label="Resources">
-        <div class="resource gold"><i>●</i><span>Gold</span><b data-resource="gold">0</b></div>
-        <div class="resource wood"><i>◆</i><span>Wood</span><b data-resource="wood">0</b></div>
-        <div class="resource stone"><i>■</i><span>Stone</span><b data-resource="stone">0</b></div>
-      </div>
-      <nav class="top-actions"><a class="game-button back-home" href="/">Return to Kella</a></nav>
     </header>
 
-    <button class="freya-status" id="focus-freya" type="button"><i></i> Find a villager</button>
     <p class="base-hint">Drag to explore · Scroll or pinch to zoom · Arrange to move buildings</p>
     <div class="editor-controls"><button class="game-button" id="edit-layout" aria-pressed="false">Arrange</button><button class="game-button" id="fit-base">View base</button></div>
     <span class="privacy-mark">Private owner workspace</span>
@@ -45,16 +38,19 @@ export const baseGameHtml = `<!doctype html>
       </section>
     </div>
 
-    <section class="selection-panel" id="selection-panel" hidden>
-      <div class="selection-head"><img id="selection-image" alt=""><div><h2 id="selection-name"></h2><p id="selection-level">Level 1</p></div></div>
-      <div class="selection-actions"><button id="move-building" type="button">Move</button><button id="building-info" type="button">Info</button><button id="upgrade-building" type="button">Upgrade</button></div>
-    </section>
-
     <div class="placement-bar" id="placement-bar" hidden><strong id="placement-name">Building</strong><span id="placement-status" role="status">Choose a clear spot</span><button class="game-button primary" id="placement-confirm" type="button" aria-label="Confirm placement">✓</button><button class="game-button" id="placement-cancel" type="button">Cancel</button></div>
     <div class="game-toast" id="game-toast" role="status"></div>
+    <section class="building-modal" id="research-modal" hidden role="dialog" aria-modal="true" aria-labelledby="research-modal-title">
+      <button class="building-modal-close" id="research-close" type="button" aria-label="Close">×</button>
+      <img src="/assets/base-game/assets/research.png" alt="">
+      <p>BUILDING PORTAL</p>
+      <h2 id="research-modal-title">Research Sanctuary</h2>
+      <span>Plan your next breakthrough in the alliance research calculator.</span>
+      <a href="/research">Open Research <b>↗</b></a>
+    </section>
     ${['elf-1', 'elf-4', 'goblin-1', 'goblin-5', 'pixie-1', 'pixie-4', 'wizard-1', 'wizard-5'].map((name) => `<video class="media-source" data-character-video src="/assets/base-game/assets/characters/${name}.mp4" muted loop autoplay playsinline preload="auto"></video>`).join('')}
   </main>
-  <script type="module" src="/assets/base-game/game.js?v=10"></script>
+  <script type="module" src="/assets/base-game/game.js?v=11"></script>
 </body>
 </html>`;
 

@@ -1,13 +1,12 @@
-import { GROUND, toGround, fromGround, snapPoint, corners, fits, collides } from './placement.js?v=1';
+import { GROUND, toGround, fromGround, snapPoint, corners, fits, collides } from './placement.js?v=2';
 import { createScenery, drawBuildingShadow, drawBuildingMagic, drawAtmosphere } from './scenery.js?v=1';
 import { findPath, simplifyPath } from './pathfinding.js';
-import { createSibylRenderer } from './sibyl-renderer.js?v=5';
 
 const ASSET = '/assets/base-game/assets/';
 const WORLD = { width: 1448, height: 1086 };
 const GRID = { columns: 24, rows: 18, cellWidth: WORLD.width / 24, cellHeight: WORLD.height / 18 };
 const plotSizes = { hub: 5, archery: 4, eagle: 4, stable: 5, research: 4, sentry: 3, arch: 4, notice: 3 };
-const BUILDING_SCALE = .84;
+const BUILDING_SCALE = .82;
 let editorMode = false;
 const SAVE_KEY = 'kella_private_base_v5';
 const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
@@ -45,16 +44,13 @@ const canvas = document.querySelector('#base-world');
 const context = canvas.getContext('2d', { alpha: false });
 const viewport = document.querySelector('.base-viewport');
 const buildPanel = document.querySelector('#build-panel');
-const selectionPanel = document.querySelector('#selection-panel');
 const toast = document.querySelector('#game-toast');
 const characterVideos = [...document.querySelectorAll('[data-character-video]')];
-const sibylView = createSibylRenderer(`${ASSET}sibyl/sibyl.gltf`);
-const resourceNodes = Object.fromEntries([...document.querySelectorAll('[data-resource]')].map((node) => [node.dataset.resource, node]));
+const researchModal = document.querySelector('#research-modal');
 const images = new Map();
 let deviceScale = 1;
 let viewWidth = 0;
 let viewHeight = 0;
-let selectedId = null;
 let hoveredId = null;
 let placement = null;
 let category = 'Buildings';
@@ -74,11 +70,7 @@ const roamingVillagers = characterDefinitions.map((definition, index) => ({
   facing: index % 2 ? -1 : 1,
   targetLabel: 'Exploring the sanctuary', lastFrameAt: 0
 }));
-const npcs = [{
-  definition: { name: 'Sibyl', scale: 1 }, video: null, frame: null, isSibyl: true,
-  x: 724, y: 635, path: [], segment: 0, state: 'IDLE', idleUntil: performance.now() + 900,
-  facing: 1, targetLabel: 'Watching over the sanctuary', lastFrameAt: 0
-}, ...roamingVillagers];
+const npcs = roamingVillagers;
 
 function loadState() {
   try {
@@ -206,7 +198,7 @@ function randomOpenPoint() {
   for (let attempt = 0; attempt < 50; attempt += 1) {
     const angle = Math.random() * Math.PI * 2;
     const radius = Math.sqrt(Math.random()) * .72;
-    const point = { x: 724 + Math.cos(angle) * 465 * radius, y: 575 + Math.sin(angle) * 300 * radius };
+    const point = { x: GROUND.x + Math.cos(angle) * (GROUND.rx - 28) * radius, y: GROUND.y + Math.sin(angle) * (GROUND.ry - 28) * radius };
     const cell = gridFromWorld(point.x, point.y);
     if (canWalkGrid(cell.x, cell.y)) return point;
   }
@@ -272,13 +264,17 @@ function drawBuilding(building, alpha = 1, valid = true, now = performance.now()
   context.save();
   context.globalAlpha = alpha;
   if (alpha === 1) drawBuildingShadow(context, image, building.x, building.y, width, height);
+  if (alpha === 1 && hoveredId === building.id && !placement) {
+    context.shadowColor = '#ffffff';
+    context.shadowBlur = 22;
+  }
   context.drawImage(image, building.x - width / 2, building.y - height, width, height);
   context.restore();
   if (alpha === 1) drawBuildingMagic(context, building, width, height, now, reducedMotion);
-  if (selectedId === building.id || alpha < 1) {
+  if (alpha < 1) {
     context.save();
-    context.fillStyle = alpha < 1 ? (valid ? '#48f27c40' : '#ff4f5645') : '#e8c76822';
-    context.strokeStyle = alpha < 1 ? (valid ? '#75ffa0' : '#ff7478') : '#f3cd73';
+    context.fillStyle = valid ? '#48f27c40' : '#ff4f5645';
+    context.strokeStyle = valid ? '#75ffa0' : '#ff7478';
     context.lineWidth = 3 / camera.zoom;
     context.setLineDash([]);
     const points = corners(building, plotSizes[building.type]);
@@ -308,15 +304,15 @@ function updateCharacterFrame(npc, now) {
 }
 
 function drawNpc(npc, now) {
-  if (!npc.isSibyl) updateCharacterFrame(npc, now);
+  updateCharacterFrame(npc, now);
   const isFlying = Boolean(npc.definition.flying);
   const isWalking = npc.state === 'WALK';
   const flightLift = isFlying ? 21 + Math.sin(now * .006 + npc.x * .01) * 5 : 0;
   const bob = isFlying
     ? Math.sin(now * .01 + npc.y * .01) * 3
     : isWalking ? Math.abs(Math.sin(now * .011)) * 3 : Math.sin(now * .002) * 1.2;
-  const width = (npc.isSibyl ? 88 : 46) * npc.definition.scale;
-  const height = (npc.isSibyl ? 110 : 50) * npc.definition.scale;
+  const width = 46 * npc.definition.scale;
+  const height = 50 * npc.definition.scale;
   context.save();
   context.fillStyle = isFlying ? '#d7f8ff2b' : '#05110a66';
   context.beginPath();
@@ -326,10 +322,7 @@ function drawNpc(npc, now) {
   context.scale(npc.facing < 0 ? -1 : 1, 1);
   context.shadowColor = '#f4cf72aa';
   context.shadowBlur = 5;
-  if (npc.isSibyl) {
-    sibylView.render(now / 1000, npc.facing, isWalking);
-    context.drawImage(sibylView.canvas, -width / 2, 0, width, height);
-  } else if (npc.frame.width) context.drawImage(npc.frame, -width / 2, 0, width, height);
+  if (npc.frame.width) context.drawImage(npc.frame, -width / 2, 0, width, height);
   context.restore();
 }
 
@@ -408,18 +401,11 @@ function loop(now) {
   render(now);
 }
 
-function updateResources() {
-  for (const [key, node] of Object.entries(resourceNodes)) node.textContent = Number(state.resources[key] || 0).toLocaleString();
-}
-
 function canAfford(definition) {
-  return Object.entries(definition.cost).every(([key, amount]) => state.resources[key] >= amount);
+  return Boolean(definition);
 }
 
-function spend(definition) {
-  for (const [key, amount] of Object.entries(definition.cost)) state.resources[key] -= amount;
-  updateResources();
-}
+function spend() {}
 
 function renderBuildMenu() {
   document.querySelectorAll('[data-build-category]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.buildCategory === category)));
@@ -428,7 +414,7 @@ function renderBuildMenu() {
     const alreadyPlaced = state.buildings.some((building) => building.type === key);
     return `
     <button class="build-card" data-build="${key}" ${canAfford(definition) && !alreadyPlaced ? '' : 'disabled'}>
-      <img src="${ASSET}${definition.asset}" alt="" width="64" height="64"><span><strong>${definition.name}</strong><small>${definition.cost.gold} gold · ${definition.cost.wood} wood · ${definition.cost.stone} stone</small></span>
+      <img src="${ASSET}${definition.asset}" alt="" width="64" height="64"><span><strong>${definition.name}</strong><small>Place inside the alliance grounds</small></span>
       ${alreadyPlaced ? '<em>Placed</em>' : ''}
     </button>`;
   }).join('');
@@ -439,8 +425,6 @@ function beginPlacement(type, movingId = null) {
   const source = movingId ? state.buildings.find((building) => building.id === movingId) : null;
   placement = { type, movingId, preview: { id: movingId || `building-${crypto.randomUUID()}`, type, x: source?.x ?? camera.x, y: source?.y ?? camera.y, level: source?.level || 1 }, valid: false };
   updatePlacement(placement.preview);
-  selectedId = null;
-  selectionPanel.hidden = true;
   buildPanel.classList.remove('open');
   viewport.classList.add('placing');
   document.querySelector('#placement-name').textContent = buildingDefinitions[type].name;
@@ -483,13 +467,10 @@ function buildingAt(point) {
 function selectAt(point) {
   const hit = buildingAt(point);
   if (hit && editorMode) { beginPlacement(hit.type,hit.id); return; }
-  selectedId = hit?.id || null;
-  if (!hit) { selectionPanel.hidden = true; return; }
-  const definition = buildingDefinitions[hit.type];
-  document.querySelector('#selection-name').textContent = definition.name;
-  document.querySelector('#selection-level').textContent = `Level ${hit.level || 1}`;
-  document.querySelector('#selection-image').src = ASSET + definition.asset;
-  selectionPanel.hidden = false;
+  if (!hit) return;
+  if (hit.type === 'hub') window.location.assign('/members');
+  else if (hit.type === 'notice') window.location.assign('/calendar');
+  else if (hit.type === 'research') researchModal.hidden = false;
 }
 
 function pointerPosition(event) {
@@ -516,6 +497,7 @@ canvas.addEventListener('pointermove', (event) => {
   const position = pointerPosition(event);
   if (!input.pointers.has(event.pointerId)) {
     hoveredId = buildingAt(screenToWorld(position.x, position.y))?.id || null;
+    viewport.classList.toggle('building-hovered', Boolean(hoveredId) && !editorMode);
     return;
   }
   input.pointers.set(event.pointerId, position);
@@ -551,7 +533,7 @@ canvas.addEventListener('pointerup', (event) => {
 });
 
 canvas.addEventListener('pointercancel', (event) => input.pointers.delete(event.pointerId));
-canvas.addEventListener('pointerleave', () => { hoveredId = null; });
+canvas.addEventListener('pointerleave', () => { hoveredId = null; viewport.classList.remove('building-hovered'); });
 canvas.addEventListener('contextmenu', (event) => { event.preventDefault(); cancelPlacement(); });
 canvas.addEventListener('wheel', (event) => {
   event.preventDefault();
@@ -564,13 +546,13 @@ canvas.addEventListener('wheel', (event) => {
   clampCamera();
 }, { passive: false });
 
-document.addEventListener('keydown', (event) => { if (event.key === 'Enter' && placement) { event.preventDefault(); confirmPlacement(); } if (event.key === 'Escape') { cancelPlacement(); buildPanel.classList.remove('open'); selectionPanel.hidden = true; } });
-document.querySelector('#build-toggle').addEventListener('click', () => { buildPanel.classList.toggle('open'); selectionPanel.hidden = true; renderBuildMenu(); });
+document.addEventListener('keydown', (event) => { if (event.key === 'Enter' && placement) { event.preventDefault(); confirmPlacement(); } if (event.key === 'Escape') { cancelPlacement(); buildPanel.classList.remove('open'); researchModal.hidden = true; } });
+document.querySelector('#build-toggle').addEventListener('click', () => { buildPanel.classList.toggle('open'); renderBuildMenu(); });
 document.querySelector('#build-close').addEventListener('click', () => buildPanel.classList.remove('open'));
 document.querySelector('#placement-cancel').addEventListener('click', cancelPlacement);
 document.querySelector('#placement-confirm').addEventListener('click',confirmPlacement);
 document.querySelector('#edit-layout').addEventListener('click', () => {
-  editorMode=!editorMode;cancelPlacement();selectionPanel.hidden=true;
+  editorMode=!editorMode;cancelPlacement();
   document.querySelector('#edit-layout').textContent=editorMode?'Done':'Arrange';
   document.querySelector('#edit-layout').setAttribute('aria-pressed',String(editorMode));
   notify(editorMode?'Select a building to move it. Drag empty ground to explore.':'Layout saved.');
@@ -578,15 +560,8 @@ document.querySelector('#edit-layout').addEventListener('click', () => {
 document.querySelector('#fit-base').addEventListener('click', () => {
   camera.x=724;camera.y=560;camera.targetZoom=minimumZoom();
 });
-document.querySelector('#move-building').addEventListener('click', () => { const building = state.buildings.find((item) => item.id === selectedId); if (building) beginPlacement(building.type, building.id); });
-document.querySelector('#building-info').addEventListener('click', () => notify('Production and detailed stats are coming in the next expansion.'));
-document.querySelector('#upgrade-building').addEventListener('click', () => notify('Building upgrades are coming soon.'));
-document.querySelector('#focus-freya').addEventListener('click', () => {
-  const npc = npcs[Math.floor(Math.random() * npcs.length)];
-  camera.x = npc.x; camera.y = npc.y;
-  camera.targetZoom = Math.max(.9, minimumZoom());
-  notify(`${npc.definition.name} · ${npc.targetLabel}`);
-});
+document.querySelector('#research-close').addEventListener('click', () => { researchModal.hidden = true; });
+researchModal.addEventListener('click', (event) => { if (event.target === researchModal) researchModal.hidden = true; });
 document.querySelectorAll('[data-build-category]').forEach((button) => button.addEventListener('click', () => { category = button.dataset.buildCategory; renderBuildMenu(); }));
 
 window.addEventListener('resize', resize);
@@ -596,6 +571,5 @@ document.addEventListener('visibilitychange', () => {
 });
 
 resize();
-updateResources();
 renderBuildMenu();
 requestAnimationFrame(loop);

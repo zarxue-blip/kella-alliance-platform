@@ -1,5 +1,5 @@
-export const GROUND = { x: 724, y: 602, rx: 450, ry: 270 };
-export const CELL = { x: 14, y: 9 };
+export const GROUND = { x: 724, y: 585, rx: 485, ry: 302 };
+export const CELL = { x: 13, y: 8 };
 export function toGround(x,y){return {u:((x-GROUND.x)/CELL.x+(y-GROUND.y)/CELL.y)/2,v:((y-GROUND.y)/CELL.y-(x-GROUND.x)/CELL.x)/2};}
 export function fromGround(u,v){return {x:GROUND.x+(u-v)*CELL.x,y:GROUND.y+(u+v)*CELL.y};}
 export function snapPoint(x,y,size){const p=toGround(x,y), offset=size%2?.5:0;return fromGround(Math.round(p.u-offset)+offset,Math.round(p.v-offset)+offset);}
