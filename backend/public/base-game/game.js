@@ -5,7 +5,7 @@ const ASSET = '/assets/base-game/assets/';
 const WORLD = { width: 1448, height: 1086 };
 const GRID = { columns: 24, rows: 18, cellWidth: WORLD.width / 24, cellHeight: WORLD.height / 18 };
 const BUILD_GRID = 28;
-const SAVE_KEY = 'kella_private_base_v2';
+const SAVE_KEY = 'kella_private_base_v3';
 
 const characterDefinitions = [
   { name: 'Elven Seer', asset: 'elf-1.mp4', scale: .74 },
@@ -19,19 +19,19 @@ const characterDefinitions = [
 ];
 
 const buildingDefinitions = {
-  hub: { name: 'Alliance Hub', category: 'Buildings', asset: 'alliance-hub.png', scale: .34, footprint: [78, 48], cost: { gold: 900, wood: 700, stone: 600 } },
-  archery: { name: 'Archery Range', category: 'Buildings', asset: 'archery-range.png', scale: .38, footprint: [70, 40], cost: { gold: 480, wood: 850, stone: 220 } },
-  eagle: { name: 'Eagle Nest', category: 'Buildings', asset: 'eagle-nest.png', scale: .36, footprint: [70, 42], cost: { gold: 760, wood: 520, stone: 420 } },
-  stable: { name: 'Elk Stable', category: 'Buildings', asset: 'elk-stable.png', scale: .34, footprint: [82, 46], cost: { gold: 620, wood: 780, stone: 260 } },
-  research: { name: 'Research Sanctuary', category: 'Buildings', asset: 'research.png', scale: .34, footprint: [74, 44], cost: { gold: 820, wood: 400, stone: 720 } },
-  sentry: { name: 'Ranger Sentry Post', category: 'Buildings', asset: 'ranger-sentry-post.png', scale: .4, footprint: [56, 35], cost: { gold: 320, wood: 560, stone: 180 } },
-  arch: { name: 'Longleaf Arch', category: 'Decorations', asset: 'longleaf-arch.png', scale: .36, footprint: [72, 32], cost: { gold: 240, wood: 360, stone: 120 } },
-  notice: { name: 'Notice Board', category: 'Decorations', asset: 'notice-board.png', scale: .42, footprint: [45, 28], cost: { gold: 120, wood: 220, stone: 40 } }
+  hub: { name: 'Alliance Hub', category: 'Buildings', asset: 'alliance-hub.png', scale: .28, footprint: [78, 48], cost: { gold: 900, wood: 700, stone: 600 } },
+  archery: { name: 'Archery Range', category: 'Buildings', asset: 'archery-range.png', scale: .31, footprint: [70, 40], cost: { gold: 480, wood: 850, stone: 220 } },
+  eagle: { name: 'Eagle Nest', category: 'Buildings', asset: 'eagle-nest.png', scale: .29, footprint: [70, 42], cost: { gold: 760, wood: 520, stone: 420 } },
+  stable: { name: 'Elk Stable', category: 'Buildings', asset: 'elk-stable.png', scale: .28, footprint: [82, 46], cost: { gold: 620, wood: 780, stone: 260 } },
+  research: { name: 'Research Sanctuary', category: 'Buildings', asset: 'research.png', scale: .28, footprint: [74, 44], cost: { gold: 820, wood: 400, stone: 720 } },
+  sentry: { name: 'Ranger Sentry Post', category: 'Buildings', asset: 'ranger-sentry-post.png', scale: .33, footprint: [56, 35], cost: { gold: 320, wood: 560, stone: 180 } },
+  arch: { name: 'Longleaf Arch', category: 'Decorations', asset: 'longleaf-arch.png', scale: .29, footprint: [72, 32], cost: { gold: 240, wood: 360, stone: 120 } },
+  notice: { name: 'Notice Board', category: 'Decorations', asset: 'notice-board.png', scale: .34, footprint: [45, 28], cost: { gold: 120, wood: 220, stone: 40 } }
 };
 
 const defaultBuildings = [
-  ['hub', 724, 500], ['archery', 535, 560], ['eagle', 913, 535], ['stable', 600, 720],
-  ['research', 850, 720], ['sentry', 445, 695], ['arch', 480, 405], ['notice', 975, 420]
+  ['hub', 724, 500], ['archery', 560, 560], ['eagle', 888, 550], ['stable', 640, 720],
+  ['research', 835, 710], ['sentry', 470, 690], ['arch', 540, 400], ['notice', 900, 415]
 ].map(([type, x, y], index) => ({ id: `starter-${index}`, type, x, y, level: 1 }));
 
 const canvas = document.querySelector('#base-world');
@@ -48,6 +48,7 @@ let deviceScale = 1;
 let viewWidth = 0;
 let viewHeight = 0;
 let selectedId = null;
+let hoveredId = null;
 let placement = null;
 let category = 'Buildings';
 let saveTimer = 0;
@@ -75,7 +76,7 @@ const npcs = [{
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (saved?.version === 2 && Array.isArray(saved.buildings)) {
+    if (saved?.version === 3 && Array.isArray(saved.buildings)) {
       const seen = new Set();
       const buildings = saved.buildings.filter((building) => {
         if (!buildingDefinitions[building.type] || seen.has(building.type)) return false;
@@ -85,7 +86,7 @@ function loadState() {
       return { ...saved, buildings };
     }
   } catch {}
-  return { version: 2, buildings: defaultBuildings, resources: { gold: 18420, wood: 12780, stone: 9360 } };
+  return { version: 3, buildings: defaultBuildings, resources: { gold: 18420, wood: 12780, stone: 9360 } };
 }
 
 function queueSave() {
@@ -187,7 +188,7 @@ function worldFromGrid(x, y) {
 function canWalkGrid(x, y) {
   if (x < 0 || y < 0 || x >= GRID.columns || y >= GRID.rows) return false;
   const point = worldFromGrid(x, y);
-  if (!isInsideBase(point.x, point.y, 30)) return false;
+  if (!isInsideBase(point.x, point.y, 95)) return false;
   return !state.buildings.some((building) => {
     const definition = buildingDefinitions[building.type];
     return Math.abs(point.x - building.x) < definition.footprint[0] + 18 && Math.abs(point.y - building.y) < definition.footprint[1] + 18;
@@ -391,7 +392,8 @@ function render(now) {
   const layers = state.buildings.filter((building) => building.id !== placement?.movingId).map((building) => ({ y: building.y, draw: () => drawBuilding(building) }));
   npcs.forEach((npc) => layers.push({ y: npc.y, draw: () => drawNpc(npc, now) }));
   layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw());
-  state.buildings.filter((building) => building.id !== placement?.movingId).forEach(drawBuildingLabel);
+  const hoveredBuilding = state.buildings.find((building) => building.id === hoveredId && building.id !== placement?.movingId);
+  if (hoveredBuilding) drawBuildingLabel(hoveredBuilding);
   if (placement) drawBuilding(placement.preview, .68, placement.valid);
   context.restore();
   requestAnimationFrame(loop);
@@ -469,12 +471,16 @@ function confirmPlacement() {
   npcs.filter((npc) => npc.state === 'WALK').forEach((npc) => chooseNpcDestination(npc, performance.now()));
 }
 
-function selectAt(point) {
+function buildingAt(point) {
   const ordered = [...state.buildings].sort((a, b) => b.y - a.y);
-  const hit = ordered.find((building) => {
+  return ordered.find((building) => {
     const definition = buildingDefinitions[building.type];
     return Math.abs(point.x - building.x) <= definition.footprint[0] && point.y <= building.y + 18 && point.y >= building.y - definition.footprint[1] * 3.2;
   });
+}
+
+function selectAt(point) {
+  const hit = buildingAt(point);
   selectedId = hit?.id || null;
   if (!hit) { selectionPanel.hidden = true; return; }
   const definition = buildingDefinitions[hit.type];
@@ -505,8 +511,11 @@ canvas.addEventListener('pointerdown', (event) => {
 });
 
 canvas.addEventListener('pointermove', (event) => {
-  if (!input.pointers.has(event.pointerId)) return;
   const position = pointerPosition(event);
+  if (!input.pointers.has(event.pointerId)) {
+    hoveredId = buildingAt(screenToWorld(position.x, position.y))?.id || null;
+    return;
+  }
   input.pointers.set(event.pointerId, position);
   if (placement) {
     const point = screenToWorld(position.x, position.y);
@@ -546,6 +555,7 @@ canvas.addEventListener('pointerup', (event) => {
 });
 
 canvas.addEventListener('pointercancel', (event) => input.pointers.delete(event.pointerId));
+canvas.addEventListener('pointerleave', () => { hoveredId = null; });
 canvas.addEventListener('contextmenu', (event) => { event.preventDefault(); cancelPlacement(); });
 canvas.addEventListener('wheel', (event) => {
   event.preventDefault();
