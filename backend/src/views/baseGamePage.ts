@@ -4,13 +4,13 @@ export const baseGameHtml = `<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>EVO Alliance Base</title>
+  <title>EVO Members Tool</title>
   <link rel="icon" href="/assets/kella-favicon.png">
   <link rel="stylesheet" href="/assets/base-game/base-game.css?v=5">
   <script type="importmap">{"imports":{"three":"/assets/base-game/vendor/three.module.js"}}</script>
 </head>
 <body>
-  <main class="base-app" aria-label="EVO alliance base">
+  <main class="base-app" aria-label="EVO members tool">
     <section class="base-viewport" aria-label="Playable base world">
       <canvas id="base-world"></canvas>
     </section>
