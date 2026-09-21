@@ -8,7 +8,12 @@ import morgan from "morgan";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { env } from "./config/env.js";
-import { authenticateDashboardAdmin, authenticateDashboardOwner, authenticateDashboardWikiEditor } from "./middleware/auth.js";
+import {
+  authenticate,
+  authenticateDashboardAdmin,
+  authenticateDashboardWikiEditor,
+  type AuthenticatedRequest
+} from "./middleware/auth.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { botRouter } from "./routes/bot.routes.js";
 import { apiRouter } from "./routes/index.js";
@@ -20,10 +25,13 @@ import { HttpError } from "./utils/httpError.js";
 const appDir = dirname(fileURLToPath(import.meta.url));
 const publicDir = join(appDir, "..", "public");
 
+const EVO_881_ROLE_ID = "1485933229168005282";
+
 export function createApp() {
   const app = express();
 
   app.set("trust proxy", 1);
+
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -35,37 +43,92 @@ export function createApp() {
       }
     })
   );
+
   app.use(
     cors({
       origin: env.FRONTEND_ORIGIN,
       credentials: true
     })
   );
+
   app.use(compression());
   app.use(cookieParser());
   app.use(express.json({ limit: "12mb" }));
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
   app.use(rateLimit({ windowMs: 60_000, limit: 240 }));
-  app.get('/assets/:file', (req, res, next) => {
+
+  app.get("/assets/:file", (req, res, next) => {
     const asset = kellaPageAssets.get(req.path);
-    if (!asset) return next();
-    res.set('Cache-Control', 'public, max-age=31536000, immutable').type(asset.type).send(asset.body);
+
+    if (!asset) {
+      return next();
+    }
+
+    res
+      .set("Cache-Control", "public, max-age=31536000, immutable")
+      .type(asset.type)
+      .send(asset.body);
   });
-  app.use("/assets", express.static(publicDir, { maxAge: "7d", immutable: true }));
-  app.get("/favicon.ico", (_req, res) => res.sendFile(join(publicDir, "kella-favicon.png")));
-  app.get("/apple-touch-icon.png", (_req, res) => res.sendFile(join(publicDir, "kella-logo.png")));
+
+  app.use(
+    "/assets",
+    express.static(publicDir, {
+      maxAge: "7d",
+      immutable: true
+    })
+  );
+
+  app.get("/favicon.ico", (_req, res) =>
+    res.sendFile(join(publicDir, "kella-favicon.png"))
+  );
+
+  app.get("/apple-touch-icon.png", (_req, res) =>
+    res.sendFile(join(publicDir, "kella-logo.png"))
+  );
+
   app.use("/bot", botRouter);
   app.use("/game-review", gameReviewRouter);
 
+  // EVO Members Tool
+  // Only authenticated users with the @881 Discord role can access /base.
   app.get("/base", (req, res) => {
-    authenticateDashboardOwner(req, res, (error?: unknown) => {
+    authenticate(req, res, (error?: unknown) => {
       if (error) {
-        const status = error instanceof HttpError ? error.statusCode : 403;
-        res.set("Cache-Control", "private, no-store").status(status).type("html").send(baseGameDeniedHtml(status !== 401));
+        const status =
+          error instanceof HttpError
+            ? error.statusCode
+            : 401;
+
+        res
+          .set("Cache-Control", "private, no-store")
+          .status(status)
+          .type("html")
+          .send(baseGameDeniedHtml(false));
+
         return;
       }
-      res.set("Cache-Control", "private, no-store").type("html").send(baseGameHtml);
+
+      const user = (req as AuthenticatedRequest).user;
+
+      const has881Role = (
+        user.discordRoleIds || []
+      ).includes(EVO_881_ROLE_ID);
+
+      if (!has881Role) {
+        res
+          .set("Cache-Control", "private, no-store")
+          .status(403)
+          .type("html")
+          .send(baseGameDeniedHtml(true));
+
+        return;
+      }
+
+      res
+        .set("Cache-Control", "private, no-store")
+        .type("html")
+        .send(baseGameHtml);
     });
   });
 
@@ -96,15 +159,43 @@ export function createApp() {
       "/settings"
     ],
     (req, res) => {
-      const adminPaths = ["/officer", "/migration/admin", "/tools", "/events", "/alerts", "/shield-alerts", "/embed-sender", "/complaints", "/settings"];
-      const guard = adminPaths.includes(req.path) || (req.path === "/members" && req.query.manage === "1")
-        ? authenticateDashboardAdmin : req.path === "/wiki" && req.query.edit === "1" ? authenticateDashboardWikiEditor : null;
+      const adminPaths = [
+        "/officer",
+        "/migration/admin",
+        "/tools",
+        "/events",
+        "/alerts",
+        "/shield-alerts",
+        "/embed-sender",
+        "/complaints",
+        "/settings"
+      ];
+
+      const guard =
+        adminPaths.includes(req.path) ||
+        (req.path === "/members" &&
+          req.query.manage === "1")
+          ? authenticateDashboardAdmin
+          : req.path === "/wiki" &&
+              req.query.edit === "1"
+            ? authenticateDashboardWikiEditor
+            : null;
+
       const sendPage = (error?: unknown) => {
         // The shared shell renders the safe sign-in/access screen on denial.
         // All protected data and mutations also require API authorization.
-        res.set("Cache-Control", "private, no-store").status(error ? 403 : 200).type("html").send(kellaPageHtml);
+        res
+          .set("Cache-Control", "private, no-store")
+          .status(error ? 403 : 200)
+          .type("html")
+          .send(kellaPageHtml);
       };
-      if (guard) guard(req, res, sendPage); else sendPage();
+
+      if (guard) {
+        guard(req, res, sendPage);
+      } else {
+        sendPage();
+      }
     }
   );
 
