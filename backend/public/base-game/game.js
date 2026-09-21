@@ -137,7 +137,7 @@ function resize() {
 }
 
 function minimumZoom() {
-  return Math.max(.38, Math.min(viewWidth / 1180, viewHeight / 870) * .82);
+  return Math.max(.2, Math.min(viewWidth / WORLD.width, (viewHeight - 120) / WORLD.height) * .96);
 }
 
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
