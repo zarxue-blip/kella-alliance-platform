@@ -31,6 +31,44 @@ export function createApp() {
 
   app.set("trust proxy", 1);
 
+  app.use(cookieParser());
+
+  app.get("/health", (_req, res) => {
+    res.status(200).send("OK");
+  });
+
+  app.use((req, res, next) => {
+    if (process.env.KELLA_LOCKDOWN !== "true") {
+      return next();
+    }
+
+    const ownerKey = process.env.KELLA_OWNER_KEY;
+
+    if (
+      ownerKey &&
+      typeof req.query.owner === "string" &&
+      req.query.owner === ownerKey
+    ) {
+      res.cookie("kella_owner", ownerKey, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000
+      });
+
+      return res.redirect("/");
+    }
+
+    if (ownerKey && req.cookies.kella_owner === ownerKey) {
+      return next();
+    }
+
+    return res
+      .status(404)
+      .type("text/plain")
+      .send("404 Not Found");
+  });
+
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -51,7 +89,6 @@ export function createApp() {
   );
 
   app.use(compression());
-  app.use(cookieParser());
   app.use(express.json({ limit: "12mb" }));
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
@@ -89,8 +126,6 @@ export function createApp() {
   app.use("/bot", botRouter);
   app.use("/game-review", gameReviewRouter);
 
-  // EVO Members Tool
-  // Only authenticated users with the @881 Discord role can access /base.
   app.get("/base", (req, res) => {
     authenticate(req, res, (error?: unknown) => {
       if (error) {
@@ -109,7 +144,6 @@ export function createApp() {
       }
 
       const user = (req as AuthenticatedRequest).user;
-
       const has881Role = hasEvoMemberAccess(user);
 
       if (!has881Role) {
@@ -170,17 +204,13 @@ export function createApp() {
 
       const guard =
         adminPaths.includes(req.path) ||
-        (req.path === "/members" &&
-          req.query.manage === "1")
+        (req.path === "/members" && req.query.manage === "1")
           ? authenticateDashboardAdmin
-          : req.path === "/wiki" &&
-              req.query.edit === "1"
+          : req.path === "/wiki" && req.query.edit === "1"
             ? authenticateDashboardWikiEditor
             : null;
 
       const sendPage = (error?: unknown) => {
-        // The shared shell renders the safe sign-in/access screen on denial.
-        // All protected data and mutations also require API authorization.
         res
           .set("Cache-Control", "private, no-store")
           .status(error ? 403 : 200)
