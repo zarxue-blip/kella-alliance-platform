@@ -9,6 +9,7 @@ assert.equal(migrationPower(105000000),'105M');assert.equal(migrationPower(52500
 assert.equal(isDashboardAdminUser({discordRoleIds:['1522274495728062475']}),true);
 assert.equal(isDashboardAdminUser({discordRoleIds:['1524118642353111214']}),true);
 assert.equal(isDashboardAdminUser({role:'Owner',discordRoleIds:[]}),false);
+assert.equal((await import('../src/middleware/auth.js')).hasEvoMemberAccess({discordRoleIds:[],privateSiteAccess:true}),true);
 const records:any={a:{_id:'a',discordId:'222222222222222222',role:'Member',discordRoleIds:['1485933229168005282'],allianceId:'aaaaaaaaaaaaaaaaaaaaaaaa',commanderTools:{identity:{name:'Alpha'}},baseLayout:{version:6,buildings:[{id:'a-hub',type:'hub',x:476,y:532,level:1}]}},b:{_id:'b',discordId:'333333333333333333',role:'Member',discordRoleIds:['1485933229168005282'],allianceId:'aaaaaaaaaaaaaaaaaaaaaaaa',commanderTools:{identity:{name:'Beta'}},baseLayout:{version:6,buildings:[{id:'b-hub',type:'hub',x:700,y:532,level:1}]}},c:{_id:'c',discordId:'444444444444444444',role:'Member',discordRoleIds:[],allianceId:'aaaaaaaaaaaaaaaaaaaaaaaa',commanderTools:{},baseLayout:{}}};
 (UserModel as any).findById=(id:string)=>({select(){return this;},lean:async()=>records[id]});
 (UserModel as any).updateOne=async(filter:any,update:any)=>{Object.assign(records[filter._id],update.$set);return {modifiedCount:1};};

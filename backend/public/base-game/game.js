@@ -49,7 +49,9 @@ const viewport = document.querySelector('.base-viewport');
 const buildPanel = document.querySelector('#build-panel');
 const toast = document.querySelector('#game-toast');
 const characterVideos = [...document.querySelectorAll('[data-character-video]')];
-const researchModal = document.querySelector('#research-modal');
+const buildingToolModal = document.querySelector('#building-tool-modal');
+const buildingToolFrame = document.querySelector('#building-tool-frame');
+const buildingToolTitle = document.querySelector('#building-tool-title');
 const images = new Map();
 let deviceScale = 1;
 let viewWidth = 0;
@@ -494,8 +496,29 @@ function selectAt(point) {
   if (!hit) return;
   if (hit.type === 'hub') window.location.assign('/members');
   else if (hit.type === 'notice') window.location.assign('/calendar');
-  else if (hit.type === 'research') researchModal.hidden = false;
+  else if (hit.type === 'research') openBuildingTool('/research?embedded=1', 'Research Sanctuary');
+  else if (hit.type === 'infantry') openTrainingTool('infantry', 'Infantry');
+  else if (hit.type === 'arch') openTrainingTool('mage', 'Mage');
+  else if (hit.type === 'sentry' || hit.type === 'archery') openTrainingTool('archer', 'Archer');
+  else if (hit.type === 'stable') openTrainingTool('cavalry', 'Cavalry');
+  else if (hit.type === 'eagle') openTrainingTool('flying', 'Flying Unit');
   else if (hit.type === 'admin') window.location.assign('/officer');
+}
+
+function openBuildingTool(path, title) {
+  buildingToolTitle.textContent = title;
+  buildingToolFrame.title = title;
+  buildingToolFrame.src = path;
+  buildingToolModal.hidden = false;
+}
+
+function openTrainingTool(troopType, title) {
+  openBuildingTool(`/training-tools?troop=${encodeURIComponent(troopType)}&embedded=1`, `${title} Training`);
+}
+
+function closeBuildingTool() {
+  buildingToolModal.hidden = true;
+  buildingToolFrame.src = 'about:blank';
 }
 
 function pointerPosition(event) {
@@ -571,7 +594,7 @@ canvas.addEventListener('wheel', (event) => {
   clampCamera();
 }, { passive: false });
 
-document.addEventListener('keydown', (event) => { if (event.key === 'Enter' && placement) { event.preventDefault(); confirmPlacement(); } if (event.key === 'Escape') { cancelPlacement(); buildPanel.classList.remove('open'); researchModal.hidden = true; } });
+document.addEventListener('keydown', (event) => { if (event.key === 'Enter' && placement) { event.preventDefault(); confirmPlacement(); } if (event.key === 'Escape') { cancelPlacement(); buildPanel.classList.remove('open'); closeBuildingTool(); } });
 document.querySelector('#build-toggle').addEventListener('click', () => { buildPanel.classList.toggle('open'); renderBuildMenu(); });
 document.querySelector('#build-close').addEventListener('click', () => buildPanel.classList.remove('open'));
 document.querySelector('#placement-cancel').addEventListener('click', cancelPlacement);
@@ -585,8 +608,8 @@ document.querySelector('#edit-layout').addEventListener('click', () => {
 document.querySelector('#fit-base').addEventListener('click', () => {
   camera.x=724;camera.y=560;camera.targetZoom=minimumZoom();
 });
-document.querySelector('#research-close').addEventListener('click', () => { researchModal.hidden = true; });
-researchModal.addEventListener('click', (event) => { if (event.target === researchModal) researchModal.hidden = true; });
+document.querySelector('#building-tool-close').addEventListener('click', closeBuildingTool);
+buildingToolModal.addEventListener('click', (event) => { if (event.target === buildingToolModal) closeBuildingTool(); });
 document.querySelectorAll('[data-build-category]').forEach((button) => button.addEventListener('click', () => { category = button.dataset.buildCategory; renderBuildMenu(); }));
 
 window.addEventListener('resize', resize);

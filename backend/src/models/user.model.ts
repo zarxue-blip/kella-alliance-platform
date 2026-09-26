@@ -15,6 +15,7 @@ const userSchema = new Schema(
     memberId: { type: Schema.Types.ObjectId, ref: "Member" },
     commanderTools: { type: Schema.Types.Mixed, default: {}, select: false },
     baseLayout: { type: Schema.Types.Mixed, default: {}, select: false },
+    privateSiteAccess: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
     lastLoginAt: { type: Date }
   },

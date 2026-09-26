@@ -12,6 +12,7 @@ import {
   authenticate,
   authenticateDashboardAdmin,
   authenticateDashboardWikiEditor,
+  hasPrivateSiteSession,
   hasEvoMemberAccess,
   type AuthenticatedRequest
 } from "./middleware/auth.js";
@@ -37,8 +38,18 @@ export function createApp() {
     res.status(200).send("OK");
   });
 
-  app.use((req, res, next) => {
+  app.use(async (req, res, next) => {
     if (process.env.KELLA_LOCKDOWN !== "true") {
+      return next();
+    }
+
+    if (
+      req.path === "/health" ||
+      req.path === "/favicon.ico" ||
+      req.path === "/apple-touch-icon.png" ||
+      req.path.startsWith("/assets/") ||
+      req.path.startsWith("/api/auth/")
+    ) {
       return next();
     }
 
@@ -60,6 +71,10 @@ export function createApp() {
     }
 
     if (ownerKey && req.cookies.kella_owner === ownerKey) {
+      return next();
+    }
+
+    if (await hasPrivateSiteSession(req.cookies?.[env.SESSION_COOKIE_NAME])) {
       return next();
     }
 

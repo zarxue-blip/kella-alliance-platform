@@ -11,6 +11,7 @@ export interface AuthUser {
   discordId: string;
   role: UserRole;
   discordRoleIds?: string[];
+  privateSiteAccess?: boolean;
   allianceId: string;
 }
 
@@ -26,8 +27,20 @@ const fallbackDashboardAdminRoleIds = [kellaDiscordRoles.admin, kellaDiscordRole
 const fallbackDashboardWikiRoleIds = ["1529826271813570650"];
 export const evoMemberRoleId = "1485933229168005282";
 
-export function hasEvoMemberAccess(user: { discordRoleIds?: string[] }) {
-  return (user.discordRoleIds || []).includes(evoMemberRoleId);
+export function hasEvoMemberAccess(user: { discordRoleIds?: string[]; privateSiteAccess?: boolean }) {
+  return Boolean(user.privateSiteAccess) || (user.discordRoleIds || []).includes(evoMemberRoleId);
+}
+
+export async function hasPrivateSiteSession(token?: string) {
+  if (!token) return false;
+  try {
+    const payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
+    const user = await UserModel.findById(payload.id).lean() as any;
+    if (!user || user.disabled) return false;
+    return user.role === "Owner" || Boolean(user.privateSiteAccess);
+  } catch {
+    return false;
+  }
 }
 
 export function requireEvoMemberAccess(req: Request, _res: Response, next: NextFunction) {
@@ -85,11 +98,13 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
       return;
     }
 
+    const privateSiteAccess = Boolean(user.privateSiteAccess);
     (req as AuthenticatedRequest).user = {
       id: user._id.toString(),
       discordId: user.discordId,
       role: user.role,
       discordRoleIds: user.discordRoleIds || [],
+      privateSiteAccess,
       allianceId: user.allianceId.toString()
     };
     next();

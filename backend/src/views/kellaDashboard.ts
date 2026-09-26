@@ -3343,7 +3343,7 @@ export function kellaDashboardHtml() {
     <link rel="stylesheet" href="/assets/command-center.css?v=1" />
     <link rel="stylesheet" href="/assets/noticeboard.css?v=8" />
     <link rel="stylesheet" href="/assets/command-workspace.css?v=1" />
-    <link rel="stylesheet" href="/assets/fantasy-portal.css?v=members-tool-2" />
+    <link rel="stylesheet" href="/assets/fantasy-portal.css?v=members-tool-3" />
   </head>
   <body>
     <div class="realm-coins" aria-hidden="true"><i style="--x:5%;--y:7%;--size:10px;--duration:12s;--delay:-0s" class="portal-coin"><span>✦</span></i><i style="--x:42%;--y:26%;--size:15px;--duration:13s;--delay:-2s" class="portal-coin"><span>✦</span></i><i style="--x:79%;--y:45%;--size:20px;--duration:14s;--delay:-4s" class="portal-coin"><span>✦</span></i><i style="--x:19%;--y:64%;--size:25px;--duration:15s;--delay:-6s" class="portal-coin"><span>✦</span></i><i style="--x:56%;--y:83%;--size:10px;--duration:16s;--delay:-8s" class="portal-coin"><span>✦</span></i><i style="--x:93%;--y:6%;--size:15px;--duration:17s;--delay:-10s" class="portal-coin"><span>✦</span></i><i style="--x:33%;--y:25%;--size:20px;--duration:18s;--delay:-12s" class="portal-coin"><span>✦</span></i><i style="--x:70%;--y:44%;--size:25px;--duration:12s;--delay:-14s" class="portal-coin"><span>✦</span></i><i style="--x:10%;--y:63%;--size:10px;--duration:13s;--delay:-16s" class="portal-coin"><span>✦</span></i><i style="--x:47%;--y:82%;--size:15px;--duration:14s;--delay:-18s" class="portal-coin"><span>✦</span></i><i style="--x:84%;--y:5%;--size:20px;--duration:15s;--delay:-20s" class="portal-coin"><span>✦</span></i><i style="--x:24%;--y:24%;--size:25px;--duration:16s;--delay:-22s" class="portal-coin"><span>✦</span></i><i style="--x:61%;--y:43%;--size:10px;--duration:17s;--delay:-24s" class="portal-coin"><span>✦</span></i><i style="--x:1%;--y:62%;--size:15px;--duration:18s;--delay:-26s" class="portal-coin"><span>✦</span></i><i style="--x:38%;--y:81%;--size:20px;--duration:12s;--delay:-28s" class="portal-coin"><span>✦</span></i><i style="--x:75%;--y:4%;--size:25px;--duration:13s;--delay:-30s" class="portal-coin"><span>✦</span></i><i style="--x:15%;--y:23%;--size:10px;--duration:14s;--delay:-32s" class="portal-coin"><span>✦</span></i><i style="--x:52%;--y:42%;--size:15px;--duration:15s;--delay:-34s" class="portal-coin"><span>✦</span></i></div>
@@ -3403,6 +3403,8 @@ export function kellaDashboardHtml() {
     <script>
       const app = document.getElementById("app");
       const toasts = document.getElementById("toasts");
+      const embeddedTool = new URLSearchParams(location.search).get("embedded") === "1";
+      document.body.classList.toggle("embedded-tool", embeddedTool);
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
@@ -4548,6 +4550,7 @@ export function kellaDashboardHtml() {
           '<label>Role<select data-admin-member="role">' + roleOptions(member.role || "Member") + '</select></label>' +
           '<label>Timezone<input data-admin-member="timezone" value="' + escapeHtml(member.timezone || "") + '" /></label>' +
           '<label>Country<input data-admin-member="country" value="' + escapeHtml(member.country || "") + '" /></label>' +
+          '<label class="wide"><span>Private site access</span><span class="toolbar"><input type="checkbox" data-admin-member="privateSiteAccess"' + (member.privateSiteAccess ? ' checked' : '') + ' /><button class="secondary" type="button" data-action="copy-private-access-link">Copy Discord login link</button></span><span class="muted">Allows this Discord-linked player to enter the private site with member permissions and edit only their own profile.</span></label>' +
           '<label class="wide">Officer Notes<textarea data-admin-member="notes">' + escapeHtml(member.notes || "") + '</textarea></label>' +
         '</div></section>';
       }
@@ -7176,6 +7179,8 @@ export function kellaDashboardHtml() {
       }
 
       function renderTrainingTools() {
+        const requestedTroopType = new URLSearchParams(location.search).get("troop") || "";
+        if (Object.prototype.hasOwnProperty.call(trainingTroopTypes, requestedTroopType)) state.trainingTroopType = requestedTroopType;
         const selected = ["points", "speedup", "power", "mixed"].includes(state.trainingMode) ? state.trainingMode : "points";
         state.trainingMode = selected;
         const selectedTroopType = Object.prototype.hasOwnProperty.call(trainingTroopTypes, state.trainingTroopType) ? state.trainingTroopType : "cavalry";
@@ -8713,6 +8718,7 @@ ${portalHomeClient}
           country: value("country"),
           notes: value("notes")
         };
+        payload.privateSiteAccess = Boolean(root.querySelector('[data-admin-member="privateSiteAccess"]')?.checked);
         const ign = value("ign");
         const uid = value("uid");
         const discordId = value("discordId");
@@ -9270,6 +9276,10 @@ ${portalHomeClient}
           await route();
         }, "Logged out.");
         if (kind === "copy-command") withFeedback(action, function() { return navigator.clipboard.writeText(action.getAttribute("data-value") || ""); }, "Command copied.");
+        if (kind === "copy-private-access-link") {
+          withFeedback(action, function() { return navigator.clipboard.writeText(location.origin + "/api/auth/discord"); }, "Private Discord login link copied.");
+          return;
+        }
         if (kind === "toggle-message-link-button") {
           const scope = action.getAttribute("data-button-scope") || "";
           const enabled = !action.classList.contains("on");
@@ -9309,7 +9319,8 @@ ${portalHomeClient}
         }
         if (kind === "reset-training") {
           state.trainingMode = "points";
-          state.trainingTroopType = "cavalry";
+          const requestedTroopType = new URLSearchParams(location.search).get("troop") || "";
+          state.trainingTroopType = Object.prototype.hasOwnProperty.call(trainingTroopTypes, requestedTroopType) ? requestedTroopType : "cavalry";
           state.trainingMixedTier = "t5";
           state.trainingMixedSteps = [];
           state.trainingMixedCurrent = null;

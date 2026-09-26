@@ -17,7 +17,7 @@ export const baseGameHtml = `<!doctype html>
 
   <link
     rel="stylesheet"
-    href="/assets/base-game/base-game.css?v=6"
+    href="/assets/base-game/base-game.css?v=7"
   >
 
   <script type="importmap">
@@ -198,16 +198,23 @@ export const baseGameHtml = `<!doctype html>
 
     <section
       class="building-modal"
-      id="research-modal"
+      id="building-tool-modal"
       hidden
       role="dialog"
       aria-modal="true"
-      aria-label="Research calculator"
+      aria-labelledby="building-tool-title"
     >
+
+      <h2
+        class="building-modal-title"
+        id="building-tool-title"
+      >
+        Building Tool
+      </h2>
 
       <button
         class="building-modal-close"
-        id="research-close"
+        id="building-tool-close"
         type="button"
         aria-label="Close"
       >
@@ -215,9 +222,10 @@ export const baseGameHtml = `<!doctype html>
       </button>
 
       <iframe
-        class="research-frame"
-        src="/research"
-        title="Research calculator"
+        class="building-tool-frame"
+        id="building-tool-frame"
+        src="about:blank"
+        title="Building tool"
         loading="lazy"
       ></iframe>
 
@@ -252,7 +260,7 @@ export const baseGameHtml = `<!doctype html>
 
   <script
     type="module"
-    src="/assets/base-game/game.js?v=12"
+    src="/assets/base-game/game.js?v=13"
   ></script>
 
 </body>

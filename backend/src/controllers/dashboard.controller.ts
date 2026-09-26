@@ -66,6 +66,7 @@ type DashboardMember = {
   country?: string;
   attendanceScore?: number;
   notes?: string;
+  privateSiteAccess?: boolean;
   alliance?: string;
   power?: number;
   powerHistory?: Array<{ date?: Date | string; power?: number; source?: string; filename?: string }>;
@@ -314,7 +315,8 @@ const dashboardMemberUpdateSchema = z.object({
   country: z.string().max(80).optional(),
   profilePhotoUrl: profilePhotoSchema,
   discordAvatarUrl: z.string().max(500).optional(),
-  notes: z.string().max(2000).optional()
+  notes: z.string().max(2000).optional(),
+  privateSiteAccess: z.boolean().optional()
 });
 
 const dashboardMemberCreateSchema = z.object({
@@ -333,6 +335,7 @@ const dashboardMemberCreateSchema = z.object({
   timezone: z.string().max(80).optional(),
   country: z.string().max(80).optional(),
   notes: z.string().max(2000).optional(),
+  privateSiteAccess: z.boolean().optional(),
   stats: z.record(z.coerce.number().min(0)).optional()
 });
 
@@ -1004,6 +1007,7 @@ function dashboardMemberDto(member: any, options: { historyLimit?: number; compa
     role: member.role,
     attendance: member.attendanceScore,
     notes: options.compact ? "" : member.notes,
+    privateSiteAccess: Boolean(member.privateSiteAccess),
     alliance: member.alliance,
     power: member.power,
     powerHistory: responsePowerHistory,
@@ -1416,7 +1420,7 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
     .select(
       dashboardView
         ? "mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role attendanceScore alliance power powerHistory statHistory"
-        : "mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role timezone country attendanceScore notes alliance power powerHistory statHistory"
+        : "mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role timezone country attendanceScore notes privateSiteAccess alliance power powerHistory statHistory"
     );
 
   if (dashboardView) {
@@ -1504,7 +1508,7 @@ export const dashboardProfileUpdate = asyncHandler(async (req, res) => {
     { _id: member._id, allianceId: user.allianceId, discordId: user.discordId },
     { $set: body },
     { new: true, runValidators: true }
-  ).lean();
+  ).lean() as any;
   if (!updated) throw new HttpError(404, "Profile not found");
   const profile = dashboardMemberDto(updated);
   delete (profile as any).notes;
@@ -1625,7 +1629,7 @@ export const dashboardMemberUpdate = asyncHandler(async (req, res) => {
 
   const updateBody: Record<string, unknown> = {};
   const unsetBody: Record<string, string> = {};
-  for (const key of ["ign", "uid", "power", "alliance", "rank", "role", "timezone", "country", "profilePhotoUrl", "discordAvatarUrl", "notes"] as const) {
+  for (const key of ["ign", "uid", "power", "alliance", "rank", "role", "timezone", "country", "profilePhotoUrl", "discordAvatarUrl", "notes", "privateSiteAccess"] as const) {
     if (body[key] !== undefined) updateBody[key] = body[key];
   }
 
@@ -1670,8 +1674,14 @@ export const dashboardMemberUpdate = asyncHandler(async (req, res) => {
     { _id: req.params.id, ...allianceFilter(allianceId) },
     updateOperation,
     { new: true, runValidators: true }
-  ).lean();
+  ).lean() as any;
   if (!updated) throw new HttpError(404, "Member not found");
+  if (body.privateSiteAccess !== undefined) {
+    await UserModel.updateMany(
+      { allianceId, $or: [{ memberId: updated._id }, { discordId: updated.discordId }] },
+      { $set: { privateSiteAccess: body.privateSiteAccess, memberId: updated._id } }
+    );
+  }
   res.json({ member: dashboardMemberDto(updated) });
 });
 

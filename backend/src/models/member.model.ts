@@ -42,7 +42,8 @@ const memberSchema = new Schema(
     attendanceScore: { type: Number, default: 0 },
     warScore: { type: Number, default: 0 },
     contributionScore: { type: Number, default: 0 },
-    notes: { type: String, default: "" }
+    notes: { type: String, default: "" },
+    privateSiteAccess: { type: Boolean, default: false, index: true }
   },
   { timestamps: true }
 );

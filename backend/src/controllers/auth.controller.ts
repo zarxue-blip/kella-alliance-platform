@@ -4,6 +4,7 @@ import { createOAuthState, verifyOAuthState, oauthStateCookie } from "../service
 import { env, isProduction } from "../config/env.js";
 import { AllianceModel } from "../models/alliance.model.js";
 import { UserModel } from "../models/user.model.js";
+import { MemberModel } from "../models/member.model.js";
 import { getDiscordAuthorizationUrl, exchangeDiscordCode, getDiscordOAuthGuildMember } from "../services/discordOAuth.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
@@ -88,10 +89,15 @@ export const discordCallback = asyncHandler(async (req: Request, res: Response) 
     role: existingUser?.role,
     discordRoleIds
   });
+  const linkedMember = await MemberModel.findOne({ allianceId: alliance._id, discordId: identity.id })
+    .select("_id privateSiteAccess")
+    .lean() as any;
+  const hasPrivateSiteAccess = Boolean(linkedMember?.privateSiteAccess);
   if (
     env.DISCORD_GUILD_ID &&
     !hasConfiguredAdminAccess &&
     !hasConfiguredWikiEditorAccess &&
+    !hasPrivateSiteAccess &&
     userCount > 0 &&
     !hasAnyRole(discordRoleIds, env.DASHBOARD_MEMBER_ROLE_IDS)
   ) {
@@ -115,6 +121,8 @@ export const discordCallback = asyncHandler(async (req: Request, res: Response) 
         inConfiguredGuild: Boolean(guildMember || !env.DISCORD_GUILD_ID),
         allianceId: alliance._id,
         role: nextRole,
+        memberId: linkedMember?._id,
+        privateSiteAccess: hasPrivateSiteAccess,
         lastLoginAt: new Date()
       }
     },
@@ -125,6 +133,7 @@ export const discordCallback = asyncHandler(async (req: Request, res: Response) 
     id: user._id.toString(),
     discordId: user.discordId,
     role: user.role,
+    privateSiteAccess: hasPrivateSiteAccess,
     allianceId: user.allianceId.toString()
   });
 
