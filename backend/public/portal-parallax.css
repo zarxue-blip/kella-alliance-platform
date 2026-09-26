@@ -1,0 +1,96 @@
+/* Native page scrolling drives the supplied film. The camera stays centered. */
+.portal-parallax{--realm-bg:#0c1715;--realm-text:#ede8d7;--realm-muted:#a7b4a7;background:var(--realm-bg);color:var(--realm-text);overflow:clip}
+.portal-parallax [data-depth]{transform:translate3d(0,var(--depth-y,0px),0);will-change:transform;pointer-events:none}
+.portal-parallax .portal-eyebrow{font:600 10px/1.6 'Segoe UI',sans-serif;letter-spacing:.2em;color:#c2b18a}
+.kingdom-journey{--kingdom-header:88px;--kingdom-intro:1;position:relative;height:500svh;scroll-margin-top:var(--kingdom-header);background:#263c25}
+.kingdom-stage{position:sticky;top:var(--kingdom-header);height:calc(100svh - var(--kingdom-header));min-height:320px;isolation:isolate;overflow:hidden}
+.kingdom-film{position:absolute;inset:0;z-index:-3;background:#263c25;pointer-events:none}
+.kingdom-film video,.kingdom-film .kingdom-still{display:block;position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:cover;object-position:50% 50%;border:0;transform:none}
+.kingdom-film .kingdom-still{visibility:hidden}
+.kingdom-shade{position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(#081a124a,transparent 35% 60%,#081a1277)}
+.kingdom-shade:after{content:'';position:absolute;inset:0;opacity:var(--kingdom-intro);background:linear-gradient(#0d251870,#0d251846 45%,transparent);pointer-events:none}
+.kingdom-topline,.kingdom-bottomline{position:absolute;inset-inline:5%;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:20px;color:#fff7dd}
+.kingdom-topline{top:24px}.kingdom-topline>span{font:600 10px/1.5 'Segoe UI',sans-serif;letter-spacing:.2em;text-shadow:0 2px 6px #142215}
+.kingdom-topline button{min-height:42px;background:#13241de6;border-color:#dfcd9666;color:#ede1c4;font-size:11px;padding:9px 15px}
+.kingdom-intro{position:absolute;inset:24% 5% auto;text-align:center;opacity:var(--kingdom-intro);pointer-events:none;transform:translateY(calc(var(--kingdom-progress,0)*-70px));color:#fff4d6;text-shadow:0 3px 24px #122715aa}
+.kingdom-intro h1{margin:20px 0}.kingdom-intro h1 img{width:clamp(220px,29vw,420px);height:auto;filter:drop-shadow(0 5px 22px #16301b88)}
+.kingdom-intro .portal-eyebrow{color:#f5e9cb;font-size:9px;letter-spacing:.23em}.kingdom-intro>p:last-child{font:400 clamp(24px,3vw,42px)/1.2 Georgia,serif;margin:20px 0}
+.kingdom-intro-hidden .kingdom-intro{visibility:hidden}
+.kingdom-enter{position:absolute;top:56%;left:50%;transform:translate(-50%,-50%);z-index:4;text-align:center;min-width:250px;animation:kingdom-invitation .45s ease-out both}
+.kingdom-enter[hidden]{display:none}
+.kingdom-enter .portal-eyebrow{color:#342814;font-size:10px;letter-spacing:.21em;text-shadow:0 1px 16px #fff8db;margin-bottom:18px;font-weight:700}
+.kingdom-enter a.primary{min-height:58px;padding:15px 28px;gap:28px;font:600 16px/1.4 'Segoe UI',sans-serif;color:#f8eccf;background:#182d22ed;border:1px solid #e3c785;border-radius:3px;box-shadow:0 10px 38px #4e3c272b,0 0 0 5px #fff2c529;text-decoration:none;white-space:nowrap}
+.kingdom-enter a.primary:hover{background:#294432;border-color:#fff0c3;filter:none;box-shadow:0 10px 38px #4e3c2745,0 0 0 5px #fff2c540}
+.kingdom-bottomline{bottom:32px;font-size:11px}
+.kingdom-bottomline a,.kingdom-bottomline p{display:flex;align-items:center;justify-content:center;min-height:42px;margin:0;padding:9px 14px;background:#12231cbd;border:1px solid #e6d5a32e;border-radius:3px;color:#f2e5c7;text-decoration:none;line-height:1.5}
+.kingdom-bottomline p{border-color:transparent;background:#12231c9c;text-align:center}.kingdom-bottomline a:hover{background:#24392ce6;border-color:#e6d5a366}
+.kingdom-bottomline .kingdom-support{font-weight:600}
+.kingdom-progress{position:absolute;bottom:0;left:0;right:0;height:2px;background:#fff3cf22}
+.kingdom-progress i{display:block;height:100%;background:#eed497;transform:scaleX(var(--kingdom-progress,0));transform-origin:0 50%}
+.kingdom-regular{height:calc(100svh - var(--kingdom-header));min-height:420px}.kingdom-regular .kingdom-stage{position:relative;top:0;height:100%;min-height:420px}
+.kingdom-regular .kingdom-film video{display:none}.kingdom-regular .kingdom-still{visibility:visible}.kingdom-regular .kingdom-progress{display:none}
+@keyframes kingdom-invitation{from{opacity:0;translate:0 8px}to{opacity:1;translate:0 0}}
+@media(max-width:700px){
+ .kingdom-journey{height:450svh}.kingdom-regular{height:calc(100svh - var(--kingdom-header))}
+ .kingdom-topline,.kingdom-bottomline{inset-inline:5%;gap:10px}.kingdom-topline{top:18px}.kingdom-topline>span{font-size:8px;letter-spacing:.12em;max-width:135px}.kingdom-topline button{font-size:10px;padding:8px 11px}
+ .kingdom-intro{top:27%}.kingdom-intro h1 img{width:72%;max-width:350px}.kingdom-intro .portal-eyebrow{font-size:8px;letter-spacing:.14em}.kingdom-intro>p:last-child{font-size:27px}
+ .kingdom-bottomline{bottom:18px;display:grid;grid-template-columns:1fr 1fr;gap:8px}.kingdom-bottomline p{grid-column:1/-1;grid-row:1;font-size:11px;padding:6px 10px}.kingdom-bottomline a{font-size:10px;padding:8px}
+ .kingdom-enter{top:53%}.kingdom-enter a.primary{font-size:15px;min-height:54px}
+}
+@media(max-height:500px){.kingdom-intro{top:22%}.kingdom-intro h1{margin:8px 0}.kingdom-intro h1 img{width:170px}.kingdom-intro>p:last-child{font-size:23px;margin:10px 0}.kingdom-bottomline{bottom:12px}.kingdom-topline{top:12px}}
+@media(prefers-reduced-motion:reduce){.portal-parallax [data-depth]{transform:none!important;will-change:auto}.kingdom-enter{animation:none}.kingdom-intro{transform:none}.kingdom-journey{height:calc(100svh - var(--kingdom-header))}.kingdom-stage{position:relative;top:0}}
+.portal-parallax .portal-realm{position:relative;isolation:isolate;padding:90px 0 25px;scroll-margin-top:80px;overflow:hidden;background:#0c1715}
+.portal-parallax .portal-realm-scenery{position:absolute;inset:-160px 0;z-index:-1;background:linear-gradient(#0c1715, #0c1715cf 35%,#0c1715d9 70%,#0c1715),url('/assets/base-game/assets/enchanted-forest.webp') center/cover;opacity:.8}
+.portal-parallax .portal-body{max-width:1320px;padding-inline:6vw;width:100%;margin:auto}
+.portal-parallax .portal-section-heading{margin-bottom:46px;align-items:end;gap:30px}
+.portal-parallax .portal-section-heading h2,.portal-parallax .portal-honour-copy h2{font:400 clamp(32px,3.8vw,56px)/1.1 Georgia,serif;letter-spacing:-.025em;color:#eee7d6;margin:16px 0 0;text-wrap:balance}
+.portal-parallax .portal-text-link{display:inline-flex;align-items:center;min-height:44px;font-size:12px;color:#dbc59a;text-decoration:none;border-bottom:1px solid #c2b18a66}
+.portal-parallax .portal-text-link:hover{color:#fff0c6;border-color:#ffe4a2}
+.portal-parallax .portal-tools-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:56px;align-items:start}
+.portal-parallax .portal-features{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 32px}
+.portal-parallax .portal-feature{display:flex;flex-direction:row;align-items:center;min-height:126px;gap:16px;padding:22px 22px 22px 0;border:0;border-top:1px solid #c2b18a35;border-radius:0;background:none;transition:color .16s,border-color .16s;box-shadow:none;transform:none}
+.portal-parallax .portal-feature:hover{transform:none;box-shadow:none;border-color:#c2b18aa0;background:linear-gradient(90deg,transparent,#c2b18a08)}
+.portal-parallax .portal-feature img{width:44px;height:52px;flex-shrink:0;object-fit:contain;margin:0;filter:drop-shadow(0 5px 10px #0005)}
+.portal-parallax .portal-feature strong{font:400 19px/1.2 Georgia,serif;color:#eee3c9}
+.portal-parallax .portal-feature p{font-size:11px;line-height:1.5;color:#a1b4a6;margin:7px 0 0;padding:0;max-width:21ch}
+.portal-parallax .portal-feature-number{display:none}
+.portal-parallax .portal-feature-arrow{right:2px;bottom:auto;top:calc(50% - 10px);font-size:13px;color:#c2b18a}
+.portal-parallax .hero-calendar{position:relative;inset:auto;transform:none;width:100%;max-width:none;margin:0;padding:24px;background:#15241fea;border:1px solid #c2b18a4d;border-radius:5px;box-shadow:0 24px 65px #04130e40;z-index:1}
+.portal-parallax .hero-calendar h2{font:400 24px Georgia,serif;color:#f0e3c5}
+.portal-parallax .hero-calendar .portal-eyebrow{font-size:8px;letter-spacing:.1em}
+.portal-parallax .hero-calendar header{align-items:start;gap:12px}
+.portal-parallax .hero-calendar header button{min-height:36px;min-width:28px;padding:3px;border-color:#c2b18a44;background:#1d3025;color:#ead6ac}
+.portal-parallax .hero-calendar .mini-days a{min-height:34px;height:auto;font-size:11px;border-radius:50%}
+.portal-parallax .hero-calendar footer{font-size:9px;gap:10px}
+.portal-parallax .portal-live{margin-top:50px;padding:30px 0;border-color:#c2b18a30;gap:70px;justify-content:start}
+.portal-parallax .portal-live strong{font:400 32px Georgia,serif;color:#e1cfad}
+.portal-parallax .portal-live span{color:#8fa99c;font-size:8px;letter-spacing:.14em}
+.portal-parallax .portal-honour{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(#0c1715,#10211c 50%,#0c1715);padding:75px 0}
+.portal-parallax .portal-community{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr);gap:8%;padding-bottom:0;align-items:start}
+.portal-parallax .portal-honour-copy{padding-top:55px;position:relative;z-index:2}
+.portal-parallax .portal-honour-copy>p:not(.portal-eyebrow){color:#abbcad;font-size:14px;line-height:1.8;max-width:26ch;margin:25px 0}
+.portal-parallax .portal-honour-art{position:absolute;left:0;bottom:-16%;height:90%;width:48%;z-index:-1;opacity:.16;mask-image:linear-gradient(transparent,#000 20% 50%,transparent);-webkit-mask-image:linear-gradient(transparent,#000 20% 50%,transparent)}
+.portal-parallax .portal-honour-art img{width:100%;height:100%;object-fit:contain;filter:saturate(.5)}
+.portal-parallax .showcase-board{min-height:0;padding:28px;border-radius:5px;background:#12251ed9;border-color:#c2b18a38}
+.portal-parallax .showcase-board h2{font-size:27px;margin:8px 0 18px}
+.portal-parallax .showcase-board header>span{display:none}
+.portal-parallax .showcase-board .showcase-player{padding:10px 5px;min-height:54px}
+.portal-parallax .showcase-board .champion-info strong{font-size:12px}
+.portal-parallax .portal-footer{border-color:#c2b18a30;padding:32px 0 42px;color:#a1b3a6}
+.portal-parallax .portal-footer>a{color:#dbc59a}
+@media(min-width:1500px){.portal-parallax .portal-body{padding-inline:32px}}
+@media(max-width:1000px){
+ .portal-parallax .portal-tools-layout{grid-template-columns:1fr 280px;gap:30px}.portal-parallax .portal-features{grid-template-columns:1fr}.portal-parallax .portal-feature{min-height:100px}
+ .portal-parallax .portal-community{gap:5%;grid-template-columns:.7fr 1fr}.portal-parallax .portal-honour-copy h2{font-size:38px}
+}
+@media(max-width:700px){
+ .portal-parallax .portal-subtitle{font-size:36px;margin-bottom:18px}.portal-parallax .portal-intro{font-size:13px;margin-bottom:26px}
+ .portal-parallax .portal-realm{padding-top:60px}.portal-parallax .portal-body{padding-inline:7%}
+ .portal-parallax .portal-section-heading{align-items:start;flex-direction:column;gap:18px;margin-bottom:30px}.portal-parallax .portal-section-heading h2{font-size:35px}
+ .portal-parallax .portal-tools-layout{grid-template-columns:1fr;gap:36px}.portal-parallax .portal-features{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px}
+ .portal-parallax .portal-feature{flex-direction:column;align-items:start;gap:12px;min-height:160px;padding:18px 14px 22px 0}.portal-parallax .portal-feature img{width:36px;height:40px}.portal-parallax .portal-feature strong{font-size:17px}.portal-parallax .portal-feature p{font-size:10px}
+ .portal-parallax .portal-feature-arrow{top:27px;right:3px}.portal-parallax .hero-calendar{padding:22px;max-width:450px;justify-self:center}.portal-parallax .hero-calendar .mini-days a{min-height:40px}
+ .portal-parallax .portal-live{gap:40px;margin-top:35px;justify-content:center}.portal-parallax .portal-community{grid-template-columns:1fr;gap:30px}
+ .portal-parallax .portal-honour{padding:40px 0}.portal-parallax .portal-honour-copy{padding-top:0}.portal-parallax .portal-honour-copy h2{font-size:40px}.portal-parallax .portal-honour-art{width:90%;height:60%;bottom:-8%;left:-15%;opacity:.1}
+ .portal-parallax .showcase-board{padding:22px}.portal-parallax .portal-footer{gap:10px}.portal-parallax .portal-footer strong{font-size:10px}.portal-parallax .portal-footer>a{font-size:11px}
+}

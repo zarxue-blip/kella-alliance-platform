@@ -1,0 +1,145 @@
+/* Shared atmosphere; the scenery moves, operational content stays still. */
+body.site-parallax-ready {
+  --bg:#101713;
+  --panel:#18211c;
+  --panel-2:#202a23;
+  --panel-3:#28332a;
+  --text:#eee9db;
+  --ink:#eee9db;
+  --muted:#b0b8a8;
+  --line:#bca36d30;
+  --gold:#c8ad75;
+  --gold-soft:#e5d2a6;
+  --paper:#18211c;
+  --paper-soft:#202a23;
+  --paper-deep:#28332a;
+  background:#101713;
+  color:var(--text);
+}
+body.site-parallax-ready .realm-coins {display:none}
+body.site-parallax-ready canvas.header-coins {opacity:.075}
+/* A scrolling ancestor must not clip the viewport-sticky film or navigation. */
+body.site-parallax-ready .shell {backdrop-filter:none;overflow:visible;border-radius:0}
+body.site-parallax-ready .shell>.sidebar {
+  background:#101813f2;
+  border-bottom-color:#bda67228;
+  box-shadow:0 5px 28px #0002;
+}
+body.site-parallax-ready .sidebar>nav a,
+body.site-parallax-ready .sidebar>.top-actions,
+body.site-parallax-ready .header-coins+.brand {background-color:transparent}
+body.site-parallax-ready .sidebar nav a.active {background:#bda67212;border-color:#bda67245;color:#ebd8ac}
+body.site-parallax-ready .account-panel {background:#17211a;border-color:#6d6347}
+.site-motion-toggle {
+  display:flex;
+  align-items:center;
+  width:100%;
+  min-height:44px;
+  margin:4px 0 0;
+  padding:10px 12px;
+  border:1px solid #bca36d35;
+  border-radius:4px;
+  background:#c8ad750c;
+  color:#e4d3ae;
+  text-align:left;
+  font:500 12px/1.4 'Segoe UI',sans-serif;
+}
+.site-motion-toggle:hover {background:#c8ad751b;border-color:#bca36d80}
+.site-motion-toggle:focus-visible {outline:2px solid #e1c48e;outline-offset:3px}
+.site-motion-toggle[hidden],.site-parallax-scene[hidden] {display:none}
+.site-parallax-scene {
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  pointer-events:none;
+  z-index:0;
+  contain:strict;
+  background:#101713;
+}
+.site-parallax-scene>div {position:absolute;pointer-events:none}
+.site-parallax-distance {
+  inset:-130px -4% -70px;
+  background:url('/assets/castle-scenery.png') center 32%/cover no-repeat;
+  opacity:.17;
+  filter:saturate(.45);
+  transform:translate3d(0,var(--scene-far-y,0px),0);
+  will-change:transform;
+}
+.site-parallax-woodland {
+  inset:-40px -4% -230px;
+  background:url('/assets/base-game/assets/enchanted-forest.webp') center 38%/cover no-repeat;
+  opacity:.28;
+  filter:saturate(.55);
+  transform:translate3d(0,var(--scene-near-y,0px),0);
+  will-change:transform;
+}
+.site-parallax-shade {
+  inset:0;
+  background:linear-gradient(90deg,#10171333,#101713cc 28%,#101713bb 72%,#10171333),linear-gradient(180deg,#10171329 4%,#10171344 38%,#101713ed 100%);
+}
+.site-parallax-canopy {
+  left:-230px;
+  top:0;
+  width:420px;
+  height:650px;
+  opacity:.09;
+  background:url('/assets/base-game/assets/foreground-leaf.webp') center/contain no-repeat;
+  filter:saturate(.35);
+  transform:translate3d(0,var(--scene-leaf-y,0px),0) rotate(-24deg);
+  will-change:transform;
+}
+body.site-parallax-active .content {padding-top:42px;padding-bottom:90px}
+body.site-parallax-active #app>.hero {
+  min-height:114px;
+  padding:0 0 27px;
+  margin-bottom:27px;
+  border-bottom:1px solid #c8ad7533;
+  background:none;
+  box-shadow:none;
+  gap:24px;
+  align-items:center;
+}
+body.site-parallax-active #app>.hero h2 {
+  font:400 clamp(27px,2.65vw,39px)/1.14 Georgia,serif;
+  letter-spacing:-.025em;
+  color:#f0e8d4;
+  text-shadow:0 2px 18px #0005;
+}
+body.site-parallax-active #app>.hero p {color:#b0baad;max-width:60ch;font-size:13px;line-height:1.65}
+body.site-parallax-active :is(.card,.table-wrap,.wiki-card,.calendar-detail-card,.attendance-summary-card,.attendance-group,.training-summary,.training-resource,.profile-stat,.stat,.wiki-inspector,.officer-tool,.event-agenda-row,.lord-tool-card,.lord-speedup-card,.lord-catalog-card,.lord-calc-card,.lord-pair-card,.lord-building-card,.training-calculator-card) {
+  background:linear-gradient(135deg,#202a23,#17211c);
+  border-color:#c8ad752a;
+  box-shadow:0 8px 30px #0409061a;
+}
+body.site-parallax-active .card .card {background:#141e18}
+body.site-parallax-active :is(.profile-season-card,.profile-hub-nav,.lord-research-settings,.training-tabs) {background:#1b261f;border-color:#c8ad7533}
+body.site-parallax-active .profile-hub-nav button {background:#142018}
+body.site-parallax-active .profile-hub-nav button.active {background:#bca36d25}
+body.site-parallax-active .alliance-calendar .calendar-day {background:#162119!important}
+body.site-parallax-active .alliance-calendar .calendar-day:hover {background:#273628!important}
+body.site-parallax-active .alliance-calendar .calendar-day.today {background:#393928!important}
+body.site-parallax-active .alliance-calendar .calendar-offset {background:#101a14}
+body.site-parallax-active .calendar-agenda-item {background:#19251d;border-color:#c8ad7533}
+body.site-parallax-active #migration-form .migration-section {background:#1b261f!important}
+body.site-parallax-active .officer-tool:hover {background:#253529;border-color:#baa06a77}
+body.site-parallax-active :is(input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=color]),select,textarea) {border-color:#a999743e}
+body.site-parallax-active :is(input,select,textarea):focus-visible {outline:2px solid #c8ad7580;outline-offset:2px}
+body.site-motion-off .site-parallax-scene>div {will-change:auto}
+@media(max-width:900px) {
+  body.site-parallax-ready .sidebar nav {background:#16221a}
+  body.site-parallax-active .content {padding-top:26px;padding-bottom:76px}
+  body.site-parallax-active #app>.hero {min-height:92px;gap:16px;padding-bottom:21px;margin-bottom:22px}
+  .site-parallax-distance {opacity:.13}
+  .site-parallax-woodland {opacity:.2}
+  .site-parallax-shade {background:linear-gradient(180deg,#10171322,#10171377 24%,#101713ef 95%)}
+  .site-parallax-canopy {display:none}
+}
+@media(max-width:600px) {
+  body.site-parallax-active #app>.hero {align-items:flex-start;gap:15px;min-height:0}
+  body.site-parallax-active #app>.hero h2 {font-size:29px}
+  body.site-parallax-active #app>.hero p {font-size:12px}
+  body.site-parallax-active #app>.hero>.toolbar {gap:8px;flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce) {
+  .site-parallax-scene>div {transform:none!important;will-change:auto}
+}
