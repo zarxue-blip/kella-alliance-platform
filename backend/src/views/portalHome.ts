@@ -13,8 +13,70 @@ export const portalHomeClient = String.raw`
         if (hasAdminAccess()) destinations.push(['/officer','icons/settings.png','Admin Tools','Lead, organize, and keep us moving.']);
         const coins = Array.from({length:8}, function(_,i) { return '<i class="portal-coin" style="--x:'+([6,19,39,58,72,88,94,52,83,31,65,9,91,48][i])+'%;--y:'+([19,66,12,31,9,45,76,81,65,88,55,85,17,48][i])+'%;--size:'+(18+(i*11)%38)+'px;--duration:'+(7+i%6)+'s;--delay:-'+i+'s"><span>✦</span></i>'; }).join('');
         const baseBuildings = ['alliance-hub','archery-range','elk-stable','ranger-sentry-post','longleaf-arch','notice-board','research','eagle-nest','infantry','admin-tools'];
-        const basePreview = '<section class="portal-base-section" aria-labelledby="portal-base-title"><div class="portal-section-heading"><div><p class="portal-eyebrow">YOUR LIVING SETTLEMENT</p><h2 id="portal-base-title">Members Tool</h2></div><span>Animated and ready to arrange.</span></div><a class="portal-base-entry" href="/base" aria-label="Open the members tool"><img class="portal-base-map" src="/assets/base-game/assets/map.png" alt="EVO members tool base" loading="lazy"/>'+baseBuildings.map(function(file,index){return '<img class="portal-base-building portal-base-building-'+index+'" src="/assets/base-game/assets/'+file+'.png" alt="" loading="lazy"/>';}).join('')+'<span class="portal-base-vignette"></span><strong>Open members tool <b>↗</b></strong></a></section>';
-        return '<div class="portal-home"><section class="portal-hero" aria-labelledby="portal-title"><div class="portal-scenery" aria-hidden="true"></div><div class="portal-coins" aria-hidden="true">'+coins+'</div><div class="portal-hero-copy"><p class="portal-eyebrow"><span></span> CALL OF DRAGONS · EVOLUTION</p><h1 id="portal-title"><em class="evo-mark"><img src="/assets/evo-wordmark.svg" alt="EVO" width="360" height="120" fetchpriority="high"/></em></h1><p class="portal-subtitle">EVOLUTION</p><p class="portal-intro">One banner. Countless adventures.<br>Your alliance, always within reach.</p><div class="portal-actions"><a class="primary" href="/calendar" data-link>Alliance Calendar <span>↗</span></a><a class="secondary" href="/migration" data-link>Migration</a></div><a class="evo-support" href="https://paypal.me/exuzz" target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-reduced-motion: reduce)" srcset="/assets/support-creator-still.png"/><img src="/assets/support-creator.webp" alt="" width="30" height="54"/></picture>Support Creator <span>↗</span></a><a class="portal-archive-link" href="/wiki" data-link>Explore the archives <span>→</span></a></div><section class="hero-calendar" aria-label="Alliance calendar" data-mini-calendar></section><div class="portal-character"><img data-portal-kella src="/assets/kella-character.png" alt="Kella, our halfling caravan keeper" width="340" height="390" fetchpriority="high"/></div><div class="portal-hero-foot"><span>EVO <b>◆</b> EVOLUTION</span><a href="#portal-explore">Discover the realm ↓</a></div></section><div class="portal-body">'+basePreview+'<section class="portal-section" id="portal-explore"><div class="portal-section-heading"><div><p class="portal-eyebrow">EVERYTHING FOR THE JOURNEY</p><h2>Explore the realm</h2></div><span>Plan. Prepare. Prevail.</span></div><div class="portal-features">'+destinations.map(function(item,index){return '<a class="portal-feature" href="'+item[0]+'" data-link><span class="portal-feature-number">0'+(index+1)+'</span><img src="/assets/'+item[1]+'" alt="" width="62" height="62" loading="lazy"/><strong>'+item[2]+'</strong><p>'+item[3]+'</p><span class="portal-feature-arrow">↗</span></a>';}).join('')+'</div></section><div class="portal-live" data-portal-live></div><section class="portal-section portal-community"><div class="portal-champions"></div><div class="portal-participation" data-portal-participation><p class="portal-eyebrow">STAND WITH YOUR ALLIANCE</p><h2>Every voice counts.</h2><p>Check attendance, take part in polls, and help shape our next move.</p><a class="secondary" href="/attendance" data-link>Attendance & polls →</a></div></section><footer class="portal-footer"><img src="/assets/kella-logo.png" width="40" height="40" alt=""/><div><strong>EVO</strong><p>Evolution · Built for our alliance.</p></div><a href="/profile" data-link>Your profile ↗</a></footer></div></div>';
+        const basePreview = '<section class="elven-story" data-elven-story aria-label="The elven kingdom"><div class="elven-stage"><div class="elven-toolbar"><span class="portal-eyebrow">THE ELVEN KINGDOM</span><button type="button" class="secondary" data-story-toggle aria-pressed="true">Story mode · On</button></div><div class="elven-copy"><span class="portal-eyebrow" data-story-number>CHAPTER I</span><h2 data-story-title>Where the forest remembers.</h2><p data-story-copy>Beneath ancient leaves, the elves raised a hall to guard their light.</p></div><div class="elven-world"><div class="elven-book" aria-hidden="true"></div><a class="portal-base-entry" href="/base" aria-label="Enter the members tool"><img class="portal-base-map" src="/assets/base-game/assets/map.png" alt="The elven settlement" loading="lazy"/>'+baseBuildings.map(function(file,index){return '<img class="portal-base-building portal-base-building-'+index+'" src="/assets/base-game/assets/'+file+'.png" alt="" loading="lazy"/>';}).join('')+'</a><img class="elven-sacred-hall" src="/assets/base-game/assets/sacred-hall.png" alt="Sacred Hall" loading="lazy"/></div><div class="elven-footer"><span data-story-hint>Scroll to unfold the kingdom ↓</span><a class="primary" href="/base">Open members tool ↗</a></div><div class="elven-progress" aria-hidden="true"><i></i></div></div></section>';
+        return '<div class="portal-home"><section class="portal-hero" aria-labelledby="portal-title"><div class="portal-scenery" aria-hidden="true"></div><div class="portal-coins" aria-hidden="true">'+coins+'</div><div class="portal-hero-copy"><p class="portal-eyebrow"><span></span> CALL OF DRAGONS · EVOLUTION</p><h1 id="portal-title"><em class="evo-mark"><img src="/assets/evo-wordmark.svg" alt="EVO" width="360" height="120" fetchpriority="high"/></em></h1><p class="portal-subtitle">EVOLUTION</p><p class="portal-intro">One banner. Countless adventures.<br>Your alliance, always within reach.</p><div class="portal-actions"><a class="primary" href="/calendar" data-link>Alliance Calendar <span>↗</span></a><a class="secondary" href="/migration" data-link>Migration</a></div><a class="evo-support" href="https://paypal.me/exuzz" target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-reduced-motion: reduce)" srcset="/assets/support-creator-still.png"/><img src="/assets/support-creator.webp" alt="" width="30" height="54"/></picture>Support Creator <span>↗</span></a><a class="portal-archive-link" href="/wiki" data-link>Explore the archives <span>→</span></a></div><section class="hero-calendar" aria-label="Alliance calendar" data-mini-calendar></section><div class="portal-character"><img data-portal-kella src="/assets/kella-character.png" alt="Kella, our halfling caravan keeper" width="340" height="390" fetchpriority="high"/></div><div class="portal-hero-foot"><span>EVO <b>◆</b> EVOLUTION</span><a href="#portal-explore">Discover the realm ↓</a></div></section>'+basePreview+'<div class="portal-body"><section class="portal-section" id="portal-explore"><div class="portal-section-heading"><div><p class="portal-eyebrow">EVERYTHING FOR THE JOURNEY</p><h2>Explore the realm</h2></div><span>Plan. Prepare. Prevail.</span></div><div class="portal-features">'+destinations.map(function(item,index){return '<a class="portal-feature" href="'+item[0]+'" data-link><span class="portal-feature-number">0'+(index+1)+'</span><img src="/assets/'+item[1]+'" alt="" width="62" height="62" loading="lazy"/><strong>'+item[2]+'</strong><p>'+item[3]+'</p><span class="portal-feature-arrow">↗</span></a>';}).join('')+'</div></section><div class="portal-live" data-portal-live></div><section class="portal-section portal-community"><div class="portal-champions"></div><div class="portal-participation" data-portal-participation><p class="portal-eyebrow">STAND WITH YOUR ALLIANCE</p><h2>Every voice counts.</h2><p>Check attendance, take part in polls, and help shape our next move.</p><a class="secondary" href="/attendance" data-link>Attendance & polls →</a></div></section><footer class="portal-footer"><img src="/assets/kella-logo.png" width="40" height="40" alt=""/><div><strong>EVO</strong><p>Evolution · Built for our alliance.</p></div><a href="/profile" data-link>Your profile ↗</a></footer></div></div>';
+      }
+
+
+      function initializeElvenStory() {
+        const root = app.querySelector('[data-elven-story]');
+        if (!root) return;
+        const toggle = root.querySelector('[data-story-toggle]');
+        const motion = matchMedia('(prefers-reduced-motion: reduce)');
+        let enabled = true, frame = 0, lastChapter = -1;
+        try { enabled = localStorage.getItem('kella-story-mode') !== 'off'; } catch {}
+        const chapters = [
+          ['CHAPTER I', 'Where the forest remembers.', 'Beneath ancient leaves, the elves raised a hall to guard their light.'],
+          ['CHAPTER II', 'A kingdom takes root.', 'From stone and living wood, sanctuaries rose. Knowledge became their strength.'],
+          ['CHAPTER III', 'Your chapter begins.', 'The gates are open. Gather your people, prepare your legions, and shape what comes next.']
+        ];
+        function draw() {
+          frame = 0;
+          const animated = enabled && !motion.matches;
+          const rect = root.getBoundingClientRect();
+          const p = animated ? Math.max(0, Math.min(1, (80-rect.top)/Math.max(1,root.offsetHeight-innerHeight+80))) : 1;
+          root.style.setProperty('--story-progress', String(p));
+          root.style.setProperty('--hall-scale', String(1-p*.78));
+          root.style.setProperty('--hall-opacity', String(1-Math.max(0,(p-.52)/.23)));
+          root.style.setProperty('--map-opacity', String(Math.min(1,p*3)));
+          root.style.setProperty('--map-scale', String(.68+p*.32));
+          root.style.setProperty('--book-fold', String(50*(1-p))+'deg');
+          root.querySelectorAll('.portal-base-building').forEach(function(node,i) {
+            const reveal=Math.max(0,Math.min(1,(p-.28-i*.026)*4));
+            node.style.opacity=String(reveal);
+            node.style.transform='translate(-50%,-100%) perspective(500px) rotateX('+(-80*(1-reveal))+'deg)';
+          });
+          const chapter = animated ? Math.min(2,Math.floor(p*3)) : 2;
+          if(chapter !== lastChapter) {
+            lastChapter=chapter;
+            root.querySelector('[data-story-number]').textContent=animated?chapters[chapter][0]:'YOUR LIVING SETTLEMENT';
+            root.querySelector('[data-story-title]').textContent=animated?chapters[chapter][1]:'Members Tool';
+            root.querySelector('[data-story-copy]').textContent=animated?chapters[chapter][2]:'Your kingdom. Your plans. Enter to explore and arrange.';
+          }
+        }
+        function queue(){if(!frame) frame=requestAnimationFrame(draw);}
+        function apply(){
+          root.classList.toggle('story-regular',!enabled || motion.matches);
+          toggle.setAttribute('aria-pressed',String(enabled));
+          toggle.textContent=enabled?'Story mode · On':'Story mode · Off';
+          root.querySelector('[data-story-hint]').textContent=enabled&&!motion.matches?'Scroll to unfold the kingdom ↓':'Enter the settlement to use your tools';
+          lastChapter=-1;draw();
+        }
+        toggle.onclick=function(){
+          const wasHere=root.getBoundingClientRect().top<innerHeight && root.getBoundingClientRect().bottom>0;
+          enabled=!enabled;
+          try{localStorage.setItem('kella-story-mode',enabled?'on':'off');}catch{}
+          apply();
+          if(wasHere) root.scrollIntoView({behavior:'instant',block:'start'});
+        };
+        addEventListener('scroll',queue,{passive:true});
+        addEventListener('resize',queue);
+        motion.addEventListener('change',apply);
+        const observer=new MutationObserver(function(){if(!root.isConnected){
+          removeEventListener('scroll',queue);removeEventListener('resize',queue);
+          motion.removeEventListener('change',apply);cancelAnimationFrame(frame);observer.disconnect();
+        }});
+        observer.observe(app,{childList:true});apply();
       }
 
       function initializeMiniCalendar(events) {
