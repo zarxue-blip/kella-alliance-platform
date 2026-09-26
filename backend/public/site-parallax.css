@@ -1,4 +1,5 @@
 /* Shared atmosphere; the scenery moves, operational content stays still. */
+html:has(body.site-parallax-ready),body.site-parallax-ready {overflow-x:clip;overflow-y:visible}
 body.site-parallax-ready {
   --bg:#101713;
   --panel:#18211c;
