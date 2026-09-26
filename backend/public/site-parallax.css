@@ -22,7 +22,8 @@ body.site-parallax-ready canvas.header-coins {opacity:.075}
 /* A scrolling ancestor must not clip the viewport-sticky film or navigation. */
 body.site-parallax-ready .shell {backdrop-filter:none;overflow:visible;border-radius:0}
 body.site-parallax-ready .shell>.sidebar {
-  background:#101813f2;
+  background:#101813;
+  backdrop-filter:none;
   border-bottom-color:#bda67228;
   box-shadow:0 5px 28px #0002;
 }

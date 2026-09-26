@@ -3345,7 +3345,7 @@ export function kellaDashboardHtml() {
     <link rel="stylesheet" href="/assets/noticeboard.css?v=8" />
     <link rel="stylesheet" href="/assets/command-workspace.css?v=1" />
     <link rel="stylesheet" href="/assets/fantasy-portal.css?v=elven-forest-2" />
-    <link rel="stylesheet" href="/assets/site-parallax.css?v=realm-2" />
+    <link rel="stylesheet" href="/assets/site-parallax.css?v=realm-3" />
     <link rel="stylesheet" href="/assets/portal-parallax.css?v=kingdom-film-1" />
   </head>
   <body>
