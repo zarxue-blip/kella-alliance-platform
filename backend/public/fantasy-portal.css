@@ -154,3 +154,28 @@ body[data-route="home"]>.creator-companion{display:none}.evo-support picture,.ev
 /* Keep the map and building coordinates on the same 4:3 plane. */
 .elven-world{inset:auto 0 auto auto;top:50%;width:min(70%,110svh);aspect-ratio:4/3;transform:translateY(-46%)}
 @media(max-width:700px){.elven-world,.story-regular .elven-world{inset:auto -3% auto;top:56%;width:106%;transform:translateY(-38%)}}
+/* A stable forest plate keeps every tree and floating island consistent. */
+.elven-story{height:500svh}
+.forest-entrance{position:absolute;inset:0;z-index:2;overflow:hidden;background:#24351b;opacity:var(--forest-opacity,1);pointer-events:none}
+.forest-camera{position:absolute;left:50%;top:50%;width:max(100%,calc((100svh - 80px)*1.777));aspect-ratio:1672/941;transform:translate(-50%,-50%) scale(var(--forest-zoom,1));transform-origin:50% 60%;will-change:transform}
+.forest-backdrop{display:block;width:100%;height:auto}
+.forest-doorway{position:absolute;left:45.3%;top:35.6%;width:9.6%;height:25%;border-radius:52% 52% 9% 9% / 48% 48% 4% 4%;overflow:hidden;perspective:600px;background:#fff6c7}
+.forest-door-light{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 60%,#fffef0,#fff1ab 45%,#d58e34);opacity:var(--door-light,0)}
+.forest-door{position:absolute;top:0;bottom:0;width:50.5%;background:repeating-linear-gradient(89deg,#0000 0 9%,#f5d28a18 10%,#0000 11% 19%,#0f0c0740 20%),linear-gradient(95deg,#362f1d,#695637 40%,#413623 65%,#8d7548);border:1px solid #957e4a;box-shadow:inset 0 0 12px #100c08;backface-visibility:hidden}
+.forest-door:before{content:'';position:absolute;inset:18% 16% 8%;border:2px solid #b7a66a88;border-radius:70% 25% 60% 15%;transform:rotate(-7deg);box-shadow:inset 0 0 0 3px #211f1666}
+.forest-door:after{content:'';position:absolute;right:9%;top:62%;width:9%;aspect-ratio:1;border:2px solid #c0a55f;border-radius:50%;box-shadow:0 2px 3px #0009}
+.forest-door-left{left:0;transform-origin:0 50%;transform:rotateY(calc(-1*var(--door-angle,0deg)))}
+.forest-door-right{right:0;transform-origin:100% 50%;transform:rotateY(var(--door-angle,0deg))}.forest-door-right:before{transform:rotate(7deg) scaleX(-1)}.forest-door-right:after{right:auto;left:9%}
+.forest-rays{position:absolute;left:23%;top:40%;width:55%;height:58%;background:conic-gradient(from 145deg at 50% 5%,#0000,#ffedbc70 12deg,#0000 20deg,#ffeab942 29deg,#0000 43deg,#fff5c34d 55deg,#0000 72deg);filter:blur(14px);mix-blend-mode:screen;opacity:var(--door-light,0);pointer-events:none}
+.forest-mist{position:absolute;inset:40% 20% 0;background:radial-gradient(ellipse at 50% 55%,#fff1b875,#dfbb5417 44%,#0000 70%);filter:blur(18px);opacity:var(--door-light,0);mix-blend-mode:screen}
+.forest-mote{position:absolute;left:var(--mx);top:var(--my);height:3px;width:3px;border-radius:50%;background:#fff2c7;box-shadow:0 0 6px #ffe4ab;opacity:var(--door-light,0);animation:forest-mote-drift 7s ease-in-out var(--delay) infinite alternate}
+@keyframes forest-mote-drift{to{transform:translate(8px,-22px)}}
+.forest-leaf{position:absolute;width:max(130vw,150svh);height:150svh;max-width:none!important;left:50%;top:50%;object-fit:contain;filter:blur(2px) drop-shadow(8px 16px 25px #14210070);transform-origin:10% 95%;transform:translate(-50%,-50%) translateX(var(--leaf-x,0%)) rotate(var(--leaf-rotate,0deg));opacity:var(--leaf-opacity,1);will-change:transform}
+.forest-threshold-light{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 65%,#fff9d9,#f8edc3b0 28%,#ffe7a800 72%);opacity:var(--threshold-light,0);mix-blend-mode:screen}
+.elven-copy,.elven-world{opacity:var(--settlement-opacity,0)}
+.elven-toolbar,.elven-footer{filter:drop-shadow(0 2px 5px #000)}.elven-toolbar .portal-eyebrow,.elven-footer>span{color:#fff1ce}.elven-toolbar button{background:#152219e8}
+.story-regular .forest-entrance{display:none}.story-regular .elven-copy,.story-regular .elven-world{opacity:1}
+@media(max-width:700px){.forest-camera{width:135%;min-width:0;top:51%;transform:translate(-50%,-50%) scale(var(--forest-zoom,1))}.forest-entrance{background:linear-gradient(#334526,#788346 50%,#28361b)}.forest-entrance:after{content:'';position:absolute;inset:0;background:linear-gradient(#14271566,transparent 25% 78%,#14271599);pointer-events:none}.forest-leaf{width:210vw;height:125svh}.forest-rays{filter:blur(7px)}}
+@media(prefers-reduced-motion:reduce){.forest-entrance{display:none}.forest-mote{animation:none}}
+
+body.ambient-paused .forest-mote{animation-play-state:paused}
