@@ -4550,7 +4550,7 @@ export function kellaDashboardHtml() {
           '<label>Role<select data-admin-member="role">' + roleOptions(member.role || "Member") + '</select></label>' +
           '<label>Timezone<input data-admin-member="timezone" value="' + escapeHtml(member.timezone || "") + '" /></label>' +
           '<label>Country<input data-admin-member="country" value="' + escapeHtml(member.country || "") + '" /></label>' +
-          '<label class="wide"><span>Private site access</span><span class="toolbar"><input type="checkbox" data-admin-member="privateSiteAccess"' + (member.privateSiteAccess ? ' checked' : '') + ' /><button class="secondary" type="button" data-action="copy-private-access-link">Copy Discord login link</button></span><span class="muted">Allows this Discord-linked player to enter the private site with member permissions and edit only their own profile.</span></label>' +
+          '<label class="wide"><span>Private site access</span><span class="toolbar"><input type="checkbox" data-admin-member="privateSiteAccess"' + (member.privateSiteAccess ? ' checked' : '') + ' /><button class="secondary" type="button" data-action="copy-private-access-link" data-access-path="' + escapeHtml(member.privateAccessPath || "") + '"' + (member.privateAccessPath ? '' : ' disabled') + '>Copy exclusive login link</button></span><span class="muted">Save first to create a signed profile link. Anyone with this private link enters only this member profile, so send it only to that member.</span></label>' +
           '<label class="wide">Officer Notes<textarea data-admin-member="notes">' + escapeHtml(member.notes || "") + '</textarea></label>' +
         '</div></section>';
       }
@@ -9277,7 +9277,9 @@ ${portalHomeClient}
         }, "Logged out.");
         if (kind === "copy-command") withFeedback(action, function() { return navigator.clipboard.writeText(action.getAttribute("data-value") || ""); }, "Command copied.");
         if (kind === "copy-private-access-link") {
-          withFeedback(action, function() { return navigator.clipboard.writeText(location.origin + "/api/auth/discord"); }, "Private Discord login link copied.");
+          const path = action.getAttribute("data-access-path") || "";
+          if (!path) { toast("Enable private access and save the player first.", "error"); return; }
+          withFeedback(action, function() { return navigator.clipboard.writeText(location.origin + path); }, "Exclusive login link copied.");
           return;
         }
         if (kind === "toggle-message-link-button") {

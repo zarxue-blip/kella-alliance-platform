@@ -12,6 +12,7 @@ export interface AuthUser {
   role: UserRole;
   discordRoleIds?: string[];
   privateSiteAccess?: boolean;
+  memberId?: string;
   allianceId: string;
 }
 
@@ -105,6 +106,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
       role: user.role,
       discordRoleIds: user.discordRoleIds || [],
       privateSiteAccess,
+      memberId: user.memberId?.toString?.() || undefined,
       allianceId: user.allianceId.toString()
     };
     next();

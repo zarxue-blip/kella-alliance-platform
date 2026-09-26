@@ -4,5 +4,6 @@ export function memberForViewer<T extends Record<string, any>>(member: T, admin 
   const result = { ...member };
   delete result.discordUsername;
   delete result.privateSiteAccess;
+  delete result.privateAccessPath;
   return result;
 }

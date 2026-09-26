@@ -43,7 +43,8 @@ const memberSchema = new Schema(
     warScore: { type: Number, default: 0 },
     contributionScore: { type: Number, default: 0 },
     notes: { type: String, default: "" },
-    privateSiteAccess: { type: Boolean, default: false, index: true }
+    privateSiteAccess: { type: Boolean, default: false, index: true },
+    privateAccessVersion: { type: Number, default: 0, min: 0 }
   },
   { timestamps: true }
 );

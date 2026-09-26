@@ -34,6 +34,7 @@ import { bestOnlineTimeOptions, pollDto, pollOptionsWithKeys } from "../services
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
 import type { AuthenticatedRequest } from "../middleware/auth.js";
+import { privateMemberAccessPath } from "../services/privateMemberAccess.service.js";
 
 type DashboardAction = {
   _id: { toString(): string };
@@ -67,6 +68,7 @@ type DashboardMember = {
   attendanceScore?: number;
   notes?: string;
   privateSiteAccess?: boolean;
+  privateAccessVersion?: number;
   alliance?: string;
   power?: number;
   powerHistory?: Array<{ date?: Date | string; power?: number; source?: string; filename?: string }>;
@@ -1008,6 +1010,9 @@ function dashboardMemberDto(member: any, options: { historyLimit?: number; compa
     attendance: member.attendanceScore,
     notes: options.compact ? "" : member.notes,
     privateSiteAccess: Boolean(member.privateSiteAccess),
+    privateAccessPath: member.privateSiteAccess
+      ? privateMemberAccessPath(member._id.toString(), numeric(member.privateAccessVersion))
+      : "",
     alliance: member.alliance,
     power: member.power,
     powerHistory: responsePowerHistory,
@@ -1420,7 +1425,7 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
     .select(
       dashboardView
         ? "mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role attendanceScore alliance power powerHistory statHistory"
-        : "mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role timezone country attendanceScore notes privateSiteAccess alliance power powerHistory statHistory"
+        : "mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl ign uid rank role timezone country attendanceScore notes privateSiteAccess privateAccessVersion alliance power powerHistory statHistory"
     );
 
   if (dashboardView) {
@@ -1446,16 +1451,19 @@ export const dashboardMembers = asyncHandler(async (req, res) => {
   });
 });
 
-async function findOrCreateProfileMember(user: { id: string; discordId: string; allianceId: string }) {
+async function findOrCreateProfileMember(user: { id: string; discordId: string; allianceId: string; memberId?: string }) {
   const dbUser = (await UserModel.findById(user.id).lean()) as any;
   const alliance = await AllianceModel.findById(user.allianceId).lean() as any;
   const displayName = dbUser?.username || user.discordId;
+  const privateIdentity = user.discordId.startsWith("private-member:");
   const existing =
+    (dbUser?.memberId ? (await MemberModel.findOne({ _id: dbUser.memberId, allianceId: user.allianceId }).lean()) as any : null) ||
     ((await MemberModel.findOne({ allianceId: user.allianceId, discordId: user.discordId }).lean()) as any) ||
     ((await findMemberForDiscordProfile(user.allianceId, user.discordId, displayName, displayName)) as any);
 
   if (existing) {
     await UserModel.updateOne({ _id: user.id }, { $set: { memberId: existing._id } });
+    if (privateIdentity) return existing;
     return MemberModel.findByIdAndUpdate(
       existing._id,
       {
@@ -1505,7 +1513,7 @@ export const dashboardProfileUpdate = asyncHandler(async (req, res) => {
   const member = await findOrCreateProfileMember(user);
   if(body.profilePhotoUrl && body.profilePhotoUrl!==member.profilePhotoUrl) validateChatImage(body.profilePhotoUrl,800000);
   const updated = await MemberModel.findOneAndUpdate(
-    { _id: member._id, allianceId: user.allianceId, discordId: user.discordId },
+    { _id: member._id, allianceId: user.allianceId, ...(user.discordId.startsWith("private-member:") ? {} : { discordId: user.discordId }) },
     { $set: body },
     { new: true, runValidators: true }
   ).lean() as any;
@@ -1623,7 +1631,7 @@ export const dashboardMemberUpdate = asyncHandler(async (req, res) => {
   if (!Types.ObjectId.isValid(req.params.id)) throw new HttpError(400, "Invalid member id");
   const allianceId = await resolveAllianceId();
   const existing = (await MemberModel.findOne({ _id: req.params.id, ...allianceFilter(allianceId) })
-    .select("_id mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl uid power powerHistory statHistory")
+    .select("_id mainMemberId discordId discordUsername discordDisplayName discordAvatarUrl profilePhotoUrl uid power powerHistory statHistory privateSiteAccess privateAccessVersion")
     .lean()) as DashboardMember | null;
   if (!existing) throw new HttpError(404, "Member not found");
 
@@ -1666,6 +1674,9 @@ export const dashboardMemberUpdate = asyncHandler(async (req, res) => {
   if (body.power !== undefined) {
     updateBody.powerHistory = mergePowerHistory(existing?.powerHistory, new Date(), numeric(body.power), "Dashboard Edit");
     updateBody.statHistory = mergeStatHistory(existing?.statHistory, new Date(), { power: numeric(body.power) }, "Dashboard Edit");
+  }
+  if (body.privateSiteAccess && !existing.privateSiteAccess) {
+    updateBody.privateAccessVersion = numeric(existing.privateAccessVersion) + 1;
   }
   const updateOperation: Record<string, unknown> = {};
   if (Object.keys(updateBody).length) updateOperation.$set = updateBody;

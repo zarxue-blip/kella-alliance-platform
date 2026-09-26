@@ -52,11 +52,16 @@ export const checkInAttendance = asyncHandler(async (req: AuthenticatedRequest, 
   if (!event) throw new HttpError(404, "Attendance event not found");
   if (body.method === "qr" && event.qrToken !== body.qrToken) throw new HttpError(403, "Invalid QR check-in token");
 
-  const member = body.memberId
-    ? await MemberModel.findOne({ _id: body.memberId, allianceId: req.user.allianceId })
+  const isAdmin = isDashboardAdminUser(req.user);
+  const requestedMemberId = isAdmin ? body.memberId : req.user.memberId;
+  const member = requestedMemberId
+    ? await MemberModel.findOne({ _id: requestedMemberId, allianceId: req.user.allianceId })
     : await MemberModel.findOne({ discordId: body.discordId ?? req.user.discordId, allianceId: req.user.allianceId });
   if (!member) throw new HttpError(404, "Member not found");
-  if (!isDashboardAdminUser(req.user) && (member.discordId !== req.user.discordId || body.method === "manual")) throw new HttpError(403, "You may only check in your own member profile");
+  const ownsMember = req.user.memberId
+    ? member._id.toString() === req.user.memberId
+    : member.discordId === req.user.discordId;
+  if (!isAdmin && (!ownsMember || body.method === "manual")) throw new HttpError(403, "You may only check in your own member profile");
 
   const alreadyCheckedIn = event.checkIns.some((entry: any) => entry.memberId.toString() === member._id.toString());
   if (!alreadyCheckedIn) {

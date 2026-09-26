@@ -23,6 +23,7 @@ import { gameReviewRouter } from "./routes/gameReview.routes.js";
 import { kellaPageHtml, kellaPageAssets } from "./views/kellaPage.js";
 import { baseGameDeniedHtml, baseGameHtml } from "./views/baseGamePage.js";
 import { HttpError } from "./utils/httpError.js";
+import { beginPrivateMemberAccess } from "./controllers/privateMemberAccess.controller.js";
 
 const appDir = dirname(fileURLToPath(import.meta.url));
 const publicDir = join(appDir, "..", "public");
@@ -48,6 +49,7 @@ export function createApp() {
       req.path === "/favicon.ico" ||
       req.path === "/apple-touch-icon.png" ||
       req.path.startsWith("/assets/") ||
+      req.path.startsWith("/access/") ||
       req.path.startsWith("/api/auth/")
     ) {
       return next();
@@ -137,6 +139,8 @@ export function createApp() {
   app.get("/apple-touch-icon.png", (_req, res) =>
     res.sendFile(join(publicDir, "kella-logo.png"))
   );
+
+  app.get("/access/:memberId/:signature", beginPrivateMemberAccess);
 
   app.use("/bot", botRouter);
   app.use("/game-review", gameReviewRouter);
