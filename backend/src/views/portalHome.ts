@@ -2,7 +2,7 @@
 export const portalHomeClient = String.raw`
       function renderAllianceBoard(events = []) {
         return '<div class="portal-home portal-parallax">' +
-          '<section class="kingdom-journey" data-kingdom-journey aria-label="Journey into the elven kingdom"><div class="kingdom-stage"><div class="kingdom-film" aria-hidden="true"><img class="kingdom-still" src="/assets/base-game/assets/kingdom-0927-open.jpg" alt="" width="1280" height="720"/><video data-kingdom-video muted playsinline preload="none" poster="/assets/base-game/assets/kingdom-0927-start.jpg" width="1280" height="720" disablepictureinpicture disableremoteplayback tabindex="-1"></video></div><div class="kingdom-shade" aria-hidden="true"></div><div class="kingdom-topline"><button type="button" class="secondary" data-story-toggle aria-pressed="true">Story mode · On</button></div><div class="kingdom-intro"><p class="portal-eyebrow">ONE BANNER. COUNTLESS ADVENTURES.</p><h1><img src="/assets/evo-wordmark.svg" alt="EVO" width="360" height="120" fetchpriority="high"/></h1><p>A world beyond the ordinary.</p></div><div class="kingdom-enter" data-kingdom-entry hidden><a href="/base" aria-label="Enter Kingdom"><img src="/assets/base-game/assets/enter-kingdom.webp" alt="Enter Kingdom" width="1086" height="362"/></a></div><div class="kingdom-progress" aria-hidden="true"><i></i></div></div></section></div>';
+          '<section class="kingdom-journey" data-kingdom-journey aria-label="Journey into the elven kingdom"><div class="kingdom-stage"><div class="kingdom-film" aria-hidden="true"><img class="kingdom-still" src="/assets/base-game/assets/kingdom-0927-open.jpg" alt="" width="1280" height="720"/><video data-kingdom-video muted playsinline preload="none" poster="/assets/base-game/assets/kingdom-0927-start.jpg" width="1280" height="720" disablepictureinpicture disableremoteplayback tabindex="-1"></video></div><div class="kingdom-shade" aria-hidden="true"></div><div class="kingdom-topline"><button type="button" class="secondary" data-story-toggle aria-pressed="true">Animation On</button></div><div class="kingdom-intro"><h1><img src="/assets/evo-wordmark.svg" alt="EVO" width="360" height="120" fetchpriority="high"/></h1></div><div class="kingdom-enter" data-kingdom-entry hidden><a href="/base" aria-label="Enter Kingdom"><img src="/assets/base-game/assets/enter-kingdom.webp" alt="Enter Kingdom" width="1086" height="362"/></a></div><div class="kingdom-progress" aria-hidden="true"><i></i></div></div></section></div>';
       }
 
       function initializeKingdomEntrance() {
@@ -48,7 +48,7 @@ export const portalHomeClient = String.raw`
           if(disposed)return;
           root.classList.toggle('kingdom-regular',!animated());
           toggle.setAttribute('aria-pressed',String(enabled&&!motion.matches));
-          toggle.textContent=motion.matches?'Story mode · Reduced':enabled?'Story mode · On':'Story mode · Off';
+          toggle.textContent=animated()?'Animation On':'Animation Off';
           video.muted=true;video.pause();
           if(animated()&&!video.getAttribute('src')){
             video.preload='auto';video.src='/assets/base-game/assets/kingdom-0927.mp4';video.load();

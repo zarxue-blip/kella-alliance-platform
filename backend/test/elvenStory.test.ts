@@ -41,6 +41,7 @@ function setup(reduced=false,stored:string|null=null){
 }
 const scene=setup();
 assert.equal(scene.video.muted,true);
+assert.equal(scene.nodes['[data-story-toggle]'].textContent,'Animation On');
 assert.ok(scene.video.src.endsWith('kingdom-0927.mp4'));
 assert.equal(scene.nodes['[data-kingdom-entry]'].hidden,true);
 scene.ready();scene.at(.55);
@@ -59,6 +60,7 @@ assert.equal(scene.video.currentTime,0,'reverse scrolling reverses the film');
 assert.equal(scene.nodes['[data-kingdom-entry]'].hidden,true);
 scene.nodes['[data-story-toggle]'].onclick();
 assert.equal(scene.saved,'off');
+assert.equal(scene.nodes['[data-story-toggle]'].textContent,'Animation Off');
 assert.ok(scene.classes.has('kingdom-regular'));
 assert.equal(scene.nodes['[data-kingdom-entry]'].hidden,false);
 scene.preference('on');assert.ok(!scene.classes.has('kingdom-regular'));

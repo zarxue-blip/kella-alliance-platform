@@ -71,5 +71,8 @@ for (const admin of [true,false]) {
   assert.ok(!home.includes('href="/officer"'));
   assert.ok(!home.includes('data-mini-calendar'));
   assert.ok(!home.includes('YOUR KINGDOM AWAITS'));
+  assert.ok(!home.includes('ONE BANNER. COUNTLESS ADVENTURES.'));
+  assert.ok(!home.includes('A world beyond the ordinary.'));
+  assert.ok(home.includes('Animation On'));
 }
 console.log('Simplified cinematic home checks passed.');
