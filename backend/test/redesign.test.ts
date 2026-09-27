@@ -59,12 +59,17 @@ assert.equal(chooseEvent([past],now),null);
 assert.equal(chooseEvent([],now),null);
 console.log('Current event selection checks passed.');
 
-// Home exposes the tools hub only to the existing authorized admin role.
+// The cinematic home leads into the base without duplicating dashboard tools.
 function homeForRole(admin:boolean) {
   return new Function('document','boardCurrentEvent','hasAdminAccess','escapeHtml',
     extract('renderAllianceBoard','initializeCharacterVideo')+'return renderAllianceBoard([]);'
   )({body:{classList:{contains:()=>false}}},()=>null,()=>admin,(text:string)=>text);
 }
-assert.match(homeForRole(true), /href="\/officer"[^>]*>[\s\S]*?<strong>Admin Tools<\/strong>/);
-assert.ok(!homeForRole(false).includes('href="/officer"'));
-console.log('Home admin tools visibility checks passed.');
+for (const admin of [true,false]) {
+  const home=homeForRole(admin);
+  assert.match(home, /href="\/base" aria-label="Enter Kingdom"/);
+  assert.ok(!home.includes('href="/officer"'));
+  assert.ok(!home.includes('data-mini-calendar'));
+  assert.ok(!home.includes('YOUR KINGDOM AWAITS'));
+}
+console.log('Simplified cinematic home checks passed.');

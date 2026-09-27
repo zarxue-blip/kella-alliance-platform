@@ -1,21 +1,8 @@
 // Runs inside the existing dashboard closure; data and authorization stay shared.
 export const portalHomeClient = String.raw`
       function renderAllianceBoard(events = []) {
-        const destinations = [
-          ['/calendar','icons/events.png','Alliance Calendar','Gather for the next adventure.'],
-          ['/wiki','icons/embed-sender.png','The Alliance Archives','Rules, guides, and shared wisdom.'],
-          ['/members','icons/members.png','Our Champions','The strength behind our banner.'],
-          ['/attendance','icons/events.png','Attendance','Make your presence count.'],
-          ['/research','buffs/research.png','Research','Plan your next breakthrough.'],
-          ['/training-tools','icons/training-tools.png','Training','Prepare your legions for battle.'],
-          ['/migration','migration-gold.png','Migration','Your next chapter begins here.']
-        ];
-        if (hasAdminAccess()) destinations.push(['/officer','icons/settings.png','Admin Tools','Lead, organize, and keep us moving.']);
-        const links = destinations.map(function(item,index){return '<a class="portal-feature" href="'+item[0]+'" data-link><span class="portal-feature-number">0'+(index+1)+'</span><img src="/assets/'+item[1]+'" alt="" width="62" height="62" loading="lazy"/><div><strong>'+item[2]+'</strong><p>'+item[3]+'</p></div><span class="portal-feature-arrow" aria-hidden="true">↗</span></a>';}).join('');
         return '<div class="portal-home portal-parallax">' +
-          '<section class="kingdom-journey" data-kingdom-journey aria-label="Journey into the elven kingdom"><div class="kingdom-stage"><div class="kingdom-film" aria-hidden="true"><img class="kingdom-still" src="/assets/base-game/assets/kingdom-open.jpg" alt="" width="1280" height="720"/><video data-kingdom-video muted playsinline preload="none" poster="/assets/base-game/assets/kingdom-start-v2.jpg" width="1280" height="720" disablepictureinpicture disableremoteplayback tabindex="-1"></video></div><div class="kingdom-shade" aria-hidden="true"></div><div class="kingdom-topline"><span>EVOLUTION / THE ELVEN KINGDOM</span><button type="button" class="secondary" data-story-toggle aria-pressed="true">Story mode · On</button></div><div class="kingdom-intro"><p class="portal-eyebrow">ONE BANNER. COUNTLESS ADVENTURES.</p><h1><img src="/assets/evo-wordmark.svg" alt="EVO" width="360" height="120" fetchpriority="high"/></h1><p>A world beyond the ordinary.</p></div><div class="kingdom-enter" data-kingdom-entry hidden><span class="portal-eyebrow">YOUR KINGDOM AWAITS</span><a class="primary" href="/base">Enter Kingdom <span aria-hidden="true">↗</span></a></div><div class="kingdom-bottomline"><a class="kingdom-support" href="https://paypal.me/exuzz" target="_blank" rel="noopener noreferrer">Support Creator ↗</a><p data-kingdom-hint role="status">Scroll to enter the forest <span aria-hidden="true">↓</span></p><a href="#portal-explore">Member tools ↓</a></div><div class="kingdom-progress" aria-hidden="true"><i></i></div></div></section>' +
-          '<section class="portal-realm" id="portal-explore"><div class="portal-realm-scenery" data-depth="0.10" aria-hidden="true"></div><div class="portal-body"><div class="portal-section-heading"><div><p class="portal-eyebrow">THE REALM / AT YOUR COMMAND</p><h2>Everything for<br>the next adventure.</h2></div><a class="portal-text-link" href="/migration" data-link>Migration ↗</a></div><div class="portal-tools-layout"><div class="portal-features">'+links+'</div><section class="hero-calendar" aria-label="Alliance calendar" data-mini-calendar></section></div><div class="portal-live" data-portal-live></div></div></section>' +
-          '<section class="portal-honour"><div class="portal-honour-art" data-depth="0.06" aria-hidden="true"><img src="/assets/base-game/assets/sacred-hall.png" alt="" loading="lazy"/></div><div class="portal-body portal-community"><div class="portal-honour-copy"><p class="portal-eyebrow">OUR PEOPLE / OUR STRENGTH</p><h2>Legends live<br>among us.</h2><p>Every victory begins with the people beside you.</p><a class="portal-text-link" href="/members" data-link>Meet the alliance ↗</a></div><div class="portal-champions"></div></div></section><div class="portal-body"><footer class="portal-footer"><img src="/assets/kella-logo.png" width="40" height="40" alt=""/><div><strong>EVO · EVOLUTION</strong><p>Built for our alliance.</p></div><a href="/profile" data-link>Your profile ↗</a></footer></div></div>';
+          '<section class="kingdom-journey" data-kingdom-journey aria-label="Journey into the elven kingdom"><div class="kingdom-stage"><div class="kingdom-film" aria-hidden="true"><img class="kingdom-still" src="/assets/base-game/assets/kingdom-0927-open.jpg" alt="" width="1280" height="720"/><video data-kingdom-video muted playsinline preload="none" poster="/assets/base-game/assets/kingdom-0927-start.jpg" width="1280" height="720" disablepictureinpicture disableremoteplayback tabindex="-1"></video></div><div class="kingdom-shade" aria-hidden="true"></div><div class="kingdom-topline"><button type="button" class="secondary" data-story-toggle aria-pressed="true">Story mode · On</button></div><div class="kingdom-intro"><p class="portal-eyebrow">ONE BANNER. COUNTLESS ADVENTURES.</p><h1><img src="/assets/evo-wordmark.svg" alt="EVO" width="360" height="120" fetchpriority="high"/></h1><p>A world beyond the ordinary.</p></div><div class="kingdom-enter" data-kingdom-entry hidden><a href="/base" aria-label="Enter Kingdom"><img src="/assets/base-game/assets/enter-kingdom.webp" alt="Enter Kingdom" width="1086" height="362"/></a></div><div class="kingdom-progress" aria-hidden="true"><i></i></div></div></section></div>';
       }
 
       function initializeKingdomEntrance() {
@@ -24,25 +11,16 @@ export const portalHomeClient = String.raw`
         const video=root.querySelector('[data-kingdom-video]');
         const entry=root.querySelector('[data-kingdom-entry]');
         const toggle=root.querySelector('[data-story-toggle]');
-        const hint=root.querySelector('[data-kingdom-hint]');
         const motion=matchMedia('(prefers-reduced-motion: reduce)');
         const header=document.querySelector('.shell > .sidebar');
-        let frame=0,enabled=true,failed=false,disposed=false,progress=0,targetTime=0,lastHint='';
+        let frame=0,enabled=true,failed=false,disposed=false,progress=0,targetTime=0;
         const clamp=function(n){return Math.max(0,Math.min(1,n));};
         function animated(){return enabled&&!motion.matches&&!failed;}
-        function message(value){if(lastHint!==value){hint.textContent=value;lastHint=value;}}
         function updateEntry(){
           // Never show the invitation over an old frame while a seek is still decoding.
           const ready=!animated() || (progress>=.94 && !video.seeking && video.readyState>=2 && video.currentTime>=video.duration*.85);
           entry.hidden=!ready;
           root.classList.toggle('kingdom-ready',ready);
-          if(failed)message('The film could not load. You can still enter the kingdom.');
-          else if(!animated())message('Your kingdom is ready.');
-          else if(video.readyState<2)message('Preparing the forest…');
-          else if(ready)message('The gates are open.');
-          else if(progress<.1)message('Scroll to enter the forest ↓');
-          else if(progress<.6)message('Follow the path ↓');
-          else message('Keep scrolling to open the door ↓');
         }
         function seek(){
           if(disposed||!animated()||video.readyState<2||!Number.isFinite(video.duration)||video.seeking)return;
@@ -73,7 +51,7 @@ export const portalHomeClient = String.raw`
           toggle.textContent=motion.matches?'Story mode · Reduced':enabled?'Story mode · On':'Story mode · Off';
           video.muted=true;video.pause();
           if(animated()&&!video.getAttribute('src')){
-            video.preload='auto';video.src='/assets/base-game/assets/kingdom-entrance-v2.mp4';video.load();
+            video.preload='auto';video.src='/assets/base-game/assets/kingdom-0927.mp4';video.load();
           }
           draw();
         }
