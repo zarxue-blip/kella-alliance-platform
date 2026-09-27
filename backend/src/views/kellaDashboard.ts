@@ -2,6 +2,7 @@ import { siteParallaxClient } from './siteParallax.js';
 import { portalHomeClient } from './portalHome.js';
 import { migrationClient } from './migrationClient.js';
 import { lordResearchLevelCosts, lordResearchTreeData } from "../data/researchTree.data.js";
+import { trainingResourceCosts } from "../data/trainingCosts.js";
 
 const navItems = [
   { path: "/migration", icon: "/assets/migration-gold.png", label: "Migration" },
@@ -3347,6 +3348,8 @@ export function kellaDashboardHtml() {
     <link rel="stylesheet" href="/assets/fantasy-portal.css?v=elven-forest-2" />
     <link rel="stylesheet" href="/assets/site-parallax.css?v=realm-3" />
     <link rel="stylesheet" href="/assets/portal-parallax.css?v=kingdom-film-3" />
+    <link rel="stylesheet" href="/assets/training-units.css?v=2" />
+    <link rel="stylesheet" href="/assets/base-game/research-hud.css?v=2" />
   </head>
   <body>
     <div class="realm-coins" aria-hidden="true"><i style="--x:5%;--y:7%;--size:10px;--duration:12s;--delay:-0s" class="portal-coin"><span>✦</span></i><i style="--x:42%;--y:26%;--size:15px;--duration:13s;--delay:-2s" class="portal-coin"><span>✦</span></i><i style="--x:79%;--y:45%;--size:20px;--duration:14s;--delay:-4s" class="portal-coin"><span>✦</span></i><i style="--x:19%;--y:64%;--size:25px;--duration:15s;--delay:-6s" class="portal-coin"><span>✦</span></i><i style="--x:56%;--y:83%;--size:10px;--duration:16s;--delay:-8s" class="portal-coin"><span>✦</span></i><i style="--x:93%;--y:6%;--size:15px;--duration:17s;--delay:-10s" class="portal-coin"><span>✦</span></i><i style="--x:33%;--y:25%;--size:20px;--duration:18s;--delay:-12s" class="portal-coin"><span>✦</span></i><i style="--x:70%;--y:44%;--size:25px;--duration:12s;--delay:-14s" class="portal-coin"><span>✦</span></i><i style="--x:10%;--y:63%;--size:10px;--duration:13s;--delay:-16s" class="portal-coin"><span>✦</span></i><i style="--x:47%;--y:82%;--size:15px;--duration:14s;--delay:-18s" class="portal-coin"><span>✦</span></i><i style="--x:84%;--y:5%;--size:20px;--duration:15s;--delay:-20s" class="portal-coin"><span>✦</span></i><i style="--x:24%;--y:24%;--size:25px;--duration:16s;--delay:-22s" class="portal-coin"><span>✦</span></i><i style="--x:61%;--y:43%;--size:10px;--duration:17s;--delay:-24s" class="portal-coin"><span>✦</span></i><i style="--x:1%;--y:62%;--size:15px;--duration:18s;--delay:-26s" class="portal-coin"><span>✦</span></i><i style="--x:38%;--y:81%;--size:20px;--duration:12s;--delay:-28s" class="portal-coin"><span>✦</span></i><i style="--x:75%;--y:4%;--size:25px;--duration:13s;--delay:-30s" class="portal-coin"><span>✦</span></i><i style="--x:15%;--y:23%;--size:10px;--duration:14s;--delay:-32s" class="portal-coin"><span>✦</span></i><i style="--x:52%;--y:42%;--size:15px;--duration:15s;--delay:-34s" class="portal-coin"><span>✦</span></i></div>
@@ -3408,13 +3411,15 @@ export function kellaDashboardHtml() {
       const toasts = document.getElementById("toasts");
       const embeddedTool = new URLSearchParams(location.search).get("embedded") === "1";
       document.body.classList.toggle("embedded-tool", embeddedTool);
+      const researchHudMode = embeddedTool && location.pathname === "/research" && new URLSearchParams(location.search).get("hud") === "1";
+      document.body.classList.toggle("research-hud", researchHudMode);
 ${siteParallaxClient}
       initializeSiteParallax();
       const memberModal = document.getElementById("memberModal");
       const memberModalContent = document.querySelector("[data-member-modal-content]");
       const avatarCropper = document.getElementById("avatarCropper");
       let navigationVersion = 0;
-      const state = { personalAttendance: null, summary: null, members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], polls: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiInteractionMode: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "points", trainingTroopType: "cavalry", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "", lordTools: null, lordView: "overview", lordSearch: "", lordResearchTree: "economy", lordResearchSelected: "", lordResearchZoom: 0.6, lordResearchPanX: 0, lordResearchPanY: 0 };
+      const state = { personalAttendance: null, summary: null, members: [], dashboardMembers: [], dashboardMembersMetric: "", allMembers: [], alerts: [], events: [], polls: [], complaints: [], wiki: null, wikiSearch: "", wikiTag: "", uploads: null, settings: null, channels: null, templates: null, currentReport: null, profile: null, openMember: null, auth: null, statsMetric: "power", chartSelections: {}, profileRadarMetrics: {}, profileRadarDates: {}, profileGraphModes: {}, avatarEditor: null, wikiBlocks: [], selectedWikiBlockId: "", wikiDrag: null, wikiInteractionMode: null, wikiStockUploadKind: "misc", wikiCustomImages: null, wikiTextSelection: null, wikiReaderZoom: 1, trainingMode: "units", trainingTroopType: "cavalry", trainingUnitTier: "t2", trainingUnitLastTroop: "", trainingMixedTier: "t5", trainingMixedSteps: [], trainingSummary: "", lordTools: null, lordView: "overview", lordSearch: "", lordResearchTree: "economy", lordResearchSelected: "", lordResearchZoom: 0.6, lordResearchPanX: 0, lordResearchPanY: 0 };
       let lordResearchPan = null;
       let lordResearchPinch = null;
       const lordResearchPointers = new Map();
@@ -3458,6 +3463,16 @@ ${siteParallaxClient}
         cavalry: "Cavalry",
         flying: "Flying"
       };
+      const trainingUnitTierOrder = ["t1", "t2", "t3", "t4", "t5"];
+      const trainingUnitDefaultTier = { infantry: "t2", mage: "t2", archer: "t1", cavalry: "t2", flying: "t3" };
+      const trainingUnitTierTime = { t1: 18, t2: 40, t3: 60, t4: 80, t5: 120 };
+      const trainingUnitBuildingIcons = {
+        infantry: "/assets/base-game/assets/infantry.png",
+        mage: "/assets/base-game/assets/longleaf-arch.png",
+        archer: "/assets/base-game/assets/archery-range.png",
+        cavalry: "/assets/base-game/assets/elk-stable.png",
+        flying: "/assets/base-game/assets/eagle-nest.png"
+      };
       const trainingResourceOrder = ["ore", "mana", "wood", "gold"];
       const trainingResourceLabels = { ore: "Ore", mana: "Mana", wood: "Wood", gold: "Gold" };
       const resourceIconPaths = {
@@ -3467,43 +3482,7 @@ ${siteParallaxClient}
         gold: "/assets/resources/gold.png",
         gem: "/assets/resources/gem.png"
       };
-      const trainingResourceCosts = {
-        t3: {
-          infantry: { ore: 0, mana: 30, wood: 150, gold: 150 },
-          mage: { ore: 112, mana: 30, wood: 150, gold: 0 },
-          archer: { ore: 112, mana: 30, wood: 0, gold: 150 },
-          cavalry: { ore: 90, mana: 30, wood: 90, gold: 90 },
-          flying: { ore: 90, mana: 30, wood: 90, gold: 90 }
-        },
-        t4: {
-          infantry: { ore: 0, mana: 100, wood: 300, gold: 300 },
-          mage: { ore: 225, mana: 100, wood: 300, gold: 0 },
-          archer: { ore: 225, mana: 100, wood: 0, gold: 300 },
-          cavalry: { ore: 180, mana: 100, wood: 180, gold: 180 },
-          flying: { ore: 180, mana: 100, wood: 180, gold: 180 }
-        },
-        t5: {
-          infantry: { ore: 0, mana: 400, wood: 800, gold: 800 },
-          mage: { ore: 600, mana: 400, wood: 800, gold: 0 },
-          archer: { ore: 600, mana: 400, wood: 0, gold: 800 },
-          cavalry: { ore: 480, mana: 400, wood: 480, gold: 480 },
-          flying: { ore: 480, mana: 400, wood: 480, gold: 480 }
-        },
-        p34: {
-          infantry: { ore: 0, mana: 70, wood: 150, gold: 150 },
-          mage: { ore: 113, mana: 70, wood: 150, gold: 0 },
-          archer: { ore: 112, mana: 70, wood: 0, gold: 150 },
-          cavalry: { ore: 90, mana: 70, wood: 90, gold: 90 },
-          flying: { ore: 90, mana: 70, wood: 90, gold: 90 }
-        },
-        p45: {
-          infantry: { ore: 0, mana: 300, wood: 500, gold: 500 },
-          mage: { ore: 375, mana: 300, wood: 500, gold: 0 },
-          archer: { ore: 375, mana: 300, wood: 0, gold: 500 },
-          cavalry: { ore: 300, mana: 300, wood: 300, gold: 300 },
-          flying: { ore: 300, mana: 300, wood: 300, gold: 300 }
-        }
-      };
+      const trainingResourceCosts = ${JSON.stringify(trainingResourceCosts)};
       const wikiMiscImages = ${JSON.stringify(wikiMiscImages)};
       const wikiHeroImages = ${JSON.stringify(wikiHeroImages)};
       const wikiMarkerImages = ${JSON.stringify(wikiMarkerImages)};
@@ -6688,6 +6667,8 @@ ${siteParallaxClient}
         }).join("") + '</div></section>';
       }
 
+      let researchHudDetailOpen = false;
+
       function lordResearchSettings(data) {
         data.researchSettings = data.researchSettings || {};
         const defaults = lordDefaultData().researchSettings;
@@ -6849,9 +6830,53 @@ ${siteParallaxClient}
         const nodes = lordResearchNodes.map(function(node) {
           const level = lordResearchNodeLevel(data, node);
           const center = nodeCenter(node);
-          return '<button class="lord-research-node ' + lordResearchTier(node) + ' ' + nodeState(node) + (selectedId === node.id ? ' selected' : '') + '" style="left:' + (center.x - (nodeWidth / 2)) + 'px;top:' + (center.y - (iconSize / 2)) + 'px" type="button" data-action="lord-research-select" data-research-id="' + node.id + '" title="Left click adds a level. Right click removes one." aria-label="' + escapeHtml(node.name) + ', level ' + level + ' of ' + node.max + '"><span class="lord-research-node-art"><img src="/assets/research/' + tree + '/' + faction + '/' + node.id + '.png" alt="" loading="eager" decoding="async" draggable="false" /><span class="lord-research-node-level">' + level + '/' + node.max + '</span></span><strong>' + escapeHtml(node.name) + '</strong></button>';
+          return '<button class="lord-research-node ' + lordResearchTier(node) + ' ' + nodeState(node) + (selectedId === node.id ? ' selected' : '') + '" style="left:' + (center.x - (nodeWidth / 2)) + 'px;top:' + (center.y - (iconSize / 2)) + 'px" type="button" data-action="lord-research-select" data-research-id="' + node.id + '" title="' + (researchHudMode ? 'View research details' : 'Left click adds a level. Right click removes one.') + '" aria-label="' + escapeHtml(node.name) + ', level ' + level + ' of ' + node.max + '"><span class="lord-research-node-art"><img src="/assets/research/' + tree + '/' + faction + '/' + node.id + '.png" alt="" loading="eager" decoding="async" draggable="false" /><span class="lord-research-node-level">' + level + '/' + node.max + '</span></span><strong>' + escapeHtml(node.name) + '</strong></button>';
         }).join("");
         return '<div class="lord-research-tree" data-lord-research-tree-canvas style="width:' + treeWidth + 'px;height:' + treeHeight + 'px;transform:translate3d(' + state.lordResearchPanX + 'px,' + state.lordResearchPanY + 'px,0) scale(' + state.lordResearchZoom + ')"><svg class="lord-research-lines" viewBox="0 0 ' + treeWidth + ' ' + treeHeight + '" aria-hidden="true">' + lines.join("") + '</svg>' + nodes + '</div>';
+      }
+
+      function lordResearchHudDetailHtml(data) {
+        if (!researchHudDetailOpen) return "";
+        lordResearchCurrentNodes();
+        const node = lordResearchNodes.find(function(item) { return item.id === state.lordResearchSelected; });
+        if (!node) return "";
+        const level = lordResearchNodeLevel(data, node);
+        const complete = level >= node.max;
+        const costs = (lordResearchCostsByTree[lordResearchTreeKey()] || {})[node.id] || [];
+        const before = costs[level] || costs[0] || {};
+        const after = costs[Math.min(level + 1, node.max)] || before;
+        const settings = lordResearchSettings(data);
+        const speed = 1 + ((lordNumber(settings.speed) + (settings.heightsOfPower ? 15 : 0)) / 100);
+        const seconds = Math.max(0, lordNumber(after.seconds) - lordNumber(before.seconds)) / speed;
+        const faction = ["league_of_order", "springwardens", "wilderburg"].includes(settings.faction) ? settings.faction : "league_of_order";
+        const resources = ["gold", "wood", "ore", "mana"].map(function(resource) {
+          const amount = Math.max(0, lordNumber(after[resource]) - lordNumber(before[resource]));
+          if (!amount) return "";
+          return '<span class="research-game-resource"><img src="' + resourceIconPaths[resource] + '" alt="" /><strong>' + trainingCompactNumber(amount) + '</strong><small>' + trainingResourceLabels[resource] + '</small></span>';
+        }).join("");
+        const requirements = node.requires.map(function(requirement) {
+          const id = String(requirement.id || requirement);
+          const source = lordResearchNodes.find(function(item) { return item.id === id; });
+          const needed = lordNumber(requirement.level || source?.max || 1);
+          return source ? escapeHtml(source.name) + ' ' + needed + '/' + source.max : "";
+        }).filter(Boolean).join(" · ");
+        return '<div class="research-game-detail-head"><button type="button" data-action="research-hud-close-detail" aria-label="Close research details">×</button><img src="/assets/research/' + lordResearchTreeKey() + '/' + faction + '/' + node.id + '.png" alt="" /><div><span>Technology</span><h4>' + escapeHtml(node.name) + '</h4><p>Level ' + level + ' / ' + node.max + '</p></div></div>' +
+          '<div class="research-game-detail-body"><div class="research-game-level"><span>Recorded progress</span><strong>' + level + ' / ' + node.max + '</strong></div><div class="research-game-progress" role="progressbar" aria-valuenow="' + level + '" aria-valuemin="0" aria-valuemax="' + node.max + '" aria-label="' + escapeHtml(node.name) + ' progress"><i style="width:' + Math.round((level / node.max) * 100) + '%"></i></div>' +
+          (complete ? '<p class="research-game-complete">All levels recorded.</p>' : '<div class="research-game-next"><span>Next level estimate</span><strong>' + trainingDuration(seconds) + '</strong></div><div class="research-game-resources">' + resources + '</div>') +
+          (requirements ? '<p class="research-game-requires">Requires ' + requirements + '</p>' : '') + '</div>' +
+          '<div class="research-game-detail-actions"><button type="button" data-action="lord-research-step" data-research-id="' + node.id + '" data-step="-1"' + (level <= 0 ? ' disabled' : '') + '>− Remove level</button><button type="button" data-action="lord-research-step" data-research-id="' + node.id + '" data-step="1"' + (complete ? ' disabled' : '') + '>+ Record level</button></div><p class="research-game-disclaimer">Tracks your Kella plan. No in-game research is started.</p>';
+      }
+
+      function lordResearchHudPanel(data, settings, completed, treeLabel, factionLabels) {
+        const tab = function(tree, label, icon) {
+          return '<button class="research-game-branch' + (lordResearchTreeKey() === tree ? ' active' : '') + '" type="button" data-action="lord-research-tree" data-research-tree="' + tree + '" aria-pressed="' + (lordResearchTreeKey() === tree) + '"><span aria-hidden="true">' + icon + '</span><strong>' + label + '</strong></button>';
+        };
+        return '<section class="lord-research-workspace research-game-hud"><header class="research-game-head"><div><span class="research-game-kicker">EVO · RESEARCH SANCTUARY</span><h3>' + treeLabel.toUpperCase() + ' TECH</h3><small>' + completed + ' of ' + lordResearchNodes.length + ' complete · ' + escapeHtml(factionLabels[settings.faction] || factionLabels.league_of_order) + '</small></div><div class="research-game-head-actions"><button type="button" data-action="save-lord-tools">Save progress</button></div></header>' +
+          '<div class="research-game-stage"><nav class="research-game-rail" aria-label="Research branches">' + tab("economy", "Economy", "✦") + tab("military", "Military", "⚔") + '</nav>' +
+          '<main class="lord-research-main" data-lord-research-fullscreen><div class="research-game-toolbar"><span>Drag to explore · Scroll to zoom</span><button type="button" data-action="research-fit">Fit tree</button><button type="button" data-action="research-readable">Readable view</button></div><div class="lord-research-tree-scroll" data-lord-research-scroll tabindex="0" aria-label="' + treeLabel + ' research tree. Drag to move and scroll or pinch to zoom."><div class="lord-research-summary" data-lord-research-summary>' + lordResearchSummaryHtml(data) + '</div>' + lordResearchTreeHtml(data) + '</div><aside class="research-game-detail" data-research-hud-detail aria-label="Research details">' + lordResearchHudDetailHtml(data) + '</aside></main>' +
+          '<details class="research-game-settings"><summary>Research settings</summary><div class="research-game-settings-inner"><label>Faction<select data-lord-research-setting="faction">' + Object.entries(factionLabels).map(function(entry) { return '<option value="' + entry[0] + '"' + (entry[0] === settings.faction ? ' selected' : '') + '>' + entry[1] + '</option>'; }).join("") + '</select></label>' +
+          '<label>Alliance Center<select data-lord-research-setting="allianceCenter">' + Array.from({ length: 25 }, function(_, index) { const value = index + 1; return '<option value="' + value + '"' + (value === lordNumber(settings.allianceCenter) ? ' selected' : '') + '>Level ' + value + '</option>'; }).join("") + '</select></label>' +
+          '<label>Research speed %<input type="number" min="0" max="500" step="1" value="' + lordNumber(settings.speed) + '" data-lord-research-setting="speed" /></label><button class="lord-research-toggle' + (settings.heightsOfPower ? ' on' : '') + '" type="button" data-action="lord-research-event"><span>Heights of Power +15%</span><i aria-hidden="true"></i></button><button class="research-game-reset" type="button" data-action="lord-research-reset-all">Reset branch</button></div></details></div></section>';
       }
 
       function lordResearchPanel(data) {
@@ -6860,6 +6885,7 @@ ${siteParallaxClient}
         const completed = lordResearchNodes.filter(function(node) { return lordResearchNodeLevel(data, node) >= node.max; }).length;
         const factionLabels = { league_of_order: "League of Order", springwardens: "Springwardens", wilderburg: "Wilderburg" };
         const treeLabel = lordResearchTreeKey() === "military" ? "Military" : "Economy";
+        if (researchHudMode) return lordResearchHudPanel(data, settings, completed, treeLabel, factionLabels);
         return '<section class="lord-research-workspace"><header class="lord-research-head"><div><h3>Research Calculator</h3><p>' + escapeHtml(factionLabels[settings.faction] || factionLabels.league_of_order) + ' ' + treeLabel.toLowerCase() + ' tree - ' + completed + ' of ' + lordResearchNodes.length + ' technologies completed</p></div><div><button class="primary" type="button" data-action="save-lord-tools">Save</button> <button class="lord-research-reset" type="button" data-action="lord-research-reset-all">Reset</button></div></header>' +
           '<div class="lord-research-layout"><div class="lord-research-settings"><div class="lord-research-settings-heading"><strong>Calculator settings</strong><small>Set your city and active research bonuses.</small></div>' +
             '<label>Faction<select data-lord-research-setting="faction">' + Object.entries(factionLabels).map(function(entry) { return '<option value="' + entry[0] + '"' + (entry[0] === settings.faction ? ' selected' : '') + '>' + entry[1] + '</option>'; }).join("") + '</select></label>' +
@@ -6942,6 +6968,8 @@ ${siteParallaxClient}
         const nodeById = Object.fromEntries(lordResearchNodes.map(function(item) { return [item.id, item]; }));
         const summary = document.querySelector("[data-lord-research-summary]");
         if (summary) summary.innerHTML = lordResearchSummaryHtml(data);
+        const hudDetail = document.querySelector("[data-research-hud-detail]");
+        if (hudDetail) hudDetail.innerHTML = lordResearchHudDetailHtml(data);
         document.querySelectorAll("[data-action=lord-research-select]").forEach(function(button) {
           const id = button.getAttribute("data-research-id") || "";
           const node = lordResearchNodes.find(function(item) { return item.id === id; });
@@ -7183,14 +7211,47 @@ ${siteParallaxClient}
         return false;
       }
 
+      function trainingUnitPanel(selectedTroopType, selectedTier, visible) {
+        const troopButtons = Object.entries(trainingTroopTypes).map(function(entry) {
+          const active = entry[0] === selectedTroopType;
+          return '<button class="training-unit-troop' + (active ? ' active' : '') + '" type="button" data-action="training-unit-troop" data-training-unit-troop="' + entry[0] + '" aria-pressed="' + String(active) + '"><img src="' + trainingUnitBuildingIcons[entry[0]] + '" alt="" /><span>' + escapeHtml(entry[1]) + '</span></button>';
+        }).join("");
+        const tierButtons = trainingUnitTierOrder.map(function(key, index) {
+          const active = key === selectedTier;
+          return '<button class="training-unit-tier' + (active ? ' active' : '') + '" type="button" data-action="training-unit-tier" data-training-unit-tier="' + key + '" aria-label="Tier ' + (index + 1) + '" aria-pressed="' + String(active) + '"><span>' + ["I", "II", "III", "IV", "V"][index] + '</span></button>';
+        }).join("");
+        return '<section class="training-unit-panel training-panel" data-training-panel="units"' + (visible ? '' : ' hidden') + '>' +
+          '<div class="training-unit-scene" aria-hidden="true"></div>' +
+          '<div class="training-unit-frame">' +
+            '<header class="training-unit-header"><span>TRAIN UNITS</span><small>Troop cost calculator</small></header>' +
+            '<div class="training-unit-troops" role="group" aria-label="Choose troop building">' + troopButtons + '</div>' +
+            '<div class="training-unit-content">' +
+              '<div class="training-unit-showcase"><div class="training-unit-halo"></div><img data-training-unit-image src="/assets/training-units/' + selectedTroopType + '.png" alt="" /><p data-training-unit-showcase-label>' + escapeHtml(trainingTroopTypes[selectedTroopType]) + '</p></div>' +
+              '<div class="training-unit-workspace"><div class="training-unit-title"><span class="training-unit-overline">Select a tier and quantity</span><h2 data-training-unit-name>' + escapeHtml(trainingTroopTypes[selectedTroopType]) + '</h2></div>' +
+                '<div class="training-unit-tiers" role="group" aria-label="Troop tier">' + tierButtons + '</div>' +
+                '<div class="training-unit-quantity"><label for="trainingUnitQuantity">Troops to train</label><input id="trainingUnitQuantity" type="number" min="0" max="10000000" step="1" inputmode="numeric" value="1600" data-training-input data-training-unit-quantity /><span class="training-unit-range-wrap"><input type="range" min="0" max="20000" step="1" value="1600" aria-label="Troop quantity" data-training-input data-training-unit-range /><span data-training-unit-range-limit>20,000</span></span></div>' +
+                '<div class="training-unit-cost-head"><strong>Resource cost</strong><span data-training-unit-cost-label>for 1,600 troops</span></div><div class="training-unit-costs" data-training-unit-costs aria-live="polite"></div>' +
+                '<div class="training-unit-outcome"><div><small>Estimated training time</small><strong data-training-unit-time>—</strong></div><label>Training buff %<input type="number" min="0" max="10000" step="1" inputmode="numeric" value="75" data-training-input data-training-unit-buff /></label></div>' +
+                '<p class="training-unit-disclaimer">Planning estimate only. T1–T2 costs not shown in the sample recording are estimates; check your in-game costs before training.</p>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</section>';
+      }
+
       function renderTrainingTools() {
         const requestedTroopType = new URLSearchParams(location.search).get("troop") || "";
-        if (Object.prototype.hasOwnProperty.call(trainingTroopTypes, requestedTroopType)) state.trainingTroopType = requestedTroopType;
-        const selected = ["points", "speedup", "power", "mixed"].includes(state.trainingMode) ? state.trainingMode : "points";
+        if (Object.prototype.hasOwnProperty.call(trainingTroopTypes, requestedTroopType)) {
+          if (state.trainingUnitLastTroop !== requestedTroopType) state.trainingUnitTier = trainingUnitDefaultTier[requestedTroopType];
+          state.trainingTroopType = requestedTroopType;
+          state.trainingUnitLastTroop = requestedTroopType;
+        }
+        const selected = ["units", "points", "speedup", "power", "mixed"].includes(state.trainingMode) ? state.trainingMode : "units";
         state.trainingMode = selected;
         const selectedTroopType = Object.prototype.hasOwnProperty.call(trainingTroopTypes, state.trainingTroopType) ? state.trainingTroopType : "cavalry";
         state.trainingTroopType = selectedTroopType;
         const tabs = [
+          { id: "units", label: "Train Units" },
           { id: "points", label: "Event Points" },
           { id: "speedup", label: "Speedups" },
           { id: "power", label: "Target Power" },
@@ -7213,8 +7274,9 @@ ${siteParallaxClient}
           pageHeader("Training", "", '<button class="secondary" data-action="reset-training">Reset</button><button class="primary" data-action="copy-training-summary">Copy Results</button>') +
           '<div class="training-shell">' +
             '<details class="calculator-help"><summary>Calculation assumptions</summary><p>Uses Call of Dragons base troop times. Match the training buff to your city’s in-game value.</p></details>' +
-            '<section class="training-resource-settings" data-training-resource-settings' + (selected === "mixed" ? ' hidden' : '') + '><label>Troop Type<select data-training-input data-training-troop-type>' + troopTypeOptions + '</select></label></section>' +
+            '<section class="training-resource-settings" data-training-resource-settings' + (["units", "mixed"].includes(selected) ? ' hidden' : '') + '><label>Troop Type<select data-training-input data-training-troop-type>' + troopTypeOptions + '</select></label></section>' +
             '<div class="training-mode-tabs" role="tablist" aria-label="Training calculator mode">' + tabs + '</div>' +
+            trainingUnitPanel(selectedTroopType, state.trainingUnitTier, selected === "units") +
             '<section class="card training-calculator-card training-panel" data-training-panel="points"' + (selected === "points" ? '' : ' hidden') + '>' +
               '<div class="training-panel-head"><div><h3>Event Points</h3><p>See how many troops and event points your available training time can produce.</p></div></div>' +
               '<div class="training-input-grid"><div class="training-time-grid">' +
@@ -7257,7 +7319,7 @@ ${siteParallaxClient}
       }
 
       function setTrainingMode(mode) {
-        state.trainingMode = ["points", "speedup", "power", "mixed"].includes(mode) ? mode : "points";
+        state.trainingMode = ["units", "points", "speedup", "power", "mixed"].includes(mode) ? mode : "units";
         document.querySelectorAll("[data-training-mode]").forEach(function(button) {
           const active = button.getAttribute("data-training-mode") === state.trainingMode;
           button.classList.toggle("active", active);
@@ -7267,8 +7329,59 @@ ${siteParallaxClient}
           panel.hidden = panel.getAttribute("data-training-panel") !== state.trainingMode;
         });
         const resourceSettings = document.querySelector("[data-training-resource-settings]");
-        if (resourceSettings) resourceSettings.hidden = state.trainingMode === "mixed";
+        if (resourceSettings) resourceSettings.hidden = ["units", "mixed"].includes(state.trainingMode);
         updateTrainingTools();
+      }
+
+      function updateTrainingUnits() {
+        const troopType = Object.prototype.hasOwnProperty.call(trainingTroopTypes, state.trainingTroopType) ? state.trainingTroopType : "cavalry";
+        const tier = trainingUnitTierOrder.includes(state.trainingUnitTier) ? state.trainingUnitTier : trainingUnitDefaultTier[troopType];
+        state.trainingUnitTier = tier;
+        const amountInput = document.querySelector("[data-training-unit-quantity]");
+        const rangeInput = document.querySelector("[data-training-unit-range]");
+        const amount = Math.min(10000000, Math.floor(trainingValue("[data-training-unit-quantity]")));
+        const buff = Math.min(10000, trainingValue("[data-training-unit-buff]"));
+        const resourceCost = trainingResourceTotals(tier, amount, troopType);
+        const perUnit = trainingResourceCosts[tier][troopType];
+        const activeResources = trainingResourceOrder.filter(function(resource) { return perUnit[resource] > 0; });
+        const estimatedSeconds = amount * trainingUnitTierTime[tier] / (1 + buff / 100);
+        if (amountInput && document.activeElement !== amountInput && amountInput.value !== String(amount)) amountInput.value = String(amount);
+        if (rangeInput) {
+          const rangeMax = Math.max(20000, Math.ceil(amount / 10000) * 10000);
+          rangeInput.max = String(rangeMax);
+          rangeInput.value = String(amount);
+          rangeInput.style.setProperty("--training-progress", (rangeMax ? amount / rangeMax * 100 : 0) + "%");
+          const limit = document.querySelector("[data-training-unit-range-limit]");
+          if (limit) limit.textContent = formatNumber(rangeMax);
+        }
+        document.querySelectorAll("[data-training-unit-troop]").forEach(function(button) {
+          const active = button.getAttribute("data-training-unit-troop") === troopType;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+        document.querySelectorAll("[data-training-unit-tier]").forEach(function(button) {
+          const active = button.getAttribute("data-training-unit-tier") === tier;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+        const portrait = document.querySelector("[data-training-unit-image]");
+        if (portrait && portrait.getAttribute("data-training-unit-image") !== troopType) {
+          portrait.src = "/assets/training-units/" + troopType + ".png";
+          portrait.setAttribute("data-training-unit-image", troopType);
+        }
+        const name = document.querySelector("[data-training-unit-name]");
+        if (name) name.textContent = trainingTroopTypes[troopType];
+        const showcaseLabel = document.querySelector("[data-training-unit-showcase-label]");
+        if (showcaseLabel) showcaseLabel.textContent = trainingTroopTypes[troopType] + " · Tier " + ({ t1: "I", t2: "II", t3: "III", t4: "IV", t5: "V" })[tier];
+        const costLabel = document.querySelector("[data-training-unit-cost-label]");
+        if (costLabel) costLabel.textContent = "for " + formatNumber(amount) + " troops";
+        const costContainer = document.querySelector("[data-training-unit-costs]");
+        if (costContainer) costContainer.innerHTML = activeResources.map(function(resource) {
+          return '<div class="training-unit-resource"><img src="' + resourceIconPaths[resource] + '" alt="" /><span>' + escapeHtml(trainingResourceLabels[resource]) + '</span><strong title="' + escapeHtml(formatNumber(resourceCost[resource])) + '">' + escapeHtml(trainingCompactNumber(resourceCost[resource])) + '</strong></div>';
+        }).join("");
+        const time = document.querySelector("[data-training-unit-time]");
+        if (time) time.textContent = trainingDuration(estimatedSeconds);
+        state.trainingSummary = "KELLA TRAINING - TROOP COST\\nTroop: " + trainingTroopTypes[troopType] + "\\nTier: " + tier.toUpperCase() + "\\nQuantity: " + formatNumber(amount) + "\\nTraining buff: " + formatNumber(buff) + "%\\nEstimated time: " + trainingDuration(estimatedSeconds) + "\\nResources: " + trainingResourceOrder.map(function(resource) { return trainingResourceLabels[resource] + " " + formatNumber(resourceCost[resource]); }).join(" | ");
       }
 
       function updateTrainingPoints() {
@@ -7496,6 +7609,7 @@ ${siteParallaxClient}
 
       function updateTrainingTools() {
         if (location.pathname !== "/training-tools") return;
+        if (state.trainingMode === "units") return updateTrainingUnits();
         if (state.trainingMode === "speedup") return updateTrainingSpeedup();
         if (state.trainingMode === "power") return updateTrainingPower();
         if (state.trainingMode === "mixed") return updateTrainingMixed();
@@ -9141,10 +9255,20 @@ ${portalHomeClient}
           toggleLordResearchFullscreen();
           return;
         }
+        if (kind === "research-hud-close-detail") {
+          researchHudDetailOpen = false;
+          refreshLordResearchWorkspace();
+          return;
+        }
         if (kind === "lord-research-select") {
           if (Date.now() < lordResearchBlockClickUntil) return;
           lordResearchCurrentNodes();
           state.lordResearchSelected = action.getAttribute("data-research-id") || lordResearchNodes[0].id;
+          if (researchHudMode) {
+            researchHudDetailOpen = true;
+            refreshLordResearchWorkspace();
+            return;
+          }
           const node = lordResearchNodes.find(function(item) { return item.id === state.lordResearchSelected; });
           if (node) {
             const data = loadLordToolsData();
@@ -9158,6 +9282,7 @@ ${portalHomeClient}
           state.lordResearchTree = action.getAttribute("data-research-tree") === "military" ? "military" : "economy";
           lordResearchCurrentNodes();
           state.lordResearchSelected = lordResearchNodes[0]?.id || "";
+          researchHudDetailOpen = false;
           renderLordTools();
           return;
         }
@@ -9293,7 +9418,27 @@ ${portalHomeClient}
           fitLordResearchTree(kind === "research-readable"); return;
         }
         if (kind === "training-mode") {
-          setTrainingMode(action.getAttribute("data-training-mode") || "points");
+          setTrainingMode(action.getAttribute("data-training-mode") || "units");
+          return;
+        }
+        if (kind === "training-unit-troop") {
+          const troopType = action.getAttribute("data-training-unit-troop") || "";
+          if (!Object.prototype.hasOwnProperty.call(trainingTroopTypes, troopType)) return;
+          state.trainingTroopType = troopType;
+          state.trainingUnitLastTroop = troopType;
+          state.trainingUnitTier = trainingUnitDefaultTier[troopType];
+          const selector = document.querySelector("[data-training-troop-type]");
+          if (selector) selector.value = troopType;
+          const url = new URL(location.href);
+          url.searchParams.set("troop", troopType);
+          history.replaceState(history.state, "", url);
+          updateTrainingUnits();
+          return;
+        }
+        if (kind === "training-unit-tier") {
+          const tier = action.getAttribute("data-training-unit-tier") || "";
+          if (trainingUnitTierOrder.includes(tier)) state.trainingUnitTier = tier;
+          updateTrainingUnits();
           return;
         }
         if (kind === "training-mixed-tier") {
@@ -9319,9 +9464,10 @@ ${portalHomeClient}
           return;
         }
         if (kind === "reset-training") {
-          state.trainingMode = "points";
+          state.trainingMode = "units";
           const requestedTroopType = new URLSearchParams(location.search).get("troop") || "";
           state.trainingTroopType = Object.prototype.hasOwnProperty.call(trainingTroopTypes, requestedTroopType) ? requestedTroopType : "cavalry";
+          state.trainingUnitTier = trainingUnitDefaultTier[state.trainingTroopType];
           state.trainingMixedTier = "t5";
           state.trainingMixedSteps = [];
           state.trainingMixedCurrent = null;
@@ -10332,6 +10478,11 @@ ${portalHomeClient}
         const node = lordResearchNodes.find(function(item) { return item.id === nodeId; });
         if (!node) return;
         state.lordResearchSelected = nodeId;
+        if (researchHudMode) {
+          researchHudDetailOpen = true;
+          refreshLordResearchWorkspace();
+          return;
+        }
         const data = loadLordToolsData();
         lordResearchSetNodeLevel(data, node, lordResearchNodeLevel(data, node) - 1);
         saveLordToolsData(false);
@@ -10359,6 +10510,7 @@ ${portalHomeClient}
         if (handleLordControl(event.target)) return;
         if (event.target.matches("[data-training-input]")) {
           if (event.target.matches("[data-training-mix-unit], [data-training-mix-range]")) syncTrainingMixedInput(event.target);
+          if (event.target.matches("[data-training-unit-range]")) document.querySelector("[data-training-unit-quantity]").value = event.target.value;
           updateTrainingTools();
           return;
         }
@@ -10456,6 +10608,7 @@ ${portalHomeClient}
         if (handleLordControl(event.target)) return;
         if (event.target.matches("[data-training-input]")) {
           if (event.target.matches("[data-training-mix-unit], [data-training-mix-range]")) syncTrainingMixedInput(event.target);
+          if (event.target.matches("[data-training-unit-range]")) document.querySelector("[data-training-unit-quantity]").value = event.target.value;
           updateTrainingTools();
           return;
         }

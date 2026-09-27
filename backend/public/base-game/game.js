@@ -674,7 +674,7 @@ function selectAt(point) {
   if (!hit) return;
   if (hit.type === 'hub') window.location.assign('/members');
   else if (hit.type === 'notice') window.location.assign('/calendar');
-  else if (hit.type === 'research') openBuildingTool('/research?embedded=1', 'Research Sanctuary');
+  else if (hit.type === 'research') openBuildingTool('/research?embedded=1&hud=1', 'Research Sanctuary', true);
   else if (hit.type === 'infantry') openTrainingTool('infantry', 'Infantry');
   else if (hit.type === 'arch') openTrainingTool('mage', 'Mage');
   else if (hit.type === 'sentry' || hit.type === 'archery') openTrainingTool('archer', 'Archer');
@@ -683,10 +683,11 @@ function selectAt(point) {
   else if (hit.type === 'admin') window.location.assign('/officer');
 }
 
-function openBuildingTool(path, title) {
+function openBuildingTool(path, title, researchHud = false) {
   buildingToolTitle.textContent = title;
   buildingToolFrame.title = title;
   buildingToolFrame.src = path;
+  buildingToolModal.classList.toggle('research-mode', researchHud);
   buildingToolModal.hidden = false;
 }
 
@@ -696,6 +697,7 @@ function openTrainingTool(troopType, title) {
 
 function closeBuildingTool() {
   buildingToolModal.hidden = true;
+  buildingToolModal.classList.remove('research-mode');
   buildingToolFrame.src = 'about:blank';
 }
 

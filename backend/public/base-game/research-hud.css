@@ -1,0 +1,344 @@
+.building-modal.research-mode {
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  padding: 0;
+  transform: none;
+  border: 0;
+  border-radius: 0;
+  background: #07100d;
+  box-shadow: none;
+}
+
+.building-modal.research-mode .building-modal-title { display: none; }
+.building-modal.research-mode .building-tool-frame { border-radius: 0; }
+.building-modal.research-mode .building-modal-close {
+  z-index: 3;
+  top: 13px;
+  right: auto;
+  left: 14px;
+  width: 45px;
+  height: 45px;
+  border: 1px solid #b8965f9c;
+  border-radius: 5px;
+  background: #11201ccf;
+  color: #ffe2a4;
+  font-size: 0;
+  box-shadow: 0 3px 18px #02060488;
+}
+.building-modal.research-mode .building-modal-close::before {
+  content: "‹";
+  font: 34px/1 Georgia, serif;
+}
+
+body.research-hud {
+  overflow: hidden;
+  background: #06110e;
+}
+body.research-hud .realm-coins,
+body.research-hud .creator-companion,
+body.research-hud .sidebar,
+body.research-hud .mobile-nav-backdrop,
+body.research-hud .bottom-nav { display: none !important; }
+body.research-hud .shell,
+body.research-hud .shell:has(.lord-research-workspace) {
+  display: block;
+  width: 100%;
+  min-height: 100dvh;
+  margin: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: #06110e;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+body.research-hud .shell > main,
+body.research-hud .content,
+body.research-hud #app,
+body.research-hud .lord-tools-shell {
+  width: 100%;
+  min-width: 0;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+body.research-hud .lord-tools-shell { display: block; }
+body.research-hud .lord-intro { display: none; }
+body.research-hud .research-game-hud {
+  display: grid;
+  grid-template-rows: 76px minmax(0, 1fr);
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: #06110e;
+  box-shadow: none;
+}
+body.research-hud .research-game-head {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  padding: 8px 20px 8px 76px;
+  border-bottom: 1px solid #a9915a78;
+  background: linear-gradient(180deg, #17231eda, #07100ee8), radial-gradient(circle at 45% 0%, #3e4d3080, transparent 68%);
+  box-shadow: 0 4px 20px #0008;
+}
+body.research-hud .research-game-kicker {
+  display: block;
+  margin-bottom: 2px;
+  color: #bcaa79;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .22em;
+}
+body.research-hud .research-game-head h3 {
+  margin: 0;
+  color: #f6e5bb;
+  font: 800 24px/1 Georgia, serif;
+  letter-spacing: .08em;
+  text-shadow: 0 2px 11px #d9ae4f49;
+}
+body.research-hud .research-game-head small {
+  display: block;
+  margin-top: 4px;
+  color: #b5c2b4;
+  font-size: 11px;
+}
+body.research-hud .research-game-head-actions button,
+body.research-hud .research-game-toolbar button {
+  min-height: 36px;
+  padding: 7px 13px;
+  border: 1px solid #b895569c;
+  border-radius: 4px;
+  background: linear-gradient(#45422d, #23281f);
+  color: #f7e5b8;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+body.research-hud .research-game-head-actions button:hover,
+body.research-hud .research-game-toolbar button:hover { background: linear-gradient(#5d5436, #2d3325); }
+body.research-hud .research-game-head-actions button:focus-visible,
+body.research-hud .research-game-toolbar button:focus-visible,
+body.research-hud .research-game-branch:focus-visible,
+body.research-hud .research-game-detail button:focus-visible { outline: 2px solid #f5d986; outline-offset: 2px; }
+
+body.research-hud .research-game-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  min-height: 0;
+}
+body.research-hud .research-game-rail {
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  padding: 28px 8px;
+  border-right: 1px solid #9d835265;
+  background: linear-gradient(90deg, #0d1b17, #0d1613ed);
+  box-shadow: 4px 0 18px #0007;
+}
+body.research-hud .research-game-branch {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  width: 68px;
+  min-height: 68px;
+  padding: 9px 5px;
+  border: 1px solid #89745372;
+  border-radius: 6px;
+  background: #17251d;
+  color: #d9d0b8;
+}
+body.research-hud .research-game-branch.active {
+  border-color: #e9c879;
+  background: radial-gradient(circle at 50% 22%, #79693a91, #18291f 78%);
+  color: #fff0be;
+  box-shadow: 0 0 0 1px #d6bd7357, inset 0 0 15px #eac97039;
+}
+body.research-hud .research-game-branch > span { font-size: 24px; line-height: 1; }
+body.research-hud .research-game-branch > strong { font-size: 9px; line-height: 1.1; text-align: center; }
+body.research-hud .lord-research-main {
+  position: relative;
+  display: grid;
+  grid-template-rows: 47px minmax(0, 1fr);
+  min-height: 0;
+  background: #07120f;
+}
+body.research-hud .research-game-toolbar {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 6px 18px;
+  border-bottom: 1px solid #6d6a4a61;
+  background: #111a17d9;
+}
+body.research-hud .research-game-toolbar > span { margin-right: auto; color: #9aaa9b; font-size: 11px; }
+body.research-hud .research-game-toolbar button { min-height: 32px; padding: 5px 9px; }
+body.research-hud .lord-research-tree-scroll {
+  width: 100%;
+  min-height: 0;
+  max-height: none;
+  height: 100%;
+  background-color: #07130f;
+  background-image: radial-gradient(circle at 6% 16%, #ead9a85c 0 1px, transparent 1.5px), radial-gradient(circle at 68% 48%, #f5e4b26a 0 1px, transparent 1.5px), radial-gradient(circle at 36% 82%, #d3b97560 0 1px, transparent 1.5px), radial-gradient(ellipse at 45% 68%, #31544278, transparent 65%), linear-gradient(180deg, #050b0b, #0a1b15 80%, #14271b);
+  background-size: 157px 139px, 257px 221px, 339px 281px, auto, auto;
+}
+body.research-hud .lord-research-tree { background: transparent; }
+body.research-hud .lord-research-line {
+  stroke: #866a35;
+  stroke-width: 2.6;
+  opacity: .75;
+  filter: drop-shadow(0 0 2px #d6a85391);
+}
+body.research-hud .lord-research-line.done { stroke: #eac377; opacity: 1; filter: drop-shadow(0 0 5px #f6c86aaf); }
+body.research-hud .lord-research-node-art { width: 52px; height: 52px; filter: drop-shadow(0 0 3px #8b7a4d); }
+body.research-hud .lord-research-node.selected .lord-research-node-art { filter: drop-shadow(0 0 10px #f5ce74); }
+body.research-hud .lord-research-node > strong { color: #f1e7ce; text-shadow: 0 2px 4px #000; }
+body.research-hud .lord-research-summary {
+  top: 14px;
+  left: 16px;
+  width: min(360px, calc(100% - 32px));
+  border: 1px solid #9a84527a;
+  border-radius: 5px;
+  background: #0b1b17d9;
+  box-shadow: 0 7px 25px #0007;
+}
+body.research-hud .lord-research-summary-title { color: #f1d99c; }
+body.research-hud .lord-research-summary-speed strong { color: #f8e1ab; }
+body.research-hud .lord-research-summary-resources strong { color: #d6eedb; }
+
+body.research-hud .research-game-settings {
+  position: absolute;
+  z-index: 12;
+  top: 54px;
+  right: 14px;
+  width: min(290px, calc(100vw - 115px));
+  border: 1px solid #bd9c5c9e;
+  border-radius: 5px;
+  background: #14231ceb;
+  color: #eeddb4;
+  box-shadow: 0 12px 34px #0008;
+}
+body.research-hud .research-game-settings summary {
+  padding: 9px 13px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+body.research-hud .research-game-settings-inner { display: grid; gap: 11px; padding: 10px 13px 13px; border-top: 1px solid #a58a525e; }
+body.research-hud .research-game-settings label { display: grid; gap: 5px; color: #d4c19a; font-size: 10px; font-weight: 900; text-transform: uppercase; }
+body.research-hud .research-game-settings select,
+body.research-hud .research-game-settings input {
+  width: 100%;
+  min-height: 37px;
+  padding: 6px 9px;
+  border: 1px solid #a48a55;
+  border-radius: 4px;
+  background: #101713;
+  color: #fff1cc;
+}
+body.research-hud .research-game-settings .lord-research-toggle { min-height: 42px; margin: 0; }
+body.research-hud .research-game-reset { min-height: 36px; border: 1px solid #776249; border-radius: 4px; background: #2e201c; color: #f1cfb2; }
+body.research-hud .research-game-hud:has(.research-game-detail:not(:empty)) .research-game-settings { display: none; }
+
+body.research-hud .research-game-detail {
+  position: absolute;
+  z-index: 11;
+  top: 70px;
+  right: 18px;
+  width: min(390px, calc(100% - 38px));
+  max-height: calc(100% - 90px);
+  overflow: auto;
+  border: 2px solid #c9a971;
+  border-radius: 8px;
+  background: #f5ecd4;
+  color: #292218;
+  box-shadow: 0 12px 45px #000a, inset 0 0 0 1px #fff8e7;
+}
+body.research-hud .research-game-detail:empty { display: none; }
+body.research-hud .research-game-detail-head {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 13px;
+  align-items: center;
+  min-height: 104px;
+  padding: 18px 35px 17px 18px;
+  border-bottom: 1px solid #c5a66f;
+  background: linear-gradient(135deg, #fff9e8, #e8d8b8);
+}
+body.research-hud .research-game-detail-head > button {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #493823;
+  font-size: 24px;
+}
+body.research-hud .research-game-detail-head > img { width: 68px; height: 68px; object-fit: contain; filter: drop-shadow(0 3px 6px #795f3877); }
+body.research-hud .research-game-detail-head span { color: #86663d; font-size: 10px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+body.research-hud .research-game-detail-head h4 { margin: 3px 0; color: #382818; font: 700 23px/1.06 Georgia, serif; }
+body.research-hud .research-game-detail-head p { margin: 0; color: #6d5332; font-size: 12px; }
+body.research-hud .research-game-detail-body { display: grid; gap: 11px; padding: 18px; background: linear-gradient(#fff8e8, #f0ddbf); }
+body.research-hud .research-game-level,
+body.research-hud .research-game-next { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #6b5135; font-size: 12px; }
+body.research-hud .research-game-level strong,
+body.research-hud .research-game-next strong { color: #3b2d1f; font-size: 14px; }
+body.research-hud .research-game-progress { height: 11px; overflow: hidden; border: 1px solid #9b7c4a; border-radius: 999px; background: #b9a484; }
+body.research-hud .research-game-progress i { display: block; height: 100%; background: linear-gradient(90deg, #416747, #82bb72); box-shadow: 0 0 8px #e7f1a7; }
+body.research-hud .research-game-resources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+body.research-hud .research-game-resource { display: flex; align-items: center; gap: 4px; min-width: 0; padding: 7px; border: 1px solid #d2bc98; border-radius: 4px; background: #fff8e8; }
+body.research-hud .research-game-resource img { width: 25px; height: 25px; object-fit: contain; }
+body.research-hud .research-game-resource strong { min-width: 0; color: #3c2a17; font-size: 12px; }
+body.research-hud .research-game-resource small { margin-left: auto; color: #8e754d; font-size: 9px; }
+body.research-hud .research-game-requires,
+body.research-hud .research-game-complete { margin: 0; color: #72563d; font-size: 11px; line-height: 1.4; }
+body.research-hud .research-game-detail-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 13px 18px 7px; background: #e8d6b8; }
+body.research-hud .research-game-detail-actions button { min-height: 39px; padding: 6px; border: 1px solid #a98246; border-radius: 4px; background: linear-gradient(#f5df9f, #cfaa64); color: #34240f; font-size: 11px; font-weight: 900; }
+body.research-hud .research-game-detail-actions button:first-child { background: linear-gradient(#e8e2d1, #c4bca8); }
+body.research-hud .research-game-detail-actions button:disabled { opacity: .45; }
+body.research-hud .research-game-disclaimer { margin: 0; padding: 0 18px 13px; background: #e8d6b8; color: #705942; font-size: 10px; }
+
+@media (max-width: 740px) {
+  body.research-hud .research-game-hud { grid-template-rows: 68px minmax(0, 1fr); }
+  body.research-hud .research-game-head { padding: 7px 9px 7px 67px; }
+  body.research-hud .research-game-head h3 { overflow: hidden; font-size: clamp(14px, 4.1vw, 18px); letter-spacing: .02em; text-overflow: ellipsis; white-space: nowrap; }
+  body.research-hud .research-game-head > div:first-child { min-width: 0; }
+  body.research-hud .research-game-kicker { font-size: 8px; letter-spacing: .1em; white-space: nowrap; }
+  body.research-hud .research-game-head small { font-size: 9px; }
+  body.research-hud .research-game-head-actions button { min-height: 32px; padding: 5px 8px; font-size: 10px; }
+  body.research-hud .research-game-stage { grid-template-columns: 60px minmax(0, 1fr); }
+  body.research-hud .research-game-rail { gap: 8px; padding: 12px 3px; }
+  body.research-hud .research-game-branch { width: 52px; min-height: 57px; padding: 7px 2px; }
+  body.research-hud .research-game-branch > span { font-size: 20px; }
+  body.research-hud .research-game-branch > strong { font-size: 8px; }
+  body.research-hud .research-game-toolbar { gap: 5px; padding: 5px 6px; }
+  body.research-hud .research-game-toolbar > span { display: none; }
+  body.research-hud .research-game-toolbar button { min-height: 30px; padding: 4px 8px; font-size: 10px; }
+  body.research-hud .lord-research-summary { top: 8px; left: 8px; width: min(258px, calc(100% - 16px)); }
+  body.research-hud .research-game-settings { top: auto; right: 7px; bottom: 8px; width: min(280px, calc(100vw - 75px)); max-height: 62dvh; overflow: auto; }
+  body.research-hud .research-game-detail { top: auto; right: 7px; bottom: 7px; width: min(390px, calc(100% - 14px)); max-height: min(68dvh, 510px); }
+  .building-modal.research-mode .building-modal-close { top: 11px; left: 10px; width: 43px; height: 43px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.research-hud .research-game-progress i { transition: none; }
+}

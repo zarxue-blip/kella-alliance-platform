@@ -19,6 +19,7 @@ export const baseGameHtml = `<!doctype html>
     rel="stylesheet"
     href="/assets/base-game/base-game.css?v=8"
   >
+  <link rel="stylesheet" href="/assets/base-game/research-hud.css?v=2">
 
   <script type="importmap">
     {"imports":{"three":"/assets/base-game/vendor/three.module.js"}}
@@ -268,7 +269,7 @@ export const baseGameHtml = `<!doctype html>
 
   <script
     type="module"
-    src="/assets/base-game/game.js?v=15"
+    src="/assets/base-game/game.js?v=16"
   ></script>
 
 </body>
