@@ -1,7 +1,23 @@
 export type TrainingResource = "ore" | "mana" | "wood" | "gold";
 export type TrainingTroop = "infantry" | "mage" | "archer" | "cavalry" | "flying";
 export type TrainingTier = "t1" | "t2" | "t3" | "t4" | "t5" | "p34" | "p45";
+export type TrainableTier = Exclude<TrainingTier, "p34" | "p45">;
 export type TrainingCost = Record<TrainingResource, number>;
+
+export const trainingUnitTierSeconds: Record<TrainableTier, number> = {
+  t1: 18, t2: 40, t3: 60, t4: 80, t5: 120
+};
+
+// Only T3–T5 power and event scores are present in Kella's existing training
+// tools. Leave T1/T2 unknown rather than imply an event awards zero points.
+export const trainingUnitPower: Record<TrainableTier, number | null> = {
+  t1: null, t2: null, t3: 20, t4: 40, t5: 100
+};
+export const trainingUnitEventRates: Record<"greatestHeights" | "mgeDay1" | "mgeDay5", Record<TrainableTier, number | null>> = {
+  greatestHeights: { t1: null, t2: null, t3: 3, t4: 4, t5: 10 },
+  mgeDay1: { t1: null, t2: null, t3: 20, t4: 40, t5: 100 },
+  mgeDay5: { t1: null, t2: null, t3: 16, t4: 32, t5: 80 }
+};
 
 // T1 Archer, T2 Infantry/Mage/Cavalry and T3 Flying match the owner's
 // Call of Dragons recording. Other T1/T2 entries are estimates; the existing
@@ -66,5 +82,29 @@ export function trainingCostTotal(tier: TrainingTier, troop: TrainingTroop, amou
     mana: units * perUnit.mana,
     wood: units * perUnit.wood,
     gold: units * perUnit.gold
+  };
+}
+
+export function trainingSpeedupPlan(tier: TrainableTier, troop: TrainingTroop, availableSeconds: number, trainingBuffPercent: number) {
+  const seconds = Number.isFinite(availableSeconds) ? Math.max(0, availableSeconds) : 0;
+  const buff = Number.isFinite(trainingBuffPercent) ? Math.max(0, trainingBuffPercent) : 0;
+  const multiplier = 1 + buff / 100;
+  const units = Math.min(Number.MAX_SAFE_INTEGER, Math.floor(seconds * multiplier / trainingUnitTierSeconds[tier]));
+  return {
+    units,
+    resources: trainingCostTotal(tier, troop, units),
+    usedSeconds: units * trainingUnitTierSeconds[tier] / multiplier,
+    remainingSeconds: Math.max(0, seconds - units * trainingUnitTierSeconds[tier] / multiplier)
+  };
+}
+
+export function trainingUnitEventEstimates(tier: TrainableTier, amount: number) {
+  const units = Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
+  const score = (rate: number | null) => rate === null ? null : units * rate;
+  return {
+    powerGain: score(trainingUnitPower[tier]),
+    greatestHeights: score(trainingUnitEventRates.greatestHeights[tier]),
+    mgeDay1: score(trainingUnitEventRates.mgeDay1[tier]),
+    mgeDay5: score(trainingUnitEventRates.mgeDay5[tier])
   };
 }

@@ -513,19 +513,29 @@ button { font: inherit; }
 
 .game-toast.visible { opacity: 1; transform: translate(-50%, 0); }
 
+.building-modal-backdrop {
+  position: absolute;
+  z-index: 29;
+  inset: 0;
+  background: #030806bd;
+  backdrop-filter: blur(4px);
+}
+
+.building-modal-backdrop[hidden] { display: none; }
+
 .building-modal {
   position: absolute;
   z-index: 30;
   top: 50%;
   left: 50%;
-  width: min(1480px, calc(100vw - 28px));
-  height: min(920px, calc(100dvh - 28px));
-  padding: 46px 8px 8px;
+  width: min(1120px, calc(100vw - 64px));
+  height: min(790px, calc(100dvh - 64px));
+  padding: 50px 8px 8px;
   transform: translate(-50%, -50%);
   border: 1px solid #e1c78091;
   border-radius: 16px;
   background: #111b16;
-  box-shadow: 0 0 0 100vmax #030806b8, var(--shadow);
+  box-shadow: var(--shadow);
 }
 
 .building-modal[hidden] { display: none; }
@@ -536,20 +546,25 @@ button { font: inherit; }
   left: 20px;
   display: flex;
   align-items: center;
-  height: 46px;
+  height: 50px;
+  max-width: calc(100% - 72px);
   margin: 0;
   color: var(--gold-bright);
   font: 600 17px/1 Georgia, serif;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .building-modal-close {
   position: absolute;
-  top: 6px;
+  z-index: 1;
+  top: 5px;
   right: 8px;
   display: grid;
   place-items: center;
-  width: 35px;
-  height: 35px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: 1px solid #e2c57576;
   border-radius: 8px;
@@ -585,6 +600,11 @@ button { font: inherit; }
 }
 
 @media (max-width: 820px) {
+  .building-modal {
+    width: calc(100vw - 32px);
+    height: calc(100dvh - 32px);
+  }
+
   .base-topbar {
     top: max(9px, env(safe-area-inset-top));
     left: 9px;
@@ -669,17 +689,21 @@ button { font: inherit; }
   }
 
   .building-modal {
-    width: 100vw;
-    height: 100dvh;
-    padding: 46px 0 0;
-    border: 0;
-    border-radius: 0;
+    width: calc(100vw - 12px);
+    height: calc(100dvh - 12px);
+    padding: 50px 5px 5px;
+    border-radius: 12px;
   }
 
-  .building-tool-frame { border-radius: 0; }
+  .building-tool-frame { border-radius: 6px; }
 }
 
 @media (max-height: 510px) and (orientation: landscape) {
+  .building-modal {
+    width: calc(100vw - 20px);
+    height: calc(100dvh - 12px);
+  }
+
   .build-panel { max-height: calc(100dvh - 80px); }
   .build-list { max-height: calc(100dvh - 190px); }
   .placement-bar { bottom: 6px; }

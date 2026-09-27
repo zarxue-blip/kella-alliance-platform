@@ -22,5 +22,9 @@ assert.match(html, /research-hud\.css/, "embedded research must load its game HU
 assert.match(html, /embeddedTool && location\.pathname === "\/research" && new URLSearchParams\(location\.search\)\.get\("hud"\) === "1"/, "research HUD must only activate in the embedded research route");
 assert.match(html, /if \(researchHudMode\) return lordResearchHudPanel\(data, settings, completed, treeLabel, factionLabels\);[\s\S]*?return '<section class="lord-research-workspace"/, "regular research view must retain its original panel");
 assert.match(html, /if \(researchHudMode\) \{\s*researchHudDetailOpen = true;\s*refreshLordResearchWorkspace\(\);\s*return;\s*\}\s*const node = lordResearchNodes/, "HUD node selection must open details without changing saved research levels");
+assert.match(html, /data-training-unit-speedup="days"/, "Train Units must accept available speedups");
+assert.match(html, /data-training-unit-event-planned=/, "Train Units must show event estimates for the selected quantity");
+assert.match(html, /if \(embeddedTrainingTool\) \{\s*state\.trainingMode = "units";[\s\S]*?trainingUnitPanel\(selectedTroopType, state\.trainingUnitTier, true\)/, "embedded training must open directly to Train Units");
+assert.match(html, /kella:close-building-tool/, "embedded training must be dismissible from the keyboard");
 
 console.log("Dashboard template syntax and feature checks passed.");

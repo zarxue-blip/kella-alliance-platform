@@ -54,8 +54,12 @@ const buildPanel = document.querySelector('#build-panel');
 const toast = document.querySelector('#game-toast');
 const characterVideos = [...document.querySelectorAll('[data-character-video]')];
 const buildingToolModal = document.querySelector('#building-tool-modal');
+const buildingToolBackdrop = document.querySelector('#building-tool-backdrop');
 const buildingToolFrame = document.querySelector('#building-tool-frame');
 const buildingToolTitle = document.querySelector('#building-tool-title');
+const buildingToolClose = document.querySelector('#building-tool-close');
+let buildingToolReturnFocus = null;
+let buildingToolBackground = [];
 const images = new Map();
 let deviceScale = 1;
 let viewWidth = 0;
@@ -684,11 +688,21 @@ function selectAt(point) {
 }
 
 function openBuildingTool(path, title, researchHud = false) {
+  if (buildingToolModal.hidden) {
+    buildingToolReturnFocus = document.activeElement;
+    buildingToolBackground = [...document.querySelector('.base-app').children]
+      .filter((element) => element !== buildingToolModal && element !== buildingToolBackdrop)
+      .map((element) => ({ element, inert: element.inert }));
+    buildingToolBackground.forEach(({ element }) => { element.inert = true; });
+  }
   buildingToolTitle.textContent = title;
   buildingToolFrame.title = title;
-  buildingToolFrame.src = path;
+  buildingToolClose.setAttribute('aria-label', `Close ${title}`);
   buildingToolModal.classList.toggle('research-mode', researchHud);
+  buildingToolBackdrop.hidden = false;
   buildingToolModal.hidden = false;
+  buildingToolFrame.src = path;
+  buildingToolClose.focus({ preventScroll: true });
 }
 
 function openTrainingTool(troopType, title) {
@@ -696,9 +710,20 @@ function openTrainingTool(troopType, title) {
 }
 
 function closeBuildingTool() {
+  if (buildingToolModal.hidden) return;
   buildingToolModal.hidden = true;
+  buildingToolBackdrop.hidden = true;
   buildingToolModal.classList.remove('research-mode');
   buildingToolFrame.src = 'about:blank';
+  buildingToolBackground.forEach(({ element, inert }) => { element.inert = inert; });
+  buildingToolBackground = [];
+  if (buildingToolReturnFocus instanceof HTMLElement && buildingToolReturnFocus !== document.body && buildingToolReturnFocus.isConnected) {
+    buildingToolReturnFocus.focus({ preventScroll: true });
+  } else {
+    canvas.tabIndex = -1;
+    canvas.focus({ preventScroll: true });
+  }
+  buildingToolReturnFocus = null;
 }
 
 function pointerPosition(event) {
@@ -777,7 +802,15 @@ canvas.addEventListener('wheel', (event) => {
   clampCamera();
 }, { passive: false });
 
-document.addEventListener('keydown', (event) => { if (event.key === 'Enter' && placement) { event.preventDefault(); confirmPlacement(); } if (event.key === 'Escape') { cancelPlacement(); buildPanel.classList.remove('open'); closeBuildingTool(); } });
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !buildingToolModal.hidden) {
+    event.preventDefault();
+    closeBuildingTool();
+    return;
+  }
+  if (event.key === 'Enter' && placement) { event.preventDefault(); confirmPlacement(); }
+  if (event.key === 'Escape') { cancelPlacement(); buildPanel.classList.remove('open'); }
+});
 document.querySelector('#build-toggle').addEventListener('click', () => { buildPanel.classList.toggle('open'); renderBuildMenu(); });
 document.querySelector('#build-close').addEventListener('click', () => buildPanel.classList.remove('open'));
 document.querySelector('#placement-cancel').addEventListener('click', cancelPlacement);
@@ -791,8 +824,13 @@ document.querySelector('#edit-layout').addEventListener('click', () => {
 document.querySelector('#fit-base').addEventListener('click', () => {
   camera.x=724;camera.y=560;camera.targetZoom=minimumZoom();
 });
-document.querySelector('#building-tool-close').addEventListener('click', closeBuildingTool);
+buildingToolClose.addEventListener('click', closeBuildingTool);
+buildingToolBackdrop.addEventListener('click', closeBuildingTool);
 buildingToolModal.addEventListener('click', (event) => { if (event.target === buildingToolModal) closeBuildingTool(); });
+window.addEventListener('message', (event) => {
+  if (event.origin !== window.location.origin || event.source !== buildingToolFrame.contentWindow) return;
+  if (event.data?.type === 'kella:close-building-tool' && !buildingToolModal.hidden && !buildingToolModal.classList.contains('research-mode')) closeBuildingTool();
+});
 document.querySelectorAll('[data-build-category]').forEach((button) => button.addEventListener('click', () => { category = button.dataset.buildCategory; renderBuildMenu(); }));
 
 window.addEventListener('resize', resize);

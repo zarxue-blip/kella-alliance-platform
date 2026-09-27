@@ -17,7 +17,7 @@ export const baseGameHtml = `<!doctype html>
 
   <link
     rel="stylesheet"
-    href="/assets/base-game/base-game.css?v=8"
+    href="/assets/base-game/base-game.css?v=9"
   >
   <link rel="stylesheet" href="/assets/base-game/research-hud.css?v=2">
 
@@ -205,6 +205,13 @@ export const baseGameHtml = `<!doctype html>
       role="status"
     ></div>
 
+    <div
+      class="building-modal-backdrop"
+      id="building-tool-backdrop"
+      hidden
+      aria-hidden="true"
+    ></div>
+
     <section
       class="building-modal"
       id="building-tool-modal"
@@ -269,7 +276,7 @@ export const baseGameHtml = `<!doctype html>
 
   <script
     type="module"
-    src="/assets/base-game/game.js?v=16"
+    src="/assets/base-game/game.js?v=17"
   ></script>
 
 </body>

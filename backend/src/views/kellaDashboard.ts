@@ -2,7 +2,7 @@ import { siteParallaxClient } from './siteParallax.js';
 import { portalHomeClient } from './portalHome.js';
 import { migrationClient } from './migrationClient.js';
 import { lordResearchLevelCosts, lordResearchTreeData } from "../data/researchTree.data.js";
-import { trainingResourceCosts } from "../data/trainingCosts.js";
+import { trainingResourceCosts, trainingUnitTierSeconds, trainingUnitPower, trainingUnitEventRates } from "../data/trainingCosts.js";
 
 const navItems = [
   { path: "/migration", icon: "/assets/migration-gold.png", label: "Migration" },
@@ -3348,7 +3348,7 @@ export function kellaDashboardHtml() {
     <link rel="stylesheet" href="/assets/fantasy-portal.css?v=elven-forest-2" />
     <link rel="stylesheet" href="/assets/site-parallax.css?v=realm-3" />
     <link rel="stylesheet" href="/assets/portal-parallax.css?v=kingdom-film-3" />
-    <link rel="stylesheet" href="/assets/training-units.css?v=2" />
+    <link rel="stylesheet" href="/assets/training-units.css?v=3" />
     <link rel="stylesheet" href="/assets/base-game/research-hud.css?v=2" />
   </head>
   <body>
@@ -3411,6 +3411,8 @@ export function kellaDashboardHtml() {
       const toasts = document.getElementById("toasts");
       const embeddedTool = new URLSearchParams(location.search).get("embedded") === "1";
       document.body.classList.toggle("embedded-tool", embeddedTool);
+      const embeddedTrainingTool = embeddedTool && location.pathname === "/training-tools";
+      document.body.classList.toggle("training-embedded", embeddedTrainingTool);
       const researchHudMode = embeddedTool && location.pathname === "/research" && new URLSearchParams(location.search).get("hud") === "1";
       document.body.classList.toggle("research-hud", researchHudMode);
 ${siteParallaxClient}
@@ -3451,9 +3453,9 @@ ${siteParallaxClient}
         p45: { label: "T4 to T5", seconds: 40, power: 60 }
       };
       const trainingEventScores = {
-        mge1: { label: "MGE Day 1", t3: 20, t4: 40, t5: 100, p34: 20, p45: 60 },
-        mge5: { label: "MGE Day 5", t3: 16, t4: 32, t5: 80, p34: 16, p45: 48 },
-        greatHeight: { label: "Great Height", t3: 3, t4: 4, t5: 10, p34: 1, p45: 6 },
+        mge1: { label: "MGE Day 1", t3: ${trainingUnitEventRates.mgeDay1.t3}, t4: ${trainingUnitEventRates.mgeDay1.t4}, t5: ${trainingUnitEventRates.mgeDay1.t5}, p34: 20, p45: 60 },
+        mge5: { label: "MGE Day 5", t3: ${trainingUnitEventRates.mgeDay5.t3}, t4: ${trainingUnitEventRates.mgeDay5.t4}, t5: ${trainingUnitEventRates.mgeDay5.t5}, p34: 16, p45: 48 },
+        greatHeight: { label: "Great Height", t3: ${trainingUnitEventRates.greatestHeights.t3}, t4: ${trainingUnitEventRates.greatestHeights.t4}, t5: ${trainingUnitEventRates.greatestHeights.t5}, p34: 1, p45: 6 },
         preKvk: { label: "Pre-KVK", t3: 8, t4: 16, t5: 40, p34: 8, p45: 24 }
       };
       const trainingTroopTypes = {
@@ -3465,7 +3467,9 @@ ${siteParallaxClient}
       };
       const trainingUnitTierOrder = ["t1", "t2", "t3", "t4", "t5"];
       const trainingUnitDefaultTier = { infantry: "t2", mage: "t2", archer: "t1", cavalry: "t2", flying: "t3" };
-      const trainingUnitTierTime = { t1: 18, t2: 40, t3: 60, t4: 80, t5: 120 };
+      const trainingUnitTierTime = ${JSON.stringify(trainingUnitTierSeconds)};
+      const trainingUnitPower = ${JSON.stringify(trainingUnitPower)};
+      const trainingUnitEventRates = ${JSON.stringify(trainingUnitEventRates)};
       const trainingUnitBuildingIcons = {
         infantry: "/assets/base-game/assets/infantry.png",
         mage: "/assets/base-game/assets/longleaf-arch.png",
@@ -7220,21 +7224,35 @@ ${siteParallaxClient}
           const active = key === selectedTier;
           return '<button class="training-unit-tier' + (active ? ' active' : '') + '" type="button" data-action="training-unit-tier" data-training-unit-tier="' + key + '" aria-label="Tier ' + (index + 1) + '" aria-pressed="' + String(active) + '"><span>' + ["I", "II", "III", "IV", "V"][index] + '</span></button>';
         }).join("");
+        const eventCards = [
+          { key: "powerGain", label: "Heights of Power", detail: "Troop power gain", icon: "/assets/training-units/heights-of-power.png" },
+          { key: "greatestHeights", label: "Greatest Heights", detail: "Event points", icon: "/assets/training-units/heights-of-power.png" },
+          { key: "mgeDay1", label: "MGE · Day 1", detail: "Strongest Lord points", icon: "/assets/training-units/strongest-lord.png" },
+          { key: "mgeDay5", label: "MGE · Day 5", detail: "Strongest Lord points", icon: "/assets/training-units/strongest-lord.png" }
+        ].map(function(event) {
+          return '<article class="training-unit-event"><div class="training-unit-event-head"><img src="' + event.icon + '" alt="" /><div><strong>' + event.label + '</strong><small>' + event.detail + '</small></div></div><div class="training-unit-event-values"><div><span>Chosen troops</span><strong data-training-unit-event-planned="' + event.key + '">—</strong></div><div><span>With speedups</span><strong data-training-unit-event-speedups="' + event.key + '">—</strong></div></div></article>';
+        }).join("");
         return '<section class="training-unit-panel training-panel" data-training-panel="units"' + (visible ? '' : ' hidden') + '>' +
           '<div class="training-unit-scene" aria-hidden="true"></div>' +
           '<div class="training-unit-frame">' +
             '<header class="training-unit-header"><span>TRAIN UNITS</span><small>Troop cost calculator</small></header>' +
             '<div class="training-unit-troops" role="group" aria-label="Choose troop building">' + troopButtons + '</div>' +
             '<div class="training-unit-content">' +
-              '<div class="training-unit-showcase"><div class="training-unit-halo"></div><img data-training-unit-image src="/assets/training-units/' + selectedTroopType + '.png" alt="" /><p data-training-unit-showcase-label>' + escapeHtml(trainingTroopTypes[selectedTroopType]) + '</p></div>' +
+              '<div class="training-unit-showcase"><div class="training-unit-halo"></div><img data-training-unit-image="' + selectedTroopType + '-' + selectedTier + '" src="/assets/training-units/' + selectedTroopType + '-' + selectedTier + '.png" alt="" /><p data-training-unit-showcase-label>' + escapeHtml(trainingTroopTypes[selectedTroopType]) + '</p></div>' +
               '<div class="training-unit-workspace"><div class="training-unit-title"><span class="training-unit-overline">Select a tier and quantity</span><h2 data-training-unit-name>' + escapeHtml(trainingTroopTypes[selectedTroopType]) + '</h2></div>' +
                 '<div class="training-unit-tiers" role="group" aria-label="Troop tier">' + tierButtons + '</div>' +
                 '<div class="training-unit-quantity"><label for="trainingUnitQuantity">Troops to train</label><input id="trainingUnitQuantity" type="number" min="0" max="10000000" step="1" inputmode="numeric" value="1600" data-training-input data-training-unit-quantity /><span class="training-unit-range-wrap"><input type="range" min="0" max="20000" step="1" value="1600" aria-label="Troop quantity" data-training-input data-training-unit-range /><span data-training-unit-range-limit>20,000</span></span></div>' +
                 '<div class="training-unit-cost-head"><strong>Resource cost</strong><span data-training-unit-cost-label>for 1,600 troops</span></div><div class="training-unit-costs" data-training-unit-costs aria-live="polite"></div>' +
                 '<div class="training-unit-outcome"><div><small>Estimated training time</small><strong data-training-unit-time>—</strong></div><label>Training buff %<input type="number" min="0" max="10000" step="1" inputmode="numeric" value="75" data-training-input data-training-unit-buff /></label></div>' +
-                '<p class="training-unit-disclaimer">Planning estimate only. T1–T2 costs not shown in the sample recording are estimates; check your in-game costs before training.</p>' +
               '</div>' +
             '</div>' +
+            '<section class="training-unit-speedups" aria-labelledby="trainingUnitSpeedupsTitle"><div class="training-unit-speedup-heading"><div><strong id="trainingUnitSpeedupsTitle">Available speedups</strong><small>Enter the training or universal speedups you can spend.</small></div></div><div class="training-unit-speedup-inputs">' +
+              '<label>Days<input type="number" min="0" step="1" inputmode="numeric" value="0" data-training-input data-training-unit-speedup="days" /></label>' +
+              '<label>Hours<input type="number" min="0" step="1" inputmode="numeric" value="0" data-training-input data-training-unit-speedup="hours" /></label>' +
+              '<label>Minutes<input type="number" min="0" step="1" inputmode="numeric" value="0" data-training-input data-training-unit-speedup="minutes" /></label>' +
+            '</div><div class="training-unit-speedup-summary" aria-live="polite"><div><span>Troops you can train</span><strong data-training-unit-speedup-units>0</strong></div><div><span>Speedups used</span><strong data-training-unit-speedup-used>0m</strong></div></div><div class="training-unit-speedup-cost-head"><strong>Resource cost with speedups</strong><span data-training-unit-speedup-cost-label>for 0 troops</span></div><div class="training-unit-speedup-costs" data-training-unit-speedup-costs aria-live="polite"></div></section>' +
+            '<section class="training-unit-events" aria-labelledby="trainingUnitEventsTitle"><div class="training-unit-events-heading"><strong id="trainingUnitEventsTitle">Potential event points</strong><small>Compare your chosen quantity with the troops your speedups cover.</small></div><div class="training-unit-event-grid" aria-live="polite">' + eventCards + '</div><p class="training-unit-event-note">Heights of Power shows troop power gained, not a guaranteed event score. Greatest Heights and MGE use the rates in Kella’s current event calculator. T1–T2 event rates are unavailable; check your in-game event rules.</p></section>' +
+            '<p class="training-unit-disclaimer">Planning estimates. Some T1–T2 costs are inferred from the recording; check in-game values before training.</p>' +
           '</div>' +
         '</section>';
       }
@@ -7250,6 +7268,12 @@ ${siteParallaxClient}
         state.trainingMode = selected;
         const selectedTroopType = Object.prototype.hasOwnProperty.call(trainingTroopTypes, state.trainingTroopType) ? state.trainingTroopType : "cavalry";
         state.trainingTroopType = selectedTroopType;
+        if (embeddedTrainingTool) {
+          state.trainingMode = "units";
+          app.innerHTML = '<div class="training-shell training-shell-embedded">' + trainingUnitPanel(selectedTroopType, state.trainingUnitTier, true) + '</div>';
+          requestAnimationFrame(updateTrainingTools);
+          return;
+        }
         const tabs = [
           { id: "units", label: "Train Units" },
           { id: "points", label: "Event Points" },
@@ -7345,6 +7369,13 @@ ${siteParallaxClient}
         const perUnit = trainingResourceCosts[tier][troopType];
         const activeResources = trainingResourceOrder.filter(function(resource) { return perUnit[resource] > 0; });
         const estimatedSeconds = amount * trainingUnitTierTime[tier] / (1 + buff / 100);
+        const speedupDays = Math.floor(trainingValue('[data-training-unit-speedup="days"]'));
+        const speedupHours = Math.floor(trainingValue('[data-training-unit-speedup="hours"]'));
+        const speedupMinutes = Math.floor(trainingValue('[data-training-unit-speedup="minutes"]'));
+        const speedupSeconds = ((speedupDays * 24 + speedupHours) * 60 + speedupMinutes) * 60;
+        const speedupUnits = Math.min(Number.MAX_SAFE_INTEGER, Math.floor(speedupSeconds * (1 + buff / 100) / trainingUnitTierTime[tier]));
+        const speedupUsedSeconds = speedupUnits * trainingUnitTierTime[tier] / (1 + buff / 100);
+        const speedupCost = trainingResourceTotals(tier, speedupUnits, troopType);
         if (amountInput && document.activeElement !== amountInput && amountInput.value !== String(amount)) amountInput.value = String(amount);
         if (rangeInput) {
           const rangeMax = Math.max(20000, Math.ceil(amount / 10000) * 10000);
@@ -7365,9 +7396,10 @@ ${siteParallaxClient}
           button.setAttribute("aria-pressed", String(active));
         });
         const portrait = document.querySelector("[data-training-unit-image]");
-        if (portrait && portrait.getAttribute("data-training-unit-image") !== troopType) {
-          portrait.src = "/assets/training-units/" + troopType + ".png";
-          portrait.setAttribute("data-training-unit-image", troopType);
+        const portraitKey = troopType + "-" + tier;
+        if (portrait && portrait.getAttribute("data-training-unit-image") !== portraitKey) {
+          portrait.src = "/assets/training-units/" + portraitKey + ".png";
+          portrait.setAttribute("data-training-unit-image", portraitKey);
         }
         const name = document.querySelector("[data-training-unit-name]");
         if (name) name.textContent = trainingTroopTypes[troopType];
@@ -7376,12 +7408,37 @@ ${siteParallaxClient}
         const costLabel = document.querySelector("[data-training-unit-cost-label]");
         if (costLabel) costLabel.textContent = "for " + formatNumber(amount) + " troops";
         const costContainer = document.querySelector("[data-training-unit-costs]");
-        if (costContainer) costContainer.innerHTML = activeResources.map(function(resource) {
-          return '<div class="training-unit-resource"><img src="' + resourceIconPaths[resource] + '" alt="" /><span>' + escapeHtml(trainingResourceLabels[resource]) + '</span><strong title="' + escapeHtml(formatNumber(resourceCost[resource])) + '">' + escapeHtml(trainingCompactNumber(resourceCost[resource])) + '</strong></div>';
-        }).join("");
+        const resourceCards = function(cost) {
+          return activeResources.map(function(resource) {
+            return '<div class="training-unit-resource"><img src="' + resourceIconPaths[resource] + '" alt="" /><span>' + escapeHtml(trainingResourceLabels[resource]) + '</span><strong title="' + escapeHtml(formatNumber(cost[resource])) + '">' + escapeHtml(trainingCompactNumber(cost[resource])) + '</strong></div>';
+          }).join("");
+        };
+        if (costContainer) costContainer.innerHTML = resourceCards(resourceCost);
         const time = document.querySelector("[data-training-unit-time]");
         if (time) time.textContent = trainingDuration(estimatedSeconds);
-        state.trainingSummary = "KELLA TRAINING - TROOP COST\\nTroop: " + trainingTroopTypes[troopType] + "\\nTier: " + tier.toUpperCase() + "\\nQuantity: " + formatNumber(amount) + "\\nTraining buff: " + formatNumber(buff) + "%\\nEstimated time: " + trainingDuration(estimatedSeconds) + "\\nResources: " + trainingResourceOrder.map(function(resource) { return trainingResourceLabels[resource] + " " + formatNumber(resourceCost[resource]); }).join(" | ");
+        const speedupUnitsOutput = document.querySelector("[data-training-unit-speedup-units]");
+        if (speedupUnitsOutput) speedupUnitsOutput.textContent = formatNumber(speedupUnits);
+        const speedupUsedOutput = document.querySelector("[data-training-unit-speedup-used]");
+        if (speedupUsedOutput) speedupUsedOutput.textContent = trainingDuration(speedupUsedSeconds);
+        const speedupCostLabel = document.querySelector("[data-training-unit-speedup-cost-label]");
+        if (speedupCostLabel) speedupCostLabel.textContent = "for " + formatNumber(speedupUnits) + " troops";
+        const speedupCostContainer = document.querySelector("[data-training-unit-speedup-costs]");
+        if (speedupCostContainer) speedupCostContainer.innerHTML = resourceCards(speedupCost);
+        const eventRates = {
+          powerGain: trainingUnitPower[tier],
+          greatestHeights: trainingUnitEventRates.greatestHeights[tier],
+          mgeDay1: trainingUnitEventRates.mgeDay1[tier],
+          mgeDay5: trainingUnitEventRates.mgeDay5[tier]
+        };
+        Object.entries(eventRates).forEach(function(entry) {
+          const key = entry[0];
+          const rate = entry[1];
+          const planned = document.querySelector('[data-training-unit-event-planned="' + key + '"]');
+          const withSpeedups = document.querySelector('[data-training-unit-event-speedups="' + key + '"]');
+          if (planned) planned.textContent = rate === null ? "—" : trainingCompactNumber(amount * rate) + (key === "powerGain" ? " power" : " pts");
+          if (withSpeedups) withSpeedups.textContent = rate === null ? "—" : trainingCompactNumber(speedupUnits * rate) + (key === "powerGain" ? " power" : " pts");
+        });
+        state.trainingSummary = "KELLA TRAINING - TROOP COST\\nTroop: " + trainingTroopTypes[troopType] + "\\nTier: " + tier.toUpperCase() + "\\nChosen quantity: " + formatNumber(amount) + "\\nTraining buff: " + formatNumber(buff) + "%\\nEstimated time: " + trainingDuration(estimatedSeconds) + "\\nChosen quantity resources: " + trainingResourceOrder.map(function(resource) { return trainingResourceLabels[resource] + " " + formatNumber(resourceCost[resource]); }).join(" | ") + "\\n\\nAvailable speedups: " + trainingDuration(speedupSeconds) + "\\nTroops possible with speedups: " + formatNumber(speedupUnits) + "\\nSpeedup plan resources: " + trainingResourceOrder.map(function(resource) { return trainingResourceLabels[resource] + " " + formatNumber(speedupCost[resource]); }).join(" | ") + "\\n\\nEvent estimates for chosen quantity / speedup plan: " + Object.entries(eventRates).map(function(entry) { return entry[0] + " " + (entry[1] === null ? "unavailable" : formatNumber(amount * entry[1]) + " / " + formatNumber(speedupUnits * entry[1])); }).join(" | ");
       }
 
       function updateTrainingPoints() {
@@ -10453,6 +10510,11 @@ ${portalHomeClient}
       document.addEventListener("pointercancel", finishWikiPointer);
 
       document.addEventListener("keydown", function(event) {
+        if (embeddedTrainingTool && event.key === "Escape" && window.parent !== window) {
+          event.preventDefault();
+          window.parent.postMessage({ type: "kella:close-building-tool" }, location.origin);
+          return;
+        }
         if (event.key === "Escape" && avatarCropper?.classList.contains("open")) {
           closeAvatarCropper();
           return;
