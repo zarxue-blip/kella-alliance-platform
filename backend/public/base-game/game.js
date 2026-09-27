@@ -1,5 +1,5 @@
-import { GROUND, PLOT_SIZES, toGround, fromGround, snapPoint, corners, fits, collides, roadKey, roadFits, roadBlocked } from './placement.js?v=3';
-import { createScenery, drawBuildingShadow, drawBuildingMagic, drawAtmosphere } from './scenery.js?v=1';
+import { GROUND, CELL, PLOT_SIZES, toGround, fromGround, snapPoint, corners, fits, collides, roadKey, roadFits, roadBlocked, starterRoads } from './placement.js?v=4';
+import { createScenery, drawBuildingShadow, drawBuildingMagic, drawAtmosphere } from './scenery.js?v=2';
 import { findPath, simplifyPath } from './pathfinding.js';
 
 const ASSET = '/assets/base-game/assets/';
@@ -45,6 +45,10 @@ const defaultBuildings = [
 
 const canvas = document.querySelector('#base-world');
 const context = canvas.getContext('2d', { alpha: false });
+const roadLayer = document.createElement('canvas');
+roadLayer.width = WORLD.width;
+roadLayer.height = WORLD.height;
+const roadContext = roadLayer.getContext('2d');
 const viewport = document.querySelector('.base-viewport');
 const buildPanel = document.querySelector('#build-panel');
 const toast = document.querySelector('#game-toast');
@@ -61,7 +65,7 @@ let placement = null;
 let category = 'Buildings';
 
 
-const state = { version: LAYOUT_VERSION, buildings: defaultBuildings.map((building) => ({ ...building })), roads: [] };
+const state = { version: LAYOUT_VERSION, buildings: defaultBuildings.map((building) => ({ ...building })), roads: starterRoads(defaultBuildings) };
 let layoutLoaded = false;
 let saveTimer = 0;
 const camera = { x: WORLD.width / 2, y: WORLD.height / 2, zoom: .72, targetZoom: .72 };
@@ -137,7 +141,7 @@ async function persistLayout(keepalive = false) {
   try {
     const response = await fetch('/api/dashboard/base-layout', {
       method: 'PUT', credentials: 'same-origin', keepalive, headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: { version: LAYOUT_VERSION, buildings: state.buildings, roads: state.roads } })
+      body: JSON.stringify({ data: { version: LAYOUT_VERSION, buildings: state.buildings, roads: state.roads, roadsInitialized: true } })
     });
     if (!response.ok) throw new Error('save failed');
   } catch { if (!keepalive) notify('Your layout could not be saved. Please try again.'); }
@@ -151,8 +155,14 @@ async function loadMemberLayout() {
     const payload = await response.json();
     const saved = payload?.data?.version === LAYOUT_VERSION ? normalizeBuildings(payload.data.buildings) : [];
     if (saved.length) state.buildings.splice(0, state.buildings.length, ...alignBuildings(saved));
-    state.roads.splice(0, state.roads.length, ...normalizeRoads(payload?.data?.roads, state.buildings));
-    alignedSavedLayout = saved.some((building, index) => building.x !== state.buildings[index].x || building.y !== state.buildings[index].y);
+    const hasRoadChoice = payload?.data?.roadsInitialized === true || (Array.isArray(payload?.data?.roads) && payload.data.roads.length > 0);
+    const savedRoads = hasRoadChoice && Array.isArray(payload?.data?.roads)
+      ? normalizeRoads(payload.data.roads, state.buildings)
+      : starterRoads(state.buildings);
+    state.roads.splice(0, state.roads.length, ...savedRoads);
+    rebuildRoadLayer();
+    alignedSavedLayout = saved.some((building, index) => building.x !== state.buildings[index].x || building.y !== state.buildings[index].y)
+      || Boolean(saved.length && !hasRoadChoice);
   } catch { notify('Using the default layout until your saved base is available.'); }
   layoutLoaded = true;
   if (alignedSavedLayout) queueSave();
@@ -330,7 +340,16 @@ function drawBuilding(building, alpha = 1, valid = true, now = performance.now()
   const height = image.naturalHeight * definition.scale * BUILDING_SCALE;
   context.save();
   context.globalAlpha = alpha;
-  if (alpha === 1) drawBuildingShadow(context, image, building.x, building.y, width, height);
+  if (alpha === 1) {
+    const contact = context.createRadialGradient(building.x, building.y - 3, 2, building.x, building.y - 3, width * .55);
+    contact.addColorStop(0, '#091909b3');
+    contact.addColorStop(1, '#09190900');
+    context.fillStyle = contact;
+    context.beginPath();
+    context.ellipse(building.x, building.y - 3, width * .57, Math.max(14, width * .23), 0, 0, Math.PI * 2);
+    context.fill();
+    drawBuildingShadow(context, image, building.x, building.y, width, height);
+  }
   if (alpha === 1 && hoveredId === building.id && !placement) {
     context.shadowColor = '#ffffff';
     context.shadowBlur = 22;
@@ -413,18 +432,57 @@ function drawBuildingLabel(building) {
   context.restore();
 }
 
-function drawRoad(road, preview = false, valid = true) {
+function drawRoad(target, road, preview = false, valid = true) {
   const points = corners(fromGround(road.u, road.v), 1);
-  context.save();
-  context.beginPath();
-  points.forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y));
-  context.closePath();
-  context.fillStyle = preview ? (valid ? '#9bdfa4b8' : '#ed7668b8') : ['#ad9d71', '#bdad80', '#a9976a'][Math.abs((road.u * 13 + road.v * 7) % 3)];
-  context.strokeStyle = preview ? (valid ? '#d2ffda' : '#ffd2cc') : '#e1cf9899';
-  context.lineWidth = preview ? 2 / camera.zoom : .8 / camera.zoom;
-  context.fill();
-  context.stroke();
-  context.restore();
+  const center = fromGround(road.u, road.v);
+  target.save();
+  target.beginPath();
+  points.forEach((point, index) => index ? target.lineTo(point.x, point.y) : target.moveTo(point.x, point.y));
+  target.closePath();
+  if (preview) {
+    target.fillStyle = valid ? '#88edb4b8' : '#ef756bb8';
+    target.strokeStyle = valid ? '#d8ffe5' : '#ffe4d8';
+    target.lineWidth = 2 / camera.zoom;
+    target.fill(); target.stroke(); target.restore(); return;
+  }
+  target.shadowColor = '#24361788';
+  target.shadowBlur = 4;
+  target.shadowOffsetY = 2;
+  target.fillStyle = '#706a48';
+  target.fill();
+  target.shadowBlur = target.shadowOffsetY = 0;
+  target.clip();
+  const gradient = target.createLinearGradient(center.x, center.y - CELL.y, center.x, center.y + CELL.y);
+  gradient.addColorStop(0, '#d6c79b');
+  gradient.addColorStop(.5, '#b9a87a');
+  gradient.addColorStop(1, '#827955');
+  target.fillStyle = gradient;
+  target.fillRect(center.x - CELL.x, center.y - CELL.y, CELL.x * 2, CELL.y * 2);
+  let seed = ((road.u * 73856093) ^ (road.v * 19349663)) >>> 0;
+  for (let i = 0; i < 7; i += 1) {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    const px = center.x + ((seed % 1000) / 1000 - .5) * CELL.x * 1.5;
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    const py = center.y + ((seed % 1000) / 1000 - .5) * CELL.y * 1.2;
+    target.fillStyle = i % 2 ? '#e9d8a588' : '#655f3e77';
+    target.beginPath();
+    target.ellipse(px, py, 1.5 + (seed % 3), .7 + (seed % 2), -.3, 0, Math.PI * 2);
+    target.fill();
+  }
+  target.restore();
+  target.save();
+  target.beginPath();
+  points.forEach((point, index) => index ? target.lineTo(point.x, point.y) : target.moveTo(point.x, point.y));
+  target.closePath();
+  target.strokeStyle = '#e6d9af88';
+  target.lineWidth = .9;
+  target.stroke();
+  target.restore();
+}
+
+function rebuildRoadLayer() {
+  roadContext.clearRect(0, 0, roadLayer.width, roadLayer.height);
+  state.roads.forEach((road) => drawRoad(roadContext, road));
 }
 
 function roadAt(point) {
@@ -501,8 +559,8 @@ function render(now) {
   context.translate(-camera.x, -camera.y);
   scenery.draw(context, now);
   drawPlacementGrid();
-  state.roads.forEach((road) => drawRoad(road));
-  if (placement?.type === 'road') placement.preview.forEach((road) => drawRoad(road, true, placement.valid));
+  context.drawImage(roadLayer, 0, 0);
+  if (placement?.type === 'road') placement.preview.forEach((road) => drawRoad(context, road, true, placement.valid));
   const layers = state.buildings.filter((building) => building.id !== placement?.movingId).map((building) => ({ y: building.y, draw: () => drawBuilding(building, 1, true, now) }));
   npcs.forEach((npc) => layers.push({ y: npc.y, draw: () => drawNpc(npc, now) }));
   layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw());
@@ -540,7 +598,7 @@ function renderBuildMenu() {
     const alreadyPlaced = state.buildings.some((building) => building.type === key);
     return `
     <button class="build-card" data-build="${key}" ${canAfford(definition) && !alreadyPlaced ? '' : 'disabled'}>
-      <img src="${ASSET}${definition.asset}" alt="" width="64" height="64"><span><strong>${definition.name}</strong><small>Place inside the alliance grounds</small></span>
+      <img src="${ASSET}${definition.asset}" alt="" width="64" height="64"><span><strong>${definition.name}</strong><small>${plotSizes[key]} × ${plotSizes[key]} grid plot</small></span>
       ${alreadyPlaced ? '<em>Placed</em>' : ''}
     </button>`;
   }).join('');
@@ -582,6 +640,7 @@ function confirmPlacement() {
     const selected = new Set(placement.preview.map((road) => roadKey(road.u, road.v)));
     if (placement.remove) state.roads = state.roads.filter((road) => !selected.has(roadKey(road.u, road.v)));
     else state.roads.push(...placement.preview);
+    rebuildRoadLayer();
     notify(`${selected.size} road ${selected.size === 1 ? 'tile' : 'tiles'} ${placement.remove ? 'removed' : 'placed'}.`);
     cancelPlacement(); queueSave(); return;
   }
@@ -742,6 +801,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 resize();
+rebuildRoadLayer();
 renderBuildMenu();
 loadMemberLayout();
 requestAnimationFrame(loop);

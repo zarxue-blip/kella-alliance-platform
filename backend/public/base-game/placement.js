@@ -14,3 +14,48 @@ export function roadBlocked(u,v,buildings,plotSizes){
  const point=fromGround(u,v);
  return buildings.some(building=>collides(point,1,building,plotSizes[building.type]));
 }
+
+// A small connected street network for older layouts that predate editable roads.
+export function starterRoads(buildings, plotSizes = PLOT_SIZES){
+ const open=(u,v)=>roadFits(u,v)&&!roadBlocked(u,v,buildings,plotSizes);
+ let origin=null;
+ for(let radius=0;radius<10&&!origin;radius++){
+  for(let u=-radius;u<=radius&&!origin;u++)for(let v=-radius;v<=radius;v++){
+   if(Math.max(Math.abs(u),Math.abs(v))===radius&&open(u,v)){origin={u,v};break;}
+  }
+ }
+ if(!origin)return [];
+ const roads=new Map([[roadKey(origin.u,origin.v),origin]]);
+ for(const building of buildings){
+  const p=toGround(building.x,building.y), size=plotSizes[building.type];
+  const candidates=[];
+  for(let u=Math.floor(p.u-size-2);u<=Math.ceil(p.u+size+2);u++){
+   for(let v=Math.floor(p.v-size-2);v<=Math.ceil(p.v+size+2);v++){
+    if(!open(u,v))continue;
+    const gap=Math.max(Math.abs(u-p.u),Math.abs(v-p.v))-size/2;
+    if(gap<.4||gap>1.6)continue;
+    const distance=Math.min(...[...roads.values()].map(road=>Math.abs(road.u-u)+Math.abs(road.v-v)));
+    candidates.push({u,v,score:distance+gap*.1});
+   }
+  }
+  candidates.sort((a,b)=>a.score-b.score);
+  const goal=candidates[0];
+  if(!goal)continue;
+  const sources=[...roads.values()].sort((a,b)=>(Math.abs(a.u-goal.u)+Math.abs(a.v-goal.v))-(Math.abs(b.u-goal.u)+Math.abs(b.v-goal.v)));
+  const start=sources[0], queue=[start], previous=new Map([[roadKey(start.u,start.v),null]]);
+  for(let index=0;index<queue.length;index++){
+   const current=queue[index];
+   if(current.u===goal.u&&current.v===goal.v)break;
+   for(const [du,dv] of [[1,0],[-1,0],[0,1],[0,-1]]){
+    const next={u:current.u+du,v:current.v+dv},key=roadKey(next.u,next.v);
+    if(previous.has(key)||!open(next.u,next.v))continue;
+    previous.set(key,current);queue.push(next);
+   }
+  }
+  if(!previous.has(roadKey(goal.u,goal.v)))continue;
+  for(let cursor=goal;cursor;cursor=previous.get(roadKey(cursor.u,cursor.v))){
+   roads.set(roadKey(cursor.u,cursor.v),{u:cursor.u,v:cursor.v});
+  }
+ }
+ return [...roads.values()];
+}

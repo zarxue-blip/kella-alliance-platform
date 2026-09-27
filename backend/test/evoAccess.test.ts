@@ -24,10 +24,11 @@ try {
  assert.equal((await fetch(base+'/api/dashboard/base-layout')).status,401);
  assert.equal((await fetch(base+'/api/dashboard/base-layout',{headers:headers('c')})).status,403);
  const baseA=await (await fetch(base+'/api/dashboard/base-layout?userId=b',{headers:headers('a')})).json();assert.equal(baseA.data.buildings[0].id,'a-hub');
- const savedBase={version:6,buildings:[{id:'a-infantry',type:'infantry',x:590,y:820,level:1}],roads:[{u:0,v:0}]};
+ const savedBase={version:6,buildings:[{id:'a-infantry',type:'infantry',x:590,y:820,level:1}],roads:[{u:0,v:0}],roadsInitialized:true};
  assert.equal((await fetch(base+'/api/dashboard/base-layout',{method:'PUT',headers:headers('a'),body:JSON.stringify({userId:'b',data:savedBase})})).status,200);
  assert.equal(records.a.baseLayout.buildings[0].type,'infantry');assert.equal(records.b.baseLayout.buildings[0].id,'b-hub');
  assert.deepEqual(records.a.baseLayout.roads,[{u:0,v:0}]);
+ assert.equal(records.a.baseLayout.roadsInitialized,true);
  for(const roads of [[{u:0,v:0},{u:0,v:0}],[{u:100,v:0}],[{u:0.5,v:0}]])assert.equal((await fetch(base+'/api/dashboard/base-layout',{method:'PUT',headers:headers('a'),body:JSON.stringify({data:{...savedBase,roads}})})).status,400);
  for(const data of [null,{version:5,buildings:[]},{version:6,buildings:[{id:'bad',type:'unknown',x:1,y:1,level:1}]},{version:6,buildings:[{id:'bad',type:'hub',x:9999,y:1,level:1}]}])assert.equal((await fetch(base+'/api/dashboard/base-layout',{method:'PUT',headers:headers('a'),body:JSON.stringify({data})})).status,400);
  for(const path of ['/api/dashboard/tickets','/api/dashboard/tickets/aaaaaaaaaaaaaaaaaaaaaaaa','/api/dashboard/responses','/api/dashboard/members/manage','/api/migration/export.csv'])assert.equal((await fetch(base+path,{headers:headers('a')})).status,403,path);

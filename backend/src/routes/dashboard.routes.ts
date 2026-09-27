@@ -96,7 +96,7 @@ dashboardRouter.put('/base-layout',authenticate,requireEvoMemberAccess,asyncHand
   roadIds.add(key);
   return {u,v};
  });
- const layout={version:6,buildings,roads};
+ const layout={version:6,buildings,roads,roadsInitialized:data.roadsInitialized===true};
  await UserModel.updateOne({_id:(req as AuthenticatedRequest).user.id},{$set:{baseLayout:layout}});
  res.json({ok:true});
 }));
