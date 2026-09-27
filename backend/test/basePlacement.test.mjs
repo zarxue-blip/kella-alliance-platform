@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {fromGround,toGround,snapPoint,corners,fits,collides} from '../public/base-game/placement.js';
+import {PLOT_SIZES,fromGround,toGround,snapPoint,corners,fits,collides,roadFits,roadBlocked} from '../public/base-game/placement.js';
 for(let u=-30;u<=30;u++) for(let v=-30;v<=30;v++) {
  const p=fromGround(u,v),q=toGround(p.x,p.y); assert.equal(q.u,u);assert.equal(q.v,v);
  for(const n of [3,4,5]) {
@@ -10,4 +10,9 @@ for(let u=-30;u<=30;u++) for(let v=-30;v<=30;v++) {
 const a=fromGround(0,0), touching=fromGround(4,0), overlap=fromGround(3,0);
 assert.equal(collides(a,4,touching,4),false);assert.equal(collides(a,4,overlap,4),true);
 assert.ok(fits(a,5));assert.equal(fits({x:1170,y:602},5),false);assert.equal(fits({x:724,y:870},3),false);
+assert.equal(PLOT_SIZES.eagle,3);
+assert.equal(roadFits(0,0),true);
+assert.equal(roadFits(100,0),false);
+assert.equal(roadBlocked(0,0,[{type:'eagle',...fromGround(0,0)}],PLOT_SIZES),true);
+assert.equal(roadBlocked(2,0,[{type:'eagle',...fromGround(0,0)}],PLOT_SIZES),false);
 console.log('Placement checks passed: projection, snap stability, aligned corners, overlap, touching edges, wall boundary.');

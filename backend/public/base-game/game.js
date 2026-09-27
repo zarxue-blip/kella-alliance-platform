@@ -1,11 +1,11 @@
-import { GROUND, toGround, fromGround, snapPoint, corners, fits, collides } from './placement.js?v=2';
+import { GROUND, PLOT_SIZES, toGround, fromGround, snapPoint, corners, fits, collides, roadKey, roadFits, roadBlocked } from './placement.js?v=3';
 import { createScenery, drawBuildingShadow, drawBuildingMagic, drawAtmosphere } from './scenery.js?v=1';
 import { findPath, simplifyPath } from './pathfinding.js';
 
 const ASSET = '/assets/base-game/assets/';
 const WORLD = { width: 1448, height: 1086 };
 const GRID = { columns: 24, rows: 18, cellWidth: WORLD.width / 24, cellHeight: WORLD.height / 18 };
-const plotSizes = { hub: 5, archery: 4, eagle: 4, stable: 5, research: 4, sentry: 3, arch: 4, notice: 3, infantry: 4, admin: 4 };
+const plotSizes = PLOT_SIZES;
 const BUILDING_SCALE = .82;
 let editorMode = false;
 const LAYOUT_VERSION = 6;
@@ -41,7 +41,7 @@ const defaultBuildings = [
   ['hub', 476, 532], ['archery', 700, 504], ['stable', 924, 504], ['sentry', 448, 616],
   ['arch', 504, 700], ['notice', 644, 728], ['research', 784, 700], ['eagle', 924, 672],
   ['infantry', 590, 820], ['admin', 800, 820]
-].map(([type, x, y], index) => ({ id: `starter-${index}`, type, x, y, level: 1 }));
+].map(([type, x, y], index) => ({ id: `starter-${index}`, type, ...snapPoint(x, y, plotSizes[type]), level: 1 }));
 
 const canvas = document.querySelector('#base-world');
 const context = canvas.getContext('2d', { alpha: false });
@@ -61,7 +61,7 @@ let placement = null;
 let category = 'Buildings';
 
 
-const state = { version: LAYOUT_VERSION, buildings: defaultBuildings.map((building) => ({ ...building })) };
+const state = { version: LAYOUT_VERSION, buildings: defaultBuildings.map((building) => ({ ...building })), roads: [] };
 let layoutLoaded = false;
 let saveTimer = 0;
 const camera = { x: WORLD.width / 2, y: WORLD.height / 2, zoom: .72, targetZoom: .72 };
@@ -90,6 +90,43 @@ function normalizeBuildings(raw) {
   }).map((building) => ({ id: String(building.id || `building-${crypto.randomUUID()}`), type: building.type, x: building.x, y: building.y, level: Number(building.level || 1) }));
 }
 
+function alignBuildings(buildings) {
+  const aligned = [];
+  for (const building of buildings) {
+    const size = plotSizes[building.type];
+    const origin = snapPoint(building.x, building.y, size);
+    const cell = toGround(origin.x, origin.y);
+    let position = null;
+    for (let radius = 0; radius <= 10 && !position; radius += 1) {
+      const offsets = [];
+      for (let du = -radius; du <= radius; du += 1) for (let dv = -radius; dv <= radius; dv += 1) {
+        if (Math.max(Math.abs(du), Math.abs(dv)) === radius) offsets.push({ du, dv });
+      }
+      offsets.sort((a, b) => a.du * a.du + a.dv * a.dv - b.du * b.du - b.dv * b.dv);
+      for (const { du, dv } of offsets) {
+        const candidate = { ...building, ...fromGround(cell.u + du, cell.v + dv) };
+        if (fits(candidate, size) && aligned.every((other) => !collides(candidate, size, other, plotSizes[other.type]))) {
+          position = candidate; break;
+        }
+      }
+    }
+    aligned.push(position || building);
+  }
+  return aligned;
+}
+
+function normalizeRoads(raw, buildings) {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set();
+  return raw.filter((road) => {
+    const { u, v } = road || {};
+    const key = roadKey(u, v);
+    if (!roadFits(u, v) || roadBlocked(u, v, buildings, plotSizes) || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).map(({ u, v }) => ({ u, v }));
+}
+
 function queueSave() {
   if (!layoutLoaded) return;
   clearTimeout(saveTimer);
@@ -100,21 +137,25 @@ async function persistLayout(keepalive = false) {
   try {
     const response = await fetch('/api/dashboard/base-layout', {
       method: 'PUT', credentials: 'same-origin', keepalive, headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: { version: LAYOUT_VERSION, buildings: state.buildings } })
+      body: JSON.stringify({ data: { version: LAYOUT_VERSION, buildings: state.buildings, roads: state.roads } })
     });
     if (!response.ok) throw new Error('save failed');
   } catch { if (!keepalive) notify('Your layout could not be saved. Please try again.'); }
 }
 
 async function loadMemberLayout() {
+  let alignedSavedLayout = false;
   try {
     const response = await fetch('/api/dashboard/base-layout', { credentials: 'same-origin', cache: 'no-store' });
     if (!response.ok) throw new Error('load failed');
     const payload = await response.json();
     const saved = payload?.data?.version === LAYOUT_VERSION ? normalizeBuildings(payload.data.buildings) : [];
-    if (saved.length) state.buildings.splice(0, state.buildings.length, ...saved);
+    if (saved.length) state.buildings.splice(0, state.buildings.length, ...alignBuildings(saved));
+    state.roads.splice(0, state.roads.length, ...normalizeRoads(payload?.data?.roads, state.buildings));
+    alignedSavedLayout = saved.some((building, index) => building.x !== state.buildings[index].x || building.y !== state.buildings[index].y);
   } catch { notify('Using the default layout until your saved base is available.'); }
   layoutLoaded = true;
+  if (alignedSavedLayout) queueSave();
   renderBuildMenu();
 }
 
@@ -186,7 +227,8 @@ function overlaps(a,b) { return collides(a,plotSizes[a.type],b,plotSizes[b.type]
 function canPlace(candidate) {
   if (!isFootprintInside(candidate)) return false;
   if (!placement?.movingId && state.buildings.some((building) => building.type === candidate.type)) return false;
-  return !state.buildings.some((building) => building.id !== placement?.movingId && overlaps(candidate, building));
+  return !state.buildings.some((building) => building.id !== placement?.movingId && overlaps(candidate, building))
+    && !state.roads.some((road) => collides(candidate, plotSizes[candidate.type], fromGround(road.u, road.v), 1));
 }
 
 function gridFromWorld(x, y) {
@@ -371,6 +413,57 @@ function drawBuildingLabel(building) {
   context.restore();
 }
 
+function drawRoad(road, preview = false, valid = true) {
+  const points = corners(fromGround(road.u, road.v), 1);
+  context.save();
+  context.beginPath();
+  points.forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y));
+  context.closePath();
+  context.fillStyle = preview ? (valid ? '#9bdfa4b8' : '#ed7668b8') : ['#ad9d71', '#bdad80', '#a9976a'][Math.abs((road.u * 13 + road.v * 7) % 3)];
+  context.strokeStyle = preview ? (valid ? '#d2ffda' : '#ffd2cc') : '#e1cf9899';
+  context.lineWidth = preview ? 2 / camera.zoom : .8 / camera.zoom;
+  context.fill();
+  context.stroke();
+  context.restore();
+}
+
+function roadAt(point) {
+  const cell = toGround(point.x, point.y);
+  return { u: Math.round(cell.u), v: Math.round(cell.v) };
+}
+
+function roadCanPlace(road) {
+  return roadFits(road.u, road.v)
+    && !roadBlocked(road.u, road.v, state.buildings, plotSizes)
+    && !state.roads.some((existing) => existing.u === road.u && existing.v === road.v);
+}
+
+function updateRoadPlacement(point, extend = false) {
+  const road = roadAt(point);
+  const previous = placement.preview.at(-1);
+  const next = [];
+  if (extend && previous) {
+    let { u, v } = previous;
+    while (u !== road.u && next.length < 150) { u += Math.sign(road.u - u); next.push({ u, v }); }
+    while (v !== road.v && next.length < 150) { v += Math.sign(road.v - v); next.push({ u, v }); }
+  } else {
+    placement.preview = [];
+    next.push(road);
+  }
+  for (const cell of next) {
+    if (!placement.preview.some((item) => item.u === cell.u && item.v === cell.v)) placement.preview.push(cell);
+  }
+  placement.valid = placement.preview.length > 0 && placement.preview.every((cell) =>
+    placement.remove
+      ? state.roads.some((existing) => existing.u === cell.u && existing.v === cell.v)
+      : roadCanPlace(cell)
+  );
+  document.querySelector('#placement-confirm').disabled = !placement.valid;
+  document.querySelector('#placement-status').textContent = placement.valid
+    ? `${placement.preview.length} road ${placement.preview.length === 1 ? 'tile' : 'tiles'} selected`
+    : 'Road blocked, outside walls, or already placed';
+}
+
 function drawPlacementGrid() {
   if (!placement && !editorMode) return;
   context.save(); context.beginPath();
@@ -386,6 +479,7 @@ function drawPlacementGrid() {
 
 function updatePlacement(point) {
   if(!placement) return;
+  if (placement.type === 'road') { updateRoadPlacement(point); return; }
   Object.assign(placement.preview,snapPoint(point.x,point.y,plotSizes[placement.type]));
   placement.valid=canPlace(placement.preview);
   document.querySelector('#placement-confirm').disabled=!placement.valid;
@@ -407,13 +501,15 @@ function render(now) {
   context.translate(-camera.x, -camera.y);
   scenery.draw(context, now);
   drawPlacementGrid();
+  state.roads.forEach((road) => drawRoad(road));
+  if (placement?.type === 'road') placement.preview.forEach((road) => drawRoad(road, true, placement.valid));
   const layers = state.buildings.filter((building) => building.id !== placement?.movingId).map((building) => ({ y: building.y, draw: () => drawBuilding(building, 1, true, now) }));
   npcs.forEach((npc) => layers.push({ y: npc.y, draw: () => drawNpc(npc, now) }));
   layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw());
   drawAtmosphere(context, now, reducedMotion);
   const hoveredBuilding = state.buildings.find((building) => building.id === hoveredId && building.id !== placement?.movingId);
   if (hoveredBuilding) drawBuildingLabel(hoveredBuilding);
-  if (placement) drawBuilding(placement.preview, .68, placement.valid, now);
+  if (placement && placement.type !== 'road') drawBuilding(placement.preview, .68, placement.valid, now);
   context.restore();
   requestAnimationFrame(loop);
 }
@@ -435,6 +531,11 @@ function spend() {}
 function renderBuildMenu() {
   document.querySelectorAll('[data-build-category]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.buildCategory === category)));
   const list = document.querySelector('#build-list');
+  if (category === 'Roads') {
+    list.innerHTML = '<button class="build-card" data-road="place"><span><strong>Place road</strong><small>Draw a path on the square grid</small></span></button><button class="build-card" data-road="remove"><span><strong>Remove road</strong><small>Select placed road tiles</small></span></button>';
+    list.querySelectorAll('[data-road]').forEach((button) => button.addEventListener('click', () => beginRoadPlacement(button.dataset.road === 'remove')));
+    return;
+  }
   list.innerHTML = Object.entries(buildingDefinitions).filter(([, definition]) => definition.category === category).map(([key, definition]) => {
     const alreadyPlaced = state.buildings.some((building) => building.type === key);
     return `
@@ -444,6 +545,17 @@ function renderBuildMenu() {
     </button>`;
   }).join('');
   list.querySelectorAll('[data-build]').forEach((button) => button.addEventListener('click', () => beginPlacement(button.dataset.build)));
+}
+
+function beginRoadPlacement(remove = false) {
+  if (!layoutLoaded) return notify('Your base is still loading.');
+  placement = { type: 'road', remove, preview: [], valid: false };
+  buildPanel.classList.remove('open');
+  viewport.classList.add('placing');
+  document.querySelector('#placement-name').textContent = remove ? 'Remove road' : 'Place road';
+  document.querySelector('#placement-bar').hidden = false;
+  document.querySelector('#placement-confirm').disabled = true;
+  document.querySelector('#placement-status').textContent = 'Tap or drag to choose road tiles';
 }
 
 function beginPlacement(type, movingId = null) {
@@ -466,6 +578,13 @@ function cancelPlacement() {
 
 function confirmPlacement() {
   if (!placement?.valid) return notify('That space is blocked.');
+  if (placement.type === 'road') {
+    const selected = new Set(placement.preview.map((road) => roadKey(road.u, road.v)));
+    if (placement.remove) state.roads = state.roads.filter((road) => !selected.has(roadKey(road.u, road.v)));
+    else state.roads.push(...placement.preview);
+    notify(`${selected.size} road ${selected.size === 1 ? 'tile' : 'tiles'} ${placement.remove ? 'removed' : 'placed'}.`);
+    cancelPlacement(); queueSave(); return;
+  }
   const definition = buildingDefinitions[placement.type];
   if (placement.movingId) {
     const index = state.buildings.findIndex((building) => building.id === placement.movingId);
@@ -534,6 +653,7 @@ canvas.addEventListener('pointerdown', (event) => {
   input.lastY = position.y;
   input.dragging = false;
   input.moved = false;
+  if (placement?.type === 'road') updateRoadPlacement(screenToWorld(position.x, position.y));
   if (input.pointers.size === 2) {
     const [a, b] = [...input.pointers.values()];
     input.pinchDistance = Math.hypot(a.x - b.x, a.y - b.y);
@@ -557,6 +677,7 @@ canvas.addEventListener('pointermove', (event) => {
     input.moved = true;
     return;
   }
+  if (placement?.type === 'road') { updateRoadPlacement(screenToWorld(position.x, position.y), true); input.moved = true; return; }
   if (placement) { updatePlacement(screenToWorld(position.x,position.y)); input.moved=true; return; }
   const dx = position.x - input.lastX;
   const dy = position.y - input.lastY;
@@ -574,7 +695,8 @@ canvas.addEventListener('pointerup', (event) => {
   const position = pointerPosition(event);
   input.pointers.delete(event.pointerId);
   if (!input.moved) {
-    if (placement) updatePlacement(screenToWorld(position.x,position.y));
+    if (placement?.type === 'road') updateRoadPlacement(screenToWorld(position.x, position.y), true);
+    else if (placement) updatePlacement(screenToWorld(position.x,position.y));
     else selectAt(screenToWorld(position.x, position.y));
   }
   if (input.pointers.size < 2) input.pinchDistance = 0;

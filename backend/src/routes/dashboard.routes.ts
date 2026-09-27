@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
 import type { AuthenticatedRequest } from "../middleware/auth.js";
 import { Router } from "express";
+import { PLOT_SIZES, roadFits, roadBlocked, roadKey } from "../../public/base-game/placement.js";
 import {
   dashboardAlerts,
   dashboardResponseReports,
@@ -86,7 +87,16 @@ dashboardRouter.put('/base-layout',authenticate,requireEvoMemberAccess,asyncHand
   seen.add(type);
   return {id,type,x,y,level};
  });
- const layout={version:6,buildings};
+ const rawRoads=data.roads ?? [];
+ if(!Array.isArray(rawRoads)||rawRoads.length>500) throw new HttpError(400,'Invalid base roads.');
+ const roadIds=new Set<string>();
+ const roads=rawRoads.map((item:any)=>{
+  const u=item?.u,v=item?.v,key=roadKey(u,v);
+  if(!roadFits(u,v)||roadBlocked(u,v,buildings,PLOT_SIZES)||roadIds.has(key)) throw new HttpError(400,'Invalid base roads.');
+  roadIds.add(key);
+  return {u,v};
+ });
+ const layout={version:6,buildings,roads};
  await UserModel.updateOne({_id:(req as AuthenticatedRequest).user.id},{$set:{baseLayout:layout}});
  res.json({ok:true});
 }));

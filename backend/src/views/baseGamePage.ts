@@ -144,6 +144,14 @@ export const baseGameHtml = `<!doctype html>
             Decorations
           </button>
 
+          <button
+            type="button"
+            data-build-category="Roads"
+            aria-pressed="false"
+          >
+            Roads
+          </button>
+
         </div>
 
         <div
@@ -260,7 +268,7 @@ export const baseGameHtml = `<!doctype html>
 
   <script
     type="module"
-    src="/assets/base-game/game.js?v=13"
+    src="/assets/base-game/game.js?v=14"
   ></script>
 
 </body>
