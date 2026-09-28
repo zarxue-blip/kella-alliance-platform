@@ -1456,14 +1456,15 @@ async function findOrCreateProfileMember(user: { id: string; discordId: string; 
   const alliance = await AllianceModel.findById(user.allianceId).lean() as any;
   const displayName = dbUser?.username || user.discordId;
   const privateIdentity = user.discordId.startsWith("private-member:");
+  const googleIdentity = user.discordId.startsWith("google:");
   const existing =
     (dbUser?.memberId ? (await MemberModel.findOne({ _id: dbUser.memberId, allianceId: user.allianceId }).lean()) as any : null) ||
     ((await MemberModel.findOne({ allianceId: user.allianceId, discordId: user.discordId }).lean()) as any) ||
-    ((await findMemberForDiscordProfile(user.allianceId, user.discordId, displayName, displayName)) as any);
+    ((privateIdentity || googleIdentity ? null : await findMemberForDiscordProfile(user.allianceId, user.discordId, displayName, displayName)) as any);
 
   if (existing) {
     await UserModel.updateOne({ _id: user.id }, { $set: { memberId: existing._id } });
-    if (privateIdentity) return existing;
+    if (privateIdentity || googleIdentity) return existing;
     return MemberModel.findByIdAndUpdate(
       existing._id,
       {
@@ -1510,6 +1511,13 @@ export const dashboardProfile = asyncHandler(async (req, res) => {
 export const dashboardProfileUpdate = asyncHandler(async (req, res) => {
   const user = (req as AuthenticatedRequest).user;
   const body = profileUpdateSchema.parse(req.body);
+  if (user.discordId.startsWith("google:") && body.ign) {
+    const username = body.ign.trim().replace(/\s+/g, " ");
+    if (username.length < 2 || username.length > 40 || /[\x00-\x1f\x7f<>]/.test(username)) {
+      throw new HttpError(400, "In-game username must be 2–40 characters");
+    }
+    body.ign = username;
+  }
   const member = await findOrCreateProfileMember(user);
   if(body.profilePhotoUrl && body.profilePhotoUrl!==member.profilePhotoUrl) validateChatImage(body.profilePhotoUrl,800000);
   const updated = await MemberModel.findOneAndUpdate(
@@ -1518,6 +1526,11 @@ export const dashboardProfileUpdate = asyncHandler(async (req, res) => {
     { new: true, runValidators: true }
   ).lean() as any;
   if (!updated) throw new HttpError(404, "Profile not found");
+  if (user.discordId.startsWith("google:") && body.ign) {
+    await UserModel.updateOne({ _id: user.id, googleSub: { $exists: true } }, {
+      $set: { inGameUsername: body.ign, username: body.ign }
+    });
+  }
   const profile = dashboardMemberDto(updated);
   delete (profile as any).notes;
   res.json({ member: memberForViewer(profile, isDashboardAdminUser(user)) });

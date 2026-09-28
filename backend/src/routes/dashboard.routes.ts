@@ -47,6 +47,7 @@ import {
   dashboardDmAlertResendFailed,
 } from "../controllers/dashboard.controller.js";
 import { authenticate, authenticateDashboardAdmin, authenticateDashboardWikiEditor, requireEvoMemberAccess } from "../middleware/auth.js";
+import { listKingdomSignups, reviewKingdomSignup } from "../controllers/googleAuth.controller.js";
 
 import { listChatImages, uploadChatImage, deleteChatImage } from '../controllers/chatImages.controller.js';
 export const dashboardRouter = Router();
@@ -55,6 +56,8 @@ dashboardRouter.post('/chat-images', authenticateDashboardAdmin, uploadChatImage
 dashboardRouter.delete('/chat-images/:id', authenticateDashboardAdmin, deleteChatImage);
 
 dashboardRouter.get("/access", authenticateDashboardAdmin, (_req, res) => res.json({admin: true}));
+dashboardRouter.get("/kingdom-signups", authenticate, listKingdomSignups);
+dashboardRouter.patch("/kingdom-signups/:id", authenticate, reviewKingdomSignup);
 
 dashboardRouter.get("/summary", dashboardSummary);
 dashboardRouter.get("/summary/admin", authenticateDashboardAdmin, (_req, res, next) => { res.locals.adminSummary = true; next(); }, dashboardSummary);

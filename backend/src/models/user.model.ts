@@ -6,6 +6,12 @@ export const roleValues: UserRole[] = ["Owner", "Leader", "R4 Officer", "War Mar
 const userSchema = new Schema(
   {
     discordId: { type: String, required: true, unique: true, index: true },
+    googleSub: { type: String, unique: true, sparse: true },
+    email: { type: String, lowercase: true, trim: true },
+    inGameUsername: { type: String, trim: true },
+    googleApprovalStatus: { type: String, enum: ["pending", "approved", "terminated"] },
+    googleReviewedAt: { type: Date },
+    googleReviewedBy: { type: Schema.Types.ObjectId, ref: "User" },
     username: { type: String, required: true },
     avatar: { type: String },
     discordRoleIds: [{ type: String }],

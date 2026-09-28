@@ -3375,6 +3375,7 @@ export function kellaDashboardHtml() {
             <details class="account-menu"><summary>Account</summary><div class="account-panel"><span class="auth-pill" data-auth-status>Checking login...</span>
             <button class="profile-top-button" type="button" data-link-button="/profile" data-profile-button title="My Profile" style="display:none"><img src="/assets/icons/members.png" alt="" /><span><strong>My Profile</strong><em>Edit your player card</em></span></button>
             <button class="profile-top-button feedback-top-button" type="button" data-link-button="/complains" title="Complaint or suggestion"><img src="/assets/icons/complaints.png" alt="" /><span><strong>Feedback</strong><em>Complaint or suggestion</em></span></button>
+            <a href="/kingdom/access" data-kingdom-access>Kingdom login / sign up</a>
             <button class="auth-button" type="button" data-action="discord-login" data-auth-login title="Sign in with Discord" aria-label="Sign in with Discord"><svg viewBox="0 0 24 24" width="23" height="23" fill="currentColor" aria-hidden="true"><path d="M20.3 4.4a19.8 19.8 0 0 0-4.9-1.5l-.6 1.2a18.3 18.3 0 0 0-5.5 0l-.6-1.2a19.7 19.7 0 0 0-4.9 1.5C.7 9 .1 13.5.4 17.9a20 20 0 0 0 6 3l1.2-2a12 12 0 0 1-1.9-.9l.5-.4a14 14 0 0 0 11.6 0l.5.4a12 12 0 0 1-1.9.9l1.2 2a20 20 0 0 0 6-3c.4-5.1-.8-9.5-3.3-13.5ZM8 15.2c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.1 1.1 2.1 2.4-.9 2.4-2.1 2.4Zm8 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.1 1.1 2.1 2.4-.9 2.4-2.1 2.4Z"/></svg></button>
             <button class="auth-button" type="button" data-action="discord-logout" data-auth-logout title="Logout" style="display:none">Logout</button><a href="https://paypal.me/exuzz" target="_blank" rel="noopener noreferrer">Support Creator</a></div></details>
           </div>
@@ -4915,21 +4916,24 @@ ${hospitalClient}
       function updateAuthStatus() {
         const target = document.querySelector("[data-auth-status]");
         const loginButton = document.querySelector("[data-auth-login]");
+        const kingdomAccessLink = document.querySelector("[data-kingdom-access]");
         const logoutButton = document.querySelector("[data-auth-logout]");
         const profileButton = document.querySelector("[data-profile-button]");
         const user = state.auth?.user;
         renderSidebarNav();
         if (!target) return;
         if (state.auth?.authenticated === false) {
-          target.textContent = "Discord: not logged in";
+          target.textContent = "Not logged in";
           if (loginButton) loginButton.style.display = "";
+          if (kingdomAccessLink) kingdomAccessLink.style.display = "";
           if (logoutButton) logoutButton.style.display = "none";
           if (profileButton) profileButton.style.display = "none";
           return;
         }
         if (user) {
-          target.textContent = "Discord: " + (user.username || user.discordId) + (state.auth?.isDashboardAdmin ? " (Admin)" : state.auth?.isDashboardWikiEditor ? " (Wiki Editor)" : " (Member)");
+          target.textContent = (user.googleSub ? "Google: " : "Discord: ") + (user.username || user.discordId) + (state.auth?.isDashboardAdmin ? " (Admin)" : state.auth?.isDashboardWikiEditor ? " (Wiki Editor)" : " (Member)");
           if (loginButton) loginButton.style.display = "none";
+          if (kingdomAccessLink) kingdomAccessLink.style.display = "none";
           if (logoutButton) logoutButton.style.display = "";
           if (profileButton) profileButton.style.display = "";
           return;
@@ -7814,14 +7818,14 @@ ${portalHomeClient}
         if (new URLSearchParams(location.search).get('images') === '1') return renderChatImageLibrary();
         const groups = [
           { title: "Events & War", tools: [["Attendance & Responses", "/officer?section=attendance", "events.png"], ["Create Event", "/tools?tool=events", "events.png"], ["Polls & Roles", "/tools?tool=polls", "members.png"], ["War Alerts", "/tools?tool=alerts", "alerts.png"], ["Shield Alerts", "/tools?tool=shield", "shield-alerts.png"]] },
-          { title: "Members & Alliance", tools: [["Migration", "/migration/admin", "members.png"], ["Member Management", "/members?manage=1", "members.png"], ["Feedback", "/complaints", "complaints.png"]] },
+          { title: "Members & Alliance", tools: [["Migration", "/migration/admin", "members.png"], ["Member Management", "/members?manage=1", "members.png"], ["Kingdom Members", "/kingdom/admin", "members.png"], ["Feedback", "/complaints", "complaints.png"]] },
           { title: "Content / Wiki", tools: hasWikiEditAccess() ? [["Wiki Editor", "/wiki?edit=1", "embed-sender.png"]] : [] },
           { title: "Discord", tools: [["Image Library", "/officer?images=1", "embed-sender.png"], ["Announcements", "/tools?tool=chat", "alerts.png"], ["Discord Embeds", "/tools?tool=embed", "embed-sender.png"], ["Thumbnail Editor", "/tools?tool=thumbnails", "embed-sender.png"]] },
           { title: "Settings", tools: [["Settings & Uploads", "/settings", "settings.png"]] }
         ];
         app.innerHTML = pageHeader("Officer Workspace", "") + '<div class="officer-groups">' + groups.filter(function(group){return group.tools.length;}).map(function(group) {
           return '<section class="officer-group"><h3>' + group.title + '</h3><div class="officer-tools">' + group.tools.map(function(tool) {
-            return '<a class="officer-tool" href="' + tool[1] + '" data-link><img src="/assets/icons/' + tool[2] + '" alt="" width="44" height="44"/><strong>' + tool[0] + '</strong><span aria-hidden="true">›</span></a>';
+            return '<a class="officer-tool" href="' + tool[1] + '"' + (tool[1] === "/kingdom/admin" ? "" : " data-link") + '><img src="/assets/icons/' + tool[2] + '" alt="" width="44" height="44"/><strong>' + tool[0] + '</strong><span aria-hidden="true">›</span></a>';
           }).join('') + '</div></section>';
         }).join('') + '</div>';
       }

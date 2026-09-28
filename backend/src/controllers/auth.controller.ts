@@ -2,7 +2,7 @@ import { migrationIdentityCookie, signMigrationIdentity } from '../services/migr
 import type { Request, Response } from "express";
 import { createOAuthState, verifyOAuthState, oauthStateCookie } from "../services/oauthState.service.js";
 import { env, isProduction } from "../config/env.js";
-import { AllianceModel } from "../models/alliance.model.js";
+import { getOrCreateLoginAlliance } from "../services/loginAlliance.service.js";
 import { UserModel } from "../models/user.model.js";
 import { MemberModel } from "../models/member.model.js";
 import { getDiscordAuthorizationUrl, exchangeDiscordCode, getDiscordOAuthGuildMember } from "../services/discordOAuth.service.js";
@@ -63,18 +63,7 @@ export const discordCallback = asyncHandler(async (req: Request, res: Response) 
     throw new HttpError(403, "This Discord account is not in the configured Kella server");
   }
 
-  const alliance = await AllianceModel.findOneAndUpdate(
-    { discordGuildId: env.DISCORD_GUILD_ID ?? "unconfigured" },
-    {
-      $setOnInsert: {
-        name: "Dragon Command Alliance",
-        tag: "DCA",
-        discordGuildId: env.DISCORD_GUILD_ID ?? "unconfigured",
-        timezone: "UTC"
-      }
-    },
-    { upsert: true, new: true }
-  );
+  const alliance = await getOrCreateLoginAlliance();
 
   const existingUser = await UserModel.findOne({ discordId: identity.id }).lean() as any;
   const userCount = await UserModel.countDocuments({ allianceId: alliance._id });

@@ -22,6 +22,10 @@ import { apiRouter } from "./routes/index.js";
 import { gameReviewRouter } from "./routes/gameReview.routes.js";
 import { kellaPageHtml, kellaPageAssets } from "./views/kellaPage.js";
 import { baseGameDeniedHtml, baseGameHtml } from "./views/baseGamePage.js";
+import { kingdomAccessHtml, kingdomAdminHtml, kingdomCompleteHtml } from "./views/kingdomAccessPage.js";
+import { googleOAuthConfigured } from "./services/googleOAuth.service.js";
+import { googleSignupCookie, verifyGoogleSignupIdentity } from "./services/oauthState.service.js";
+import { isDashboardAdminUser } from "./middleware/auth.js";
 import { hospitalDeniedHtml } from "./views/hospitalClient.js";
 import { HttpError } from "./utils/httpError.js";
 import { beginPrivateMemberAccess } from "./controllers/privateMemberAccess.controller.js";
@@ -51,6 +55,8 @@ export function createApp() {
       req.path === "/apple-touch-icon.png" ||
       req.path.startsWith("/assets/") ||
       req.path.startsWith("/access/") ||
+      req.path === "/kingdom/access" ||
+      req.path === "/kingdom/complete" ||
       req.path.startsWith("/api/auth/")
     ) {
       return next();
@@ -143,6 +149,26 @@ export function createApp() {
 
   app.get("/access/:memberId/:signature", beginPrivateMemberAccess);
 
+  app.get("/kingdom/access", (req, res) => {
+    const status = typeof req.query.status === "string" ? req.query.status : "";
+    res.set("Cache-Control", "private, no-store").type("html")
+      .send(kingdomAccessHtml(status, googleOAuthConfigured()));
+  });
+
+  app.get("/kingdom/complete", (req, res) => {
+    if (!verifyGoogleSignupIdentity(req.cookies?.[googleSignupCookie])) {
+      return res.redirect("/kingdom/access?status=expired");
+    }
+    res.set("Cache-Control", "private, no-store").type("html").send(kingdomCompleteHtml());
+  });
+
+  app.get("/kingdom/admin", authenticate, (req, res) => {
+    if (!isDashboardAdminUser((req as AuthenticatedRequest).user)) {
+      return res.status(403).type("text/plain").send("Kella admin access required");
+    }
+    res.set("Cache-Control", "private, no-store").type("html").send(kingdomAdminHtml());
+  });
+
   app.use("/bot", botRouter);
   app.use("/game-review", gameReviewRouter);
 
@@ -158,7 +184,7 @@ export function createApp() {
           .set("Cache-Control", "private, no-store")
           .status(status)
           .type("html")
-          .send(baseGameDeniedHtml(false));
+          .send(kingdomAccessHtml("", googleOAuthConfigured()));
 
         return;
       }

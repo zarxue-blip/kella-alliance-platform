@@ -1,0 +1,54 @@
+:root { color-scheme: dark; font-family: Inter,"Segoe UI",system-ui,sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100dvh; color: #f6e9c8; background: #07120f url('/assets/base-game/assets/kingdom-0927-open.jpg') center/cover fixed no-repeat; }
+body::before { content: ""; position: fixed; inset: 0; pointer-events: none; background: linear-gradient(90deg,#07120ff0,#0a1712bb 47%,#07120fdc),radial-gradient(circle at 62% 20%,#9e88532b,transparent 50%); }
+a,button,input { font: inherit; }
+a:focus-visible,button:focus-visible,input:focus-visible { outline: 2px solid #f9d680; outline-offset: 3px; }
+.kingdom-access,.kingdom-admin { position: relative; z-index: 1; width: min(1110px,calc(100% - 36px)); min-height: 100dvh; margin: auto; }
+.kingdom-access { display: grid; grid-template-columns: minmax(180px,.8fr) minmax(0,1.3fr); align-items: center; gap: clamp(16px,4vw,60px); padding: 70px 0 46px; }
+.kingdom-back { display: inline-flex; align-items: center; min-height: 42px; padding: 9px 14px; border: 1px solid #e3c57681; border-radius: 5px; background: #12281fdc; color: #f2dcaa; font-weight: 750; font-size: 12px; text-decoration: none; }
+.kingdom-access > .kingdom-back { position: absolute; top: 18px; left: 0; }
+.kingdom-back:hover { border-color: #ffe5a0; background: #244333; }
+.kingdom-art { display: grid; place-items: center; align-self: stretch; min-width: 0; }
+.kingdom-art img { display: block; width: min(100%,400px); max-height: 70dvh; object-fit: contain; filter: drop-shadow(0 22px 26px #010702e0) drop-shadow(0 0 25px #a2ce6355); }
+.kingdom-card { padding: clamp(22px,3vw,42px); border: 1px solid #e1c37c; border-radius: 8px; background: linear-gradient(145deg,#263c2ff2,#11251cf8 60%,#0b1b16f9); box-shadow: inset 0 0 0 4px #0a1914,0 23px 65px #000b; }
+.kingdom-kicker { color: #d9bd79; font-weight: 850; font-size: 10px; letter-spacing: .22em; }
+h1,h2 { font-family: Georgia,"Times New Roman",serif; }
+.kingdom-card h1,.kingdom-admin h1 { margin: 7px 0 5px; font-size: clamp(30px,4vw,46px); line-height: 1.08; }
+.kingdom-lead,.kingdom-admin-head p { margin: 0; color: #cbd7c6; font-size: 14px; }
+.kingdom-notice { margin: 20px 0 0; padding: 12px 14px; border-left: 3px solid #e6c36d; background: #3d4231b8; color: #f9e9c1; font-size: 13px; }
+.kingdom-options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 25px; }
+.kingdom-options section { min-width: 0; padding: 19px; border: 1px solid #d1ba765d; border-radius: 5px; background: #0d211ac9; }
+.kingdom-options h2 { margin: 0 0 5px; font-size: 22px; }
+.kingdom-options p { min-height: 55px; margin: 0 0 14px; color: #bdcabb; font-size: 12px; line-height: 1.45; }
+.kingdom-options form,.kingdom-complete form { display: grid; gap: 10px; }
+label { color: #e7d4a0; font-size: 12px; font-weight: 750; }
+input { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid #bda86d; border-radius: 4px; background: #081710; color: #fff3d4; font-size: 14px; }
+input::placeholder { color: #9eaf9f; }
+.kingdom-action { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; min-height: 43px; margin-top: 8px; padding: 9px 12px; border: 1px solid #f2d789; border-radius: 4px; background: linear-gradient(#ead48f,#ad843e); color: #1c200f; font-size: 12px; font-weight: 850; text-align: center; text-decoration: none; cursor: pointer; }
+.kingdom-action:hover:not(.disabled) { filter: brightness(1.1); }
+.kingdom-action.secondary { border-color: #bca46a; background: #254133; color: #f8e9c4; }
+.kingdom-action.disabled { opacity: .62; cursor: not-allowed; }
+.google-g { display: grid; place-items: center; width: 23px; height: 23px; border-radius: 50%; background: white; color: #4285f4; font: 800 17px/1 Arial,sans-serif; }
+.kingdom-complete { width: min(100%,540px); justify-self: center; }
+.kingdom-complete form { margin-top: 25px; }
+.kingdom-admin { padding: 34px 0 60px; }
+.kingdom-admin-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding-bottom: 22px; border-bottom: 1px solid #c4ab6e68; }
+.kingdom-admin-summary { margin: 19px 0; color: #ead8ab; font-size: 13px; }
+.kingdom-admin-list { display: grid; gap: 11px; }
+.kingdom-member { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1.4fr) 110px auto; align-items: center; gap: 15px; padding: 17px 19px; border: 1px solid #cbb3767a; border-radius: 5px; background: #10251de8; box-shadow: inset 0 1px #fff2,0 8px 24px #0007; }
+.kingdom-member strong,.kingdom-member a,.kingdom-member span { overflow-wrap: anywhere; }
+.kingdom-member strong { display: block; font: 700 18px/1.2 Georgia,serif; }
+.kingdom-member small { display: block; margin-bottom: 5px; color: #b7c8b5; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.kingdom-member a { color: #e6d3a5; font-size: 13px; }
+.kingdom-status { display: inline-block; padding: 5px 8px; border: 1px solid #d6bd7880; border-radius: 3px; color: #e7d2a1; font-size: 11px; font-weight: 800; text-transform: capitalize; }
+.kingdom-status.approved { border-color: #8dbb84; color: #c7f0b8; }
+.kingdom-status.terminated { border-color: #c98276; color: #f5b6a8; }
+.kingdom-member-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.kingdom-member button { min-height: 37px; padding: 7px 12px; border: 1px solid #d8bd7a; border-radius: 4px; background: #304735; color: #f9e8bd; font-weight: 800; font-size: 11px; cursor: pointer; }
+.kingdom-member button.terminate { border-color: #bd786d; background: #49302c; }
+.kingdom-member button:disabled { opacity: .55; cursor: wait; }
+.kingdom-admin-feedback { color: #ffdc9e; font-size: 13px; }
+.kingdom-empty { padding: 25px; border: 1px solid #cbb3767a; border-radius: 5px; background: #10251de8; color: #d8dfd0; }
+@media (max-width: 850px) { .kingdom-access { grid-template-columns: 1fr; gap: 0; padding-top: 62px; } .kingdom-art { display: none; } .kingdom-card { width: min(100%,650px); justify-self: center; } .kingdom-member { grid-template-columns: 1fr 1fr; } .kingdom-member-actions { justify-content: flex-start; } }
+@media (max-width: 560px) { .kingdom-access,.kingdom-admin { width: calc(100% - 24px); } .kingdom-card { padding: 22px; } .kingdom-options { grid-template-columns: 1fr; } .kingdom-options p { min-height: 0; } .kingdom-admin-head { align-items: stretch; flex-direction: column-reverse; } .kingdom-member { grid-template-columns: 1fr; gap: 11px; } }
