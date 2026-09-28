@@ -15,10 +15,12 @@ import { recruitmentRouter } from "./recruitment.routes.js";
 import { settingsRouter } from "./settings.routes.js";
 import { shieldRouter } from "./shield.routes.js";
 import { taskRouter } from "./task.routes.js";
+import { receiveKofiWebhook } from "../controllers/kofiWebhook.controller.js";
 
 export const apiRouter = Router();
 
 apiRouter.get("/health", (_req, res) => res.json({ ok: true, service: "cod-amp-api" }));
+apiRouter.post("/webhooks/kofi", receiveKofiWebhook);
 apiRouter.use("/dashboard", dashboardRouter);
 apiRouter.use("/migration", migrationRouter);
 apiRouter.use("/embed", embedRouter);

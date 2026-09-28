@@ -4,6 +4,7 @@ import { isDashboardAdminUser, signSessionToken, type AuthenticatedRequest } fro
 import { UserModel } from "../models/user.model.js";
 import { exchangeGoogleCode, googleAuthorizationUrl, googleOAuthConfigured, type GoogleIdentity } from "../services/googleOAuth.service.js";
 import { getOrCreateLoginAlliance } from "../services/loginAlliance.service.js";
+import { isCurrentKofiGoogleAccess, syncKofiPaymentForGoogleUser } from "../services/kofiPayment.service.js";
 import {
   createGoogleOAuthState, googleOAuthStateCookie, googleSignupCookie,
   signGoogleSignupIdentity, verifyGoogleOAuthState, verifyGoogleSignupIdentity
@@ -52,12 +53,14 @@ async function createPendingGoogleUser(identity: GoogleIdentity, inGameUsername:
   if (existing) {
     if (existing.googleApprovalStatus === "pending") {
       await UserModel.updateOne({ _id: existing._id }, { $set: { inGameUsername, username: inGameUsername, email: identity.email } });
+      if (env.KOFI_VERIFICATION_TOKEN) await syncKofiPaymentForGoogleUser(identity.email);
+      return UserModel.findOne({ googleSub: identity.sub });
     }
     return existing;
   }
   const alliance = await getOrCreateLoginAlliance();
   try {
-    return await UserModel.create({
+    const user = await UserModel.create({
       discordId: `google:${identity.sub}`,
       googleSub: identity.sub,
       email: identity.email,
@@ -71,10 +74,15 @@ async function createPendingGoogleUser(identity: GoogleIdentity, inGameUsername:
       disabled: true,
       allianceId: alliance._id
     });
+    if (env.KOFI_VERIFICATION_TOKEN) await syncKofiPaymentForGoogleUser(identity.email);
+    return await UserModel.findOne({ googleSub: identity.sub }) || user;
   } catch (error: any) {
     if (error?.code === 11000) {
       const duplicate = await UserModel.findOne({ googleSub: identity.sub });
-      if (duplicate) return duplicate;
+      if (duplicate) {
+        if (env.KOFI_VERIFICATION_TOKEN) await syncKofiPaymentForGoogleUser(identity.email);
+        return UserModel.findOne({ googleSub: identity.sub });
+      }
     }
     throw error;
   }
@@ -98,17 +106,37 @@ export const googleCallback = asyncHandler(async (req: Request, res: Response) =
   if (typeof req.query.code !== "string" || !login) return res.redirect(statusPath("expired"));
   const identity = await exchangeGoogleCode(req.query.code, login.nonce);
   const existing = await UserModel.findOne({ googleSub: identity.sub });
-  if (existing?.googleApprovalStatus === "approved" && !existing.disabled) {
-    await UserModel.updateOne({ _id: existing._id }, { $set: { email: identity.email, lastLoginAt: new Date() } });
-    googleUserSession(res, existing);
-    return res.redirect("/base");
-  }
   if (existing?.googleApprovalStatus === "terminated") return res.redirect(statusPath("terminated"));
+  if (existing?.googleApprovalStatus === "approved" && !existing.disabled) {
+    await UserModel.updateOne({ _id: existing._id }, { $set: { email: identity.email } });
+    if (existing.googleApprovalSource === "kofi" && env.KOFI_VERIFICATION_TOKEN) {
+      await syncKofiPaymentForGoogleUser(identity.email);
+    }
+    const current = await UserModel.findOne({ googleSub: identity.sub });
+    if (current && isCurrentKofiGoogleAccess(current)) {
+      await UserModel.updateOne({ _id: current._id }, { $set: { lastLoginAt: new Date() } });
+      googleUserSession(res, current);
+      return res.redirect("/base");
+    }
+    return res.redirect(statusPath("payment-required"));
+  }
   if (login.inGameUsername) {
-    await createPendingGoogleUser(identity, login.inGameUsername);
+    const user = await createPendingGoogleUser(identity, login.inGameUsername);
+    if (user?.googleApprovalStatus === "approved" && !user.disabled && isCurrentKofiGoogleAccess(user)) {
+      googleUserSession(res, user);
+      return res.redirect("/base");
+    }
     return res.redirect(statusPath("pending"));
   }
-  if (existing?.googleApprovalStatus === "pending") return res.redirect(statusPath("pending"));
+  if (existing?.googleApprovalStatus === "pending") {
+    if (env.KOFI_VERIFICATION_TOKEN) await syncKofiPaymentForGoogleUser(identity.email);
+    const current = await UserModel.findOne({ googleSub: identity.sub });
+    if (current?.googleApprovalStatus === "approved" && !current.disabled && isCurrentKofiGoogleAccess(current)) {
+      googleUserSession(res, current);
+      return res.redirect("/base");
+    }
+    return res.redirect(statusPath("pending"));
+  }
   res.cookie(googleSignupCookie, signGoogleSignupIdentity(identity), { ...googleCookieOptions(req), maxAge: 600_000 });
   res.redirect("/kingdom/complete");
 });
@@ -118,8 +146,12 @@ export const completeGoogleSignup = asyncHandler(async (req: Request, res: Respo
   const identity = verifyGoogleSignupIdentity(req.cookies?.[googleSignupCookie]);
   if (!identity) return res.redirect(statusPath("expired"));
   const inGameUsername = parseInGameUsername(req.body?.inGameUsername);
-  await createPendingGoogleUser(identity, inGameUsername);
+  const user = await createPendingGoogleUser(identity, inGameUsername);
   res.clearCookie(googleSignupCookie, googleCookieOptions(req));
+  if (user?.googleApprovalStatus === "approved" && !user.disabled && isCurrentKofiGoogleAccess(user)) {
+    googleUserSession(res, user);
+    return res.redirect("/base");
+  }
   res.redirect(statusPath("pending"));
 });
 
@@ -155,6 +187,7 @@ export const reviewKingdomSignup = asyncHandler(async (req: AuthenticatedRequest
     { _id: id, allianceId: req.user.allianceId, googleSub: { $exists: true } },
     { $set: {
       googleApprovalStatus: status,
+      googleApprovalSource: "admin",
       googleReviewedAt: new Date(),
       googleReviewedBy: req.user.id,
       privateSiteAccess: status === "approved",

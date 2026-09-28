@@ -5,6 +5,7 @@ import type { UserRole } from "@cod-amp/shared";
 import { env } from "../config/env.js";
 import { HttpError } from "../utils/httpError.js";
 import { UserModel } from "../models/user.model.js";
+import { isCurrentKofiGoogleAccess } from "../services/kofiPayment.service.js";
 
 export interface AuthUser {
   id: string;
@@ -37,7 +38,7 @@ export async function hasPrivateSiteSession(token?: string) {
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
     const user = await UserModel.findById(payload.id).lean() as any;
-    if (!user || user.disabled) return false;
+    if (!user || user.disabled || !isCurrentKofiGoogleAccess(user)) return false;
     return user.role === "Owner" || Boolean(user.privateSiteAccess);
   } catch {
     return false;
@@ -94,7 +95,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
     const user = (await UserModel.findById(payload.id).lean()) as any;
-    if (!user || user.disabled) {
+    if (!user || user.disabled || !isCurrentKofiGoogleAccess(user)) {
       next(new HttpError(401, "Session is no longer valid"));
       return;
     }
@@ -143,7 +144,7 @@ export function authenticateDashboardAdmin(req: Request, _res: Response, next: N
     UserModel.findById(payload.id)
       .lean()
       .then((user: any) => {
-        if (!user || user.disabled) {
+        if (!user || user.disabled || !isCurrentKofiGoogleAccess(user)) {
           next(new HttpError(401, "Session is no longer valid"));
           return;
         }
@@ -184,7 +185,7 @@ export function authenticateDashboardWikiEditor(req: Request, _res: Response, ne
     UserModel.findById(payload.id)
       .lean()
       .then((user: any) => {
-        if (!user || user.disabled) {
+        if (!user || user.disabled || !isCurrentKofiGoogleAccess(user)) {
           next(new HttpError(401, "Session is no longer valid"));
           return;
         }
@@ -218,7 +219,7 @@ export function authenticateDashboardOwner(req: Request, _res: Response, next: N
     UserModel.findById(payload.id)
       .lean()
       .then((user: any) => {
-        if (!user || user.disabled) {
+        if (!user || user.disabled || !isCurrentKofiGoogleAccess(user)) {
           next(new HttpError(401, "Session is no longer valid"));
           return;
         }

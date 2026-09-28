@@ -57,6 +57,7 @@ export function createApp() {
       req.path.startsWith("/access/") ||
       req.path === "/kingdom/access" ||
       req.path === "/kingdom/complete" ||
+      req.path === "/api/webhooks/kofi" ||
       req.path.startsWith("/api/auth/")
     ) {
       return next();
@@ -152,14 +153,14 @@ export function createApp() {
   app.get("/kingdom/access", (req, res) => {
     const status = typeof req.query.status === "string" ? req.query.status : "";
     res.set("Cache-Control", "private, no-store").type("html")
-      .send(kingdomAccessHtml(status, googleOAuthConfigured()));
+      .send(kingdomAccessHtml(status, googleOAuthConfigured(), Boolean(env.KOFI_VERIFICATION_TOKEN)));
   });
 
   app.get("/kingdom/complete", (req, res) => {
     if (!verifyGoogleSignupIdentity(req.cookies?.[googleSignupCookie])) {
       return res.redirect("/kingdom/access?status=expired");
     }
-    res.set("Cache-Control", "private, no-store").type("html").send(kingdomCompleteHtml());
+    res.set("Cache-Control", "private, no-store").type("html").send(kingdomCompleteHtml(Boolean(env.KOFI_VERIFICATION_TOKEN)));
   });
 
   app.get("/kingdom/admin", authenticate, (req, res) => {
@@ -184,7 +185,7 @@ export function createApp() {
           .set("Cache-Control", "private, no-store")
           .status(status)
           .type("html")
-          .send(kingdomAccessHtml("", googleOAuthConfigured()));
+          .send(kingdomAccessHtml("", googleOAuthConfigured(), Boolean(env.KOFI_VERIFICATION_TOKEN)));
 
         return;
       }
