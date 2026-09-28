@@ -8,6 +8,8 @@ import { env } from "./config/env.js";
 import { registerRealtimeServer } from "./services/realtime.service.js";
 import { startSchedulers } from "./services/scheduler.service.js";
 import type { TokenPayload } from "./middleware/auth.js";
+import { UserModel } from "./models/user.model.js";
+import { isCurrentKofiGoogleAccess } from "./services/kofiPayment.service.js";
 
 function readCookie(header: string | undefined, name: string) {
   if (!header) return undefined;
@@ -31,7 +33,7 @@ async function bootstrap() {
     }
   });
 
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     const token =
       socket.handshake.auth?.token ||
       socket.handshake.headers.authorization?.replace(/^Bearer\s+/i, "") ||
@@ -42,7 +44,15 @@ async function bootstrap() {
     }
     try {
       const payload = jwt.verify(String(token), env.JWT_SECRET) as TokenPayload;
+      const user = await UserModel.findById(payload.id).lean() as any;
+      if (!user || user.disabled || !isCurrentKofiGoogleAccess(user)) {
+        next(new Error("Session is no longer valid"));
+        return;
+      }
       socket.data.user = payload;
+      if (user.googleApprovalSource === "kofi") {
+        socket.data.kofiPaidThrough = new Date(user.kofiPaidThrough).getTime();
+      }
       socket.join(`alliance:${payload.allianceId}`);
       next();
     } catch {
@@ -52,6 +62,30 @@ async function bootstrap() {
 
   io.on("connection", (socket) => {
     socket.emit("connected", { socketId: socket.id });
+    if (Number.isFinite(socket.data.kofiPaidThrough)) {
+      let expiryTimer: ReturnType<typeof setTimeout>;
+      const checkExpiry = async () => {
+        if (!socket.connected) return;
+        const remaining = socket.data.kofiPaidThrough - Date.now();
+        if (remaining <= 0) {
+          try {
+            const user = await UserModel.findById(socket.data.user.id).lean() as any;
+            if (!user || user.disabled || !isCurrentKofiGoogleAccess(user)) {
+              socket.disconnect(true);
+              return;
+            }
+            if (user.googleApprovalSource !== "kofi") return;
+            socket.data.kofiPaidThrough = new Date(user.kofiPaidThrough).getTime();
+          } catch {
+            socket.disconnect(true);
+            return;
+          }
+        }
+        expiryTimer = setTimeout(checkExpiry, Math.min(Math.max(socket.data.kofiPaidThrough - Date.now(), 1), 86_400_000));
+      };
+      void checkExpiry();
+      socket.on("disconnect", () => clearTimeout(expiryTimer));
+    }
   });
 
   registerRealtimeServer(io);
