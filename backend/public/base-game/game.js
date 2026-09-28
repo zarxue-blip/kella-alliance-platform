@@ -1,4 +1,4 @@
-import { GROUND, CELL, PLOT_SIZES, toGround, fromGround, snapPoint, corners, fits, collides, roadKey, roadFits, roadBlocked, starterRoads } from './placement.js?v=4';
+import { GROUND, CELL, PLOT_SIZES, toGround, fromGround, snapPoint, corners, fits, collides, roadKey, roadFits, roadBlocked, starterRoads } from './placement.js?v=5';
 import { createScenery, drawBuildingShadow, drawBuildingMagic, drawAtmosphere } from './scenery.js?v=2';
 import { findPath, simplifyPath } from './pathfinding.js';
 
@@ -34,13 +34,14 @@ const buildingDefinitions = {
   arch: { name: 'Mage', category: 'Decorations', asset: 'longleaf-arch.png', scale: .24, footprint: [60, 28], cost: { gold: 240, wood: 360, stone: 120 } },
   notice: { name: 'Notice Board', category: 'Decorations', asset: 'notice-board.png', scale: .27, footprint: [38, 24], cost: { gold: 120, wood: 220, stone: 40 } },
   infantry: { name: 'Infantry', category: 'Buildings', asset: 'infantry.png', scale: .39, footprint: [48, 34], cost: {} },
-  admin: { name: 'Admin Tools', category: 'Buildings', asset: 'admin-tools.png', scale: .34, footprint: [54, 38], cost: {} }
+  admin: { name: 'Admin Tools', category: 'Buildings', asset: 'admin-tools.png', scale: .34, footprint: [54, 38], cost: {} },
+  hospital: { name: 'Hospital', category: 'Buildings', asset: 'hospital.png', scale: .5, footprint: [50, 46], cost: {} }
 };
 
 const defaultBuildings = [
   ['hub', 476, 532], ['archery', 700, 504], ['stable', 924, 504], ['sentry', 448, 616],
   ['arch', 504, 700], ['notice', 644, 728], ['research', 784, 700], ['eagle', 924, 672],
-  ['infantry', 590, 820], ['admin', 800, 820]
+  ['infantry', 590, 820], ['admin', 800, 820], ['hospital', 792, 596]
 ].map(([type, x, y], index) => ({ id: `starter-${index}`, type, ...snapPoint(x, y, plotSizes[type]), level: 1 }));
 
 const canvas = document.querySelector('#base-world');
@@ -684,6 +685,7 @@ function selectAt(point) {
   else if (hit.type === 'sentry' || hit.type === 'archery') openTrainingTool('archer', 'Archer');
   else if (hit.type === 'stable') openTrainingTool('cavalry', 'Cavalry');
   else if (hit.type === 'eagle') openTrainingTool('flying', 'Flying Unit');
+  else if (hit.type === 'hospital') openBuildingTool('/hospital?embedded=1', 'Hospital');
   else if (hit.type === 'admin') window.location.assign('/officer');
 }
 

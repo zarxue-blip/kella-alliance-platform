@@ -23,10 +23,14 @@ try {
  for(const data of [[],null,{'constructor':{}},{text:'a'.repeat(200001)}])assert.equal((await fetch(base+'/api/dashboard/commander',{method:'PUT',headers:headers('a'),body:JSON.stringify({data})})).status,400);
  assert.equal((await fetch(base+'/api/dashboard/base-layout')).status,401);
  assert.equal((await fetch(base+'/api/dashboard/base-layout',{headers:headers('c')})).status,403);
+ assert.equal((await fetch(base+'/hospital')).status,401);
+ assert.equal((await fetch(base+'/hospital',{headers:headers('c')})).status,403);
+ assert.equal((await fetch(base+'/hospital',{headers:headers('a')})).status,200);
  const baseA=await (await fetch(base+'/api/dashboard/base-layout?userId=b',{headers:headers('a')})).json();assert.equal(baseA.data.buildings[0].id,'a-hub');
- const savedBase={version:6,buildings:[{id:'a-infantry',type:'infantry',x:590,y:820,level:1}],roads:[{u:0,v:0}],roadsInitialized:true};
+ const savedBase={version:6,buildings:[{id:'a-infantry',type:'infantry',x:590,y:820,level:1},{id:'a-hospital',type:'hospital',x:792,y:596,level:1}],roads:[{u:0,v:0}],roadsInitialized:true};
  assert.equal((await fetch(base+'/api/dashboard/base-layout',{method:'PUT',headers:headers('a'),body:JSON.stringify({userId:'b',data:savedBase})})).status,200);
  assert.equal(records.a.baseLayout.buildings[0].type,'infantry');assert.equal(records.b.baseLayout.buildings[0].id,'b-hub');
+ assert.equal(records.a.baseLayout.buildings[1].type,'hospital');
  assert.deepEqual(records.a.baseLayout.roads,[{u:0,v:0}]);
  assert.equal(records.a.baseLayout.roadsInitialized,true);
  for(const roads of [[{u:0,v:0},{u:0,v:0}],[{u:100,v:0}],[{u:0.5,v:0}]])assert.equal((await fetch(base+'/api/dashboard/base-layout',{method:'PUT',headers:headers('a'),body:JSON.stringify({data:{...savedBase,roads}})})).status,400);

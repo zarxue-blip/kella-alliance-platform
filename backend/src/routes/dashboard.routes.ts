@@ -70,7 +70,7 @@ dashboardRouter.put('/commander',authenticate,asyncHandler(async(req,res)=>{
  if(!data || Array.isArray(data) || typeof data!=='object' || JSON.stringify(data).length>200000 || /"(?:__proto__|constructor|prototype)"\s*:/.test(JSON.stringify(data))) throw new HttpError(400,'Invalid commander profile.');
  await UserModel.updateOne({_id:(req as AuthenticatedRequest).user.id},{$set:{commanderTools:data}});res.json({ok:true});
 }));
-const baseBuildingTypes = new Set(['hub','archery','eagle','stable','research','sentry','arch','notice','infantry','admin']);
+const baseBuildingTypes = new Set(['hub','archery','eagle','stable','research','sentry','arch','notice','infantry','admin','hospital']);
 dashboardRouter.get('/base-layout',authenticate,requireEvoMemberAccess,asyncHandler(async(req,res)=>{
  const user=await UserModel.findById((req as AuthenticatedRequest).user.id).select('+baseLayout').lean<any>();
  res.set('Cache-Control','private, no-store').json({data:user?.baseLayout || null});

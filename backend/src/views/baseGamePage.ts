@@ -276,7 +276,7 @@ export const baseGameHtml = `<!doctype html>
 
   <script
     type="module"
-    src="/assets/base-game/game.js?v=17"
+    src="/assets/base-game/game.js?v=18"
   ></script>
 
 </body>

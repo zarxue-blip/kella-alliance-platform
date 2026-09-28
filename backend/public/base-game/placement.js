@@ -1,6 +1,6 @@
 export const GROUND = { x: 724, y: 585, rx: 485, ry: 302 };
 export const CELL = { x: 17, y: 11 };
-export const PLOT_SIZES = { hub: 4, archery: 3, eagle: 3, stable: 4, research: 3, sentry: 2, arch: 3, notice: 2, infantry: 2, admin: 2 };
+export const PLOT_SIZES = { hub: 4, archery: 3, eagle: 3, stable: 4, research: 3, sentry: 2, arch: 3, notice: 2, infantry: 2, admin: 2, hospital: 3 };
 export function toGround(x,y){return {u:((x-GROUND.x)/CELL.x+(y-GROUND.y)/CELL.y)/2,v:((y-GROUND.y)/CELL.y-(x-GROUND.x)/CELL.x)/2};}
 export function fromGround(u,v){return {x:GROUND.x+(u-v)*CELL.x,y:GROUND.y+(u+v)*CELL.y};}
 export function snapPoint(x,y,size){const p=toGround(x,y), offset=size%2?.5:0;return fromGround(Math.round(p.u-offset)+offset,Math.round(p.v-offset)+offset);}

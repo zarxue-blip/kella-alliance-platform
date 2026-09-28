@@ -3,6 +3,7 @@ import { portalHomeClient } from './portalHome.js';
 import { migrationClient } from './migrationClient.js';
 import { lordResearchLevelCosts, lordResearchTreeData } from "../data/researchTree.data.js";
 import { trainingResourceCosts, trainingUnitTierSeconds, trainingUnitPower, trainingUnitEventRates } from "../data/trainingCosts.js";
+import { hospitalClient } from "./hospitalClient.js";
 
 const navItems = [
   { path: "/migration", icon: "/assets/migration-gold.png", label: "Migration" },
@@ -3349,6 +3350,7 @@ export function kellaDashboardHtml() {
     <link rel="stylesheet" href="/assets/site-parallax.css?v=realm-3" />
     <link rel="stylesheet" href="/assets/portal-parallax.css?v=kingdom-film-3" />
     <link rel="stylesheet" href="/assets/training-units.css?v=3" />
+    <link rel="stylesheet" href="/assets/hospital.css?v=1" />
     <link rel="stylesheet" href="/assets/base-game/research-hud.css?v=2" />
   </head>
   <body>
@@ -3487,6 +3489,7 @@ ${siteParallaxClient}
         gem: "/assets/resources/gem.png"
       };
       const trainingResourceCosts = ${JSON.stringify(trainingResourceCosts)};
+${hospitalClient}
       const wikiMiscImages = ${JSON.stringify(wikiMiscImages)};
       const wikiHeroImages = ${JSON.stringify(wikiHeroImages)};
       const wikiMarkerImages = ${JSON.stringify(wikiMarkerImages)};
@@ -8974,6 +8977,7 @@ ${portalHomeClient}
         if (path === "/lord-tools") return navigate("/profile?section=lord");
         if (path === "/research") return renderLordTools(true, "research");
         if (path === "/training-tools") return renderTrainingTools();
+        if (path === "/hospital") return renderHospital();
         if (path === "/wiki" && new URLSearchParams(location.search).has("edit") && !hasWikiEditAccess()) {
           app.innerHTML = pageHeader("Wiki Editor access required", "", '<a class="primary" href="/wiki" data-link>Read Wiki</a>'); return;
         }
@@ -10510,7 +10514,7 @@ ${portalHomeClient}
       document.addEventListener("pointercancel", finishWikiPointer);
 
       document.addEventListener("keydown", function(event) {
-        if (embeddedTrainingTool && event.key === "Escape" && window.parent !== window) {
+        if (embeddedTool && (location.pathname === "/training-tools" || location.pathname === "/hospital") && event.key === "Escape" && window.parent !== window) {
           event.preventDefault();
           window.parent.postMessage({ type: "kella:close-building-tool" }, location.origin);
           return;

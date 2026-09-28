@@ -22,6 +22,7 @@ import { apiRouter } from "./routes/index.js";
 import { gameReviewRouter } from "./routes/gameReview.routes.js";
 import { kellaPageHtml, kellaPageAssets } from "./views/kellaPage.js";
 import { baseGameDeniedHtml, baseGameHtml } from "./views/baseGamePage.js";
+import { hospitalDeniedHtml } from "./views/hospitalClient.js";
 import { HttpError } from "./utils/httpError.js";
 import { beginPrivateMemberAccess } from "./controllers/privateMemberAccess.controller.js";
 
@@ -179,6 +180,25 @@ export function createApp() {
         .set("Cache-Control", "private, no-store")
         .type("html")
         .send(baseGameHtml);
+    });
+  });
+
+  app.get("/hospital", (req, res) => {
+    authenticate(req, res, (error?: unknown) => {
+      const status = error instanceof HttpError ? error.statusCode : error ? 401 : 0;
+      const allowed = !status && hasEvoMemberAccess((req as AuthenticatedRequest).user);
+      if (!allowed) {
+        res
+          .set("Cache-Control", "private, no-store")
+          .status(status || 403)
+          .type("html")
+          .send(hospitalDeniedHtml(!status));
+        return;
+      }
+      res
+        .set("Cache-Control", "private, no-store")
+        .type("html")
+        .send(kellaPageHtml);
     });
   });
 
