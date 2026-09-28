@@ -17,6 +17,7 @@ h1,h2 { font-family: Georgia,"Times New Roman",serif; }
 .kingdom-card h1,.kingdom-admin h1 { margin: 7px 0 5px; font-size: clamp(30px,4vw,46px); line-height: 1.08; }
 .kingdom-lead,.kingdom-admin-head p { margin: 0; color: #cbd7c6; font-size: 14px; }
 .kingdom-notice { margin: 20px 0 0; padding: 12px 14px; border-left: 3px solid #e6c36d; background: #3d4231b8; color: #f9e9c1; font-size: 13px; }
+.kingdom-after-signup { width: fit-content; margin-top: 12px; padding-inline: 18px; }
 .kingdom-options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 25px; }
 .kingdom-options section { min-width: 0; padding: 19px; border: 1px solid #d1ba765d; border-radius: 5px; background: #0d211ac9; }
 .kingdom-options h2 { margin: 0 0 5px; font-size: 22px; }

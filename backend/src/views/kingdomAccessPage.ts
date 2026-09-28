@@ -25,6 +25,7 @@ export function kingdomAccessHtml(status = "", googleConfigured = false) {
       <span class="kingdom-kicker">EVO · 881</span><h1 id="kingdom-title">Enter the Kingdom</h1>
       <p class="kingdom-lead">Your own woodland keep awaits.</p>
       ${notice ? `<p class="kingdom-notice" role="status">${notice}</p>` : ""}
+      ${status === "pending" ? '<a class="kingdom-action secondary kingdom-after-signup" href="https://ko-fi.com/exuz19/tiers" target="_blank" rel="noopener noreferrer">View Forest Guardian membership ↗</a>' : ""}
       <div class="kingdom-options">
         <section><h2>Log in</h2><p>Already approved? Return to your saved base.</p>${googleLogin}<a class="kingdom-action secondary" href="/api/auth/discord">Continue with Discord</a></section>
         <section><h2>Sign up</h2><p>New player? Tell us your in-game name. An admin will review your request.</p>${signup}</section>

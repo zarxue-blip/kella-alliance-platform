@@ -215,6 +215,9 @@ try {
   assert.equal(response.status, 302);
   assert.equal(response.headers.get("location"), "/kingdom/access?status=pending");
   assert.doesNotMatch(response.headers.get("set-cookie") || "", new RegExp(`${env.SESSION_COOKIE_NAME}=`));
+  const pendingPage = await (await fetch(base + "/kingdom/access?status=pending")).text();
+  assert.match(pendingPage, /https:\/\/ko-fi\.com\/exuz19\/tiers/);
+  assert.doesNotMatch(await (await fetch(base + "/kingdom/access")).text(), /https:\/\/ko-fi\.com\/exuz19\/tiers/);
   const applicant = users.find((user) => user.googleSub === "google-user");
   assert.ok(applicant);
   assert.equal(applicant.inGameUsername, "Player One");
