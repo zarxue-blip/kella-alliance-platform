@@ -66,6 +66,7 @@ let deviceScale = 1;
 let viewWidth = 0;
 let viewHeight = 0;
 let hoveredId = null;
+let focusedId = null;
 let placement = null;
 let category = 'Buildings';
 
@@ -230,6 +231,18 @@ function worldToScreen(x, y) {
   return { x: (x - camera.x) * camera.zoom + viewWidth / 2, y: (y - camera.y) * camera.zoom + viewHeight / 2 };
 }
 
+function revealKeyboardTarget(x, y) {
+  const screen = worldToScreen(x, y);
+  const marginX = Math.min(105, viewWidth * .28);
+  const top = Math.min(135, viewHeight * .26);
+  const bottom = Math.max(top + 1, viewHeight - Math.min(115, viewHeight * .24));
+  const visibleX = clamp(screen.x, marginX, viewWidth - marginX);
+  const visibleY = clamp(screen.y, top, bottom);
+  camera.x += (screen.x - visibleX) / camera.zoom;
+  camera.y += (screen.y - visibleY) / camera.zoom;
+  clampCamera();
+}
+
 function isInsideBase(x, y, margin = 0) {
   const dx = (x - 724) / (500 - margin);
   const dy = (y - 575) / (335 - margin);
@@ -355,7 +368,7 @@ function drawBuilding(building, alpha = 1, valid = true, now = performance.now()
     context.fill();
     drawBuildingShadow(context, image, building.x, building.y, width, height);
   }
-  if (alpha === 1 && hoveredId === building.id && !placement) {
+  if (alpha === 1 && (hoveredId === building.id || (document.activeElement === canvas && focusedId === building.id)) && !placement) {
     context.shadowColor = '#ffffff';
     context.shadowBlur = 22;
   }
@@ -419,21 +432,41 @@ function drawNpc(npc, now) {
 
 function drawBuildingLabel(building) {
   const definition = buildingDefinitions[building.type];
+  const action = editorMode ? 'Move' : ['hub', 'notice', 'admin'].includes(building.type) ? 'Open page' : 'Open tool';
+  const anchor = worldToScreen(building.x, building.y);
   context.save();
-  context.font = '600 13px Georgia, serif';
-  context.textAlign = 'center';
+  context.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+  context.font = '600 14px Georgia, serif';
+  const width = Math.min(Math.max(168, context.measureText(definition.name).width + 36), Math.max(1, viewWidth - 16));
+  const height = 52;
+  const x = clamp(anchor.x, width / 2 + 8, Math.max(width / 2 + 8, viewWidth - width / 2 - 8));
+  const below = anchor.y + height + 18 <= viewHeight - 8;
+  const y = clamp(below ? anchor.y + 14 : anchor.y - height - 14, 8, Math.max(8, viewHeight - height - 8));
+  const left = x - width / 2;
   context.textBaseline = 'middle';
-  const labelWidth = context.measureText(definition.name).width + 16;
-  const labelY = building.y + 15;
-  context.fillStyle = '#101710ef';
-  context.strokeStyle = '#d6b45dcc';
-  context.lineWidth = 1.4 / camera.zoom;
+  context.textAlign = 'left';
+  context.shadowColor = '#000a';
+  context.shadowBlur = 16;
+  context.shadowOffsetY = 5;
+  context.fillStyle = '#0d1712f2';
+  context.strokeStyle = '#e7c778';
+  context.lineWidth = 1;
   context.beginPath();
-  context.roundRect(building.x - labelWidth / 2, labelY - 11, labelWidth, 22, 7);
+  context.roundRect(left, y, width, height, 10);
   context.fill();
   context.stroke();
+  context.shadowColor = 'transparent';
+  context.shadowBlur = 0;
+  context.shadowOffsetY = 0;
+  context.fillStyle = '#c9ad69';
+  context.fillRect(left + 12, y + 29, width - 24, 1);
   context.fillStyle = '#fff0c8';
-  context.fillText(definition.name, building.x, labelY + .5);
+  context.fillText(definition.name, left + 12, y + 17, width - 24);
+  context.font = '700 10px system-ui, sans-serif';
+  context.fillStyle = '#d9bd78';
+  context.fillText(action.toUpperCase(), left + 12, y + 41, width - 38);
+  context.textAlign = 'right';
+  context.fillText('›', left + width - 12, y + 40);
   context.restore();
 }
 
@@ -570,8 +603,9 @@ function render(now) {
   npcs.forEach((npc) => layers.push({ y: npc.y, draw: () => drawNpc(npc, now) }));
   layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw());
   drawAtmosphere(context, now, reducedMotion);
-  const hoveredBuilding = state.buildings.find((building) => building.id === hoveredId && building.id !== placement?.movingId);
-  if (hoveredBuilding) drawBuildingLabel(hoveredBuilding);
+  const activeId = hoveredId || (document.activeElement === canvas ? focusedId : null);
+  const activeBuilding = state.buildings.find((building) => building.id === activeId);
+  if (activeBuilding && !placement) drawBuildingLabel(activeBuilding);
   if (placement && placement.type !== 'road') drawBuilding(placement.preview, .68, placement.valid, now);
   context.restore();
   requestAnimationFrame(loop);
@@ -619,6 +653,8 @@ function beginRoadPlacement(remove = false) {
   document.querySelector('#placement-bar').hidden = false;
   document.querySelector('#placement-confirm').disabled = true;
   document.querySelector('#placement-status').textContent = 'Tap or drag to choose road tiles';
+  canvas.focus({ preventScroll: true });
+  canvas.setAttribute('aria-label', 'Road placement. Use arrow keys to choose a tile, Shift and arrows to extend a path, Enter to confirm, or Escape to cancel.');
 }
 
 function beginPlacement(type, movingId = null) {
@@ -631,12 +667,15 @@ function beginPlacement(type, movingId = null) {
   document.querySelector('#placement-name').textContent = buildingDefinitions[type].name;
   document.querySelector('#placement-bar').hidden = false;
   notify('Drag or tap a square, then confirm with the check mark.');
+  canvas.focus({ preventScroll: true });
+  canvas.setAttribute('aria-label', `${buildingDefinitions[type].name} placement. Use arrow keys to move, Enter to confirm, or Escape to cancel.`);
 }
 
 function cancelPlacement() {
   placement = null;
   viewport.classList.remove('placing');
   document.querySelector('#placement-bar').hidden = true;
+  canvas.setAttribute('aria-label', 'Base map. Use the arrow keys to choose a building, then Enter to open it.');
 }
 
 function confirmPlacement() {
@@ -675,6 +714,10 @@ function buildingAt(point) {
 
 function selectAt(point) {
   const hit = buildingAt(point);
+  if (hit) activateBuilding(hit);
+}
+
+function activateBuilding(hit) {
   if (hit && editorMode) { beginPlacement(hit.type,hit.id); return; }
   if (!hit) return;
   if (hit.type === 'hub') window.location.assign('/members');
@@ -722,7 +765,6 @@ function closeBuildingTool() {
   if (buildingToolReturnFocus instanceof HTMLElement && buildingToolReturnFocus !== document.body && buildingToolReturnFocus.isConnected) {
     buildingToolReturnFocus.focus({ preventScroll: true });
   } else {
-    canvas.tabIndex = -1;
     canvas.focus({ preventScroll: true });
   }
   buildingToolReturnFocus = null;
@@ -734,6 +776,10 @@ function pointerPosition(event) {
 }
 
 canvas.addEventListener('pointerdown', (event) => {
+  focusedId = null;
+  hoveredId = null;
+  viewport.classList.remove('building-hovered');
+  canvas.setAttribute('aria-label', 'Base map. Use the arrow keys to choose a building, then Enter to open it.');
   canvas.setPointerCapture(event.pointerId);
   const position = pointerPosition(event);
   input.pointers.set(event.pointerId, position);
@@ -792,6 +838,55 @@ canvas.addEventListener('pointerup', (event) => {
 
 canvas.addEventListener('pointercancel', (event) => input.pointers.delete(event.pointerId));
 canvas.addEventListener('pointerleave', () => { hoveredId = null; viewport.classList.remove('building-hovered'); });
+canvas.tabIndex = 0;
+canvas.setAttribute('aria-label', 'Base map. Use the arrow keys to choose a building, then Enter to open it.');
+canvas.addEventListener('blur', () => {
+  focusedId = null;
+  canvas.setAttribute('aria-label', 'Base map. Use the arrow keys to choose a building, then Enter to open it.');
+});
+canvas.addEventListener('keydown', (event) => {
+  if (!buildingToolModal.hidden) return;
+  if (placement) {
+    const moves = {
+      ArrowLeft: [-1, 1], ArrowRight: [1, -1],
+      ArrowUp: [-1, -1], ArrowDown: [1, 1]
+    };
+    const move = moves[event.key];
+    if (!move) return;
+    event.preventDefault();
+    const current = placement.type === 'road'
+      ? placement.preview.at(-1) || roadAt({ x: camera.x, y: camera.y })
+      : toGround(placement.preview.x, placement.preview.y);
+    const next = fromGround(current.u + move[0], current.v + move[1]);
+    if (placement.type === 'road') updateRoadPlacement(next, event.shiftKey);
+    else updatePlacement(next);
+    revealKeyboardTarget(next.x, next.y);
+    return;
+  }
+  if (event.key === 'Escape') {
+    focusedId = null;
+    canvas.setAttribute('aria-label', 'Base map. Use the arrow keys to choose a building, then Enter to open it.');
+    return;
+  }
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+    event.preventDefault();
+    const ordered = [...state.buildings].sort((a, b) => a.y - b.y || a.x - b.x);
+    if (!ordered.length) return;
+    const current = ordered.findIndex((building) => building.id === focusedId);
+    const direction = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1;
+    const next = current < 0 ? (direction > 0 ? 0 : ordered.length - 1) : (current + direction + ordered.length) % ordered.length;
+    focusedId = ordered[next].id;
+    revealKeyboardTarget(ordered[next].x, ordered[next].y);
+    hoveredId = null;
+    viewport.classList.remove('building-hovered');
+    canvas.setAttribute('aria-label', `${buildingDefinitions[ordered[next].type].name}. ${editorMode ? 'Move building' : 'Press Enter to open'}. Use arrow keys to choose another building.`);
+  } else if ((event.key === 'Enter' || event.key === ' ') && focusedId) {
+    event.preventDefault();
+    event.stopPropagation();
+    const building = state.buildings.find((item) => item.id === focusedId);
+    if (building) activateBuilding(building);
+  }
+});
 canvas.addEventListener('contextmenu', (event) => { event.preventDefault(); cancelPlacement(); });
 canvas.addEventListener('wheel', (event) => {
   event.preventDefault();
@@ -817,10 +912,20 @@ document.querySelector('#build-toggle').addEventListener('click', () => { buildP
 document.querySelector('#build-close').addEventListener('click', () => buildPanel.classList.remove('open'));
 document.querySelector('#placement-cancel').addEventListener('click', cancelPlacement);
 document.querySelector('#placement-confirm').addEventListener('click',confirmPlacement);
-document.querySelector('#edit-layout').addEventListener('click', () => {
-  editorMode=!editorMode;cancelPlacement();
-  document.querySelector('#edit-layout').textContent=editorMode?'Done':'Arrange';
-  document.querySelector('#edit-layout').setAttribute('aria-pressed',String(editorMode));
+const arrangeButton = document.querySelector('#edit-layout');
+arrangeButton.addEventListener('click', () => {
+  editorMode = !editorMode;
+  cancelPlacement();
+  const label = arrangeButton.querySelector('[data-arrange-label]');
+  const subtitle = arrangeButton.querySelector('[data-arrange-subtitle]');
+  if (label) {
+    label.textContent = editorMode ? 'Done' : 'Arrange';
+    if (subtitle) subtitle.textContent = editorMode ? 'Select a building' : 'Move buildings';
+  } else {
+    arrangeButton.textContent = editorMode ? 'Done' : 'Arrange';
+  }
+  arrangeButton.setAttribute('aria-label', editorMode ? 'Finish arranging buildings' : 'Arrange buildings');
+  arrangeButton.setAttribute('aria-pressed', String(editorMode));
   notify(editorMode?'Select a building to move it. Drag empty ground to explore.':'Layout saved.');
 });
 document.querySelector('#fit-base').addEventListener('click', () => {

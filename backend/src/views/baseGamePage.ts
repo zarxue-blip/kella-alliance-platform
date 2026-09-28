@@ -17,7 +17,7 @@ export const baseGameHtml = `<!doctype html>
 
   <link
     rel="stylesheet"
-    href="/assets/base-game/base-game.css?v=9"
+    href="/assets/base-game/base-game.css?v=10"
   >
   <link rel="stylesheet" href="/assets/base-game/research-hud.css?v=2">
 
@@ -39,53 +39,83 @@ export const baseGameHtml = `<!doctype html>
       <canvas id="base-world"></canvas>
     </section>
 
-    <header class="base-topbar">
-      <a
-        class="base-home-button"
-        href="/"
-        aria-label="Return to Kella home"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
+    <header class="base-topbar" aria-label="Base status">
+      <div class="base-topbar-main">
+        <a
+          class="base-home-button"
+          href="/"
+          aria-label="Return to Kella home"
         >
-          <path
-            d="M3 11.1 12 3l9 8.1v9.4a.5.5 0 0 1-.5.5h-5.3v-6.5H8.8V21H3.5a.5.5 0 0 1-.5-.5z"
-          />
-          <path
-            d="m1.7 12.2 10.3-9.3 10.3 9.3"
-          />
-        </svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M19 12H5m6-6-6 6 6 6" />
+          </svg>
+          <span class="base-home-copy"><small>Return to</small><strong>Home</strong></span>
+        </a>
 
-        <span>Home</span>
-      </a>
+        <span class="base-crest" aria-hidden="true">
+          <svg viewBox="0 0 64 64">
+            <path d="M32 3 57 14v28L32 61 7 42V14Z" />
+            <path d="M32 11 49 19v20L32 51 15 39V19Z" />
+            <path d="M19 36c9-1 13-8 13-17 0 9 4 16 13 17-6 1-10 4-13 10-3-6-7-9-13-10Z" />
+          </svg>
+        </span>
+        <div class="base-heading">
+          <span class="base-kicker">Alliance sanctuary</span>
+          <h1>Woodland <span>Keep</span></h1>
+        </div>
+      </div>
+
+      <div class="base-topbar-status" aria-label="Alliance details">
+        <span class="base-status-token">
+          <span class="base-status-glyph" aria-hidden="true">✦</span>
+          <span><small>ALLIANCE</small><strong>EVO</strong></span>
+        </span>
+        <span class="base-status-token">
+          <span class="base-status-glyph" aria-hidden="true">◇</span>
+          <span><small>REALM</small><strong>881</strong></span>
+        </span>
+        <span class="base-status-token base-status-access">
+          <span class="base-status-glyph" aria-hidden="true">◆</span>
+          <span><small>ACCESS</small><strong>Members only</strong></span>
+        </span>
+      </div>
     </header>
 
     <p class="base-hint">
-      Drag to explore · Scroll or pinch to zoom · Arrange to move buildings
+      <span class="base-hint-marker" aria-hidden="true">✧</span>
+      <span><strong>Explore the keep</strong><small>Drag to explore · Scroll or pinch to zoom</small></span>
     </p>
 
-    <div class="editor-controls">
-
+    <div class="editor-controls" aria-label="Base controls">
+      <span class="control-rail-label">World controls</span>
       <button
         class="game-button"
         id="edit-layout"
+        type="button"
+        aria-label="Arrange buildings"
         aria-pressed="false"
       >
-        Arrange
+        <span class="control-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" /></svg>
+        </span>
+        <span class="control-copy"><strong data-arrange-label>Arrange</strong><small data-arrange-subtitle>Move buildings</small></span>
       </button>
 
       <button
         class="game-button"
         id="fit-base"
+        type="button"
+        aria-label="Center the base camera"
       >
-        View base
+        <span class="control-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M8 12h8m-4-4v8" /></svg>
+        </span>
+        <span class="control-copy"><strong>View base</strong><small>Center camera</small></span>
       </button>
-
     </div>
 
     <span class="privacy-mark">
-      EVO · 881 Members
+      <span aria-hidden="true">✦</span> EVO · 881 <small>Alliance territory</small>
     </span>
 
     <div class="build-dock">
@@ -94,9 +124,13 @@ export const baseGameHtml = `<!doctype html>
         class="game-button primary build-toggle"
         id="build-toggle"
         type="button"
+        aria-label="Build menu"
       >
-        <span>⚒</span>
-        Build
+        <span class="build-toggle-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="m14 4 6 6-2 2-6-6m2-2-3 3M4 20l10-10M3 21l5-1-4-4-1 5Z" /></svg>
+        </span>
+        <span class="build-toggle-copy"><small>Expand the keep</small><strong>Build</strong></span>
+        <span class="build-toggle-plus" aria-hidden="true">+</span>
       </button>
 
       <section
@@ -107,9 +141,10 @@ export const baseGameHtml = `<!doctype html>
 
         <header class="panel-heading">
           <div>
-            <h2>Build</h2>
+            <span class="panel-kicker">Woodland keep</span>
+            <h2>Construction</h2>
             <p>
-              Grow your woodland sanctuary.
+              Grow your alliance sanctuary.
             </p>
           </div>
 
@@ -276,7 +311,7 @@ export const baseGameHtml = `<!doctype html>
 
   <script
     type="module"
-    src="/assets/base-game/game.js?v=18"
+    src="/assets/base-game/game.js?v=20"
   ></script>
 
 </body>
