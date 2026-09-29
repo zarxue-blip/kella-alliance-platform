@@ -7,6 +7,12 @@ const userSchema = new Schema(
   {
     discordId: { type: String, required: true, unique: true, index: true },
     googleSub: { type: String, unique: true, sparse: true },
+    localUsernameKey: { type: String, unique: true, sparse: true, select: false },
+    localLordId: { type: String, trim: true },
+    localPasswordHash: { type: String, select: false },
+    localApprovalStatus: { type: String, enum: ["pending", "approved", "terminated"] },
+    localReviewedAt: { type: Date },
+    localReviewedBy: { type: Schema.Types.ObjectId, ref: "User" },
     email: { type: String, lowercase: true, trim: true },
     inGameUsername: { type: String, trim: true },
     googleApprovalStatus: { type: String, enum: ["pending", "approved", "terminated"] },

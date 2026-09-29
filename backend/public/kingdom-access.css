@@ -18,11 +18,26 @@ h1,h2 { font-family: Georgia,"Times New Roman",serif; }
 .kingdom-lead,.kingdom-admin-head p { margin: 0; color: #cbd7c6; font-size: 14px; }
 .kingdom-notice { margin: 20px 0 0; padding: 12px 14px; border-left: 3px solid #e6c36d; background: #3d4231b8; color: #f9e9c1; font-size: 13px; }
 .kingdom-after-signup { width: fit-content; margin-top: 12px; padding-inline: 18px; }
-.kingdom-options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 25px; }
-.kingdom-options section { min-width: 0; padding: 19px; border: 1px solid #d1ba765d; border-radius: 5px; background: #0d211ac9; }
+.kingdom-options { margin-top: 25px; }
+.kingdom-login { min-width: 0; padding: 22px; border: 1px solid #d1ba765d; border-radius: 5px; background: #0d211ac9; }
 .kingdom-options h2 { margin: 0 0 5px; font-size: 22px; }
-.kingdom-options p { min-height: 55px; margin: 0 0 14px; color: #bdcabb; font-size: 12px; line-height: 1.45; }
+.kingdom-options p { margin: 0 0 17px; color: #bdcabb; font-size: 12px; line-height: 1.45; }
 .kingdom-options form,.kingdom-complete form { display: grid; gap: 10px; }
+.kingdom-options form label:not(:first-child) { margin-top: 3px; }
+.kingdom-login form .kingdom-action,.kingdom-signup form .kingdom-action { margin-top: 10px; }
+.kingdom-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0 12px; color: #c6c9b9; font-size: 11px; text-align: center; white-space: nowrap; }
+.kingdom-divider::before,.kingdom-divider::after { content: ""; height: 1px; flex: 1; background: #d1ba765d; }
+.kingdom-social { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kingdom-social .kingdom-action { margin-top: 0; }
+.kingdom-signup { margin-top: 19px; text-align: center; }
+.kingdom-signup-trigger { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 10px; border-radius: 4px; color: #c9d4c6; font-size: 12px; cursor: pointer; list-style: none; }
+.kingdom-signup-trigger::-webkit-details-marker { display: none; }
+.kingdom-signup-trigger::marker { content: ""; }
+.kingdom-signup-trigger span { color: #f6dc9b; font-weight: 800; text-decoration: underline; text-underline-offset: 2px; }
+.kingdom-signup-trigger:hover span { color: #fff2c9; }
+.kingdom-signup-trigger:focus-visible { outline: 2px solid #f9d680; outline-offset: 3px; }
+.kingdom-signup-panel { margin-top: 10px; padding: 22px; border: 1px solid #d1ba765d; border-radius: 5px; background: #0d211ac9; text-align: left; }
+.kingdom-signup-panel form { margin-top: 20px; }
 label { color: #e7d4a0; font-size: 12px; font-weight: 750; }
 input { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid #bda86d; border-radius: 4px; background: #081710; color: #fff3d4; font-size: 14px; }
 input::placeholder { color: #9eaf9f; }
@@ -40,6 +55,8 @@ input::placeholder { color: #9eaf9f; }
 .kingdom-member { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1.4fr) 110px auto; align-items: center; gap: 15px; padding: 17px 19px; border: 1px solid #cbb3767a; border-radius: 5px; background: #10251de8; box-shadow: inset 0 1px #fff2,0 8px 24px #0007; }
 .kingdom-member strong,.kingdom-member a,.kingdom-member span { overflow-wrap: anywhere; }
 .kingdom-member strong { display: block; font: 700 18px/1.2 Georgia,serif; }
+.kingdom-member-details { display: grid; gap: 10px; }
+.kingdom-member-details strong { font: 700 13px/1.3 Inter,"Segoe UI",system-ui,sans-serif; }
 .kingdom-member small { display: block; margin-bottom: 5px; color: #b7c8b5; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
 .kingdom-member a { color: #e6d3a5; font-size: 13px; }
 .kingdom-status { display: inline-block; padding: 5px 8px; border: 1px solid #d6bd7880; border-radius: 3px; color: #e7d2a1; font-size: 11px; font-weight: 800; text-transform: capitalize; }
@@ -52,4 +69,4 @@ input::placeholder { color: #9eaf9f; }
 .kingdom-admin-feedback { color: #ffdc9e; font-size: 13px; }
 .kingdom-empty { padding: 25px; border: 1px solid #cbb3767a; border-radius: 5px; background: #10251de8; color: #d8dfd0; }
 @media (max-width: 850px) { .kingdom-access { grid-template-columns: 1fr; gap: 0; padding-top: 62px; } .kingdom-art { display: none; } .kingdom-card { width: min(100%,650px); justify-self: center; } .kingdom-member { grid-template-columns: 1fr 1fr; } .kingdom-member-actions { justify-content: flex-start; } }
-@media (max-width: 560px) { .kingdom-access,.kingdom-admin { width: calc(100% - 24px); } .kingdom-card { padding: 22px; } .kingdom-options { grid-template-columns: 1fr; } .kingdom-options p { min-height: 0; } .kingdom-admin-head { align-items: stretch; flex-direction: column-reverse; } .kingdom-member { grid-template-columns: 1fr; gap: 11px; } }
+@media (max-width: 560px) { .kingdom-access,.kingdom-admin { width: calc(100% - 24px); } .kingdom-card { padding: 22px; } .kingdom-login,.kingdom-signup-panel { padding: 18px; } .kingdom-social { grid-template-columns: 1fr; } .kingdom-admin-head { align-items: stretch; flex-direction: column-reverse; } .kingdom-member { grid-template-columns: 1fr; gap: 11px; } }

@@ -17,18 +17,23 @@ function cell(label, value, asLink = false) {
 function render(members) {
   list.replaceChildren();
   const pending = members.filter((member) => member.status === 'pending').length;
-  summary.textContent = `${members.length} Google ${members.length === 1 ? 'member' : 'members'} · ${pending} pending`;
+  summary.textContent = `${members.length} ${members.length === 1 ? 'member' : 'members'} · ${pending} pending`;
   if (!members.length) {
     const empty = document.createElement('p');
     empty.className = 'kingdom-empty';
-    empty.textContent = 'No Google signups yet.';
+    empty.textContent = 'No signups yet.';
     list.append(empty);
     return;
   }
   members.forEach((member) => {
     const row = document.createElement('article');
     row.className = 'kingdom-member';
-    row.append(cell('In-game username', member.inGameUsername), cell('Email', member.email, true));
+    const localAccount = member.provider === 'local';
+    const details = document.createElement('div');
+    details.className = 'kingdom-member-details';
+    details.append(cell('Account type', localAccount ? 'Username & password' : 'Google'));
+    details.append(localAccount ? cell('Lord ID', member.lordId) : cell('Email', member.email, true));
+    row.append(cell('In-game username', member.inGameUsername || member.username), details);
     const state = document.createElement('div');
     const stateLabel = document.createElement('small');
     stateLabel.textContent = 'Access';
@@ -46,7 +51,7 @@ function render(members) {
       button.textContent = label;
       if (status === 'terminated') button.className = 'terminate';
       button.addEventListener('click', async () => {
-        if (status === 'terminated' && !window.confirm(`Terminate ${member.inGameUsername}'s kingdom access?`)) return;
+        if (status === 'terminated' && !window.confirm(`Terminate ${member.inGameUsername || member.username}'s kingdom access?`)) return;
         actions.querySelectorAll('button').forEach((item) => { item.disabled = true; });
         feedback.textContent = '';
         try {
@@ -56,7 +61,7 @@ function render(members) {
             body: JSON.stringify({ status })
           });
           if (!response.ok) throw new Error('Could not update this signup. Refresh and try again.');
-          feedback.textContent = `${member.inGameUsername}: ${status}.`;
+          feedback.textContent = `${member.inGameUsername || member.username}: ${status}.`;
           await load();
         } catch (error) {
           feedback.textContent = error.message;

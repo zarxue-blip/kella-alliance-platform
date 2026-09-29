@@ -12,7 +12,6 @@ import {
   authenticate,
   authenticateDashboardAdmin,
   authenticateDashboardWikiEditor,
-  hasPrivateSiteSession,
   hasEvoMemberAccess,
   type AuthenticatedRequest
 } from "./middleware/auth.js";
@@ -22,9 +21,16 @@ import { apiRouter } from "./routes/index.js";
 import { gameReviewRouter } from "./routes/gameReview.routes.js";
 import { kellaPageHtml, kellaPageAssets } from "./views/kellaPage.js";
 import { baseGameDeniedHtml, baseGameHtml } from "./views/baseGamePage.js";
-import { kingdomAccessHtml, kingdomAdminHtml, kingdomCompleteHtml } from "./views/kingdomAccessPage.js";
+import {
+  kingdomAccessHtml,
+  kingdomAdminHtml,
+  kingdomCompleteHtml
+} from "./views/kingdomAccessPage.js";
 import { googleOAuthConfigured } from "./services/googleOAuth.service.js";
-import { googleSignupCookie, verifyGoogleSignupIdentity } from "./services/oauthState.service.js";
+import {
+  googleSignupCookie,
+  verifyGoogleSignupIdentity
+} from "./services/oauthState.service.js";
 import { isDashboardAdminUser } from "./middleware/auth.js";
 import { hospitalDeniedHtml } from "./views/hospitalClient.js";
 import { HttpError } from "./utils/httpError.js";
@@ -42,56 +48,6 @@ export function createApp() {
 
   app.get("/health", (_req, res) => {
     res.status(200).send("OK");
-  });
-
-  app.use(async (req, res, next) => {
-    if (process.env.KELLA_LOCKDOWN !== "true") {
-      return next();
-    }
-
-    if (
-      req.path === "/health" ||
-      req.path === "/favicon.ico" ||
-      req.path === "/apple-touch-icon.png" ||
-      req.path.startsWith("/assets/") ||
-      req.path.startsWith("/access/") ||
-      req.path === "/kingdom/access" ||
-      req.path === "/kingdom/complete" ||
-      req.path === "/api/webhooks/kofi" ||
-      req.path.startsWith("/api/auth/")
-    ) {
-      return next();
-    }
-
-    const ownerKey = process.env.KELLA_OWNER_KEY;
-
-    if (
-      ownerKey &&
-      typeof req.query.owner === "string" &&
-      req.query.owner === ownerKey
-    ) {
-      res.cookie("kella_owner", ownerKey, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "strict",
-        maxAge: 30 * 24 * 60 * 60 * 1000
-      });
-
-      return res.redirect("/");
-    }
-
-    if (ownerKey && req.cookies.kella_owner === ownerKey) {
-      return next();
-    }
-
-    if (await hasPrivateSiteSession(req.cookies?.[env.SESSION_COOKIE_NAME])) {
-      return next();
-    }
-
-    return res
-      .status(404)
-      .type("text/plain")
-      .send("404 Not Found");
   });
 
   app.use(
@@ -151,23 +107,58 @@ export function createApp() {
   app.get("/access/:memberId/:signature", beginPrivateMemberAccess);
 
   app.get("/kingdom/access", (req, res) => {
-    const status = typeof req.query.status === "string" ? req.query.status : "";
-    res.set("Cache-Control", "private, no-store").type("html")
-      .send(kingdomAccessHtml(status, googleOAuthConfigured(), Boolean(env.KOFI_VERIFICATION_TOKEN)));
+    const status =
+      typeof req.query.status === "string"
+        ? req.query.status
+        : "";
+
+    res
+      .set("Cache-Control", "private, no-store")
+      .type("html")
+      .send(
+        kingdomAccessHtml(
+          status,
+          googleOAuthConfigured(),
+          Boolean(env.KOFI_VERIFICATION_TOKEN)
+        )
+      );
   });
 
   app.get("/kingdom/complete", (req, res) => {
-    if (!verifyGoogleSignupIdentity(req.cookies?.[googleSignupCookie])) {
+    if (
+      !verifyGoogleSignupIdentity(
+        req.cookies?.[googleSignupCookie]
+      )
+    ) {
       return res.redirect("/kingdom/access?status=expired");
     }
-    res.set("Cache-Control", "private, no-store").type("html").send(kingdomCompleteHtml(Boolean(env.KOFI_VERIFICATION_TOKEN)));
+
+    res
+      .set("Cache-Control", "private, no-store")
+      .type("html")
+      .send(
+        kingdomCompleteHtml(
+          Boolean(env.KOFI_VERIFICATION_TOKEN)
+        )
+      );
   });
 
   app.get("/kingdom/admin", authenticate, (req, res) => {
-    if (!isDashboardAdminUser((req as AuthenticatedRequest).user)) {
-      return res.status(403).type("text/plain").send("Kella admin access required");
+    if (
+      !isDashboardAdminUser(
+        (req as AuthenticatedRequest).user
+      )
+    ) {
+      return res
+        .status(403)
+        .type("text/plain")
+        .send("Kella admin access required");
     }
-    res.set("Cache-Control", "private, no-store").type("html").send(kingdomAdminHtml());
+
+    res
+      .set("Cache-Control", "private, no-store")
+      .type("html")
+      .send(kingdomAdminHtml());
   });
 
   app.use("/bot", botRouter);
@@ -185,13 +176,22 @@ export function createApp() {
           .set("Cache-Control", "private, no-store")
           .status(status)
           .type("html")
-          .send(kingdomAccessHtml("", googleOAuthConfigured(), Boolean(env.KOFI_VERIFICATION_TOKEN)));
+          .send(
+            kingdomAccessHtml(
+              "",
+              googleOAuthConfigured(),
+              Boolean(env.KOFI_VERIFICATION_TOKEN)
+            )
+          );
 
         return;
       }
 
-      const user = (req as AuthenticatedRequest).user;
-      const has881Role = hasEvoMemberAccess(user);
+      const user =
+        (req as AuthenticatedRequest).user;
+
+      const has881Role =
+        hasEvoMemberAccess(user);
 
       if (!has881Role) {
         res
@@ -212,16 +212,29 @@ export function createApp() {
 
   app.get("/hospital", (req, res) => {
     authenticate(req, res, (error?: unknown) => {
-      const status = error instanceof HttpError ? error.statusCode : error ? 401 : 0;
-      const allowed = !status && hasEvoMemberAccess((req as AuthenticatedRequest).user);
+      const status =
+        error instanceof HttpError
+          ? error.statusCode
+          : error
+            ? 401
+            : 0;
+
+      const allowed =
+        !status &&
+        hasEvoMemberAccess(
+          (req as AuthenticatedRequest).user
+        );
+
       if (!allowed) {
         res
           .set("Cache-Control", "private, no-store")
           .status(status || 403)
           .type("html")
           .send(hospitalDeniedHtml(!status));
+
         return;
       }
+
       res
         .set("Cache-Control", "private, no-store")
         .type("html")
@@ -270,9 +283,15 @@ export function createApp() {
 
       const guard =
         adminPaths.includes(req.path) ||
-        (req.path === "/members" && req.query.manage === "1")
+        (
+          req.path === "/members" &&
+          req.query.manage === "1"
+        )
           ? authenticateDashboardAdmin
-          : req.path === "/wiki" && req.query.edit === "1"
+          : (
+              req.path === "/wiki" &&
+              req.query.edit === "1"
+            )
             ? authenticateDashboardWikiEditor
             : null;
 
@@ -293,6 +312,7 @@ export function createApp() {
   );
 
   app.use("/api", apiRouter);
+
   app.use(errorHandler);
 
   return app;

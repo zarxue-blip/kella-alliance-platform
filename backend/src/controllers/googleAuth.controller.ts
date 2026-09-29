@@ -161,18 +161,29 @@ function requireKingdomAdmin(req: AuthenticatedRequest) {
 
 export const listKingdomSignups = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   requireKingdomAdmin(req);
-  const users = await UserModel.find({ allianceId: req.user.allianceId, googleSub: { $exists: true } })
-    .select("_id inGameUsername email googleApprovalStatus createdAt lastLoginAt googleReviewedAt")
-    .sort({ createdAt: -1 }).lean() as any[];
+  const [googleUsers, localUsers] = await Promise.all([
+    UserModel.find({ allianceId: req.user.allianceId, googleSub: { $exists: true } })
+      .select("_id inGameUsername email googleApprovalStatus createdAt lastLoginAt googleReviewedAt")
+      .sort({ createdAt: -1 }).lean() as Promise<any[]>,
+    UserModel.find({ allianceId: req.user.allianceId, localApprovalStatus: { $exists: true } })
+      .select("_id username inGameUsername localLordId localApprovalStatus createdAt lastLoginAt localReviewedAt")
+      .sort({ createdAt: -1 }).lean() as Promise<any[]>
+  ]);
   res.set("Cache-Control", "private, no-store");
-  res.json({ members: users.map((user) => ({
+  res.json({ members: [
+    ...googleUsers.map((user) => ({ ...user, provider: "google" as const })),
+    ...localUsers.map((user) => ({ ...user, provider: "local" as const }))
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((user) => ({
     id: user._id.toString(),
+    provider: user.provider,
+    username: user.username || user.inGameUsername || "",
+    lordId: user.provider === "local" ? user.localLordId || "" : "",
     inGameUsername: user.inGameUsername || "",
     email: user.email || "",
-    status: user.googleApprovalStatus || "pending",
+    status: user.provider === "local" ? user.localApprovalStatus || "pending" : user.googleApprovalStatus || "pending",
     signedUpAt: user.createdAt,
     lastLoginAt: user.lastLoginAt || null,
-    reviewedAt: user.googleReviewedAt || null
+    reviewedAt: user.provider === "local" ? user.localReviewedAt || null : user.googleReviewedAt || null
   })) });
 });
 
@@ -183,7 +194,7 @@ export const reviewKingdomSignup = asyncHandler(async (req: AuthenticatedRequest
   if (!/^[a-f\d]{24}$/i.test(id) || (status !== "approved" && status !== "terminated")) {
     throw new HttpError(400, "Choose Approve or Terminate");
   }
-  const user = await UserModel.findOneAndUpdate(
+  let user = await UserModel.findOneAndUpdate(
     { _id: id, allianceId: req.user.allianceId, googleSub: { $exists: true } },
     { $set: {
       googleApprovalStatus: status,
@@ -195,7 +206,20 @@ export const reviewKingdomSignup = asyncHandler(async (req: AuthenticatedRequest
     } },
     { new: true, runValidators: true }
   ).lean() as any;
+  if (!user) {
+    user = await UserModel.findOneAndUpdate(
+      { _id: id, allianceId: req.user.allianceId, localApprovalStatus: { $exists: true } },
+      { $set: {
+        localApprovalStatus: status,
+        localReviewedAt: new Date(),
+        localReviewedBy: req.user.id,
+        privateSiteAccess: status === "approved",
+        disabled: status !== "approved"
+      } },
+      { new: true, runValidators: true }
+    ).lean() as any;
+  }
   if (!user) throw new HttpError(404, "Signup not found");
   res.set("Cache-Control", "private, no-store");
-  res.json({ id: user._id.toString(), status: user.googleApprovalStatus });
+  res.json({ id: user._id.toString(), status: user.localApprovalStatus || user.googleApprovalStatus });
 });

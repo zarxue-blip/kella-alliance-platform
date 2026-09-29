@@ -33,12 +33,16 @@ export function hasEvoMemberAccess(user: { discordRoleIds?: string[]; privateSit
   return Boolean(user.privateSiteAccess) || (user.discordRoleIds || []).includes(evoMemberRoleId);
 }
 
+function isApprovedLocalUser(user: any) {
+  return !String(user.discordId || "").startsWith("local:") || user.localApprovalStatus === "approved";
+}
+
 export async function hasPrivateSiteSession(token?: string) {
   if (!token) return false;
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
     const user = await UserModel.findById(payload.id).lean() as any;
-    if (!user || user.disabled || !isCurrentKofiGoogleAccess(user)) return false;
+    if (!user || user.disabled || !isApprovedLocalUser(user) || !isCurrentKofiGoogleAccess(user)) return false;
     return user.role === "Owner" || Boolean(user.privateSiteAccess);
   } catch {
     return false;
@@ -95,7 +99,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
     const user = (await UserModel.findById(payload.id).lean()) as any;
-    if (!user || user.disabled || !isCurrentKofiGoogleAccess(user)) {
+    if (!user || user.disabled || !isApprovedLocalUser(user) || !isCurrentKofiGoogleAccess(user)) {
       next(new HttpError(401, "Session is no longer valid"));
       return;
     }
@@ -144,7 +148,7 @@ export function authenticateDashboardAdmin(req: Request, _res: Response, next: N
     UserModel.findById(payload.id)
       .lean()
       .then((user: any) => {
-        if (!user || user.disabled || !isCurrentKofiGoogleAccess(user)) {
+        if (!user || user.disabled || !isApprovedLocalUser(user) || !isCurrentKofiGoogleAccess(user)) {
           next(new HttpError(401, "Session is no longer valid"));
           return;
         }
@@ -185,7 +189,7 @@ export function authenticateDashboardWikiEditor(req: Request, _res: Response, ne
     UserModel.findById(payload.id)
       .lean()
       .then((user: any) => {
-        if (!user || user.disabled || !isCurrentKofiGoogleAccess(user)) {
+        if (!user || user.disabled || !isApprovedLocalUser(user) || !isCurrentKofiGoogleAccess(user)) {
           next(new HttpError(401, "Session is no longer valid"));
           return;
         }
@@ -219,7 +223,7 @@ export function authenticateDashboardOwner(req: Request, _res: Response, next: N
     UserModel.findById(payload.id)
       .lean()
       .then((user: any) => {
-        if (!user || user.disabled || !isCurrentKofiGoogleAccess(user)) {
+        if (!user || user.disabled || !isApprovedLocalUser(user) || !isCurrentKofiGoogleAccess(user)) {
           next(new HttpError(401, "Session is no longer valid"));
           return;
         }
