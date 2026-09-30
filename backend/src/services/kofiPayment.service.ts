@@ -13,7 +13,7 @@ export function normalizeKofiEmail(value: string) {
 }
 
 export function requiresKofiPayment(user: any) {
-  return Boolean(user.kofiPaymentRequired || user.localApprovalStatus || user.googleApprovalSource === "kofi");
+  return Boolean(user.kofiPaymentRequired || user.localApprovalStatus || user.googleApprovalStatus);
 }
 
 export function isCurrentKofiAccess(user: any, now = new Date()) {
@@ -106,7 +106,8 @@ export async function assignKofiPayment(paymentId: string, userId: string) {
     const result = await UserModel.updateOne({ _id: user._id,
       googleApprovalStatus: { $ne: "terminated" }, localApprovalStatus: { $ne: "terminated" },
       $or: [{ kofiPaymentEmail: { $exists: false } }, { kofiPaymentEmail: payment.email }]
-    }, { $set: set, $max: { kofiPaidThrough: payment.paidThrough } });
+    }, { $set: set, $max: { kofiPaidThrough: payment.paidThrough },
+      $unset: { kofiRequestedEmail: 1, kofiRequestedTransactionId: 1 } });
     if (!result.matchedCount) throw new HttpError(409, "Account changed; check its approval and membership again");
   } catch (error: any) {
     if (!payment.claimedByUserId) await KofiPaymentModel.updateOne(

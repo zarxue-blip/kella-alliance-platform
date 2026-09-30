@@ -29,6 +29,7 @@ const member = {
   username: "Member", role: "Member", discordRoleIds: [], privateSiteAccess: true, disabled: false
 };
 const users: any[] = [admin, member];
+let nextUserId = 3;
 
 function matches(user: any, filter: Record<string, any>) {
   return Object.entries(filter).every(([key, value]) => {
@@ -45,7 +46,7 @@ function matches(user: any, filter: Record<string, any>) {
 (UserModel as any).exists = async (filter: any) => users.some((user) => matches(user, filter));
 (UserModel as any).create = async (input: any) => {
   const user = {
-    ...input, _id: "333333333333333333333333", createdAt: new Date("2026-09-30T00:00:00Z")
+    ...input, _id: String(nextUserId++).padStart(24, "0"), createdAt: new Date("2026-09-30T00:00:00Z")
   };
   users.push(user);
   return user;
@@ -57,7 +58,7 @@ function matches(user: any, filter: Record<string, any>) {
 };
 (UserModel as any).findById = (id: string) => {
   const query: any = Promise.resolve(users.find((user) => String(user._id) === String(id)) || null);
-  query.populate = query.lean = () => query;
+  query.select = query.populate = query.lean = () => query;
   return query;
 };
 (UserModel as any).updateOne = async (filter: any, update: any) => {
@@ -108,6 +109,10 @@ try {
   assert.match(page, /action="\/api\/auth\/local\/login"/);
   assert.match(page, /Payment is required even if an admin approves you/);
   assert.match(page, /href="\/privacy"/);
+  response = await fetch(base + "/api/auth/kofi/status");
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { status: "expired", redirectUrl: "/kingdom/access?status=expired" });
+  assert.equal((await post("/api/auth/kofi/claim", { paymentEmail: "payer@example.com" })).status, 401);
   response = await fetch(base + "/privacy");
   assert.equal(response.status, 200);
   assert.match(await response.text(), /Google sign-in gives us your Google account identifier/);
@@ -115,22 +120,39 @@ try {
   assert.equal(response.status, 200);
   assert.match(await response.text(), /independent community site/);
 
-  response = await post("/api/auth/local/signup", { username: "", lordId: "12345", password: "strong-password-123" });
-  assert.equal(response.status, 400);
   response = await post("/api/auth/local/signup", { username: "Forest Lord", lordId: "bad", password: "strong-password-123" });
   assert.equal(response.status, 400);
-  response = await post("/api/auth/local/signup", { username: "Forest Lord", lordId: "12345", password: "short" });
-  assert.equal(response.status, 400);
+  response = await fetch(base + "/api/auth/local/signup", {
+    method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ username: "Moss Walker", lordId: "45678", password: "strong-password-123" }),
+    redirect: "manual"
+  });
+  assert.equal(response.status, 303, "the normal HTML form must reach the payment step");
+  assert.equal(response.headers.get("location"), "/kingdom/payment");
+  const formCookie = /kella_payment_identity=([^;]+)/.exec(response.headers.get("set-cookie") || "")![0];
+  assert.doesNotMatch(response.headers.get("set-cookie") || "", new RegExp(`${env.SESSION_COOKIE_NAME}=[^;,\\s]+`));
+  assert.deepEqual(await (await fetch(base + "/api/auth/kofi/status", { headers: { cookie: formCookie } })).json(),
+    { status: "payment-required" });
+  assert.equal((await fetch(base + "/base", { headers: { cookie: formCookie } })).status, 401);
+  const formApplicant = users.at(-1)!;
   response = await post("/api/auth/local/signup", { username: "Forest Lord", lordId: "12345", password: "strong-password-123" });
   assert.equal(response.status, 202);
   assert.deepEqual(await response.json(), { status: "payment-required", redirectUrl: "/kingdom/payment" });
   const pendingCookie = /kella_payment_identity=([^;]+)/.exec(response.headers.get("set-cookie") || "")![0];
+  response = await fetch(base + "/api/auth/kofi/status", { headers: { cookie: pendingCookie } });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { status: "payment-required" });
+  assert.equal(response.headers.get("set-cookie"), null, "polling must never issue a member session");
   const applicant = users.at(-1)!;
   assert.equal(applicant.localApprovalStatus, "pending");
   assert.equal(applicant.kofiPaymentRequired, true);
   response = await fetch(base + "/kingdom/payment", {headers:{cookie:pendingCookie}});
   assert.equal(response.status,200);
-  assert.match(await response.text(), /Continue to Ko-fi/);
+  const paymentPage = await response.text();
+  assert.match(paymentPage, /<iframe title="Forest Guardian Ko-fi membership checkout"/);
+  assert.match(paymentPage, /src="https:\/\/ko-fi\.com\/exuz19\/\?hidefeed=true&amp;widget=true&amp;embed=true/);
+  assert.match(paymentPage, /\/assets\/kingdom-payment\.js/);
+  assert.match(response.headers.get("content-security-policy") || "", /frame-src 'self' https:\/\/ko-fi\.com/);
   assert.equal((await fetch(base + "/base", {headers:{cookie:pendingCookie}})).status,401,
     "payment identity must not be a member session");
   response = await fetch(base + "/api/auth/kofi/claim", {method:"POST",headers:{...jsonHeaders,cookie:pendingCookie},
@@ -138,14 +160,23 @@ try {
   assert.equal(response.status,202);
   assert.equal(applicant.kofiRequestedEmail,"payer@example.com");
   assert.equal(applicant.kofiPaidThrough,undefined,"receipt details alone never grant access");
+  assert.deepEqual(await (await fetch(base + "/api/auth/kofi/status", { headers: { cookie: pendingCookie } })).json(),
+    { status: "review-pending" });
+  formApplicant.kofiPaymentEmail = "form@example.com";
+  formApplicant.kofiPaidThrough = new Date(Date.now() + 86_400_000);
+  assert.deepEqual(await (await fetch(base + "/api/auth/kofi/status", { headers: { cookie: formCookie } })).json(),
+    { status: "approval-pending" }, "a paid but unapproved account still cannot enter");
   assert.equal(applicant.disabled, true);
   assert.equal(applicant.privateSiteAccess, false);
   assert.equal(applicant.memberId, undefined, "unverified Lord ID must not link roster data");
   assert.match(applicant.localPasswordHash, /^scrypt:/);
   assert.notEqual(applicant.localPasswordHash, "strong-password-123");
+  response = await post("/api/auth/local/signup", { username: "Forest Lord", lordId: "12345", password: "strong-password-123" });
+  assert.equal(response.status, 202, "resubmitting the same verified signup should resume payment");
+  assert.deepEqual(await response.json(), { status: "payment-required", redirectUrl: "/kingdom/payment" });
   response = await post("/api/auth/local/signup", { username: "forest lord", lordId: "67890", password: "another-password-123" });
   assert.equal(response.status, 409);
-  assert.equal(users.length, 3);
+  assert.equal(users.length, 4);
 
   response = await post("/api/auth/local/login", { username: "Unknown", password: "strong-password-123" });
   assert.equal(response.status, 401);
@@ -161,9 +192,9 @@ try {
   response = await fetch(base + signups, { headers: { cookie: sessionCookie(admin) } });
   assert.equal(response.status, 200);
   const listing = await response.json() as any;
-  assert.equal(listing.members.length, 1);
-  assert.equal(listing.members[0].provider, "local");
-  assert.equal(listing.members[0].lordId, "12345");
+  assert.equal(listing.members.length, 2);
+  assert.equal(listing.members.find((item: any) => item.id === applicant._id)?.provider, "local");
+  assert.equal(listing.members.find((item: any) => item.id === applicant._id)?.lordId, "12345");
   assert.equal(JSON.stringify(listing).includes("strong-password-123"), false);
   assert.equal(JSON.stringify(listing).includes("localPasswordHash"), false);
 
@@ -180,6 +211,13 @@ try {
     method:"PATCH",headers:{...jsonHeaders,cookie},body:JSON.stringify({paymentId:verifiedPayment._id})});
   assert.equal((await linkPayment(sessionCookie(member))).status,403);
   assert.equal((await linkPayment(sessionCookie(admin))).status,200);
+  response = await fetch(base + "/api/auth/kofi/status", { headers: { cookie: pendingCookie } });
+  assert.deepEqual(await response.json(), { status: "approved", redirectUrl: "/kingdom/payment" });
+  assert.equal(response.headers.get("set-cookie"), null, "status polling must not issue a login cookie");
+  response = await fetch(base + "/kingdom/payment", { headers: { cookie: pendingCookie }, redirect: "manual" });
+  assert.equal(response.headers.get("location"), "/base");
+  assert.match(response.headers.get("set-cookie") || "", new RegExp(`${env.SESSION_COOKIE_NAME}=`),
+    "only the confirmed payment page may establish a member session");
   response = await post("/api/auth/local/login", { username: "forest lord", password: "strong-password-123" });
   assert.equal(response.status, 200);
   const cookie = response.headers.get("set-cookie") || "";

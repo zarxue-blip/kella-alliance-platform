@@ -13,7 +13,7 @@ const notices: Record<string, string> = {
 };
 
 function pageStart(title: string) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="robots" content="noindex,nofollow,noarchive"/><meta name="referrer" content="no-referrer"/><title>${title} · EVO</title><link rel="icon" href="/assets/kella-favicon.png"/><link rel="stylesheet" href="/assets/kingdom-access.css?v=6"/></head><body>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="robots" content="noindex,nofollow,noarchive"/><meta name="referrer" content="no-referrer"/><title>${title} · EVO</title><link rel="icon" href="/assets/kella-favicon.png"/><link rel="stylesheet" href="/assets/kingdom-access.css?v=7"/></head><body>`;
 }
 
 function escapeHtml(value: string) {
@@ -101,32 +101,33 @@ export function kingdomCompleteHtml(kofiConfigured = false) {
   </main></body></html>`;
 }
 
-export function kingdomPaymentHtml({ accountLabel, status, googleEmail }: {
+export function kingdomPaymentHtml({ accountLabel, status, googleEmail, stage: requestedStage }: {
   accountLabel?: string;
   status?: string;
   googleEmail?: string;
+  stage?: "payment" | "review" | "approval";
 } = {}) {
   const label = accountLabel ? escapeHtml(accountLabel) : "your account";
-  const headline = status === "expired" ? "Renew your membership" : "Complete your membership";
-  const introduction = status === "expired"
-    ? `Forest Guardian for ${label} has expired. Renew your $5 monthly membership to restore access.`
-    : status === "approved"
-      ? `${label} is approved. An active $5 monthly Forest Guardian membership is still required to enter.`
-      : `${label} is saved. An active $5 monthly Forest Guardian membership is required before you can enter.`;
-  const claimNotice = status === "claim-invalid" ? "Enter the email you used for your Ko-fi payment."
-    : status === "claim-review" ? "Your payment details are saved for an admin to verify. Check access after confirmation." : "";
-  return pageStart("Forest Guardian Membership") + `<main class="kingdom-access">
-    <a class="kingdom-back" href="/kingdom/access">← Account access</a>
-    <div class="kingdom-art" aria-hidden="true"><img src="/assets/base-game/assets/sacred-hall.png" alt=""/></div>
-    <section class="kingdom-card kingdom-complete kingdom-payment" aria-labelledby="kingdom-payment-title">
-      <span class="kingdom-kicker">FOREST GUARDIAN · $5 / MONTH</span>
-      <h1 id="kingdom-payment-title">${headline}</h1>
-      <p class="kingdom-lead">${introduction}</p>
-      ${claimNotice ? `<p class="kingdom-notice" role="status">${claimNotice}</p>` : ""}
-      <div class="kingdom-payment-steps">
-        <div class="kingdom-payment-step"><span>1</span><div><h2>Join Forest Guardian</h2><p>Subscribe for $5/month on Ko-fi.${googleEmail ? ` Use <strong>${escapeHtml(googleEmail)}</strong> for automatic verification.` : ""}</p></div></div>
-        <a class="kingdom-action kingdom-kofi-action" href="https://ko-fi.com/exuz19/tiers" target="_blank" rel="noopener noreferrer">Continue to Ko-fi ↗</a>
-        <div class="kingdom-payment-step"><span>2</span><div><h2>${googleEmail ? "Check your access" : "Confirm your payment"}</h2><p>${googleEmail ? "Return after paying with your Google email. If you used a different email, submit your payment details below." : "After payment, submit your Ko-fi email. An admin will match your receipt to a verified payment."}</p></div></div>
+  const stage = requestedStage || (status === "claim-review" ? "review" : "payment");
+  const headline = stage === "approval" ? "Waiting for approval"
+    : stage === "review" ? "Payment under review"
+      : status === "expired" ? "Renew your membership" : "Complete your membership";
+  const introduction = stage === "approval"
+    ? `Your Forest Guardian payment for ${label} is verified. An admin will finish reviewing your account.`
+    : stage === "review"
+      ? `Your payment details for ${label} have been sent for review. An admin will match them to a verified Ko-fi payment.`
+      : status === "expired"
+        ? `Forest Guardian for ${label} has expired. Renew your $5 monthly membership to restore access.`
+        : `${label} is saved. An active $5 monthly Forest Guardian membership is required before you can enter.`;
+  const claimNotice = status === "claim-invalid" ? "Enter a valid Ko-fi payment email and try again." : "";
+  const checkout = `<div class="kingdom-kofi-checkout">
+      <iframe title="Forest Guardian Ko-fi membership checkout" src="https://ko-fi.com/exuz19/?hidefeed=true&amp;widget=true&amp;embed=true&amp;preview=true" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="payment" ></iframe>
+      <p>If checkout does not load here, <a href="https://ko-fi.com/exuz19/tiers" target="_blank" rel="noopener noreferrer">open Forest Guardian on Ko-fi ↗</a>.</p>
+    </div>`;
+  const claimForm = `<details class="kingdom-payment-receipt"${status === "claim-invalid" ? " open" : ""}>
+      <summary>${stage === "review" ? "Update payment details" : "I have paid"}</summary>
+      <div class="kingdom-payment-receipt-body">
+        <p>${googleEmail ? `Paying with <strong>${escapeHtml(googleEmail)}</strong> matches automatically. If you used another email, submit its details here.` : "Enter the email used at Ko-fi. An admin will match your details to a verified payment."}</p>
         <form class="kingdom-payment-claim" action="/api/auth/kofi/claim" method="post">
           <label for="kingdom-payment-email">Ko-fi payment email</label>
           <input id="kingdom-payment-email" name="paymentEmail" type="email" autocomplete="email" required maxlength="320" placeholder="Email used at Ko-fi checkout"/>
@@ -135,11 +136,30 @@ export function kingdomPaymentHtml({ accountLabel, status, googleEmail }: {
           <button class="kingdom-action secondary" type="submit">Submit payment details</button>
         </form>
       </div>
+    </details>`;
+  return pageStart("Forest Guardian Membership") + `<main class="kingdom-access">
+    <a class="kingdom-back" href="/kingdom/access">← Account access</a>
+    <div class="kingdom-art" aria-hidden="true"><img src="/assets/base-game/assets/sacred-hall.png" alt=""/></div>
+    <section class="kingdom-card kingdom-complete kingdom-payment" aria-labelledby="kingdom-payment-title" data-payment-stage="${stage}">
+      <span class="kingdom-kicker">FOREST GUARDIAN · $5 / MONTH</span>
+      <h1 id="kingdom-payment-title">${headline}</h1>
+      <p class="kingdom-lead">${introduction}</p>
+      ${claimNotice ? `<p class="kingdom-notice" role="status">${claimNotice}</p>` : ""}
+      <ol class="kingdom-payment-progress" aria-label="Account setup progress">
+        <li class="is-complete"><span>1</span><small>Signup</small></li>
+        <li class="${stage === "payment" ? "is-current" : "is-complete"}"${stage === "payment" ? ' aria-current="step"' : ""}><span>2</span><small>Payment</small></li>
+        <li class="${stage !== "payment" ? "is-current" : ""}"${stage !== "payment" ? ' aria-current="step"' : ""}><span>3</span><small>Approval</small></li>
+      </ol>
+      ${stage === "payment" ? `<p class="kingdom-payment-note">${googleEmail ? `Use <strong>${escapeHtml(googleEmail)}</strong> at Ko-fi for automatic matching.` : "Your payment will be checked against Ko-fi before access is approved."}</p>${checkout}${claimForm}` :
+        `<div class="kingdom-payment-state" role="status"><p>${stage === "review" ? "We have your details. Please wait while an admin checks Ko-fi’s payment record." : "Your payment is verified. Your signup is awaiting admin approval."}</p></div>
+        ${stage === "review" ? claimForm : ""}
+        <details class="kingdom-payment-checkout-closed"><summary>Open Ko-fi checkout again</summary>${checkout}</details>`}
       <p class="kingdom-payment-return">Payment must be verified before entry. Admin approval does not waive the membership.</p>
+      <p class="kingdom-payment-return" id="kingdom-payment-check-state" role="status" aria-live="polite"></p>
       <a class="kingdom-action" href="/kingdom/payment">Check access</a>
       <a class="kingdom-payment-login" href="/kingdom/access">Back to login</a>
     </section>
-  </main></body></html>`;
+  </main><script src="/assets/kingdom-payment.js?v=1" defer></script></body></html>`;
 }
 
 export function kingdomAdminHtml() {

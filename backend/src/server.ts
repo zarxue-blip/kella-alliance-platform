@@ -22,9 +22,9 @@ function readCookie(header: string | undefined, name: string) {
 
 async function bootstrap() {
   await connectDatabase();
-  // Existing local signups and unfinished Google signups use the required-payment policy too.
+  // Every local and Google signup follows the same payment policy, including earlier approvals.
   await UserModel.updateMany({ $or: [
-    { localApprovalStatus: { $exists: true } }, { googleApprovalStatus: "pending" }, { googleApprovalSource: "kofi" }
+    { localApprovalStatus: { $exists: true } }, { googleApprovalStatus: { $exists: true } }
   ] }, { $set: { kofiPaymentRequired: true } });
   await recoverMissingToxicMain().catch((error) => console.error("Toxic recovery failed; server will continue", error));
 

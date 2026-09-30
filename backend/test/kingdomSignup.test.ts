@@ -219,7 +219,12 @@ try {
   response = await callback("new-user", pendingLogin);
   assert.equal(response.status, 302);
   assert.equal(response.headers.get("location"), "/kingdom/payment");
-  assert.doesNotMatch(response.headers.get("set-cookie") || "", new RegExp(`${env.SESSION_COOKIE_NAME}=`));
+  assert.doesNotMatch(response.headers.get("set-cookie") || "", new RegExp(`${env.SESSION_COOKIE_NAME}=[^;,\\s]+`));
+  const pendingPaymentCookie = cookieFrom(response, "kella_payment_identity");
+  response = await fetch(base + "/api/auth/kofi/status", { headers: { cookie: pendingPaymentCookie } });
+  assert.deepEqual(await response.json(), { status: "payment-required" });
+  assert.equal(response.headers.get("set-cookie"), null, "payment polling must not create a session");
+  assert.equal((await fetch(base + "/base", { headers: { cookie: pendingPaymentCookie } })).status, 401);
   const pendingPage = await (await fetch(base + "/kingdom/access?status=pending")).text();
   assert.match(pendingPage, /https:\/\/ko-fi\.com\/exuz19\/tiers/);
   assert.match(pendingPage, /Join Forest Guardian · \$5\/month/);
@@ -280,7 +285,14 @@ try {
     body: JSON.stringify({ inGameUsername: "Completer" }), redirect: "manual"
   });
   assert.equal(response.headers.get("location"), "/kingdom/payment");
-  assert.equal(users.find((user) => user.googleSub === "complete-user")?.disabled, true);
+  const completePaymentCookie = cookieFrom(response, "kella_payment_identity");
+  const completer = users.find((user) => user.googleSub === "complete-user")!;
+  assert.equal(completer.disabled, true);
+  completer.kofiPaymentEmail = completer.email;
+  completer.kofiPaidThrough = new Date(Date.now() + 86_400_000);
+  assert.deepEqual(await (await fetch(base + "/api/auth/kofi/status", {
+    headers: { cookie: completePaymentCookie }
+  })).json(), { status: "approval-pending" }, "payment cannot bypass a still-pending signup");
   response = await fetch(base + "/api/auth/google/complete", {
     method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ inGameUsername: "Anonymous" }), redirect: "manual"
@@ -322,11 +334,22 @@ try {
   const approvedLogin = await beginGoogle("approved-user", {
     sub: "google-user", email: "approved@example.com", name: "Google Player"
   });
+  applicant.kofiPaymentRequired = false;
   response = await callback("approved-user", approvedLogin);
-  assert.equal(response.headers.get("location"), "/kingdom/payment","manual approval cannot skip payment");
+  assert.equal(response.headers.get("location"), "/kingdom/payment","earlier manual approval cannot skip payment");
+  const approvedPaymentCookie = cookieFrom(response, "kella_payment_identity");
+  assert.deepEqual(await (await fetch(base + "/api/auth/kofi/status", {
+    headers: { cookie: approvedPaymentCookie }
+  })).json(), { status: "payment-required" });
   assert.equal((await fetch(base + "/base",{headers:{cookie:sessionCookie(applicant)}})).status,401);
   applicant.kofiPaymentEmail = "approved@example.com";
   applicant.kofiPaidThrough = new Date(Date.now()+86_400_000);
+  response = await fetch(base + "/api/auth/kofi/status", { headers: { cookie: approvedPaymentCookie } });
+  assert.deepEqual(await response.json(), { status: "approved", redirectUrl: "/kingdom/payment" });
+  assert.equal(response.headers.get("set-cookie"), null);
+  response = await fetch(base + "/kingdom/payment", { headers: { cookie: approvedPaymentCookie }, redirect: "manual" });
+  assert.equal(response.headers.get("location"), "/base");
+  assert.match(response.headers.get("set-cookie") || "", new RegExp(`${env.SESSION_COOKIE_NAME}=`));
   const paidLogin = await beginGoogle("paid-user", {
     sub:"google-user",email:"approved@example.com",name:"Google Player"
   });

@@ -32,6 +32,12 @@ function validSignupPassword(value: unknown): value is string {
   return typeof value === "string" && value.length >= 12 && value.length <= 128 && Buffer.byteLength(value, "utf8") <= 512;
 }
 
+function continueToPayment(req: Request, res: Response, user: any, code = 202) {
+  beginPaymentAccess(res, user);
+  if (isForm(req)) return res.redirect(303, "/kingdom/payment");
+  return res.status(code).json({ status: "payment-required", redirectUrl: "/kingdom/payment" });
+}
+
 export const localSignup = asyncHandler(async (req: Request, res: Response) => {
   let username: string;
   let usernameKey: string;
@@ -45,6 +51,14 @@ export const localSignup = asyncHandler(async (req: Request, res: Response) => {
     return respond(req, res, 400, "invalid-signup");
   }
   if (await UserModel.exists({ localUsernameKey: usernameKey })) {
+    const existing = await UserModel.findOne({ localUsernameKey: usernameKey })
+      .select("+localPasswordHash +localUsernameKey");
+    // Retrying an unfinished signup should resume payment after proving the same identity.
+    if (existing && existing.localLordId === req.body.lordId &&
+      existing.localApprovalStatus !== "terminated" && !isCurrentKofiAccess(existing) &&
+      await verifyLocalPassword(req.body.password, existing.localPasswordHash)) {
+      return continueToPayment(req, res, existing);
+    }
     return respond(req, res, 409, "username-taken");
   }
 
@@ -72,9 +86,7 @@ export const localSignup = asyncHandler(async (req: Request, res: Response) => {
     if (error?.code === 11000) return respond(req, res, 409, "username-taken");
     throw error;
   }
-  beginPaymentAccess(res, user);
-  if (isForm(req)) return res.redirect(303, "/kingdom/payment");
-  return res.status(202).json({ status: "payment-required", redirectUrl: "/kingdom/payment" });
+  return continueToPayment(req, res, user);
 });
 
 export const localLogin = asyncHandler(async (req: Request, res: Response) => {
@@ -95,9 +107,7 @@ export const localLogin = asyncHandler(async (req: Request, res: Response) => {
   }
   if (user.localApprovalStatus === "terminated") return respond(req, res, 403, "terminated");
   if (!isCurrentKofiAccess(user)) {
-    beginPaymentAccess(res, user);
-    if (isForm(req)) return res.redirect(303, "/kingdom/payment");
-    return res.status(403).json({ status: "payment-required", redirectUrl: "/kingdom/payment" });
+    return continueToPayment(req, res, user, 403);
   }
   if (user.localApprovalStatus !== "approved" || user.disabled) {
     return respond(req, res, 403,

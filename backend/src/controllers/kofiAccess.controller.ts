@@ -1,17 +1,30 @@
 import type { Request, Response } from "express";
 import { env, isProduction } from "../config/env.js";
-import { signSessionToken } from "../middleware/auth.js";
+import { isValidMemberSession, signSessionToken } from "../middleware/auth.js";
 import { UserModel } from "../models/user.model.js";
 import { isCurrentKofiAccess, normalizeKofiEmail } from "../services/kofiPayment.service.js";
 import { clearPaymentAccess, paymentAccessUser } from "../services/paymentAccess.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { kingdomPaymentHtml } from "../views/kingdomAccessPage.js";
 
+function paymentState(user: any) {
+  if (isCurrentKofiAccess(user)) return isValidMemberSession(user) ? "approved" : "approval-pending";
+  return user.kofiRequestedEmail ? "review-pending" : "payment-required";
+}
+
+export const getKofiAccessStatus = asyncHandler(async (req: Request, res: Response) => {
+  res.set("Cache-Control", "private, no-store");
+  const user = await paymentAccessUser(req);
+  if (!user) return res.status(401).json({ status: "expired", redirectUrl: "/kingdom/access?status=expired" });
+  const status = paymentState(user);
+  res.json({ status, ...(status === "approved" ? { redirectUrl: "/kingdom/payment" } : {}) });
+});
+
 export const showKingdomPayment = asyncHandler(async (req: Request, res: Response) => {
   res.set("Cache-Control", "private, no-store");
   const user = await paymentAccessUser(req);
   if (!user) return res.redirect("/kingdom/access?status=expired");
-  if (!user.disabled && isCurrentKofiAccess(user)) {
+  if (paymentState(user) === "approved") {
     const token = signSessionToken({ id: user._id.toString(), discordId: user.discordId, role: user.role,
       privateSiteAccess: Boolean(user.privateSiteAccess), allianceId: user.allianceId.toString() });
     res.cookie(env.SESSION_COOKIE_NAME, token, { httpOnly: true, secure: isProduction, sameSite: "lax",
@@ -22,8 +35,12 @@ export const showKingdomPayment = asyncHandler(async (req: Request, res: Respons
   const status = typeof req.query.status === "string" ? req.query.status :
     user.kofiPaidThrough ? "expired" :
       user.googleApprovalStatus === "approved" || user.localApprovalStatus === "approved" ? "approved" : "";
+  const state = paymentState(user);
+  // Permit only the official Ko-fi checkout frame on this payment page.
+  res.set("Content-Security-Policy", `${res.get("Content-Security-Policy")}; frame-src 'self' https://ko-fi.com`);
   res.type("html").send(kingdomPaymentHtml({ accountLabel: user.inGameUsername || user.username,
-    googleEmail: user.googleSub ? user.email : undefined, status }));
+    googleEmail: user.googleSub ? user.email : undefined, status,
+    stage: state === "approval-pending" ? "approval" : state === "review-pending" ? "review" : "payment" }));
 });
 
 export const requestKofiPaymentMatch = asyncHandler(async (req: Request, res: Response) => {

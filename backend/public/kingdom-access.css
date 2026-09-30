@@ -53,17 +53,33 @@ input::placeholder { color: #9eaf9f; }
 .google-g { display: grid; place-items: center; width: 23px; height: 23px; border-radius: 50%; background: white; color: #4285f4; font: 800 17px/1 Arial,sans-serif; }
 .kingdom-complete { width: min(100%,540px); justify-self: center; }
 .kingdom-complete form { margin-top: 25px; }
-.kingdom-payment { width: min(100%,600px); }
-.kingdom-payment-steps { display: grid; gap: 14px; margin-top: 26px; }
-.kingdom-payment-step { display: flex; align-items: flex-start; gap: 12px; }
-.kingdom-payment-step > span { display: grid; flex: 0 0 27px; place-items: center; width: 27px; height: 27px; border: 1px solid #c6a860; border-radius: 50%; background: #384531; color: #ffe6a5; font: 800 12px/1 Inter,"Segoe UI",system-ui,sans-serif; }
-.kingdom-payment-step h2 { margin: 0 0 4px; font-size: 17px; }
-.kingdom-payment-step p { margin: 0; color: #cbd7c6; font-size: 12px; line-height: 1.5; }
-.kingdom-payment-steps > .kingdom-kofi-action { width: calc(100% - 39px); margin: 0 0 7px 39px; }
-.kingdom-payment-claim { display: grid; gap: 9px; margin: 0 0 0 39px !important; }
-.kingdom-payment-claim .kingdom-action { margin-top: 2px; }
+.kingdom-payment { width: min(100%,660px); }
+.kingdom-payment-progress { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; margin: 24px 0 20px; padding: 0; list-style: none; }
+.kingdom-payment-progress li { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 7px 9px; border: 1px solid #a8956466; border-radius: 4px; background: #0a1c16aa; color: #aebba9; }
+.kingdom-payment-progress li span { display: grid; flex: 0 0 20px; place-items: center; height: 20px; border: 1px solid currentColor; border-radius: 50%; font-size: 10px; font-weight: 850; }
+.kingdom-payment-progress li small { min-width: 0; overflow: hidden; font-size: 11px; font-weight: 750; text-overflow: ellipsis; }
+.kingdom-payment-progress li.is-complete { border-color: #7ea78291; color: #c1e3bf; }
+.kingdom-payment-progress li.is-current { border-color: #e3c477; background: #4a472c94; color: #ffe4a0; }
+.kingdom-payment-note { margin: 0 0 14px; color: #dbe3d2; font-size: 13px; line-height: 1.5; }
+.kingdom-payment-note strong { color: #ffdf97; overflow-wrap: anywhere; }
+.kingdom-kofi-checkout { overflow: hidden; border: 1px solid #b7a47191; border-radius: 5px; background: #fbfcfa; }
+.kingdom-kofi-checkout iframe { display: block; width: 100%; height: 670px; border: 0; background: #fbfcfa; }
+.kingdom-kofi-checkout p { margin: 0; padding: 10px 13px; background: #10241c; color: #cbd7c6; font-size: 12px; line-height: 1.45; }
+.kingdom-kofi-checkout a { color: #f7d88e; }
+.kingdom-payment-receipt,.kingdom-payment-checkout-closed { margin-top: 15px; border: 1px solid #a9956080; border-radius: 4px; background: #0e241baa; }
+.kingdom-payment-receipt summary,.kingdom-payment-checkout-closed summary { padding: 12px 14px; color: #f1d99f; font-size: 13px; font-weight: 800; cursor: pointer; }
+.kingdom-payment-receipt summary:focus-visible,.kingdom-payment-checkout-closed summary:focus-visible { outline: 2px solid #f9d680; outline-offset: 3px; }
+.kingdom-payment-receipt-body { padding: 0 15px 15px; }
+.kingdom-payment-receipt-body p { margin: 0 0 12px; color: #cbd7c6; font-size: 12px; line-height: 1.5; }
+.kingdom-payment-receipt-body strong { color: #ffe4a0; overflow-wrap: anywhere; }
+.kingdom-payment-claim { display: grid; gap: 9px; margin: 0 !important; }
+.kingdom-payment-claim .kingdom-action { margin-top: 5px; }
+.kingdom-payment-state { padding: 16px; border: 1px solid #8ca68b84; border-radius: 5px; background: #1b3a29b5; }
+.kingdom-payment-state p { margin: 0; color: #e2f0da; font-size: 13px; line-height: 1.5; }
+.kingdom-payment-checkout-closed .kingdom-kofi-checkout { margin: 0 12px 12px; }
 .kingdom-payment-return { margin: 22px 0 12px; color: #cbd7c6; font-size: 12px; line-height: 1.5; }
-.kingdom-payment-login { color: #f0d99f; font-size: 12px; text-underline-offset: 3px; }
+#kingdom-payment-check-state:empty { display: none; }
+.kingdom-payment-login { display: inline-block; margin-top: 13px; color: #f0d99f; font-size: 12px; text-underline-offset: 3px; }
 .kingdom-admin { padding: 34px 0 60px; }
 .kingdom-admin-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding-bottom: 22px; border-bottom: 1px solid #c4ab6e68; }
 .kingdom-admin-summary { margin: 19px 0; color: #ead8ab; font-size: 13px; }
@@ -101,4 +117,4 @@ input::placeholder { color: #9eaf9f; }
 .kingdom-legal .kingdom-legal-date { margin-top: 5px; color: #b9c6b8; font-size: 12px; }
 @media (max-width: 850px) { .kingdom-access { grid-template-columns: 1fr; gap: 0; padding-top: 62px; } .kingdom-art { display: none; } .kingdom-card { width: min(100%,650px); justify-self: center; } .kingdom-member { grid-template-columns: 1fr 1fr; } .kingdom-member-actions { justify-content: flex-start; } }
 @media (max-width: 560px) { .kingdom-access,.kingdom-admin { width: calc(100% - 24px); } .kingdom-card { padding: 22px; } .kingdom-login,.kingdom-signup-panel { padding: 18px; } .kingdom-social { grid-template-columns: 1fr; } .kingdom-admin-head { align-items: stretch; flex-direction: column-reverse; } .kingdom-member { grid-template-columns: 1fr; gap: 11px; } }
-@media (max-width: 390px) { .kingdom-payment-steps > .kingdom-kofi-action,.kingdom-payment-claim { width: 100%; margin-left: 0 !important; } }
+@media (max-width: 560px) { .kingdom-payment-progress { gap: 4px; } .kingdom-payment-progress li { gap: 4px; padding: 6px 5px; } .kingdom-payment-progress li small { font-size: 10px; } .kingdom-kofi-checkout iframe { height: 620px; } }

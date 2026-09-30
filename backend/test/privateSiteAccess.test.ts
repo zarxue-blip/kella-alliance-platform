@@ -64,7 +64,7 @@ try {
   const newAccess = await fetch(base + exclusivePath, {redirect:"manual"});
   assert.equal(newAccess.headers.get("location"),"/kingdom/payment","new invited accounts still need payment");
   assert.match(newAccess.headers.get("set-cookie") || "",/kella_payment_identity=/);
-  assert.doesNotMatch(newAccess.headers.get("set-cookie") || "",new RegExp(`${env.SESSION_COOKIE_NAME}=`));
+  assert.doesNotMatch(newAccess.headers.get("set-cookie") || "",new RegExp(`${env.SESSION_COOKIE_NAME}=[^;,\\s]+`));
   assert.equal((await fetch(base+"/base",{headers:{cookie:exclusiveCookie}})).status,401);
   users.special.kofiPaymentEmail="bond@example.com";
   users.special.kofiPaidThrough=new Date(Date.now()+86_400_000);
