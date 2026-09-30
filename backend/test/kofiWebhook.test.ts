@@ -215,7 +215,7 @@ try {
   payer.kofiPaidThrough = new Date(Date.now() - 1000);
   assert.equal((await fetch(base + "/api/auth/me", { headers: { cookie: payerCookie } })).status, 401,
     "an existing session must expire with payment");
-  assert.equal((await fetch(base + "/base", { headers: { cookie: payerCookie } })).status, 404);
+  assert.equal((await fetch(base + "/base", { headers: { cookie: payerCookie } })).status, 401);
   assert.equal((await postPayment(payment({ email: "PAYER@example.com" }))).status, 200);
   assert.ok(payer.kofiPaidThrough.getTime() > Date.now(), "renewal should restore access");
   assert.equal((await fetch(base + "/api/auth/me", { headers: { cookie: payerCookie } })).status, 200);

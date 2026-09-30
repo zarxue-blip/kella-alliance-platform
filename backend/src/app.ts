@@ -24,7 +24,9 @@ import { baseGameDeniedHtml, baseGameHtml } from "./views/baseGamePage.js";
 import {
   kingdomAccessHtml,
   kingdomAdminHtml,
-  kingdomCompleteHtml
+  kingdomCompleteHtml,
+  kingdomPrivacyHtml,
+  kingdomTermsHtml
 } from "./views/kingdomAccessPage.js";
 import { googleOAuthConfigured } from "./services/googleOAuth.service.js";
 import {
@@ -102,6 +104,14 @@ export function createApp() {
 
   app.get("/apple-touch-icon.png", (_req, res) =>
     res.sendFile(join(publicDir, "kella-logo.png"))
+  );
+
+  app.get("/privacy", (_req, res) =>
+    res.set("Cache-Control", "public, max-age=3600").type("html").send(kingdomPrivacyHtml())
+  );
+
+  app.get("/terms", (_req, res) =>
+    res.set("Cache-Control", "public, max-age=3600").type("html").send(kingdomTermsHtml())
   );
 
   app.get("/access/:memberId/:signature", beginPrivateMemberAccess);

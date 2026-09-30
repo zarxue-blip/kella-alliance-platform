@@ -317,9 +317,8 @@ try {
   assert.equal(applicant.email, "approved@example.com");
   assert.ok(applicant.lastLoginAt instanceof Date);
 
-  process.env.KELLA_LOCKDOWN = "true";
-  assert.equal((await fetch(base + "/base")).status, 404);
-  assert.equal((await fetch(base + "/base", { headers: { cookie: sessionCookie(users.find((user) => user.googleSub === "complete-user")) } })).status, 404);
+  assert.equal((await fetch(base + "/base")).status, 401);
+  assert.equal((await fetch(base + "/base", { headers: { cookie: sessionCookie(users.find((user) => user.googleSub === "complete-user")) } })).status, 401);
   assert.equal((await fetch(base + "/base", { headers: { cookie: approvedCookie } })).status, 200);
   assert.equal((await fetch(base + "/officer", { headers: { cookie: approvedCookie } })).status, 403);
   assert.equal((await fetch(base + "/api/dashboard/base-layout", { headers: { cookie: approvedCookie } })).status, 200);
@@ -335,15 +334,13 @@ try {
   assert.equal(response.status, 200);
   assert.equal((await response.json() as any).data, null, "another member must not receive this user's base layout");
 
-  process.env.KELLA_LOCKDOWN = "false";
   response = await review(reviewUrl, "terminated", sessionCookie(users[0]));
   assert.equal(response.status, 200);
   assert.equal(applicant.disabled, true);
   assert.equal(applicant.privateSiteAccess, false);
   assert.equal((await fetch(base + "/api/dashboard/base-layout", { headers: { cookie: approvedCookie } })).status, 401,
     "termination must invalidate an existing session");
-  process.env.KELLA_LOCKDOWN = "true";
-  assert.equal((await fetch(base + "/base", { headers: { cookie: approvedCookie } })).status, 404);
+  assert.equal((await fetch(base + "/base", { headers: { cookie: approvedCookie } })).status, 401);
   const terminatedLogin = await beginGoogle("terminated-user", {
     sub: "google-user", email: "terminated@example.com", name: "Google Player"
   }, "Attempted Rename");

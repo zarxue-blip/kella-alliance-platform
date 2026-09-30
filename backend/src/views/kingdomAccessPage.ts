@@ -1,17 +1,19 @@
 const notices: Record<string, string> = {
   pending: "Your signup is waiting for a Kella admin to approve it. Return here and log in after approval.",
+  "pending-local": "Your account request is waiting for a Kella admin. Log in with your username and password after approval.",
   "payment-required": "Your Forest Guardian access has expired. Renew the $5 monthly membership using the same email as your Google account, then return to log in after payment is verified.",
   terminated: "This signup has been closed. Contact a Kella admin if you believe this is a mistake.",
   "invalid-credentials": "That username or password did not match. Please try again.",
   "invalid-signup": "Check your in-game username, Lord ID, and password, then try again.",
   "username-taken": "That in-game username is already registered. Log in or choose another username.",
+  "rate-limited": "Too many attempts. Please wait a little before trying again.",
   cancelled: "Google sign-in was cancelled. You can try again.",
   expired: "That sign-in expired. Please start again.",
   unavailable: "Google sign-in is being configured. Discord sign-in is still available."
 };
 
 function pageStart(title: string) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="robots" content="noindex,nofollow,noarchive"/><meta name="referrer" content="no-referrer"/><title>${title} · EVO</title><link rel="icon" href="/assets/kella-favicon.png"/><link rel="stylesheet" href="/assets/kingdom-access.css?v=2"/></head><body>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="robots" content="noindex,nofollow,noarchive"/><meta name="referrer" content="no-referrer"/><title>${title} · EVO</title><link rel="icon" href="/assets/kella-favicon.png"/><link rel="stylesheet" href="/assets/kingdom-access.css?v=3"/></head><body>`;
 }
 
 export function kingdomAccessHtml(status = "", googleConfigured = false, kofiConfigured = false) {
@@ -27,7 +29,7 @@ export function kingdomAccessHtml(status = "", googleConfigured = false, kofiCon
       <span class="kingdom-kicker">EVO · 881</span><h1 id="kingdom-title">Enter the Kingdom</h1>
       <p class="kingdom-lead">Your own woodland keep awaits.</p>
       ${notice ? `<p class="kingdom-notice" role="status">${notice}</p>` : ""}
-      ${status === "payment-required" ? `<a class="kingdom-action secondary kingdom-after-signup" href="https://ko-fi.com/exuz19/tiers" target="_blank" rel="noopener noreferrer">${kofiConfigured ? "Join Forest Guardian · $5/month" : "View Forest Guardian membership"} ↗</a>` : ""}
+      ${status === "pending" || status === "payment-required" ? `<a class="kingdom-action secondary kingdom-after-signup" href="https://ko-fi.com/exuz19/tiers" target="_blank" rel="noopener noreferrer">${kofiConfigured ? "Join Forest Guardian · $5/month" : "View Forest Guardian membership"} ↗</a>` : ""}
       <div class="kingdom-options">
         <section class="kingdom-login" aria-labelledby="kingdom-login-title">
           <h2 id="kingdom-login-title">Log in</h2><p>Welcome back. Return to your saved base.</p>
@@ -58,6 +60,7 @@ export function kingdomAccessHtml(status = "", googleConfigured = false, kofiCon
           </div>
         </details>
       </div>
+      <p class="kingdom-access-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></p>
     </section>
   </main></body></html>`;
 }
@@ -79,4 +82,36 @@ export function kingdomAdminHtml() {
     <div class="kingdom-admin-list" id="kingdom-list"></div>
     <p class="kingdom-admin-feedback" id="kingdom-feedback" role="status" aria-live="polite"></p>
   </main><script src="/assets/kingdom-admin.js?v=2" defer></script></body></html>`;
+}
+
+export function kingdomPrivacyHtml() {
+  return pageStart("Privacy Policy") + `<main class="kingdom-legal">
+    <a class="kingdom-back" href="/">← Home</a>
+    <article class="kingdom-card"><span class="kingdom-kicker">KELLA · EVO</span><h1>Privacy Policy</h1>
+      <p class="kingdom-legal-date">Updated September 30, 2026</p>
+      <p>Kella is an alliance website for player profiles, events, attendance, and member tools. We use account information to sign you in, review membership, and provide those features.</p>
+      <h2>Information we use</h2>
+      <p>Google sign-in gives us your Google account identifier, verified email address, and display name. Discord sign-in gives us your Discord identity and relevant server roles. A username-and-password signup provides your in-game username and Lord ID; we store a salted password hash, never your password. We also store information you choose to add to your profile and tools, plus event and attendance history.</p>
+      <p>If you use Forest Guardian membership, Ko-fi may send your payment email, membership tier, transaction identifier, and payment dates to verify access. Kella does not receive your card details. We do not access your Gmail, Google Drive, or contacts.</p>
+      <h2>How information is used and shared</h2>
+      <p>We use a session cookie to keep you signed in. Kella admins can review signup details, membership status, and records needed to run the alliance. Some player profile and event information is shown to other signed-in members. Hosting and database providers process information to operate the site; Google, Discord, and Ko-fi handle their own sign-in or payment services.</p>
+      <h2>Storage and choices</h2>
+      <p>Account information is kept while needed to provide access and maintain alliance history. A terminated account cannot sign in, although historical event and attendance records may remain. To ask about, correct, or request deletion of your information, contact <a href="mailto:zarxue@gmail.com">zarxue@gmail.com</a>.</p>
+      <p class="kingdom-legal-links"><a href="/terms">Terms of Service</a><a href="/kingdom/access">Account access</a></p>
+    </article>
+  </main></body></html>`;
+}
+
+export function kingdomTermsHtml() {
+  return pageStart("Terms of Service") + `<main class="kingdom-legal">
+    <a class="kingdom-back" href="/">← Home</a>
+    <article class="kingdom-card"><span class="kingdom-kicker">KELLA · EVO</span><h1>Terms of Service</h1>
+      <p class="kingdom-legal-date">Updated September 30, 2026</p>
+      <p>Kella provides community tools for an alliance in Call of Dragons. Keep your account details accurate, use only your own account, and respect other members and the alliance's community rules.</p>
+      <p>New accounts may require admin approval. Admins can restrict or terminate access when an account is misused or no longer belongs to the alliance. Your own tools and saved base are associated with your signed-in account.</p>
+      <p>Google, Discord, Ko-fi, and Call of Dragons are separate services with their own rules. Kella is an independent community site and is not affiliated with the game publisher. Site features may change or be temporarily unavailable.</p>
+      <p>For questions about these terms, contact <a href="mailto:zarxue@gmail.com">zarxue@gmail.com</a>.</p>
+      <p class="kingdom-legal-links"><a href="/privacy">Privacy Policy</a><a href="/kingdom/access">Account access</a></p>
+    </article>
+  </main></body></html>`;
 }

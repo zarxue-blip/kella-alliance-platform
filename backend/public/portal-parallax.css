@@ -24,3 +24,6 @@ body[data-route="home"]>.creator-companion{display:block;z-index:8}
 @media(max-width:700px){.kingdom-journey{height:450svh}.kingdom-regular{height:calc(100svh - var(--kingdom-header))}.kingdom-topline{top:14px;right:5%}.kingdom-topline button{font-size:10px;padding:8px 11px}.kingdom-intro{top:27%}.kingdom-intro h1 img{width:72%;max-width:350px}.kingdom-intro .portal-eyebrow{font-size:8px;letter-spacing:.14em}.kingdom-intro>p:last-child{font-size:27px}.kingdom-enter{top:54%;width:min(88vw,430px)}}
 @media(max-height:500px){.kingdom-intro{top:20%}.kingdom-intro h1{margin:8px 0}.kingdom-intro h1 img{width:170px}.kingdom-intro>p:last-child{font-size:23px;margin:10px 0}.kingdom-topline{top:10px}.kingdom-enter{width:min(45vw,360px)}}
 @media(prefers-reduced-motion:reduce){.kingdom-enter{animation:none}.kingdom-enter img{transition:none}.kingdom-intro{transform:none}.kingdom-journey{height:calc(100svh - var(--kingdom-header))}.kingdom-stage{position:relative;top:0}}
+.portal-legal{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 18px;padding:18px 20px 24px;background:#0a1411;color:#b8c5b3;font-size:11px;text-align:center}
+.portal-legal a{color:#e8d196;text-underline-offset:3px}
+.portal-legal a:hover{color:#fff0c5}

@@ -68,5 +68,12 @@ input::placeholder { color: #9eaf9f; }
 .kingdom-member button:disabled { opacity: .55; cursor: wait; }
 .kingdom-admin-feedback { color: #ffdc9e; font-size: 13px; }
 .kingdom-empty { padding: 25px; border: 1px solid #cbb3767a; border-radius: 5px; background: #10251de8; color: #d8dfd0; }
+.kingdom-access-legal,.kingdom-legal-links { display: flex; flex-wrap: wrap; gap: 15px; margin: 20px 0 0; font-size: 12px; }
+.kingdom-access-legal a,.kingdom-legal a { color: #e9d18d; text-underline-offset: 3px; }
+.kingdom-legal { position: relative; z-index: 1; width: min(760px,calc(100% - 28px)); margin: 0 auto; padding: 24px 0 70px; }
+.kingdom-legal .kingdom-card { margin-top: 20px; }
+.kingdom-legal h2 { margin: 26px 0 7px; font-size: 22px; }
+.kingdom-legal p { color: #d8dfd0; font-size: 14px; line-height: 1.7; }
+.kingdom-legal .kingdom-legal-date { margin-top: 5px; color: #b9c6b8; font-size: 12px; }
 @media (max-width: 850px) { .kingdom-access { grid-template-columns: 1fr; gap: 0; padding-top: 62px; } .kingdom-art { display: none; } .kingdom-card { width: min(100%,650px); justify-self: center; } .kingdom-member { grid-template-columns: 1fr 1fr; } .kingdom-member-actions { justify-content: flex-start; } }
 @media (max-width: 560px) { .kingdom-access,.kingdom-admin { width: calc(100% - 24px); } .kingdom-card { padding: 22px; } .kingdom-login,.kingdom-signup-panel { padding: 18px; } .kingdom-social { grid-template-columns: 1fr; } .kingdom-admin-head { align-items: stretch; flex-direction: column-reverse; } .kingdom-member { grid-template-columns: 1fr; gap: 11px; } }

@@ -46,8 +46,8 @@ await new Promise<void>((resolve) => server.once("listening", resolve));
 const base = "http://127.0.0.1:" + (server.address() as any).port;
 
 try {
-  assert.equal((await fetch(base + "/")).status, 404);
-  assert.equal((await fetch(base + "/", { headers: { cookie: cookie("ordinary") } })).status, 404);
+  assert.equal((await fetch(base + "/")).status, 200, "home stays public");
+  assert.equal((await fetch(base + "/", { headers: { cookie: cookie("ordinary") } })).status, 200);
   assert.equal((await fetch(base + "/", { headers: { cookie: cookie("special") } })).status, 200);
   assert.equal((await fetch(base + "/base", { headers: { cookie: cookie("special") } })).status, 200);
   assert.equal((await fetch(base + "/officer", { headers: { cookie: cookie("special") } })).status, 403);
@@ -61,8 +61,8 @@ try {
   assert.equal((await fetch(base + "/base", { headers: { cookie: exclusiveCookie } })).status, 200);
   assert.equal((await fetch(base + "/officer", { headers: { cookie: exclusiveCookie } })).status, 403);
   assert.equal((await fetch(base + `/access/${specialMemberId}/${"0".repeat(64)}`, { redirect: "manual" })).status, 404);
-  assert.equal((await fetch(base + "/?owner=owner-link-key", { redirect: "manual" })).status, 302);
-  console.log("Private site access: ordinary users denied, approved profile admitted, exclusive signed link verified, member tools allowed, admin page denied and owner link preserved.");
+  assert.equal((await fetch(base + "/?owner=owner-link-key", { redirect: "manual" })).status, 200);
+  console.log("Private site access: public home, approved profile, exclusive signed link, member tools, and admin gate passed.");
 } finally {
   server.close();
 }
