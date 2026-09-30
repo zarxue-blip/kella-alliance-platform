@@ -1,7 +1,7 @@
 const notices: Record<string, string> = {
-  pending: "Your signup is waiting for a Kella admin to approve it. Return here and log in after approval.",
-  "pending-local": "Your account request is waiting for a Kella admin. Log in with your username and password after approval.",
-  "payment-required": "Your Forest Guardian access has expired. Renew the $5 monthly membership using the same email as your Google account, then return to log in after payment is verified.",
+  pending: "Your account is saved. An active Forest Guardian membership is required before you can enter.",
+  "pending-local": "Your account is saved. Log in with your username and password to finish the required Ko-fi membership step.",
+  "payment-required": "An active Forest Guardian membership is required to enter. Renew your $5 monthly membership, then log in after payment is verified.",
   terminated: "This signup has been closed. Contact a Kella admin if you believe this is a mistake.",
   "invalid-credentials": "That username or password did not match. Please try again.",
   "invalid-signup": "Check your in-game username, Lord ID, and password, then try again.",
@@ -13,15 +13,39 @@ const notices: Record<string, string> = {
 };
 
 function pageStart(title: string) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="robots" content="noindex,nofollow,noarchive"/><meta name="referrer" content="no-referrer"/><title>${title} · EVO</title><link rel="icon" href="/assets/kella-favicon.png"/><link rel="stylesheet" href="/assets/kingdom-access.css?v=3"/></head><body>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="robots" content="noindex,nofollow,noarchive"/><meta name="referrer" content="no-referrer"/><title>${title} · EVO</title><link rel="icon" href="/assets/kella-favicon.png"/><link rel="stylesheet" href="/assets/kingdom-access.css?v=6"/></head><body>`;
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[character] || character));
+}
+
+function forestGuardianPrompt(message: string) {
+  return `<section class="kingdom-membership" aria-labelledby="forest-guardian-title">
+    <span class="kingdom-membership-kicker">ACCESS STEP · $5 / MONTH</span>
+    <h2 id="forest-guardian-title">Forest Guardian membership</h2>
+    <p>${message}</p>
+    <a class="kingdom-action kingdom-kofi-action" href="https://ko-fi.com/exuz19/tiers" target="_blank" rel="noopener noreferrer">Join Forest Guardian · $5/month ↗</a>
+  </section>`;
 }
 
 export function kingdomAccessHtml(status = "", googleConfigured = false, kofiConfigured = false) {
-  const notice = notices[status] || "";
+  const notice = status === "pending" && kofiConfigured
+    ? "Your Google signup is saved. Join Forest Guardian using your Google email. Payment verification is required even if an admin approves your account."
+    : notices[status] || "";
   const googleLogin = googleConfigured
     ? '<a class="kingdom-action" href="/api/auth/google"><span class="google-g" aria-hidden="true">G</span> Continue with Google</a>'
     : '<span class="kingdom-action disabled" aria-disabled="true"><span class="google-g" aria-hidden="true">G</span> Google sign-in unavailable</span>';
   const signupOpen = status === "invalid-signup" || status === "username-taken";
+  const membershipMessage = status === "pending"
+    ? kofiConfigured
+      ? "Use the same email as your Google account at Ko-fi. Return to log in after your payment is verified."
+      : "Membership verification is temporarily unavailable. Please try again later."
+    : status === "payment-required"
+      ? "Use the same email as your Google account, or log in with username or Discord to connect your Ko-fi receipt."
+      : "";
   return pageStart("Kingdom Access") + `<main class="kingdom-access">
     <a class="kingdom-back" href="/">← Home</a>
     <div class="kingdom-art" aria-hidden="true"><img src="/assets/base-game/assets/sacred-hall.png" alt=""/></div>
@@ -29,7 +53,7 @@ export function kingdomAccessHtml(status = "", googleConfigured = false, kofiCon
       <span class="kingdom-kicker">EVO · 881</span><h1 id="kingdom-title">Enter the Kingdom</h1>
       <p class="kingdom-lead">Your own woodland keep awaits.</p>
       ${notice ? `<p class="kingdom-notice" role="status">${notice}</p>` : ""}
-      ${status === "pending" || status === "payment-required" ? `<a class="kingdom-action secondary kingdom-after-signup" href="https://ko-fi.com/exuz19/tiers" target="_blank" rel="noopener noreferrer">${kofiConfigured ? "Join Forest Guardian · $5/month" : "View Forest Guardian membership"} ↗</a>` : ""}
+      ${membershipMessage && kofiConfigured ? forestGuardianPrompt(membershipMessage) : ""}
       <div class="kingdom-options">
         <section class="kingdom-login" aria-labelledby="kingdom-login-title">
           <h2 id="kingdom-login-title">Log in</h2><p>Welcome back. Return to your saved base.</p>
@@ -47,7 +71,7 @@ export function kingdomAccessHtml(status = "", googleConfigured = false, kofiCon
           <summary class="kingdom-signup-trigger">New to EVO? <span>Sign up</span></summary>
           <div class="kingdom-signup-panel">
             <h2>Create your account</h2>
-            <p>Enter your Call of Dragons details. A Kella admin will review your request.</p>
+            <p>Enter your Call of Dragons details. Forest Guardian membership is $5/month, and an admin may review your request.</p>
             <form action="/api/auth/local/signup" method="post">
               <label for="kingdom-signup-username">In-game username</label>
               <input id="kingdom-signup-username" name="username" autocomplete="username" required minlength="2" maxlength="40" placeholder="Your Call of Dragons name"/>
@@ -55,7 +79,8 @@ export function kingdomAccessHtml(status = "", googleConfigured = false, kofiCon
               <input id="kingdom-signup-lord-id" name="lordId" type="text" inputmode="numeric" pattern="[0-9]{4,20}" required placeholder="Your Call of Dragons player ID"/>
               <label for="kingdom-signup-password">Password</label>
               <input id="kingdom-signup-password" name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128" placeholder="At least 12 characters"/>
-              <button class="kingdom-action" type="submit">Submit for approval</button>
+              <p class="kingdom-signup-note">After signup, join Forest Guardian and connect your Ko-fi receipt to this account. Payment is required even if an admin approves you.</p>
+              <button class="kingdom-action" type="submit">Create account</button>
             </form>
           </div>
         </details>
@@ -69,8 +94,50 @@ export function kingdomCompleteHtml(kofiConfigured = false) {
   return pageStart("Complete Signup") + `<main class="kingdom-access">
     <a class="kingdom-back" href="/kingdom/access">← Back</a>
     <div class="kingdom-art" aria-hidden="true"><img src="/assets/base-game/assets/sacred-hall.png" alt=""/></div>
-    <section class="kingdom-card kingdom-complete"><span class="kingdom-kicker">ONE LAST STEP</span><h1>Choose your in-game name</h1><p class="kingdom-lead">${kofiConfigured ? "Your Google account is verified. Use that email for Forest Guardian membership to unlock the kingdom after payment." : "Your Google account is verified. An admin will review your signup before the kingdom opens."}</p>
-      <form action="/api/auth/google/complete" method="post"><label for="kingdom-ign">In-game username</label><input id="kingdom-ign" name="inGameUsername" autocomplete="nickname" required minlength="2" maxlength="40" autofocus placeholder="Your Call of Dragons name"/><button class="kingdom-action" type="submit">${kofiConfigured ? "Continue" : "Submit for approval"}</button></form>
+    <section class="kingdom-card kingdom-complete"><span class="kingdom-kicker">ACCOUNT SETUP</span><h1>Choose your in-game name</h1><p class="kingdom-lead">${kofiConfigured ? "Save your name, then join Forest Guardian with the same email as your Google account." : "Your Google account is verified. Membership verification is temporarily unavailable."}</p>
+      <form action="/api/auth/google/complete" method="post"><label for="kingdom-ign">In-game username</label><input id="kingdom-ign" name="inGameUsername" autocomplete="nickname" required minlength="2" maxlength="40" autofocus placeholder="Your Call of Dragons name"/><button class="kingdom-action" type="submit">Save and continue</button></form>
+      ${kofiConfigured ? forestGuardianPrompt("Forest Guardian membership is required for access. Finish choosing your in-game name, then pay with your Google email so Kella can match the payment.") : ""}
+    </section>
+  </main></body></html>`;
+}
+
+export function kingdomPaymentHtml({ accountLabel, status, googleEmail }: {
+  accountLabel?: string;
+  status?: string;
+  googleEmail?: string;
+} = {}) {
+  const label = accountLabel ? escapeHtml(accountLabel) : "your account";
+  const headline = status === "expired" ? "Renew your membership" : "Complete your membership";
+  const introduction = status === "expired"
+    ? `Forest Guardian for ${label} has expired. Renew your $5 monthly membership to restore access.`
+    : status === "approved"
+      ? `${label} is approved. An active $5 monthly Forest Guardian membership is still required to enter.`
+      : `${label} is saved. An active $5 monthly Forest Guardian membership is required before you can enter.`;
+  const claimNotice = status === "claim-invalid" ? "Enter the email you used for your Ko-fi payment."
+    : status === "claim-review" ? "Your payment details are saved for an admin to verify. Check access after confirmation." : "";
+  return pageStart("Forest Guardian Membership") + `<main class="kingdom-access">
+    <a class="kingdom-back" href="/kingdom/access">← Account access</a>
+    <div class="kingdom-art" aria-hidden="true"><img src="/assets/base-game/assets/sacred-hall.png" alt=""/></div>
+    <section class="kingdom-card kingdom-complete kingdom-payment" aria-labelledby="kingdom-payment-title">
+      <span class="kingdom-kicker">FOREST GUARDIAN · $5 / MONTH</span>
+      <h1 id="kingdom-payment-title">${headline}</h1>
+      <p class="kingdom-lead">${introduction}</p>
+      ${claimNotice ? `<p class="kingdom-notice" role="status">${claimNotice}</p>` : ""}
+      <div class="kingdom-payment-steps">
+        <div class="kingdom-payment-step"><span>1</span><div><h2>Join Forest Guardian</h2><p>Subscribe for $5/month on Ko-fi.${googleEmail ? ` Use <strong>${escapeHtml(googleEmail)}</strong> for automatic verification.` : ""}</p></div></div>
+        <a class="kingdom-action kingdom-kofi-action" href="https://ko-fi.com/exuz19/tiers" target="_blank" rel="noopener noreferrer">Continue to Ko-fi ↗</a>
+        <div class="kingdom-payment-step"><span>2</span><div><h2>${googleEmail ? "Check your access" : "Confirm your payment"}</h2><p>${googleEmail ? "Return after paying with your Google email. If you used a different email, submit your payment details below." : "After payment, submit your Ko-fi email. An admin will match your receipt to a verified payment."}</p></div></div>
+        <form class="kingdom-payment-claim" action="/api/auth/kofi/claim" method="post">
+          <label for="kingdom-payment-email">Ko-fi payment email</label>
+          <input id="kingdom-payment-email" name="paymentEmail" type="email" autocomplete="email" required maxlength="320" placeholder="Email used at Ko-fi checkout"/>
+          <label for="kingdom-transaction-id">Receipt reference <span>(optional)</span></label>
+          <input id="kingdom-transaction-id" name="transactionId" type="text" autocomplete="off" maxlength="255" placeholder="Ko-fi transaction ID, if shown on your receipt"/>
+          <button class="kingdom-action secondary" type="submit">Submit payment details</button>
+        </form>
+      </div>
+      <p class="kingdom-payment-return">Payment must be verified before entry. Admin approval does not waive the membership.</p>
+      <a class="kingdom-action" href="/kingdom/payment">Check access</a>
+      <a class="kingdom-payment-login" href="/kingdom/access">Back to login</a>
     </section>
   </main></body></html>`;
 }
@@ -81,7 +148,7 @@ export function kingdomAdminHtml() {
     <div class="kingdom-admin-summary" id="kingdom-summary" aria-live="polite">Loading signups…</div>
     <div class="kingdom-admin-list" id="kingdom-list"></div>
     <p class="kingdom-admin-feedback" id="kingdom-feedback" role="status" aria-live="polite"></p>
-  </main><script src="/assets/kingdom-admin.js?v=2" defer></script></body></html>`;
+  </main><script src="/assets/kingdom-admin.js?v=3" defer></script></body></html>`;
 }
 
 export function kingdomPrivacyHtml() {

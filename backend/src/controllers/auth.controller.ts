@@ -9,6 +9,8 @@ import { getDiscordAuthorizationUrl, exchangeDiscordCode, getDiscordOAuthGuildMe
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
 import { isDashboardAdminUser, isDashboardWikiEditorUser, signSessionToken, type AuthenticatedRequest } from "../middleware/auth.js";
+import { isCurrentKofiAccess } from "../services/kofiPayment.service.js";
+import { beginPaymentAccess } from "../services/paymentAccess.service.js";
 
 
 
@@ -81,7 +83,8 @@ export const discordCallback = asyncHandler(async (req: Request, res: Response) 
   const linkedMember = await MemberModel.findOne({ allianceId: alliance._id, discordId: identity.id })
     .select("_id privateSiteAccess")
     .lean() as any;
-  const hasPrivateSiteAccess = Boolean(linkedMember?.privateSiteAccess);
+  const hasPrivateSiteAccess = Boolean(linkedMember?.privateSiteAccess ||
+    (existingUser?.kofiPaymentRequired && existingUser.privateSiteAccess && isCurrentKofiAccess(existingUser)));
   if (
     env.DISCORD_GUILD_ID &&
     !hasConfiguredAdminAccess &&
@@ -103,6 +106,7 @@ export const discordCallback = asyncHandler(async (req: Request, res: Response) 
   const user = await UserModel.findOneAndUpdate(
     { discordId: identity.id },
     {
+      $setOnInsert: { kofiPaymentRequired: true },
       $set: {
         username: guildMember?.nick || identity.global_name || identity.username,
         avatar: identity.avatar,
@@ -117,6 +121,12 @@ export const discordCallback = asyncHandler(async (req: Request, res: Response) 
     },
     { upsert: true, new: true }
   );
+
+  if (user.disabled) throw new HttpError(403, "This account has been terminated");
+  if (!isCurrentKofiAccess(user)) {
+    beginPaymentAccess(res, user);
+    return res.redirect("/kingdom/payment");
+  }
 
   const token = signSessionToken({
     id: user._id.toString(),

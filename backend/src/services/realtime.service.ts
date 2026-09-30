@@ -9,6 +9,12 @@ export function registerRealtimeServer(server: Server) {
   io = server;
 }
 
+export function disconnectUser(userId: string) {
+  for (const socket of io?.sockets.sockets.values() || []) {
+    if (socket.data.user?.id === userId) socket.disconnect(true);
+  }
+}
+
 export function emitAlliance(allianceId: string, event: string, payload: unknown) {
   io?.to(`alliance:${allianceId}`).emit(event, event === realtimeEvents.memberUpdated && payload && typeof payload === "object" ? memberForViewer(JSON.parse(JSON.stringify(payload))) : payload);
 }

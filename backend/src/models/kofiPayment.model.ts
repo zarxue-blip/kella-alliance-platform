@@ -8,7 +8,8 @@ const kofiPaymentSchema = new Schema({
   currency: { type: String, required: true },
   tierName: { type: String, required: true },
   paidAt: { type: Date, required: true },
-  paidThrough: { type: Date, required: true, index: true }
+  paidThrough: { type: Date, required: true, index: true },
+  claimedByUserId: { type: Schema.Types.ObjectId, ref: "User", index: true }
 }, { timestamps: true });
 
 export const KofiPaymentModel = model("KofiPayment", kofiPaymentSchema);

@@ -4,6 +4,7 @@ import { authenticate } from "../middleware/auth.js";
 import { completeGoogleSignup, googleCallback, startGoogleLogin } from "../controllers/googleAuth.controller.js";
 import rateLimit from "express-rate-limit";
 import { localLogin, localSignup } from "../controllers/localAuth.controller.js";
+import { requestKofiPaymentMatch } from "../controllers/kofiAccess.controller.js";
 
 export const authRouter = Router();
 
@@ -23,5 +24,6 @@ const localLoginLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standar
     : res.status(429).json({ status: "rate-limited" }) });
 authRouter.post("/local/signup", localSignupLimit, localSignup);
 authRouter.post("/local/login", localLoginLimit, localLogin);
+authRouter.post("/kofi/claim", localLoginLimit, requestKofiPaymentMatch);
 authRouter.get("/me", authenticate, getMe);
 authRouter.post("/logout", logout);

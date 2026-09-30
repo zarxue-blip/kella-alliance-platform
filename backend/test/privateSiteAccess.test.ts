@@ -60,6 +60,15 @@ try {
   assert.match(exclusiveCookie, new RegExp(`^${env.SESSION_COOKIE_NAME}=`));
   assert.equal((await fetch(base + "/base", { headers: { cookie: exclusiveCookie } })).status, 200);
   assert.equal((await fetch(base + "/officer", { headers: { cookie: exclusiveCookie } })).status, 403);
+  users.special.kofiPaymentRequired = true;
+  const newAccess = await fetch(base + exclusivePath, {redirect:"manual"});
+  assert.equal(newAccess.headers.get("location"),"/kingdom/payment","new invited accounts still need payment");
+  assert.match(newAccess.headers.get("set-cookie") || "",/kella_payment_identity=/);
+  assert.doesNotMatch(newAccess.headers.get("set-cookie") || "",new RegExp(`${env.SESSION_COOKIE_NAME}=`));
+  assert.equal((await fetch(base+"/base",{headers:{cookie:exclusiveCookie}})).status,401);
+  users.special.kofiPaymentEmail="bond@example.com";
+  users.special.kofiPaidThrough=new Date(Date.now()+86_400_000);
+  assert.equal((await fetch(base+exclusivePath,{redirect:"manual"})).headers.get("location"),"/profile");
   assert.equal((await fetch(base + `/access/${specialMemberId}/${"0".repeat(64)}`, { redirect: "manual" })).status, 404);
   assert.equal((await fetch(base + "/?owner=owner-link-key", { redirect: "manual" })).status, 200);
   console.log("Private site access: public home, approved profile, exclusive signed link, member tools, and admin gate passed.");

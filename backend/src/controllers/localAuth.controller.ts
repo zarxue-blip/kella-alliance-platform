@@ -7,6 +7,8 @@ import { getOrCreateLoginAlliance } from "../services/loginAlliance.service.js";
 import { hashLocalPassword, verifyLocalPassword } from "../services/localPassword.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { parseInGameUsername } from "./googleAuth.controller.js";
+import { isCurrentKofiAccess } from "../services/kofiPayment.service.js";
+import { beginPaymentAccess } from "../services/paymentAccess.service.js";
 
 function isForm(req: Request) {
   return Boolean(req.is("application/x-www-form-urlencoded"));
@@ -48,13 +50,15 @@ export const localSignup = asyncHandler(async (req: Request, res: Response) => {
 
   const alliance = await getOrCreateLoginAlliance();
   const passwordHash = await hashLocalPassword(req.body.password);
+  let user: any;
   try {
-    await UserModel.create({
+    user = await UserModel.create({
       discordId: `local:${randomUUID()}`,
       localUsernameKey: usernameKey,
       localLordId: req.body.lordId,
       localPasswordHash: passwordHash,
       localApprovalStatus: "pending",
+      kofiPaymentRequired: true,
       username,
       inGameUsername: username,
       role: "Member",
@@ -68,7 +72,9 @@ export const localSignup = asyncHandler(async (req: Request, res: Response) => {
     if (error?.code === 11000) return respond(req, res, 409, "username-taken");
     throw error;
   }
-  return respond(req, res, 202, "pending-local");
+  beginPaymentAccess(res, user);
+  if (isForm(req)) return res.redirect(303, "/kingdom/payment");
+  return res.status(202).json({ status: "payment-required", redirectUrl: "/kingdom/payment" });
 });
 
 export const localLogin = asyncHandler(async (req: Request, res: Response) => {
@@ -86,6 +92,12 @@ export const localLogin = asyncHandler(async (req: Request, res: Response) => {
     .select("+localPasswordHash +localUsernameKey");
   if (!await verifyLocalPassword(password, user?.localPasswordHash)) {
     return respond(req, res, 401, "invalid-credentials");
+  }
+  if (user.localApprovalStatus === "terminated") return respond(req, res, 403, "terminated");
+  if (!isCurrentKofiAccess(user)) {
+    beginPaymentAccess(res, user);
+    if (isForm(req)) return res.redirect(303, "/kingdom/payment");
+    return res.status(403).json({ status: "payment-required", redirectUrl: "/kingdom/payment" });
   }
   if (user.localApprovalStatus !== "approved" || user.disabled) {
     return respond(req, res, 403,

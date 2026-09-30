@@ -21,6 +21,9 @@ const userSchema = new Schema(
     googleReviewedBy: { type: Schema.Types.ObjectId, ref: "User" },
     kofiPaymentEmail: { type: String, lowercase: true, trim: true },
     kofiPaidThrough: { type: Date },
+    kofiPaymentRequired: { type: Boolean, default: false },
+    kofiRequestedEmail: { type: String, lowercase: true, trim: true, select: false },
+    kofiRequestedTransactionId: { type: String, trim: true, select: false },
     username: { type: String, required: true },
     avatar: { type: String },
     discordRoleIds: [{ type: String }],
@@ -36,6 +39,10 @@ const userSchema = new Schema(
   },
   { timestamps: true }
 );
+
+userSchema.index({ kofiPaymentEmail: 1 }, { unique: true, partialFilterExpression: {
+  kofiPaymentRequired: true, kofiPaymentEmail: { $type: "string" }
+} });
 
 export type UserDocument = InferSchemaType<typeof userSchema>;
 export const UserModel = model<any>("User", userSchema);

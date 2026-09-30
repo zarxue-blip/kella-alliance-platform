@@ -7,9 +7,9 @@ import { connectDatabase } from "./config/database.js";
 import { env } from "./config/env.js";
 import { registerRealtimeServer } from "./services/realtime.service.js";
 import { startSchedulers } from "./services/scheduler.service.js";
-import type { TokenPayload } from "./middleware/auth.js";
+import { isValidMemberSession, type TokenPayload } from "./middleware/auth.js";
 import { UserModel } from "./models/user.model.js";
-import { isCurrentKofiGoogleAccess } from "./services/kofiPayment.service.js";
+import { requiresKofiPayment } from "./services/kofiPayment.service.js";
 
 function readCookie(header: string | undefined, name: string) {
   if (!header) return undefined;
@@ -22,6 +22,10 @@ function readCookie(header: string | undefined, name: string) {
 
 async function bootstrap() {
   await connectDatabase();
+  // Existing local signups and unfinished Google signups use the required-payment policy too.
+  await UserModel.updateMany({ $or: [
+    { localApprovalStatus: { $exists: true } }, { googleApprovalStatus: "pending" }, { googleApprovalSource: "kofi" }
+  ] }, { $set: { kofiPaymentRequired: true } });
   await recoverMissingToxicMain().catch((error) => console.error("Toxic recovery failed; server will continue", error));
 
   const app = createApp();
@@ -45,15 +49,15 @@ async function bootstrap() {
     try {
       const payload = jwt.verify(String(token), env.JWT_SECRET) as TokenPayload;
       const user = await UserModel.findById(payload.id).lean() as any;
-      if (!user || user.disabled || !isCurrentKofiGoogleAccess(user)) {
+      if (!isValidMemberSession(user)) {
         next(new Error("Session is no longer valid"));
         return;
       }
-      socket.data.user = payload;
-      if (user.googleApprovalSource === "kofi") {
+      socket.data.user = { ...payload, id: user._id.toString(), role: user.role, allianceId: user.allianceId.toString() };
+      if (requiresKofiPayment(user)) {
         socket.data.kofiPaidThrough = new Date(user.kofiPaidThrough).getTime();
       }
-      socket.join(`alliance:${payload.allianceId}`);
+      socket.join(`alliance:${user.allianceId.toString()}`);
       next();
     } catch {
       next(new Error("Invalid realtime session"));
@@ -70,11 +74,11 @@ async function bootstrap() {
         if (remaining <= 0) {
           try {
             const user = await UserModel.findById(socket.data.user.id).lean() as any;
-            if (!user || user.disabled || !isCurrentKofiGoogleAccess(user)) {
+            if (!isValidMemberSession(user)) {
               socket.disconnect(true);
               return;
             }
-            if (user.googleApprovalSource !== "kofi") return;
+            if (!requiresKofiPayment(user)) return;
             socket.data.kofiPaidThrough = new Date(user.kofiPaidThrough).getTime();
           } catch {
             socket.disconnect(true);

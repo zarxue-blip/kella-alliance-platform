@@ -12,16 +12,19 @@ export function normalizeKofiEmail(value: string) {
   return value.trim().toLowerCase();
 }
 
-export function isCurrentKofiGoogleAccess(user: any, now = new Date()) {
-  if (user.googleApprovalSource !== "kofi") return true;
+export function requiresKofiPayment(user: any) {
+  return Boolean(user.kofiPaymentRequired || user.localApprovalStatus || user.googleApprovalSource === "kofi");
+}
+
+export function isCurrentKofiAccess(user: any, now = new Date()) {
+  if (!requiresKofiPayment(user)) return true;
   const paidThrough = user.kofiPaidThrough && new Date(user.kofiPaidThrough).getTime();
-  return user.googleApprovalStatus === "approved" &&
-    Boolean(user.privateSiteAccess) &&
-    typeof user.email === "string" &&
-    typeof user.kofiPaymentEmail === "string" &&
-    normalizeKofiEmail(user.email) === normalizeKofiEmail(user.kofiPaymentEmail) &&
+  return typeof user.kofiPaymentEmail === "string" && Boolean(user.kofiPaymentEmail) &&
     Number.isFinite(paidThrough) && paidThrough > now.getTime();
 }
+
+// Compatibility for callers while all login providers share the same payment gate.
+export const isCurrentKofiGoogleAccess = isCurrentKofiAccess;
 
 export function addPaymentMonth(paidAt: Date) {
   const year = paidAt.getUTCFullYear();
@@ -67,33 +70,71 @@ function qualifiedPayment(data: KofiWebhookData) {
   };
 }
 
-async function applyPaymentToMatchingGoogleUsers(payment: any) {
-  if (new Date(payment.paidThrough).getTime() <= Date.now()) return;
-  const users = await UserModel.find({ email: payment.email, googleSub: { $exists: true } });
-  for (const user of users) {
-    if (user.googleApprovalStatus !== "pending" &&
-      !(user.googleApprovalStatus === "approved" && user.googleApprovalSource === "kofi")) continue;
-    await UserModel.updateOne(
-      {
-        _id: user._id, email: payment.email, googleSub: { $exists: true },
-        googleApprovalStatus: user.googleApprovalStatus, googleApprovalSource: { $ne: "admin" }
-      },
-      {
-        $set: {
-          googleApprovalStatus: "approved", googleApprovalSource: "kofi",
-          kofiPaymentEmail: payment.email, privateSiteAccess: true, disabled: false
-        },
-        $max: { kofiPaidThrough: payment.paidThrough }
-      }
-    );
+function terminated(user: any) {
+  return user.googleApprovalStatus === "terminated" || user.localApprovalStatus === "terminated" ||
+    (user.disabled && !user.googleApprovalStatus && !user.localApprovalStatus);
+}
+
+export async function assignKofiPayment(paymentId: string, userId: string) {
+  const [payment, user] = await Promise.all([
+    KofiPaymentModel.findById(paymentId), UserModel.findById(userId)
+  ]);
+  if (!payment || !user || new Date(payment.paidThrough).getTime() <= Date.now()) {
+    throw new HttpError(400, "A current verified Forest Guardian payment is required");
   }
+  if (terminated(user)) throw new HttpError(409, "Reapprove this account before matching a payment");
+  if (user.kofiPaymentEmail && user.kofiPaymentEmail !== payment.email) {
+    throw new HttpError(409, "This account already has a different Ko-fi membership");
+  }
+  const claimed = await KofiPaymentModel.findOneAndUpdate({ _id: payment._id, $or: [
+    { claimedByUserId: { $exists: false } }, { claimedByUserId: user._id }
+  ] }, { $set: { claimedByUserId: user._id } }, { new: true });
+  if (!claimed) throw new HttpError(409, "This payment is already linked to another account");
+  const set: Record<string, unknown> = {
+    kofiPaymentRequired: true, kofiPaymentEmail: payment.email, privateSiteAccess: true
+  };
+  if (user.googleApprovalStatus) {
+    set.googleApprovalStatus = "approved";
+    set.googleApprovalSource = user.googleApprovalSource === "admin" ? "admin" : "kofi";
+    set.disabled = false;
+  }
+  if (user.localApprovalStatus) {
+    set.localApprovalStatus = "approved";
+    set.disabled = false;
+  }
+  try {
+    const result = await UserModel.updateOne({ _id: user._id,
+      googleApprovalStatus: { $ne: "terminated" }, localApprovalStatus: { $ne: "terminated" },
+      $or: [{ kofiPaymentEmail: { $exists: false } }, { kofiPaymentEmail: payment.email }]
+    }, { $set: set, $max: { kofiPaidThrough: payment.paidThrough } });
+    if (!result.matchedCount) throw new HttpError(409, "Account changed; check its approval and membership again");
+  } catch (error: any) {
+    if (!payment.claimedByUserId) await KofiPaymentModel.updateOne(
+      { _id: payment._id, claimedByUserId: user._id }, { $unset: { claimedByUserId: 1 } }
+    );
+    if (error?.code === 11000) throw new HttpError(409, "This Ko-fi membership is already linked to another account");
+    throw error;
+  }
+}
+
+async function applyPaymentToMatchingUser(payment: any) {
+  if (new Date(payment.paidThrough).getTime() <= Date.now()) return;
+  // Renewals follow an existing binding. A typed email alone never establishes one.
+  let user = await UserModel.findOne({ kofiPaymentEmail: payment.email, kofiPaymentRequired: true });
+  if (!user) {
+    user = await UserModel.findOne({ email: payment.email, googleSub: { $exists: true } });
+    if (!user || !requiresKofiPayment(user)) return;
+  }
+  if (terminated(user)) return;
+  try { await assignKofiPayment(payment._id.toString(), user._id.toString()); }
+  catch (error) { if (!(error instanceof HttpError && error.statusCode === 409)) throw error; }
 }
 
 export async function syncKofiPaymentForGoogleUser(email: string) {
   const payment = await KofiPaymentModel.findOne({
     email: normalizeKofiEmail(email), paidThrough: { $gt: new Date() }
   }).sort({ paidThrough: -1 }).lean();
-  if (payment) await applyPaymentToMatchingGoogleUsers(payment);
+  if (payment) await applyPaymentToMatchingUser(payment);
 }
 
 export async function processKofiWebhook(data: KofiWebhookData) {
@@ -116,5 +157,5 @@ export async function processKofiWebhook(data: KofiWebhookData) {
     ] });
     if (!stored) throw error;
   }
-  await applyPaymentToMatchingGoogleUsers(stored);
+  await applyPaymentToMatchingUser(stored);
 }

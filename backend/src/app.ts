@@ -37,6 +37,7 @@ import { isDashboardAdminUser } from "./middleware/auth.js";
 import { hospitalDeniedHtml } from "./views/hospitalClient.js";
 import { HttpError } from "./utils/httpError.js";
 import { beginPrivateMemberAccess } from "./controllers/privateMemberAccess.controller.js";
+import { showKingdomPayment } from "./controllers/kofiAccess.controller.js";
 
 const appDir = dirname(fileURLToPath(import.meta.url));
 const publicDir = join(appDir, "..", "public");
@@ -115,6 +116,7 @@ export function createApp() {
   );
 
   app.get("/access/:memberId/:signature", beginPrivateMemberAccess);
+  app.get("/kingdom/payment", showKingdomPayment);
 
   app.get("/kingdom/access", (req, res) => {
     const status =

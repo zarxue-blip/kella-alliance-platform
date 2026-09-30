@@ -9,6 +9,7 @@ Object.assign(process.env, {
   DISCORD_CLIENT_ID: "test-discord-client",
   DISCORD_CLIENT_SECRET: "test-discord-secret",
   DISCORD_REDIRECT_URI: "http://127.0.0.1/discord/callback",
+  DISCORD_GUILD_ID: "",
   GOOGLE_CLIENT_ID: "test-google-client",
   GOOGLE_CLIENT_SECRET: "test-google-secret",
   GOOGLE_REDIRECT_URI: "http://127.0.0.1/google/callback",
@@ -21,11 +22,12 @@ Object.assign(process.env, {
 const { UserModel } = await import("../src/models/user.model.js");
 const { KofiPaymentModel } = await import("../src/models/kofiPayment.model.js");
 const { AllianceModel } = await import("../src/models/alliance.model.js");
+const { MemberModel } = await import("../src/models/member.model.js");
 const { createApp } = await import("../src/app.js");
 const { env } = await import("../src/config/env.js");
 const { signSessionToken } = await import("../src/middleware/auth.js");
-const { addPaymentMonth } = await import("../src/services/kofiPayment.service.js");
-const { googleOAuthStateCookie } = await import("../src/services/oauthState.service.js");
+const { addPaymentMonth, assignKofiPayment, isCurrentKofiAccess } = await import("../src/services/kofiPayment.service.js");
+const { googleOAuthStateCookie, oauthStateCookie } = await import("../src/services/oauthState.service.js");
 
 const allianceId = "aaaaaaaaaaaaaaaaaaaaaaaa";
 const adminId = "111111111111111111111111";
@@ -49,12 +51,19 @@ function matches(row: any, filter: any): boolean {
 }
 
 (AllianceModel as any).findOneAndUpdate = async () => ({ _id: allianceId });
-(UserModel as any).findById = (id: string) => ({
-  populate() { return this; },
-  lean: async () => users.find((user) => String(user._id) === String(id)) || null
-});
-(UserModel as any).findOne = async (filter: any) => users.find((user) => matches(user, filter)) || null;
-(UserModel as any).find = async (filter: any) => users.filter((user) => matches(user, filter));
+(UserModel as any).findById = (id: string) => {
+  const query: any = Promise.resolve(users.find((user) => String(user._id) === String(id)) || null);
+  query.populate = query.lean = () => query;
+  return query;
+};
+(UserModel as any).findOne = (filter: any) => {
+  const query:any=Promise.resolve(users.find((user)=>matches(user,filter)) || null);
+  query.lean=()=>query; return query;
+};
+(UserModel as any).countDocuments = async () => users.length;
+(MemberModel as any).findOne = () => ({select(){return this;},lean:async()=>null});
+(UserModel as any).find = (filter: any) => ({select() {return this;},sort() {return this;},
+  lean:async()=>users.filter((user)=>matches(user,filter))});
 (UserModel as any).create = async (input: any) => {
   const user = { ...input, _id: String(nextUserId++).padStart(24, "0"), baseLayout: null };
   users.push(user);
@@ -63,6 +72,10 @@ function matches(row: any, filter: any): boolean {
 (UserModel as any).updateOne = async (filter: any, update: any) => {
   const user = users.find((candidate) => matches(candidate, filter));
   if (user) {
+    if (update.$set?.kofiPaymentEmail && users.some((other) => other !== user &&
+      other.kofiPaymentRequired && other.kofiPaymentEmail === update.$set.kofiPaymentEmail)) {
+      throw Object.assign(new Error("duplicate payer"), {code:11000});
+    }
     Object.assign(user, update.$set || {});
     for (const [key, value] of Object.entries(update.$max || {})) {
       if (!user[key] || new Date(value as any).getTime() > new Date(user[key]).getTime()) user[key] = value;
@@ -70,24 +83,33 @@ function matches(row: any, filter: any): boolean {
   }
   return { matchedCount: user ? 1 : 0 };
 };
-(UserModel as any).findOneAndUpdate = (filter: any, update: any) => ({
-  lean: async () => {
-    const user = users.find((candidate) => matches(candidate, filter));
-    if (user) Object.assign(user, update.$set);
-    return user || null;
-  }
-});
+(UserModel as any).findOneAndUpdate = (filter: any, update: any,options:any) => {
+  let user=users.find((candidate)=>matches(candidate,filter));
+  if(!user && options?.upsert) {user={...filter,...update.$setOnInsert,_id:String(nextUserId++).padStart(24,"0")};users.push(user);}
+  if(user) Object.assign(user,update.$set);
+  const query:any=Promise.resolve(user || null);query.lean=()=>query;return query;
+};
 
 (KofiPaymentModel as any).findOneAndUpdate = async (filter: any, update: any) => {
   const existing = payments.find((payment) => matches(payment, filter));
-  if (existing) return existing;
+  if (existing) {Object.assign(existing,update.$set);return {...existing};}
+  if (!update.$setOnInsert) return null;
   if (payments.some((payment) => payment.messageId === update.$setOnInsert.messageId)) {
     throw Object.assign(new Error("duplicate message"), { code: 11000 });
   }
-  const payment = { ...update.$setOnInsert };
+  const payment = { ...update.$setOnInsert, _id: String(payments.length+100).padStart(24,"0") };
   payments.push(payment);
   return payment;
 };
+(KofiPaymentModel as any).findById = async (id:string) => {
+  const found=payments.find((payment)=>payment._id===id); return found?{...found}:null;
+};
+(KofiPaymentModel as any).updateOne = async (filter:any,update:any) => {
+  const found=payments.find((payment)=>matches(payment,filter));
+  if(found) for(const key of Object.keys(update.$unset || {})) delete found[key];
+};
+(KofiPaymentModel as any).find = (filter:any) => ({sort() {return this;},limit() {return this;},
+  lean:async()=>payments.filter((payment)=>matches(payment,filter))});
 (KofiPaymentModel as any).findOne = (filter: any) => {
   const found = payments.find((payment) => matches(payment, filter)) || null;
   return {
@@ -103,6 +125,8 @@ const identities = new Map<string, { sub: string; email: string; nonce: string }
 const originalFetch = globalThis.fetch;
 globalThis.fetch = (async (input: any, init?: any) => {
   const url = String(input);
+  if(url==="https://discord.com/api/oauth2/token") return Response.json({token_type:"Bearer",access_token:new URLSearchParams(init?.body).get("code")});
+  if(url==="https://discord.com/api/users/@me") return Response.json({id:init.headers.authorization.split(" ")[1],username:"Discord Player"});
   if (url === "https://oauth2.googleapis.com/token") {
     const code = new URLSearchParams(init?.body).get("code") || "";
     const identity = identities.get(code);
@@ -203,7 +227,10 @@ try {
   assert.equal((await fetch(base + "/base", { headers: { cookie: payerCookie } })).status, 200);
 
   response = await googleLogin("unpaid-signup", "unpaid-sub", "unpaid@example.com", "Unpaid IGN");
-  assert.equal(response.headers.get("location"), "/kingdom/access?status=pending");
+  assert.equal(response.headers.get("location"), "/kingdom/payment");
+  const pendingPage = await (await fetch(base + "/kingdom/access?status=pending")).text();
+  assert.match(pendingPage, /Join Forest Guardian · \$5\/month/);
+  assert.match(pendingPage, /same email as your Google account/);
   const unpaid = users.find((user) => user.googleSub === "unpaid-sub");
   assert.equal(unpaid.disabled, true);
   assert.equal((await postPayment(payment({ email: "different@example.com" }))).status, 200);
@@ -221,9 +248,8 @@ try {
   assert.equal((await fetch(base + "/api/auth/me", { headers: { cookie: payerCookie } })).status, 200);
 
   response = await googleLogin("changed-email", "payer-sub", "changed@example.com");
-  assert.equal(response.headers.get("location"), "/kingdom/access?status=payment-required");
-  assert.equal((await fetch(base + "/api/auth/me", { headers: { cookie: payerCookie } })).status, 401,
-    "the verified Google email must still match the paying email");
+  assert.equal(response.headers.get("location"), "/base");
+  assert.equal(payer.kofiPaymentEmail,"payer@example.com","a changed Google email must not replace the established payer binding");
 
   const adminCookie = sessionCookie(users[0]);
   response = await fetch(base + `/api/dashboard/kingdom-signups/${unpaid._id}`, {
@@ -233,8 +259,8 @@ try {
   assert.equal(response.status, 200);
   assert.equal(unpaid.googleApprovalSource, "admin");
   unpaid.kofiPaidThrough = new Date(Date.now() - 1000);
-  assert.equal((await fetch(base + "/api/auth/me", { headers: { cookie: sessionCookie(unpaid) } })).status, 200,
-    "manual approval must survive payment expiry");
+  assert.equal((await fetch(base + "/api/auth/me", { headers: { cookie: sessionCookie(unpaid) } })).status, 401,
+    "manual approval must not bypass payment expiry");
 
   response = await fetch(base + `/api/dashboard/kingdom-signups/${unpaid._id}`, {
     method: "PATCH", headers: { "content-type": "application/json", cookie: adminCookie },
@@ -244,7 +270,44 @@ try {
   assert.equal((await postPayment(payment({ email: "unpaid@example.com" }))).status, 200);
   assert.equal(unpaid.googleApprovalStatus, "terminated", "payment must not override admin termination");
 
-  console.log("Ko-fi webhook: verification, qualification, replay safety, pre-signup payment, email matching, expiry, renewal and admin override passed.");
+  const local:any={_id:"888888888888888888888888",allianceId,discordId:"local:test",
+    username:"Local",role:"Member",localApprovalStatus:"approved",disabled:false,privateSiteAccess:true};
+  users.push(local);
+  assert.equal(isCurrentKofiAccess(local),false,"existing approved local signup also needs payment");
+  await assert.rejects(assignKofiPayment(payments[0]._id,local._id),/already linked/,
+    "one verified payment cannot unlock two accounts");
+  const localData=payment({email:"local@example.com"});
+  assert.equal((await postPayment(localData)).status,200);
+  assert.equal(isCurrentKofiAccess(local),false,"unverified email does not auto-link a local user");
+  const localPayment=payments.find((item)=>item.transactionId===localData.kofi_transaction_id);
+  await assignKofiPayment(localPayment._id,local._id);
+  assert.equal(isCurrentKofiAccess(local),true);
+  local.kofiPaidThrough=new Date(Date.now()-1000);
+  assert.equal((await postPayment(payment({email:"local@example.com"}))).status,200);
+  assert.equal(isCurrentKofiAccess(local),true,"renewal follows the verified local binding");
+  const second:any={...local,_id:"777777777777777777777777",discordId:"different",kofiPaymentEmail:undefined,kofiPaidThrough:undefined,kofiPaymentRequired:true};
+  users.push(second);
+  const duplicateEmail=payment({email:"local@example.com"});
+  assert.equal((await postPayment(duplicateEmail)).status,200);
+  const duplicatePayment=payments.find((item)=>item.transactionId===duplicateEmail.kofi_transaction_id);
+  await assert.rejects(assignKofiPayment(duplicatePayment._id,second._id),/already linked/);
+  assert.equal(isCurrentKofiAccess(second),false);
+  assert.equal(isCurrentKofiAccess(users[0]),true,"established Discord owner keeps access");
+  const discordLogin = async(id:string)=>{
+    const start=await fetch(base+"/api/auth/discord",{redirect:"manual"});
+    const state=new URL(start.headers.get("location")!).searchParams.get("state");
+    return fetch(base+`/api/auth/discord/callback?code=${id}&state=${state}`,{
+      headers:{cookie:cookieFrom(start,oauthStateCookie)},redirect:"manual"});
+  };
+  response=await discordLogin("987654321098765432");
+  assert.equal(response.headers.get("location"),"/kingdom/payment");
+  const newDiscord=users.find(user=>user.discordId==="987654321098765432");
+  assert.equal(newDiscord.kofiPaymentRequired,true);
+  assert.equal((await fetch(base+"/api/auth/me",{headers:{cookie:sessionCookie(newDiscord)}})).status,401);
+  response=await discordLogin(users[0].discordId);
+  assert.match(response.headers.get("set-cookie") || "",new RegExp(`${env.SESSION_COOKIE_NAME}=`),"legacy Discord login remains available");
+
+  console.log("Ko-fi: verified $5 payments, replay safety, account binding, expiry/renewal, manual approval payment gate and termination passed.");
 } finally {
   process.env.KELLA_LOCKDOWN = "false";
   globalThis.fetch = originalFetch;

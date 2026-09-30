@@ -4,7 +4,10 @@ import { isDashboardAdminUser, signSessionToken, type AuthenticatedRequest } fro
 import { UserModel } from "../models/user.model.js";
 import { exchangeGoogleCode, googleAuthorizationUrl, googleOAuthConfigured, type GoogleIdentity } from "../services/googleOAuth.service.js";
 import { getOrCreateLoginAlliance } from "../services/loginAlliance.service.js";
-import { isCurrentKofiGoogleAccess, syncKofiPaymentForGoogleUser } from "../services/kofiPayment.service.js";
+import { assignKofiPayment, isCurrentKofiAccess, requiresKofiPayment, syncKofiPaymentForGoogleUser } from "../services/kofiPayment.service.js";
+import { beginPaymentAccess } from "../services/paymentAccess.service.js";
+import { KofiPaymentModel } from "../models/kofiPayment.model.js";
+import { disconnectUser } from "../services/realtime.service.js";
 import {
   createGoogleOAuthState, googleOAuthStateCookie, googleSignupCookie,
   signGoogleSignupIdentity, verifyGoogleOAuthState, verifyGoogleSignupIdentity
@@ -32,6 +35,11 @@ function googleCookieOptions(req: Request) {
 
 function statusPath(status: string) {
   return `/kingdom/access?status=${encodeURIComponent(status)}`;
+}
+
+function paymentStep(res: Response, user: any) {
+  beginPaymentAccess(res, user);
+  return res.redirect("/kingdom/payment");
 }
 
 function googleUserSession(res: Response, user: any) {
@@ -66,6 +74,7 @@ async function createPendingGoogleUser(identity: GoogleIdentity, inGameUsername:
       email: identity.email,
       inGameUsername,
       googleApprovalStatus: "pending",
+      kofiPaymentRequired: true,
       username: inGameUsername,
       role: "Member",
       discordRoleIds: [],
@@ -109,33 +118,34 @@ export const googleCallback = asyncHandler(async (req: Request, res: Response) =
   if (existing?.googleApprovalStatus === "terminated") return res.redirect(statusPath("terminated"));
   if (existing?.googleApprovalStatus === "approved" && !existing.disabled) {
     await UserModel.updateOne({ _id: existing._id }, { $set: { email: identity.email } });
-    if (existing.googleApprovalSource === "kofi" && env.KOFI_VERIFICATION_TOKEN) {
+    if (requiresKofiPayment(existing) && env.KOFI_VERIFICATION_TOKEN) {
       await syncKofiPaymentForGoogleUser(identity.email);
     }
     const current = await UserModel.findOne({ googleSub: identity.sub });
-    if (current && isCurrentKofiGoogleAccess(current)) {
+    if (current && isCurrentKofiAccess(current)) {
       await UserModel.updateOne({ _id: current._id }, { $set: { lastLoginAt: new Date() } });
       googleUserSession(res, current);
       return res.redirect("/base");
     }
-    return res.redirect(statusPath("payment-required"));
+    return paymentStep(res, current || existing);
   }
   if (login.inGameUsername) {
     const user = await createPendingGoogleUser(identity, login.inGameUsername);
-    if (user?.googleApprovalStatus === "approved" && !user.disabled && isCurrentKofiGoogleAccess(user)) {
+    if (user?.googleApprovalStatus === "approved" && !user.disabled && isCurrentKofiAccess(user)) {
       googleUserSession(res, user);
       return res.redirect("/base");
     }
-    return res.redirect(statusPath("pending"));
+    return paymentStep(res, user);
   }
   if (existing?.googleApprovalStatus === "pending") {
+    await UserModel.updateOne({ _id: existing._id }, { $set: { email: identity.email } });
     if (env.KOFI_VERIFICATION_TOKEN) await syncKofiPaymentForGoogleUser(identity.email);
     const current = await UserModel.findOne({ googleSub: identity.sub });
-    if (current?.googleApprovalStatus === "approved" && !current.disabled && isCurrentKofiGoogleAccess(current)) {
+    if (current?.googleApprovalStatus === "approved" && !current.disabled && isCurrentKofiAccess(current)) {
       googleUserSession(res, current);
       return res.redirect("/base");
     }
-    return res.redirect(statusPath("pending"));
+    return paymentStep(res, current || existing);
   }
   res.cookie(googleSignupCookie, signGoogleSignupIdentity(identity), { ...googleCookieOptions(req), maxAge: 600_000 });
   res.redirect("/kingdom/complete");
@@ -148,11 +158,11 @@ export const completeGoogleSignup = asyncHandler(async (req: Request, res: Respo
   const inGameUsername = parseInGameUsername(req.body?.inGameUsername);
   const user = await createPendingGoogleUser(identity, inGameUsername);
   res.clearCookie(googleSignupCookie, googleCookieOptions(req));
-  if (user?.googleApprovalStatus === "approved" && !user.disabled && isCurrentKofiGoogleAccess(user)) {
+  if (user?.googleApprovalStatus === "approved" && !user.disabled && isCurrentKofiAccess(user)) {
     googleUserSession(res, user);
     return res.redirect("/base");
   }
-  res.redirect(statusPath("pending"));
+  paymentStep(res, user);
 });
 
 function requireKingdomAdmin(req: AuthenticatedRequest) {
@@ -161,18 +171,26 @@ function requireKingdomAdmin(req: AuthenticatedRequest) {
 
 export const listKingdomSignups = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   requireKingdomAdmin(req);
-  const [googleUsers, localUsers] = await Promise.all([
+  const paymentFields = " kofiPaymentRequired kofiPaymentEmail kofiPaidThrough +kofiRequestedEmail +kofiRequestedTransactionId";
+  const [googleUsers, localUsers, otherUsers, payments] = await Promise.all([
     UserModel.find({ allianceId: req.user.allianceId, googleSub: { $exists: true } })
-      .select("_id inGameUsername email googleApprovalStatus createdAt lastLoginAt googleReviewedAt")
+      .select("_id inGameUsername email googleApprovalStatus googleApprovalSource createdAt lastLoginAt googleReviewedAt" + paymentFields)
       .sort({ createdAt: -1 }).lean() as Promise<any[]>,
     UserModel.find({ allianceId: req.user.allianceId, localApprovalStatus: { $exists: true } })
-      .select("_id username inGameUsername localLordId localApprovalStatus createdAt lastLoginAt localReviewedAt")
-      .sort({ createdAt: -1 }).lean() as Promise<any[]>
+      .select("_id username inGameUsername localLordId localApprovalStatus createdAt lastLoginAt localReviewedAt" + paymentFields)
+      .sort({ createdAt: -1 }).lean() as Promise<any[]>,
+    UserModel.find({ allianceId: req.user.allianceId, kofiPaymentRequired: true,
+      googleSub: { $exists: false }, localApprovalStatus: { $exists: false } })
+      .select("_id discordId username inGameUsername disabled createdAt lastLoginAt" + paymentFields)
+      .sort({ createdAt: -1 }).lean() as Promise<any[]>,
+    KofiPaymentModel.find({ claimedByUserId: { $exists: false }, paidThrough: { $gt: new Date() } })
+      .sort({ paidAt: -1 }).limit(100).lean() as Promise<any[]>
   ]);
   res.set("Cache-Control", "private, no-store");
   res.json({ members: [
     ...googleUsers.map((user) => ({ ...user, provider: "google" as const })),
-    ...localUsers.map((user) => ({ ...user, provider: "local" as const }))
+    ...localUsers.map((user) => ({ ...user, provider: "local" as const })),
+    ...otherUsers.map((user) => ({ ...user, provider: user.discordId?.startsWith("private-member:") ? "private" : "discord" }))
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((user) => ({
     id: user._id.toString(),
     provider: user.provider,
@@ -180,11 +198,33 @@ export const listKingdomSignups = asyncHandler(async (req: AuthenticatedRequest,
     lordId: user.provider === "local" ? user.localLordId || "" : "",
     inGameUsername: user.inGameUsername || "",
     email: user.email || "",
-    status: user.provider === "local" ? user.localApprovalStatus || "pending" : user.googleApprovalStatus || "pending",
+    status: user.provider === "local" ? user.localApprovalStatus || "pending" :
+      user.provider === "google" ? user.googleApprovalStatus || "pending" : user.disabled ? "terminated" : "approved",
+    paymentRequired: requiresKofiPayment(user),
+    paymentStatus: isCurrentKofiAccess(user) ? "paid" : "unpaid",
+    paidThrough: user.kofiPaidThrough || null,
+    paymentEmail: user.kofiPaymentEmail || "",
+    requestedPaymentEmail: user.kofiRequestedEmail || "",
+    requestedTransactionId: user.kofiRequestedTransactionId || "",
     signedUpAt: user.createdAt,
     lastLoginAt: user.lastLoginAt || null,
     reviewedAt: user.provider === "local" ? user.localReviewedAt || null : user.googleReviewedAt || null
-  })) });
+  })), payments: payments.map((payment) => ({ id: payment._id.toString(), email: payment.email,
+    transactionId: payment.transactionId, amountCents: payment.amountCents, tierName: payment.tierName,
+    paidAt: payment.paidAt, paidThrough: payment.paidThrough })) });
+});
+
+export const matchKingdomPayment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  requireKingdomAdmin(req);
+  const id = req.params.id;
+  const paymentId = req.body?.paymentId;
+  if (!/^[a-f\d]{24}$/i.test(id) || typeof paymentId !== "string" || !/^[a-f\d]{24}$/i.test(paymentId)) {
+    throw new HttpError(400, "Choose a verified payment");
+  }
+  const user = await UserModel.findOne({ _id: id, allianceId: req.user.allianceId });
+  if (!user || !requiresKofiPayment(user)) throw new HttpError(404, "Signup not found");
+  await assignKofiPayment(paymentId, id);
+  res.set("Cache-Control", "private, no-store").json({ id, status: "paid" });
 });
 
 export const reviewKingdomSignup = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
@@ -219,7 +259,16 @@ export const reviewKingdomSignup = asyncHandler(async (req: AuthenticatedRequest
       { new: true, runValidators: true }
     ).lean() as any;
   }
+  if (!user) {
+    user = await UserModel.findOneAndUpdate(
+      { _id: id, allianceId: req.user.allianceId, kofiPaymentRequired: true,
+        googleSub: { $exists: false }, localApprovalStatus: { $exists: false } },
+      { $set: { disabled: status !== "approved", privateSiteAccess: status === "approved" } },
+      { new: true, runValidators: true }
+    ).lean() as any;
+  }
   if (!user) throw new HttpError(404, "Signup not found");
+  if (status === "terminated") disconnectUser(user._id.toString());
   res.set("Cache-Control", "private, no-store");
-  res.json({ id: user._id.toString(), status: user.localApprovalStatus || user.googleApprovalStatus });
+  res.json({ id: user._id.toString(), status: user.localApprovalStatus || user.googleApprovalStatus || status });
 });

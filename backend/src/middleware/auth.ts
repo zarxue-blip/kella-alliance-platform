@@ -5,7 +5,7 @@ import type { UserRole } from "@cod-amp/shared";
 import { env } from "../config/env.js";
 import { HttpError } from "../utils/httpError.js";
 import { UserModel } from "../models/user.model.js";
-import { isCurrentKofiGoogleAccess } from "../services/kofiPayment.service.js";
+import { isCurrentKofiAccess } from "../services/kofiPayment.service.js";
 
 export interface AuthUser {
   id: string;
@@ -33,8 +33,10 @@ export function hasEvoMemberAccess(user: { discordRoleIds?: string[]; privateSit
   return Boolean(user.privateSiteAccess) || (user.discordRoleIds || []).includes(evoMemberRoleId);
 }
 
-function isApprovedLocalUser(user: any) {
-  return !String(user.discordId || "").startsWith("local:") || user.localApprovalStatus === "approved";
+export function isValidMemberSession(user: any) {
+  return Boolean(user && !user.disabled &&
+    (!String(user.discordId || "").startsWith("local:") || user.localApprovalStatus === "approved") &&
+    (!user.googleApprovalStatus || user.googleApprovalStatus === "approved") && isCurrentKofiAccess(user));
 }
 
 export async function hasPrivateSiteSession(token?: string) {
@@ -42,7 +44,7 @@ export async function hasPrivateSiteSession(token?: string) {
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
     const user = await UserModel.findById(payload.id).lean() as any;
-    if (!user || user.disabled || !isApprovedLocalUser(user) || !isCurrentKofiGoogleAccess(user)) return false;
+    if (!isValidMemberSession(user)) return false;
     return user.role === "Owner" || Boolean(user.privateSiteAccess);
   } catch {
     return false;
@@ -99,7 +101,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
     const user = (await UserModel.findById(payload.id).lean()) as any;
-    if (!user || user.disabled || !isApprovedLocalUser(user) || !isCurrentKofiGoogleAccess(user)) {
+    if (!isValidMemberSession(user)) {
       next(new HttpError(401, "Session is no longer valid"));
       return;
     }
@@ -148,7 +150,7 @@ export function authenticateDashboardAdmin(req: Request, _res: Response, next: N
     UserModel.findById(payload.id)
       .lean()
       .then((user: any) => {
-        if (!user || user.disabled || !isApprovedLocalUser(user) || !isCurrentKofiGoogleAccess(user)) {
+        if (!isValidMemberSession(user)) {
           next(new HttpError(401, "Session is no longer valid"));
           return;
         }
@@ -189,7 +191,7 @@ export function authenticateDashboardWikiEditor(req: Request, _res: Response, ne
     UserModel.findById(payload.id)
       .lean()
       .then((user: any) => {
-        if (!user || user.disabled || !isApprovedLocalUser(user) || !isCurrentKofiGoogleAccess(user)) {
+        if (!isValidMemberSession(user)) {
           next(new HttpError(401, "Session is no longer valid"));
           return;
         }
@@ -223,7 +225,7 @@ export function authenticateDashboardOwner(req: Request, _res: Response, next: N
     UserModel.findById(payload.id)
       .lean()
       .then((user: any) => {
-        if (!user || user.disabled || !isApprovedLocalUser(user) || !isCurrentKofiGoogleAccess(user)) {
+        if (!isValidMemberSession(user)) {
           next(new HttpError(401, "Session is no longer valid"));
           return;
         }
