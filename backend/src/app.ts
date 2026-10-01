@@ -12,7 +12,7 @@ import {
   authenticate,
   authenticateDashboardAdmin,
   authenticateDashboardWikiEditor,
-  hasEvoMemberAccess,
+  requireVipAccess,
   type AuthenticatedRequest
 } from "./middleware/auth.js";
 import { errorHandler } from "./middleware/errorHandler.js";
@@ -20,21 +20,20 @@ import { botRouter } from "./routes/bot.routes.js";
 import { apiRouter } from "./routes/index.js";
 import { gameReviewRouter } from "./routes/gameReview.routes.js";
 import { kellaPageHtml, kellaPageAssets } from "./views/kellaPage.js";
-import { baseGameDeniedHtml, baseGameHtml } from "./views/baseGamePage.js";
+import { baseGameHtml } from "./views/baseGamePage.js";
 import {
   kingdomAccessHtml,
   kingdomAdminHtml,
   kingdomCompleteHtml,
-  kingdomPrivacyHtml,
-  kingdomTermsHtml
+  kingdomVipLockedHtml
 } from "./views/kingdomAccessPage.js";
+import { siteTermsHtml, sitePrivacyHtml, siteBillingHtml, siteCookiesHtml } from "./views/sitePolicies.js";
 import { googleOAuthConfigured } from "./services/googleOAuth.service.js";
 import {
   googleSignupCookie,
   verifyGoogleSignupIdentity
 } from "./services/oauthState.service.js";
 import { isDashboardAdminUser } from "./middleware/auth.js";
-import { hospitalDeniedHtml } from "./views/hospitalClient.js";
 import { HttpError } from "./utils/httpError.js";
 import { beginPrivateMemberAccess } from "./controllers/privateMemberAccess.controller.js";
 import { showKingdomPayment } from "./controllers/kofiAccess.controller.js";
@@ -108,12 +107,14 @@ export function createApp() {
   );
 
   app.get("/privacy", (_req, res) =>
-    res.set("Cache-Control", "public, max-age=3600").type("html").send(kingdomPrivacyHtml())
+    res.set("Cache-Control", "public, max-age=3600").type("html").send(sitePrivacyHtml())
   );
 
   app.get("/terms", (_req, res) =>
-    res.set("Cache-Control", "public, max-age=3600").type("html").send(kingdomTermsHtml())
+    res.set("Cache-Control", "public, max-age=3600").type("html").send(siteTermsHtml())
   );
+  app.get("/billing", (_req, res) => res.set("Cache-Control", "public, max-age=3600").type("html").send(siteBillingHtml()));
+  app.get("/cookies", (_req, res) => res.set("Cache-Control", "public, max-age=3600").type("html").send(siteCookiesHtml()));
 
   app.get("/access/:memberId/:signature", beginPrivateMemberAccess);
   app.get("/kingdom/payment", showKingdomPayment);
@@ -176,83 +177,23 @@ export function createApp() {
   app.use("/bot", botRouter);
   app.use("/game-review", gameReviewRouter);
 
-  app.get("/base", (req, res) => {
+  function protectedPage(req: express.Request, res: express.Response, vip: boolean, html: string) {
     authenticate(req, res, (error?: unknown) => {
       if (error) {
-        const status =
-          error instanceof HttpError
-            ? error.statusCode
-            : 401;
-
-        res
-          .set("Cache-Control", "private, no-store")
-          .status(status)
-          .type("html")
-          .send(
-            kingdomAccessHtml(
-              "",
-              googleOAuthConfigured(),
-              Boolean(env.KOFI_VERIFICATION_TOKEN)
-            )
-          );
-
+        const status = error instanceof HttpError ? error.statusCode : 401;
+        res.set("Cache-Control", "private, no-store").status(status).type("html")
+          .send(kingdomAccessHtml("", googleOAuthConfigured(), Boolean(env.KOFI_VERIFICATION_TOKEN)));
         return;
       }
-
-      const user =
-        (req as AuthenticatedRequest).user;
-
-      const has881Role =
-        hasEvoMemberAccess(user);
-
-      if (!has881Role) {
-        res
-          .set("Cache-Control", "private, no-store")
-          .status(403)
-          .type("html")
-          .send(baseGameDeniedHtml(true));
-
-        return;
-      }
-
-      res
-        .set("Cache-Control", "private, no-store")
-        .type("html")
-        .send(baseGameHtml);
+      const send = (vipError?: unknown) => res.set("Cache-Control", "private, no-store")
+        .status(vipError ? 403 : 200).type("html").send(vipError ? kingdomVipLockedHtml() : html);
+      if (vip) requireVipAccess(req, res, send);
+      else send();
     });
-  });
+  }
 
-  app.get("/hospital", (req, res) => {
-    authenticate(req, res, (error?: unknown) => {
-      const status =
-        error instanceof HttpError
-          ? error.statusCode
-          : error
-            ? 401
-            : 0;
-
-      const allowed =
-        !status &&
-        hasEvoMemberAccess(
-          (req as AuthenticatedRequest).user
-        );
-
-      if (!allowed) {
-        res
-          .set("Cache-Control", "private, no-store")
-          .status(status || 403)
-          .type("html")
-          .send(hospitalDeniedHtml(!status));
-
-        return;
-      }
-
-      res
-        .set("Cache-Control", "private, no-store")
-        .type("html")
-        .send(kellaPageHtml);
-    });
-  });
+  app.get("/base", (req, res) => protectedPage(req, res, true, baseGameHtml));
+  app.get("/hospital", (req, res) => protectedPage(req, res, true, kellaPageHtml));
 
   app.get(
     [
@@ -290,6 +231,7 @@ export function createApp() {
         "/shield-alerts",
         "/embed-sender",
         "/complaints",
+        "/complains",
         "/settings"
       ];
 
@@ -317,8 +259,10 @@ export function createApp() {
 
       if (guard) {
         guard(req, res, sendPage);
-      } else {
+      } else if (["/", "/migration"].includes(req.path)) {
         sendPage();
+      } else {
+        protectedPage(req, res, !["/members", "/calendar"].includes(req.path), kellaPageHtml);
       }
     }
   );

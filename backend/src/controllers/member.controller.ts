@@ -9,6 +9,7 @@ import { emitAlliance } from "../services/realtime.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
 import { isDashboardAdminUser, type AuthenticatedRequest } from "../middleware/auth.js";
+import { memberForViewer } from "../services/memberPrivacy.service.js";
 
 const memberSchema = z.object({
   discordId: z.string().min(1),
@@ -50,7 +51,7 @@ export const listMembers = asyncHandler(async (req: AuthenticatedRequest, res) =
       .lean(),
     MemberModel.countDocuments(filter)
   ]);
-  res.json({ members, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+  res.set("Cache-Control", "private, no-store").json({ members: members.map((member) => memberForViewer(member, isDashboardAdminUser(req.user))), pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
 });
 
 export const createMember = asyncHandler(async (req: AuthenticatedRequest, res) => {

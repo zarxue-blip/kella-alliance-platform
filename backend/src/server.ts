@@ -5,11 +5,10 @@ import { Server } from "socket.io";
 import { createApp } from "./app.js";
 import { connectDatabase } from "./config/database.js";
 import { env } from "./config/env.js";
-import { registerRealtimeServer } from "./services/realtime.service.js";
+import { registerRealtimeServer, updateRealtimeAccess } from "./services/realtime.service.js";
 import { startSchedulers } from "./services/scheduler.service.js";
-import { isValidMemberSession, type TokenPayload } from "./middleware/auth.js";
+import { hasVipAccess, isValidMemberSession, type TokenPayload } from "./middleware/auth.js";
 import { UserModel } from "./models/user.model.js";
-import { requiresKofiPayment } from "./services/kofiPayment.service.js";
 
 function readCookie(header: string | undefined, name: string) {
   if (!header) return undefined;
@@ -22,7 +21,8 @@ function readCookie(header: string | undefined, name: string) {
 
 async function bootstrap() {
   await connectDatabase();
-  // Every local and Google signup follows the same payment policy, including earlier approvals.
+  // Preserve payment tracking for local and Google signups. Approval now grants
+  // regular access; verified membership separately grants VIP tools.
   await UserModel.updateMany({ $or: [
     { localApprovalStatus: { $exists: true } }, { googleApprovalStatus: { $exists: true } }
   ] }, { $set: { kofiPaymentRequired: true } });
@@ -53,11 +53,11 @@ async function bootstrap() {
         next(new Error("Session is no longer valid"));
         return;
       }
-      socket.data.user = { ...payload, id: user._id.toString(), role: user.role, allianceId: user.allianceId.toString() };
-      if (requiresKofiPayment(user)) {
-        socket.data.kofiPaidThrough = new Date(user.kofiPaidThrough).getTime();
+      if (!hasVipAccess(user)) {
+        next(new Error("Guardian membership is required for realtime tools"));
+        return;
       }
-      socket.join(`alliance:${user.allianceId.toString()}`);
+      await updateRealtimeAccess(socket, user);
       next();
     } catch {
       next(new Error("Invalid realtime session"));
@@ -66,30 +66,20 @@ async function bootstrap() {
 
   io.on("connection", (socket) => {
     socket.emit("connected", { socketId: socket.id });
-    if (Number.isFinite(socket.data.kofiPaidThrough)) {
-      let expiryTimer: ReturnType<typeof setTimeout>;
-      const checkExpiry = async () => {
-        if (!socket.connected) return;
-        const remaining = socket.data.kofiPaidThrough - Date.now();
-        if (remaining <= 0) {
-          try {
-            const user = await UserModel.findById(socket.data.user.id).lean() as any;
-            if (!isValidMemberSession(user)) {
-              socket.disconnect(true);
-              return;
-            }
-            if (!requiresKofiPayment(user)) return;
-            socket.data.kofiPaidThrough = new Date(user.kofiPaidThrough).getTime();
-          } catch {
-            socket.disconnect(true);
-            return;
-          }
-        }
-        expiryTimer = setTimeout(checkExpiry, Math.min(Math.max(socket.data.kofiPaidThrough - Date.now(), 1), 86_400_000));
-      };
-      void checkExpiry();
-      socket.on("disconnect", () => clearTimeout(expiryTimer));
-    }
+    let accessTimer: ReturnType<typeof setTimeout>;
+    const checkAccess = async () => {
+      if (!socket.connected) return;
+      try {
+        const user = await UserModel.findById(socket.data.user.id).lean() as any;
+        if (!hasVipAccess(user)) return void socket.disconnect(true);
+        await updateRealtimeAccess(socket, user);
+        const paidThrough = new Date(user.kofiPaidThrough).getTime();
+        const nextCheck = paidThrough > Date.now() ? Math.min(paidThrough - Date.now(), 60_000) : 60_000;
+        accessTimer = setTimeout(checkAccess, Math.max(1, nextCheck));
+      } catch { socket.disconnect(true); }
+    };
+    void checkAccess();
+    socket.on("disconnect", () => clearTimeout(accessTimer));
   });
 
   registerRealtimeServer(io);

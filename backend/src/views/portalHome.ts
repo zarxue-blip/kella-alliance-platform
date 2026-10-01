@@ -1,8 +1,9 @@
 // Runs inside the existing dashboard closure; data and authorization stay shared.
 export const portalHomeClient = String.raw`
       function renderAllianceBoard(events = []) {
+        const entryAccess = state.auth?.authenticated && !hasVipAccess() ? ' href="/kingdom/payment" data-guardian-open' : ' href="/base"';
         return '<div class="portal-home portal-parallax">' +
-          '<section class="kingdom-journey" data-kingdom-journey aria-label="Journey into the elven kingdom"><div class="kingdom-stage"><div class="kingdom-film" aria-hidden="true"><img class="kingdom-still" src="/assets/base-game/assets/kingdom-0927-open.jpg" alt="" width="1280" height="720"/><video data-kingdom-video muted playsinline preload="none" poster="/assets/base-game/assets/kingdom-0927-start.jpg" width="1280" height="720" disablepictureinpicture disableremoteplayback tabindex="-1"></video></div><div class="kingdom-shade" aria-hidden="true"></div><div class="kingdom-topline"><button type="button" class="secondary" data-story-toggle aria-pressed="true">Animation On</button></div><div class="kingdom-intro"><h1><img src="/assets/evo-wordmark.svg" alt="EVO" width="360" height="120" fetchpriority="high"/></h1></div><div class="kingdom-enter" data-kingdom-entry hidden><a href="/base" aria-label="Enter Kingdom"><img src="/assets/base-game/assets/enter-kingdom.webp" alt="Enter Kingdom" width="1086" height="362"/></a></div><div class="kingdom-progress" aria-hidden="true"><i></i></div></div></section><footer class="portal-legal"><span>Kella is an alliance hub for player profiles, events, and member tools.</span><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></footer></div>';
+          '<section class="kingdom-journey" data-kingdom-journey aria-label="Journey into the elven kingdom"><div class="kingdom-stage"><div class="kingdom-film" aria-hidden="true"><img class="kingdom-still" src="/assets/base-game/assets/kingdom-0927-hd-open.jpg" alt="" width="1920" height="1080"/><video data-kingdom-video muted playsinline preload="none" poster="/assets/base-game/assets/kingdom-0927-hd-start.jpg" width="1920" height="1080" disablepictureinpicture disableremoteplayback tabindex="-1"></video></div><div class="kingdom-shade" aria-hidden="true"></div><div class="kingdom-topline"><button type="button" class="secondary" data-story-toggle aria-pressed="true">Animation On</button></div><div class="kingdom-intro"><h1><img src="/assets/evo-wordmark.svg" alt="EVO" width="360" height="120" fetchpriority="high"/></h1></div><div class="kingdom-enter" data-kingdom-entry hidden><a' + entryAccess + ' aria-label="Enter Kingdom"><img src="/assets/base-game/assets/enter-kingdom.webp" alt="Enter Kingdom" width="1086" height="362"/></a></div><div class="kingdom-progress" aria-hidden="true"><i></i></div></div></section><footer class="portal-legal"><span>© Kella · Independent player community</span><a href="/terms">Terms of Service</a><a href="/privacy">Privacy Policy</a><a href="/billing">Billing & Refunds</a><a href="/cookies">Cookies</a></footer></div>';
       }
 
       function initializeKingdomEntrance() {
@@ -51,7 +52,7 @@ export const portalHomeClient = String.raw`
           toggle.textContent=animated()?'Animation On':'Animation Off';
           video.muted=true;video.pause();
           if(animated()&&!video.getAttribute('src')){
-            video.preload='auto';video.src='/assets/base-game/assets/kingdom-0927.mp4';video.load();
+            video.preload='auto';video.src='/assets/base-game/assets/kingdom-0927-hd.mp4';video.load();
           }
           draw();
         }
@@ -80,6 +81,20 @@ export const portalHomeClient = String.raw`
           document.removeEventListener('visibilitychange',queue);motion.removeEventListener('change',apply);observer.disconnect();
         }});
         observer.observe(app,{childList:true});syncPreference();
+      }
+
+      function openGuardianMembership() {
+        const dialog=document.getElementById('guardianMembership');
+        if(!dialog || dialog.open) return;
+        closeMobileNav();
+        const trigger=document.activeElement;
+        dialog.showModal();
+        document.body.classList.add('guardian-open');
+        dialog.querySelector('[data-guardian-close]').focus({preventScroll:true});
+        dialog.addEventListener('close',function(){
+          document.body.classList.remove('guardian-open');
+          if(trigger && trigger.isConnected && typeof trigger.focus==='function') trigger.focus({preventScroll:true});
+        },{once:true});
       }
 
       function initializePortalDepth() {

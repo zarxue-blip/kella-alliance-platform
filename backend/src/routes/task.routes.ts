@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { addTaskComment, createTask, listTasks, updateTask } from "../controllers/task.controller.js";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate, requireVipAccess } from "../middleware/auth.js";
 import { requirePermission } from "../middleware/requirePermission.js";
 
 export const taskRouter = Router();
 
-taskRouter.use(authenticate);
+taskRouter.use(authenticate, requireVipAccess);
 taskRouter.get("/", requirePermission("tasks:read"), listTasks);
 taskRouter.post("/", requirePermission("tasks:create"), createTask);
 taskRouter.patch("/:id", requirePermission("tasks:update"), updateTask);

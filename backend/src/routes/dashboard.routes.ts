@@ -46,7 +46,7 @@ import {
   dashboardWikiUpdate,
   dashboardDmAlertResendFailed,
 } from "../controllers/dashboard.controller.js";
-import { authenticate, authenticateDashboardAdmin, authenticateDashboardWikiEditor, requireEvoMemberAccess } from "../middleware/auth.js";
+import { authenticate, authenticateDashboardAdmin, authenticateDashboardWikiEditor, requireVipAccess } from "../middleware/auth.js";
 import { listKingdomSignups, matchKingdomPayment, reviewKingdomSignup } from "../controllers/googleAuth.controller.js";
 
 import { listChatImages, uploadChatImage, deleteChatImage } from '../controllers/chatImages.controller.js';
@@ -60,7 +60,7 @@ dashboardRouter.get("/kingdom-signups", authenticate, listKingdomSignups);
 dashboardRouter.patch("/kingdom-signups/:id", authenticate, reviewKingdomSignup);
 dashboardRouter.patch("/kingdom-signups/:id/payment", authenticate, matchKingdomPayment);
 
-dashboardRouter.get("/summary", dashboardSummary);
+dashboardRouter.get("/summary", authenticate, requireVipAccess, dashboardSummary);
 dashboardRouter.get("/summary/admin", authenticateDashboardAdmin, (_req, res, next) => { res.locals.adminSummary = true; next(); }, dashboardSummary);
 dashboardRouter.get("/champions", (_req, res, next) => { res.locals.publicChampions = true; next(); }, dashboardMembers);
 dashboardRouter.get("/members", authenticate, dashboardMembers);
@@ -68,18 +68,18 @@ dashboardRouter.get("/members/manage", authenticateDashboardAdmin, (_req, res, n
 dashboardRouter.post("/members", authenticateDashboardAdmin, dashboardMemberCreate);
 dashboardRouter.patch("/members/:id", authenticateDashboardAdmin, dashboardMemberUpdate);
 dashboardRouter.delete("/members/:id", authenticateDashboardAdmin, dashboardMemberDelete);
-dashboardRouter.get('/commander',authenticate,asyncHandler(async(req,res)=>{const user=await UserModel.findById((req as AuthenticatedRequest).user.id).select('+commanderTools').lean<any>();res.set('Cache-Control','no-store').json({data:user?.commanderTools || {}});}));
-dashboardRouter.put('/commander',authenticate,asyncHandler(async(req,res)=>{
+dashboardRouter.get('/commander',authenticate,requireVipAccess,asyncHandler(async(req,res)=>{const user=await UserModel.findById((req as AuthenticatedRequest).user.id).select('+commanderTools').lean<any>();res.set('Cache-Control','no-store').json({data:user?.commanderTools || {}});}));
+dashboardRouter.put('/commander',authenticate,requireVipAccess,asyncHandler(async(req,res)=>{
  const data=req.body?.data;
  if(!data || Array.isArray(data) || typeof data!=='object' || JSON.stringify(data).length>200000 || /"(?:__proto__|constructor|prototype)"\s*:/.test(JSON.stringify(data))) throw new HttpError(400,'Invalid commander profile.');
  await UserModel.updateOne({_id:(req as AuthenticatedRequest).user.id},{$set:{commanderTools:data}});res.json({ok:true});
 }));
 const baseBuildingTypes = new Set(['hub','archery','eagle','stable','research','sentry','arch','notice','infantry','admin','hospital']);
-dashboardRouter.get('/base-layout',authenticate,requireEvoMemberAccess,asyncHandler(async(req,res)=>{
+dashboardRouter.get('/base-layout',authenticate,requireVipAccess,asyncHandler(async(req,res)=>{
  const user=await UserModel.findById((req as AuthenticatedRequest).user.id).select('+baseLayout').lean<any>();
  res.set('Cache-Control','private, no-store').json({data:user?.baseLayout || null});
 }));
-dashboardRouter.put('/base-layout',authenticate,requireEvoMemberAccess,asyncHandler(async(req,res)=>{
+dashboardRouter.put('/base-layout',authenticate,requireVipAccess,asyncHandler(async(req,res)=>{
  const data=req.body?.data;
  if(!data || data.version!==6 || !Array.isArray(data.buildings) || data.buildings.length>40) throw new HttpError(400,'Invalid base layout.');
  const seen=new Set<string>();
@@ -104,8 +104,8 @@ dashboardRouter.put('/base-layout',authenticate,requireEvoMemberAccess,asyncHand
  await UserModel.updateOne({_id:(req as AuthenticatedRequest).user.id},{$set:{baseLayout:layout}});
  res.json({ok:true});
 }));
-dashboardRouter.get("/profile", authenticate, dashboardProfile);
-dashboardRouter.patch("/profile", authenticate, dashboardProfileUpdate);
+dashboardRouter.get("/profile", authenticate, requireVipAccess, dashboardProfile);
+dashboardRouter.patch("/profile", authenticate, requireVipAccess, dashboardProfileUpdate);
 dashboardRouter.post("/members/import-xlsx", authenticateDashboardAdmin, dashboardMemberXlsxImport);
 dashboardRouter.get("/uploads", authenticateDashboardAdmin, dashboardRosterUploads);
 dashboardRouter.patch("/uploads/:id", authenticateDashboardAdmin, dashboardRosterUploadUpdate);
@@ -115,23 +115,24 @@ dashboardRouter.post("/sync-discord-members", authenticateDashboardAdmin, dashbo
 dashboardRouter.get("/responses", authenticateDashboardAdmin, dashboardResponseReports);
 dashboardRouter.get("/alerts", authenticateDashboardAdmin, dashboardAlerts);
 dashboardRouter.get("/events", authenticate, dashboardEvents);
-dashboardRouter.get("/my-attendance", authenticate, dashboardPersonalAttendance);
+dashboardRouter.get("/my-attendance", authenticate, requireVipAccess, dashboardPersonalAttendance);
 dashboardRouter.post("/events", authenticateDashboardAdmin, dashboardEventSend);
 dashboardRouter.delete("/events/:id", authenticateDashboardAdmin, dashboardEventDelete);
-dashboardRouter.get("/polls", authenticate, dashboardPolls);
+dashboardRouter.get("/polls", authenticate, requireVipAccess, dashboardPolls);
 dashboardRouter.post("/polls", authenticateDashboardAdmin, dashboardPollCreate);
 dashboardRouter.patch("/polls/:id/status", authenticateDashboardAdmin, dashboardPollStatusUpdate);
 dashboardRouter.delete("/polls/:id", authenticateDashboardAdmin, dashboardPollDelete);
-dashboardRouter.get("/wiki", authenticate, dashboardWikiList);
+dashboardRouter.get("/wiki", authenticate, requireVipAccess, dashboardWikiList);
 dashboardRouter.get("/wiki/admin", authenticateDashboardWikiEditor, dashboardWikiAdminList);
 dashboardRouter.post("/wiki", authenticateDashboardWikiEditor, dashboardWikiCreate);
 dashboardRouter.patch("/wiki/:id", authenticateDashboardWikiEditor, dashboardWikiUpdate);
 dashboardRouter.delete("/wiki/:id", authenticateDashboardAdmin, dashboardWikiDelete);
-dashboardRouter.post("/complaints", authenticate, dashboardComplaintCreate);
+dashboardRouter.post("/complaints", authenticate, requireVipAccess, dashboardComplaintCreate);
 dashboardRouter.get("/complaints", authenticateDashboardAdmin, dashboardComplaints);
 dashboardRouter.patch("/complaints/:id/status", authenticateDashboardAdmin, dashboardComplaintStatusUpdate);
 dashboardRouter.post("/complaints/:id/reply", authenticateDashboardAdmin, dashboardComplaintReply);
 dashboardRouter.get("/settings", dashboardSettings);
+dashboardRouter.get("/settings/admin", authenticateDashboardAdmin, (_req, res, next) => { res.locals.adminSettings = true; next(); }, dashboardSettings);
 dashboardRouter.patch("/settings", authenticateDashboardAdmin, dashboardSettingsUpdate);
 dashboardRouter.post("/tools/shield-alert", authenticateDashboardAdmin, dashboardShieldSend);
 dashboardRouter.post("/tools/attack-alert", authenticateDashboardAdmin, dashboardAttackSend);

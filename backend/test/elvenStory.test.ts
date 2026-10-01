@@ -42,7 +42,7 @@ function setup(reduced=false,stored:string|null=null){
 const scene=setup();
 assert.equal(scene.video.muted,true);
 assert.equal(scene.nodes['[data-story-toggle]'].textContent,'Animation On');
-assert.ok(scene.video.src.endsWith('kingdom-0927.mp4'));
+assert.ok(scene.video.src.endsWith('kingdom-0927-hd.mp4'));
 assert.equal(scene.nodes['[data-kingdom-entry]'].hidden,true);
 scene.ready();scene.at(.55);
 assert.ok(Math.abs(scene.video.currentTime-6.1)<.001,'approach completes before slow door-opening portion');

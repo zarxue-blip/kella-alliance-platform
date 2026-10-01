@@ -37,6 +37,11 @@
         return;
       }
       if (!response.ok) throw new Error("Unable to check access");
+      if (String(Boolean(result.canContinueRegular)) !== page.dataset.canContinueRegular) {
+        stopped = true;
+        window.location.reload();
+        return;
+      }
       const nextStage = result.status === "review-pending" ? "review"
         : result.status === "approval-pending" ? "approval"
           : result.status === "payment-required" ? "payment" : null;

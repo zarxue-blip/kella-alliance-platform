@@ -7,12 +7,12 @@ import {
   respondToCallToArms,
   updateOperation
 } from "../controllers/operation.controller.js";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate, requireVipAccess } from "../middleware/auth.js";
 import { requirePermission } from "../middleware/requirePermission.js";
 
 export const operationRouter = Router();
 
-operationRouter.use(authenticate);
+operationRouter.use(authenticate, requireVipAccess);
 operationRouter.get("/", requirePermission("war:read"), listOperations);
 operationRouter.post("/", requirePermission("war:create"), createOperation);
 operationRouter.patch("/:id", requirePermission("war:update"), updateOperation);

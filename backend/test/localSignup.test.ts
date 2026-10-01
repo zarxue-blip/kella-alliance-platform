@@ -107,7 +107,7 @@ try {
   assert.match(page, /<details class="kingdom-signup"/);
   assert.doesNotMatch(page, /<details class="kingdom-signup" open/);
   assert.match(page, /action="\/api\/auth\/local\/login"/);
-  assert.match(page, /Payment is required even if an admin approves you/);
+  assert.match(page, /Approved regular members can view Members and Calendar/);
   assert.match(page, /href="\/privacy"/);
   response = await fetch(base + "/api/auth/kofi/status");
   assert.equal(response.status, 401);
@@ -115,10 +115,10 @@ try {
   assert.equal((await post("/api/auth/kofi/claim", { paymentEmail: "payer@example.com" })).status, 401);
   response = await fetch(base + "/privacy");
   assert.equal(response.status, 200);
-  assert.match(await response.text(), /Google sign-in gives us your Google account identifier/);
+  assert.match(await response.text(), /Google sign-in supplies your Google account identifier/);
   response = await fetch(base + "/terms");
   assert.equal(response.status, 200);
-  assert.match(await response.text(), /independent community site/);
+  assert.match(await response.text(), /independent Call of Dragons community website/);
 
   response = await post("/api/auth/local/signup", { username: "Forest Lord", lordId: "bad", password: "strong-password-123" });
   assert.equal(response.status, 400);
@@ -206,7 +206,12 @@ try {
   assert.equal(response.status, 200);
   assert.equal(applicant.disabled, false);
   response = await post("/api/auth/local/login", { username: "forest lord", password: "strong-password-123" });
-  assert.equal(response.status,403,"admin approval must not bypass required payment");
+  assert.equal(response.status,200,"approved unpaid accounts can log in with regular access");
+  assert.deepEqual(await response.json(), {status:"approved",redirectUrl:"/members"});
+  const regularCookie = response.headers.get("set-cookie") || "";
+  assert.equal((await fetch(base+"/members",{headers:{cookie:regularCookie}})).status,200);
+  assert.equal((await fetch(base+"/calendar",{headers:{cookie:regularCookie}})).status,200);
+  assert.equal((await fetch(base+"/base",{headers:{cookie:regularCookie}})).status,403);
   const linkPayment = (cookie: string) => fetch(base + `${signups}/${applicant._id}/payment`, {
     method:"PATCH",headers:{...jsonHeaders,cookie},body:JSON.stringify({paymentId:verifiedPayment._id})});
   assert.equal((await linkPayment(sessionCookie(member))).status,403);
@@ -227,7 +232,7 @@ try {
   assert.equal(response.status, 200);
   assert.equal((await fetch(base + signups, { headers: { cookie } })).status, 403);
   applicant.kofiPaidThrough = new Date(Date.now()-1000);
-  assert.equal((await fetch(base + "/base", {headers:{cookie}})).status,401,"payment expiry revokes existing sessions");
+  assert.equal((await fetch(base + "/base", {headers:{cookie}})).status,403,"payment expiry removes VIP without invalidating approved regular access");
   applicant.kofiPaidThrough = verifiedPayment.paidThrough;
 
   response = await review("terminated", sessionCookie(admin));
@@ -238,7 +243,8 @@ try {
   assert.deepEqual(await response.json(), { status: "terminated" });
 
   page = await (await fetch(base + "/kingdom/access?status=pending-local")).text();
-  assert.match(page, /required Ko-fi membership step/);
+  assert.match(page, /An admin will review it/);
+  assert.match(page, /Forest Guardian VIP is optional/);
   console.log("Local signup: validation, password hashing, pending approval, admin review, login, and termination passed.");
 } finally {
   await new Promise<void>((resolve) => server.close(() => resolve()));

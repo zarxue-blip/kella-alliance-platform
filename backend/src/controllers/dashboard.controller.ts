@@ -2005,7 +2005,7 @@ export const dashboardPersonalAttendance = asyncHandler(async (req: Authenticate
   res.set("Cache-Control", "private, no-store").json({ byEvent: personalAttendanceByEvent(responses) });
 });
 
-export const dashboardEvents = asyncHandler(async (_req, res) => {
+export const dashboardEvents = asyncHandler(async (req: AuthenticatedRequest, res) => {
   const allianceId = await resolveAllianceId();
   const filter = allianceFilter(allianceId);
   const events = (await KellaActionModel.find({ ...filter, type: "event_created" })
@@ -2013,7 +2013,7 @@ export const dashboardEvents = asyncHandler(async (_req, res) => {
     .limit(100)
     .lean()) as DashboardAction[];
   const eventIds = events.map((event) => event._id.toString());
-  const responses = eventIds.length
+  const responses = req.user.hasVipAccess && eventIds.length
     ? ((await KellaActionModel.find({ ...filter, type: "event_response", reportId: { $in: eventIds } }).sort({ actorName: 1 }).lean()) as DashboardAction[])
     : [];
 
@@ -2031,7 +2031,7 @@ export const dashboardEvents = asyncHandler(async (_req, res) => {
         status: event.status || "Sent",
         createdBy: event.actorName || "Dashboard",
         sentAt: event.sentAt,
-        attendance: summarizeEventResponses(eventResponses)
+        ...(req.user.hasVipAccess ? { attendance: summarizeEventResponses(eventResponses) } : {})
       };
     })
   });
@@ -2363,7 +2363,11 @@ export const dashboardWikiDelete = asyncHandler(async (req, res) => {
 
 export const dashboardSettings = asyncHandler(async (_req, res) => {
   const alliance = await resolveAlliance();
-  res.json(publicSettings(alliance));
+  const data = publicSettings(alliance);
+  res.set("Cache-Control", "private, no-store").json(res.locals.adminSettings ? data : {
+    alliance: data.alliance,
+    settings: { moduleStates: data.settings.moduleStates }
+  });
 });
 
 export const dashboardSettingsUpdate = asyncHandler(async (req, res) => {

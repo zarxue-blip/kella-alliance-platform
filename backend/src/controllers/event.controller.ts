@@ -17,7 +17,7 @@ const eventSchema = z.object({
 
 export const listEvents = asyncHandler(async (req: AuthenticatedRequest, res) => {
   const events = await EventModel.find({ allianceId: req.user.allianceId }).sort({ startsAt: 1 }).limit(200).lean();
-  res.json({ events });
+  res.json({ events: req.user.hasVipAccess ? events : events.map(({ rsvps: _rsvps, ...event }) => event) });
 });
 
 export const createEvent = asyncHandler(async (req: AuthenticatedRequest, res) => {

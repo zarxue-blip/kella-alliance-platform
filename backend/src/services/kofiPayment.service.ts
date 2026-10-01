@@ -18,6 +18,11 @@ export function requiresKofiPayment(user: any) {
 
 export function isCurrentKofiAccess(user: any, now = new Date()) {
   if (!requiresKofiPayment(user)) return true;
+  return hasActiveKofiMembership(user, now);
+}
+
+// Unlike the legacy payment gate, VIP always requires a verified receipt binding.
+export function hasActiveKofiMembership(user: any, now = new Date()) {
   const paidThrough = user.kofiPaidThrough && new Date(user.kofiPaidThrough).getTime();
   return typeof user.kofiPaymentEmail === "string" && Boolean(user.kofiPaymentEmail) &&
     Number.isFinite(paidThrough) && paidThrough > now.getTime();

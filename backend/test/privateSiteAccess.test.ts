@@ -20,7 +20,7 @@ const { env } = await import("../src/config/env.js");
 const { privateMemberAccessPath } = await import("../src/services/privateMemberAccess.service.js");
 
 const users: Record<string, any> = {
-  special: { _id: "special", discordId: "222222222222222222", role: "Member", discordRoleIds: [], privateSiteAccess: true, allianceId: "aaaaaaaaaaaaaaaaaaaaaaaa" },
+  special: { _id: "special", discordId: "private-member:bbbbbbbbbbbbbbbbbbbbbbbb", role: "Member", discordRoleIds: [], privateSiteAccess: true, allianceId: "aaaaaaaaaaaaaaaaaaaaaaaa" },
   ordinary: { _id: "ordinary", discordId: "333333333333333333", role: "Member", discordRoleIds: [], privateSiteAccess: false, allianceId: "aaaaaaaaaaaaaaaaaaaaaaaa" }
 };
 
@@ -62,10 +62,9 @@ try {
   assert.equal((await fetch(base + "/officer", { headers: { cookie: exclusiveCookie } })).status, 403);
   users.special.kofiPaymentRequired = true;
   const newAccess = await fetch(base + exclusivePath, {redirect:"manual"});
-  assert.equal(newAccess.headers.get("location"),"/kingdom/payment","new invited accounts still need payment");
-  assert.match(newAccess.headers.get("set-cookie") || "",/kella_payment_identity=/);
-  assert.doesNotMatch(newAccess.headers.get("set-cookie") || "",new RegExp(`${env.SESSION_COOKIE_NAME}=[^;,\\s]+`));
-  assert.equal((await fetch(base+"/base",{headers:{cookie:exclusiveCookie}})).status,401);
+  assert.equal(newAccess.headers.get("location"),"/profile","an explicit owner gift retains access without payment");
+  assert.match(newAccess.headers.get("set-cookie") || "",new RegExp(`${env.SESSION_COOKIE_NAME}=[^;,\\s]+`));
+  assert.equal((await fetch(base+"/base",{headers:{cookie:exclusiveCookie}})).status,200);
   users.special.kofiPaymentEmail="bond@example.com";
   users.special.kofiPaidThrough=new Date(Date.now()+86_400_000);
   assert.equal((await fetch(base+exclusivePath,{redirect:"manual"})).headers.get("location"),"/profile");

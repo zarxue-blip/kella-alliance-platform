@@ -41,7 +41,8 @@ async function verify() {
         assert.equal(removed.status,404,'removed website feature must be unreachable: '+method+' '+route);
       }
     }
-    const response=await fetch(origin+'/calendar');
+    assert.equal((await fetch(origin+'/calendar')).status,401,'calendar requires an approved member session');
+    const response=await fetch(origin+'/');
     assert.equal(response.status,200);
     const html=await response.text();
     const asset=html.match(/src="(\/assets\/kella-[a-f0-9]+\.js)"/)?.[1];

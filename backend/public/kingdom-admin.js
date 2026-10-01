@@ -140,7 +140,7 @@ function render(members, payments) {
   list.replaceChildren();
   const pending = members.filter((member) => member.status === 'pending').length;
   const unpaid = members.filter((member) => member.paymentRequired && member.paymentStatus !== 'paid').length;
-  summary.textContent = `${members.length} ${members.length === 1 ? 'member' : 'members'} · ${pending} pending review · ${unpaid} awaiting payment`;
+  summary.textContent = `${members.length} ${members.length === 1 ? 'member' : 'members'} · ${pending} pending review · ${unpaid} without VIP membership`;
   if (!members.length) {
     const empty = document.createElement('p');
     empty.className = 'kingdom-empty';
@@ -164,13 +164,13 @@ function render(members, payments) {
     const paymentDetails = document.createElement('div');
     paymentDetails.className = 'kingdom-payment-details';
     if (member.paymentRequired) {
-      paymentDetails.append(cell('Payment', member.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'));
+      paymentDetails.append(cell('Membership', member.paymentStatus === 'paid' ? 'Guardian VIP' : 'Regular'));
       if (member.paymentEmail) paymentDetails.append(cell('Bound payer email', member.paymentEmail));
       if (member.paidThrough) paymentDetails.append(cell('Paid through', dateLabel(member.paidThrough)));
       if (member.requestedPaymentEmail) paymentDetails.append(cell('Applicant’s payer email', member.requestedPaymentEmail));
       if (member.requestedTransactionId) paymentDetails.append(cell('Applicant’s transaction ID', member.requestedTransactionId));
     } else {
-      paymentDetails.append(cell('Payment', 'Legacy access'));
+      paymentDetails.append(cell('Membership', member.hasVipAccess ? 'Granted VIP access' : 'Regular'));
     }
     details.append(paymentDetails);
     row.append(cell(localAccount || googleAccount ? 'In-game username' : member.provider === 'discord' ? 'Discord name' : 'Member name', member.inGameUsername || member.username), details);
@@ -186,7 +186,7 @@ function render(members, payments) {
 
     const actions = document.createElement('div');
     actions.className = 'kingdom-member-actions';
-    for (const [status, label] of localAccount || googleAccount ? [['approved', 'Approve review'], ['terminated', 'Terminate']] : []) {
+    for (const [status, label] of localAccount || googleAccount ? [['approved', 'Approve regular access'], ['terminated', 'Terminate']] : []) {
       if (member.status === status) continue;
       const button = document.createElement('button');
       button.type = 'button';
@@ -203,7 +203,7 @@ function render(members, payments) {
             body: JSON.stringify({ status })
           });
           if (!response.ok) throw await responseError(response, 'Could not update this signup. Refresh and try again.');
-          feedback.textContent = `${member.inGameUsername || member.username}: ${status}${status === 'approved' && member.paymentRequired && member.paymentStatus !== 'paid' ? '; payment is still required' : ''}.`;
+          feedback.textContent = `${member.inGameUsername || member.username}: ${status}${status === 'approved' && member.paymentRequired && member.paymentStatus !== 'paid' ? '; regular access approved (VIP requires membership)' : ''}.`;
           await load();
         } catch (error) {
           feedback.textContent = error.message;

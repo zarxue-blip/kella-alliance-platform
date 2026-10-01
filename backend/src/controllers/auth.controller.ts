@@ -8,9 +8,9 @@ import { MemberModel } from "../models/member.model.js";
 import { getDiscordAuthorizationUrl, exchangeDiscordCode, getDiscordOAuthGuildMember } from "../services/discordOAuth.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
-import { isDashboardAdminUser, isDashboardWikiEditorUser, signSessionToken, type AuthenticatedRequest } from "../middleware/auth.js";
+import { hasVipAccess, isValidMemberSession, isDashboardAdminUser, isDashboardWikiEditorUser, memberLandingPath, signSessionToken, type AuthenticatedRequest } from "../middleware/auth.js";
 import { isCurrentKofiAccess } from "../services/kofiPayment.service.js";
-import { beginPaymentAccess } from "../services/paymentAccess.service.js";
+import { memberForViewer } from "../services/memberPrivacy.service.js";
 
 
 
@@ -123,11 +123,6 @@ export const discordCallback = asyncHandler(async (req: Request, res: Response) 
   );
 
   if (user.disabled) throw new HttpError(403, "This account has been terminated");
-  if (!isCurrentKofiAccess(user)) {
-    beginPaymentAccess(res, user);
-    return res.redirect("/kingdom/payment");
-  }
-
   const token = signSessionToken({
     id: user._id.toString(),
     discordId: user.discordId,
@@ -142,15 +137,21 @@ export const discordCallback = asyncHandler(async (req: Request, res: Response) 
     sameSite: "lax",
     maxAge: 1000 * 60 * 60 * 24 * 7
   });
-  const fallbackUrl = `${req.protocol}://${req.get("host")}/`;
-  const redirectUrl = isProduction && env.PUBLIC_APP_URL.includes("localhost") ? fallbackUrl : env.PUBLIC_APP_URL;
-  res.redirect(redirectUrl);
+  res.redirect(memberLandingPath(user));
 });
 
 export const getMe = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const user = await UserModel.findById(req.user.id).populate("memberId").lean();
-  res.json({
-    user,
+  const user = await UserModel.findById(req.user.id).populate("memberId").lean<any>();
+  const safeUser = user ? { ...user, memberId: user.memberId && typeof user.memberId === "object"
+    ? memberForViewer(user.memberId as any, isDashboardAdminUser(user)) : user.memberId } : null;
+  if (safeUser) {
+    for (const key of ["localPasswordHash", "localUsernameKey", "commanderTools", "baseLayout", "kofiRequestedEmail", "kofiRequestedTransactionId", "privateSiteAccess", "googleReviewedBy", "localReviewedBy"])
+      delete (safeUser as any)[key];
+  }
+  res.set("Cache-Control", "private, no-store").json({
+    user: safeUser,
+    hasVipAccess: hasVipAccess(user),
+    canViewMemberPages: isValidMemberSession(user),
     isDashboardAdmin: Boolean(user && isDashboardAdminUser(user as any)),
     isDashboardWikiEditor: Boolean(user && isDashboardWikiEditorUser(user as any)),
     loginUrl: "/api/auth/discord"

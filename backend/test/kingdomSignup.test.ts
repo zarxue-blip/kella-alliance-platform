@@ -228,7 +228,7 @@ try {
   const pendingPage = await (await fetch(base + "/kingdom/access?status=pending")).text();
   assert.match(pendingPage, /https:\/\/ko-fi\.com\/exuz19\/tiers/);
   assert.match(pendingPage, /Join Forest Guardian · \$5\/month/);
-  assert.match(pendingPage, /Payment verification is required even if an admin approves/);
+  assert.match(pendingPage, /Wait for admin approval for regular access/);
   assert.doesNotMatch(await (await fetch(base + "/kingdom/access")).text(), /https:\/\/ko-fi\.com\/exuz19\/tiers/);
   const applicant = users.find((user) => user.googleSub === "google-user");
   assert.ok(applicant);
@@ -273,7 +273,7 @@ try {
   assert.equal(response.status, 200);
   const completePage = await response.text();
   assert.match(completePage, /Join Forest Guardian · \$5\/month/);
-  assert.match(completePage, /Forest Guardian membership is required for access/);
+  assert.match(completePage, /Regular access includes Members and Calendar after approval/);
   response = await fetch(base + "/api/auth/google/complete", {
     method: "POST", headers: { "content-type": "application/json", cookie: signupCookie },
     body: JSON.stringify({ inGameUsername: "x" }), redirect: "manual"
@@ -336,12 +336,15 @@ try {
   });
   applicant.kofiPaymentRequired = false;
   response = await callback("approved-user", approvedLogin);
-  assert.equal(response.headers.get("location"), "/kingdom/payment","earlier manual approval cannot skip payment");
-  const approvedPaymentCookie = cookieFrom(response, "kella_payment_identity");
+  assert.equal(response.headers.get("location"), "/members","approved unpaid Google accounts enter with regular access");
+  const regularCookie = cookieFrom(response, env.SESSION_COOKIE_NAME);
+  assert.equal((await fetch(base + "/members", {headers:{cookie:regularCookie}})).status,200);
+  assert.equal((await fetch(base + "/calendar", {headers:{cookie:regularCookie}})).status,200);
+  const approvedPaymentCookie = pendingPaymentCookie;
   assert.deepEqual(await (await fetch(base + "/api/auth/kofi/status", {
     headers: { cookie: approvedPaymentCookie }
-  })).json(), { status: "payment-required" });
-  assert.equal((await fetch(base + "/base",{headers:{cookie:sessionCookie(applicant)}})).status,401);
+  })).json(), { status: "payment-required", canContinueRegular:true });
+  assert.equal((await fetch(base + "/base",{headers:{cookie:sessionCookie(applicant)}})).status,403);
   applicant.kofiPaymentEmail = "approved@example.com";
   applicant.kofiPaidThrough = new Date(Date.now()+86_400_000);
   response = await fetch(base + "/api/auth/kofi/status", { headers: { cookie: approvedPaymentCookie } });
@@ -373,8 +376,7 @@ try {
   assert.deepEqual(applicant.baseLayout?.buildings, layout.buildings);
   assert.equal(users.find((user) => user.googleSub === "complete-user")?.baseLayout, null);
   response = await fetch(base + "/api/dashboard/base-layout", { headers: { cookie: sessionCookie(users[1]) } });
-  assert.equal(response.status, 200);
-  assert.equal((await response.json() as any).data, null, "another member must not receive this user's base layout");
+  assert.equal(response.status, 403,"regular accounts cannot fetch another member's VIP base layout");
 
   response = await review(reviewUrl, "terminated", sessionCookie(users[0]));
   assert.equal(response.status, 200);

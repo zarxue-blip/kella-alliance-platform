@@ -5,7 +5,7 @@ import type { UserRole } from "@cod-amp/shared";
 import { env } from "../config/env.js";
 import { HttpError } from "../utils/httpError.js";
 import { UserModel } from "../models/user.model.js";
-import { isCurrentKofiAccess } from "../services/kofiPayment.service.js";
+import { hasActiveKofiMembership } from "../services/kofiPayment.service.js";
 
 export interface AuthUser {
   id: string;
@@ -15,6 +15,8 @@ export interface AuthUser {
   privateSiteAccess?: boolean;
   memberId?: string;
   allianceId: string;
+  /** Recomputed from the database by authenticate; never trusted from a JWT. */
+  hasVipAccess?: boolean;
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -36,7 +38,29 @@ export function hasEvoMemberAccess(user: { discordRoleIds?: string[]; privateSit
 export function isValidMemberSession(user: any) {
   return Boolean(user && !user.disabled &&
     (!String(user.discordId || "").startsWith("local:") || user.localApprovalStatus === "approved") &&
-    (!user.googleApprovalStatus || user.googleApprovalStatus === "approved") && isCurrentKofiAccess(user));
+    (!user.localApprovalStatus || user.localApprovalStatus === "approved") &&
+    (!user.googleApprovalStatus || user.googleApprovalStatus === "approved"));
+}
+
+export function hasExplicitMemberAccess(user: any) {
+  return Boolean(user?.privateSiteAccess && String(user.discordId || "").startsWith("private-member:"));
+}
+
+export function hasVipAccess(user: any) {
+  return Boolean(isValidMemberSession(user) && (isDashboardAdminUser(user) ||
+    hasExplicitMemberAccess(user) || hasActiveKofiMembership(user)));
+}
+
+export function memberLandingPath(user: any) {
+  return hasVipAccess(user) ? "/base" : "/members";
+}
+
+export function requireVipAccess(req: Request, _res: Response, next: NextFunction) {
+  if (!(req as AuthenticatedRequest).user?.hasVipAccess) {
+    next(new HttpError(403, "Guardian membership is required for this feature"));
+    return;
+  }
+  next();
 }
 
 export async function hasPrivateSiteSession(token?: string) {
@@ -69,6 +93,7 @@ function csvSet(value?: string) {
 }
 
 export function isDashboardAdminUser(user: { discordId?: string; role?: UserRole; discordRoleIds?: string[] }) {
+  if (user.role === "Owner") return true;
   if (user.discordId && csvSet(env.DASHBOARD_ADMIN_DISCORD_IDS).has(user.discordId)) return true;
   const configuredRoleIds = csvSet(env.DASHBOARD_ADMIN_ROLE_IDS);
   fallbackDashboardAdminRoleIds.forEach((roleId) => configuredRoleIds.add(roleId));
@@ -113,6 +138,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
       role: user.role,
       discordRoleIds: user.discordRoleIds || [],
       privateSiteAccess,
+      hasVipAccess: hasVipAccess(user),
       memberId: user.memberId?.toString?.() || undefined,
       allianceId: user.allianceId.toString()
     };
@@ -197,6 +223,10 @@ export function authenticateDashboardWikiEditor(req: Request, _res: Response, ne
         }
         if (!isDashboardWikiEditorUser(user)) {
           next(new HttpError(403, "This Discord account does not have Kella wiki editor access"));
+          return;
+        }
+        if (!hasVipAccess(user)) {
+          next(new HttpError(403, "Guardian membership is required for this feature"));
           return;
         }
         (req as AuthenticatedRequest).user = {

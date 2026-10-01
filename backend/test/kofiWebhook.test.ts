@@ -240,9 +240,10 @@ try {
   assert.equal(unpaid.googleApprovalSource, "kofi");
 
   payer.kofiPaidThrough = new Date(Date.now() - 1000);
-  assert.equal((await fetch(base + "/api/auth/me", { headers: { cookie: payerCookie } })).status, 401,
-    "an existing session must expire with payment");
-  assert.equal((await fetch(base + "/base", { headers: { cookie: payerCookie } })).status, 401);
+  assert.equal((await fetch(base + "/api/auth/me", { headers: { cookie: payerCookie } })).status, 200,
+    "payment expiry retains approved regular membership");
+  assert.equal((await fetch(base + "/base", { headers: { cookie: payerCookie } })).status, 403);
+  assert.equal((await fetch(base + "/calendar", { headers: { cookie: payerCookie } })).status, 200);
   assert.equal((await postPayment(payment({ email: "PAYER@example.com" }))).status, 200);
   assert.ok(payer.kofiPaidThrough.getTime() > Date.now(), "renewal should restore access");
   assert.equal((await fetch(base + "/api/auth/me", { headers: { cookie: payerCookie } })).status, 200);
@@ -259,8 +260,9 @@ try {
   assert.equal(response.status, 200);
   assert.equal(unpaid.googleApprovalSource, "admin");
   unpaid.kofiPaidThrough = new Date(Date.now() - 1000);
-  assert.equal((await fetch(base + "/api/auth/me", { headers: { cookie: sessionCookie(unpaid) } })).status, 401,
-    "manual approval must not bypass payment expiry");
+  assert.equal((await fetch(base + "/api/auth/me", { headers: { cookie: sessionCookie(unpaid) } })).status, 200,
+    "manual approval grants regular access after VIP expiry");
+  assert.equal((await fetch(base + "/base", { headers: { cookie: sessionCookie(unpaid) } })).status, 403);
 
   response = await fetch(base + `/api/dashboard/kingdom-signups/${unpaid._id}`, {
     method: "PATCH", headers: { "content-type": "application/json", cookie: adminCookie },
@@ -300,10 +302,11 @@ try {
       headers:{cookie:cookieFrom(start,oauthStateCookie)},redirect:"manual"});
   };
   response=await discordLogin("987654321098765432");
-  assert.equal(response.headers.get("location"),"/kingdom/payment");
+  assert.equal(response.headers.get("location"),"/members");
   const newDiscord=users.find(user=>user.discordId==="987654321098765432");
   assert.equal(newDiscord.kofiPaymentRequired,true);
-  assert.equal((await fetch(base+"/api/auth/me",{headers:{cookie:sessionCookie(newDiscord)}})).status,401);
+  assert.equal((await fetch(base+"/api/auth/me",{headers:{cookie:sessionCookie(newDiscord)}})).status,200);
+  assert.equal((await fetch(base+"/base",{headers:{cookie:sessionCookie(newDiscord)}})).status,403);
   response=await discordLogin(users[0].discordId);
   assert.match(response.headers.get("set-cookie") || "",new RegExp(`${env.SESSION_COOKIE_NAME}=`),"legacy Discord login remains available");
 

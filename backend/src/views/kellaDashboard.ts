@@ -8,7 +8,7 @@ import { hospitalClient } from "./hospitalClient.js";
 const navItems = [
   { path: "/migration", icon: "/assets/migration-gold.png", label: "Migration" },
   { path: "/", icon: "/assets/icons/dashboard.png", label: "Home" },
-  { path: "/calendar", icon: "/assets/icons/events.png", label: "Events" },
+  { path: "/calendar", icon: "/assets/icons/events.png", label: "Calendar" },
   { path: "/profile", icon: "/assets/icons/members.png", label: "My Profile" },
   { path: "/officer", icon: "/assets/icons/settings.png", label: "Officer", adminOnly: true },
   { path: "/wiki", icon: "/assets/icons/embed-sender.png", label: "Wiki" },
@@ -3348,7 +3348,7 @@ export function kellaDashboardHtml() {
     <link rel="stylesheet" href="/assets/command-workspace.css?v=1" />
     <link rel="stylesheet" href="/assets/fantasy-portal.css?v=elven-forest-2" />
     <link rel="stylesheet" href="/assets/site-parallax.css?v=realm-3" />
-    <link rel="stylesheet" href="/assets/portal-parallax.css?v=kingdom-film-4" />
+    <link rel="stylesheet" href="/assets/portal-parallax.css?v=guardian-hd-1" />
     <link rel="stylesheet" href="/assets/training-units.css?v=3" />
     <link rel="stylesheet" href="/assets/hospital.css?v=1" />
     <link rel="stylesheet" href="/assets/base-game/research-hud.css?v=2" />
@@ -3400,6 +3400,12 @@ export function kellaDashboardHtml() {
       </section>
     </div>
     <div id="avatarCropper" class="avatar-cropper" aria-hidden="true"></div>
+    <button class="guardian-floating" type="button" data-guardian-open aria-haspopup="dialog" aria-controls="guardianMembership"><span aria-hidden="true">♛</span><span>Guardian <strong>VIP</strong></span></button>
+    <dialog id="guardianMembership" class="guardian-dialog" aria-labelledby="guardianTitle" aria-describedby="guardianDescription">
+      <div class="guardian-dialog-head"><h2 id="guardianTitle">Guardian Membership</h2><button type="button" data-guardian-close aria-label="Close Guardian membership">×</button></div>
+      <img class="guardian-art" src="/assets/guardian-membership.webp" alt="Guardian Membership — premium alliance tools and member access" width="1448" height="1086" loading="lazy" />
+      <div class="guardian-dialog-details"><p id="guardianDescription">Unlock the kingdom, research, training, healing, and personal member tools. Regular members can view Members and Calendar.</p><p class="guardian-role-note">Management, reports, alerts, and admin actions still require an admin role.</p><div class="guardian-dialog-actions"><a class="primary" href="/kingdom/payment">Get Guardian · $5 / month</a><a href="/billing">Billing & cancellation</a></div></div>
+    </dialog>
     <div id="toasts" class="toast-stack" aria-live="polite"></div>
     <nav class="bottom-nav" aria-label="Mobile navigation">
       <a href="/" data-link data-path="/" aria-label="Home"><img src="/assets/icons/dashboard.png" alt=""/><span>Home</span></a>
@@ -3651,6 +3657,14 @@ ${hospitalClient}
         return isDashboardAdmin();
       }
 
+      function hasVipAccess() {
+        return hasAdminAccess() || state.auth?.hasVipAccess === true;
+      }
+
+      function pathRequiresVip(path) {
+        return !["/", "/members", "/calendar", "/migration"].includes(path);
+      }
+
       function hasWikiEditAccess() {
         return hasAdminAccess() || isDashboardWikiEditor();
       }
@@ -3662,15 +3676,18 @@ ${hospitalClient}
       }
 
       function navItemHtml(item) {
-        return '<a aria-label="' + escapeHtml(item.label) + '" title="' + escapeHtml(item.label) + '" href="' + escapeHtml(item.path) + '" data-link data-path="' + escapeHtml(item.path) + '"><img class="nav-icon" src="' + escapeHtml(item.icon) + '" alt="" loading="lazy" /><span>' + escapeHtml(item.label) + '</span></a>';
+        const locked = state.auth?.authenticated && !hasVipAccess() && pathRequiresVip(item.path) && !item.adminOnly;
+        return '<a aria-label="' + escapeHtml(item.label) + (locked ? ' — Guardian VIP' : '') + '" title="' + escapeHtml(item.label) + (locked ? ' — Guardian VIP' : '') + '" href="' + (locked ? '/kingdom/payment' : escapeHtml(item.path)) + '" ' + (locked ? 'data-guardian-open class="guardian-nav-locked"' : 'data-link') + ' data-path="' + escapeHtml(item.path) + '"><img class="nav-icon" src="' + escapeHtml(item.icon) + '" alt="" loading="lazy" /><span>' + escapeHtml(item.label) + '</span>' + (locked ? '<small aria-hidden="true">VIP</small>' : '') + '</a>';
       }
 
       function renderSidebarNav() {
         const nav = document.querySelector("[data-sidebar-nav]");
         if (!nav) return;
-        const primary = state.auth?.authenticated ? ["/", "/calendar", "/wiki", "/members", "/profile"] : ["/"];
+        const primary = state.auth?.authenticated ? ["/", "/calendar", "/members", "/wiki", "/profile"] : ["/"];
         nav.innerHTML = primary.map(function(path) { return navItemHtml(dashboardNavItems.find(function(item) { return item.path === path; })); }).join("") +
           (hasAdminAccess() ? '<div class="nav-section-label">Alliance management</div>' + navItemHtml(dashboardNavItems.find(function(item) { return item.path === "/officer"; })) : "");
+        const bottom = document.querySelector('.bottom-nav');
+        if (bottom) bottom.innerHTML = (state.auth?.authenticated ? ['/', '/calendar', '/members', '/wiki'] : ['/']).map(function(path) { return navItemHtml(dashboardNavItems.find(function(item) { return item.path === path; })); }).join('') + '<button type="button" data-mobile-nav-toggle aria-label="More navigation" aria-expanded="false"><span aria-hidden="true">☰</span><span>More</span></button>';
         setActiveNav();
       }
 
@@ -4690,7 +4707,7 @@ ${hospitalClient}
         if (!events.length) return "";
         return '<div class="calendar-detail-list">' +
           events.map(function(event) {
-            return '<article class="calendar-detail-card"><div class="card-header"><div><span class="badge warn">Event</span><h3>' + escapeHtml(event.title || "Alliance Event") + '</h3><span class="activity-time">' + formatUtcDateTime(event.startsAt) + '</span></div>' + (hasAdminAccess() ? '<div class="toolbar"><button class="danger" type="button" data-action="delete-event" data-event-id="' + escapeHtml(event.id || "") + '">Delete</button></div>' : '') + '</div><p>' + escapeHtml(event.description || "No description added.") + '</p>' + renderAttendanceGroups(event) + '</article>';
+            return '<article class="calendar-detail-card"><div class="card-header"><div><span class="badge warn">Event</span><h3>' + escapeHtml(event.title || "Alliance Event") + '</h3><span class="activity-time">' + formatUtcDateTime(event.startsAt) + '</span></div>' + (hasAdminAccess() ? '<div class="toolbar"><button class="danger" type="button" data-action="delete-event" data-event-id="' + escapeHtml(event.id || "") + '">Delete</button></div>' : '') + '</div><p>' + escapeHtml(event.description || "No description added.") + '</p>' + (hasVipAccess() ? renderAttendanceGroups(event) : '') + '</article>';
           }).join("") +
         '</div>';
       }
@@ -4729,7 +4746,7 @@ ${hospitalClient}
           ]);
         }
         const date = new Date(key + "T00:00:00Z");
-        const title = type === "events" ? "Attendance Calendar" : "Activity Calendar";
+        const title = type === "events" ? (hasVipAccess() ? "Attendance Calendar" : "Alliance Calendar") : "Activity Calendar";
         const dayEvents = eventsForDay(state.events || [], key);
 
         const items = type === "events"
@@ -4890,7 +4907,7 @@ ${hospitalClient}
 
       async function loadSettings() {
         if (!state.settings) {
-          state.settings = await fetchJson("/api/dashboard/settings");
+          state.settings = await fetchJson(hasAdminAccess() ? "/api/dashboard/settings/admin" : "/api/dashboard/settings", hasAdminAccess());
           applyGuildHeader(state.settings);
         }
         return state.settings;
@@ -4919,6 +4936,8 @@ ${hospitalClient}
         const kingdomAccessLink = document.querySelector("[data-kingdom-access]");
         const logoutButton = document.querySelector("[data-auth-logout]");
         const profileButton = document.querySelector("[data-profile-button]");
+        const feedbackButton = document.querySelector('.feedback-top-button');
+        if (feedbackButton) feedbackButton.hidden = !hasVipAccess();
         const user = state.auth?.user;
         renderSidebarNav();
         if (!target) return;
@@ -4931,11 +4950,11 @@ ${hospitalClient}
           return;
         }
         if (user) {
-          target.textContent = (user.googleSub ? "Google: " : "Discord: ") + (user.username || user.discordId) + (state.auth?.isDashboardAdmin ? " (Admin)" : state.auth?.isDashboardWikiEditor ? " (Wiki Editor)" : " (Member)");
+          target.textContent = (user.googleSub ? "Google: " : user.localUsername ? "Account: " : "Discord: ") + (user.localUsername || user.username || user.discordId) + (state.auth?.isDashboardAdmin ? " (Admin)" : hasVipAccess() ? " (Guardian VIP)" : " (Member)");
           if (loginButton) loginButton.style.display = "none";
           if (kingdomAccessLink) kingdomAccessLink.style.display = "none";
           if (logoutButton) logoutButton.style.display = "";
-          if (profileButton) profileButton.style.display = "";
+          if (profileButton) profileButton.style.display = hasVipAccess() ? "" : "none";
           return;
         }
         target.textContent = "Checking login...";
@@ -7728,7 +7747,7 @@ ${portalHomeClient}
           const results = await Promise.all([loadDashboardEvents()]);
           if (renderVersion !== navigationVersion) return;
           app.innerHTML = pageHeader("Events", "", hasAdminAccess() ? '<button class="primary" data-link-button="/tools?tool=events">+ Add event</button>' : '') +
-            '<section class="card alliance-calendar"><div class="card-header"><div><span class="portal-eyebrow">ALL TIMES UTC</span><h3>' + monthTitle(portalCalendarDate) + '</h3></div><div class="calendar-controls"><button type="button" data-calendar-shift="-1" aria-label="Previous month">‹</button><button type="button" data-calendar-shift="0">Today</button><button type="button" data-calendar-shift="1" aria-label="Next month">›</button></div></div>' + renderEventsCalendar(results[0],portalCalendarDate) + '<p class="calendar-hint">Select a date to view events and attendance.</p></section>' + '<section class="calendar-agenda"><div class="portal-section-heading"><h2>This month</h2><a href="/attendance" data-link>Attendance →</a></div>' + (results[0].filter(function(e){return Number.isFinite(Date.parse(e.startsAt)) && monthTitle(new Date(e.startsAt)) === monthTitle(portalCalendarDate);}).sort(function(a,b){return Date.parse(a.startsAt)-Date.parse(b.startsAt);}).map(function(e){return '<a class="calendar-agenda-item" href="/attendance/'+encodeURIComponent(e.id)+'" data-link><time><strong>'+new Date(e.startsAt).getUTCDate()+'</strong>'+formatUtcTime(e.startsAt)+' UTC</time><div><h3>'+escapeHtml(e.title)+'</h3><span>Event details & attendance</span></div><span aria-hidden="true">→</span></a>';}).join('') || '<p class="portal-empty">No events scheduled this month.</p>') + '</section>';
+            '<section class="card alliance-calendar"><div class="card-header"><div><span class="portal-eyebrow">ALL TIMES UTC</span><h3>' + monthTitle(portalCalendarDate) + '</h3></div><div class="calendar-controls"><button type="button" data-calendar-shift="-1" aria-label="Previous month">‹</button><button type="button" data-calendar-shift="0">Today</button><button type="button" data-calendar-shift="1" aria-label="Next month">›</button></div></div>' + renderEventsCalendar(results[0],portalCalendarDate) + '<p class="calendar-hint">Select a date to view events.</p></section>' + '<section class="calendar-agenda"><div class="portal-section-heading"><h2>This month</h2>' + (hasVipAccess() ? '<a href="/attendance" data-link>Attendance →</a>' : '<a href="/kingdom/payment" data-guardian-open>Attendance · VIP</a>') + '</div>' + (results[0].filter(function(e){return Number.isFinite(Date.parse(e.startsAt)) && monthTitle(new Date(e.startsAt)) === monthTitle(portalCalendarDate);}).sort(function(a,b){return Date.parse(a.startsAt)-Date.parse(b.startsAt);}).map(function(e){return '<button type="button" class="calendar-agenda-item" data-calendar-day="'+escapeHtml(dayKey(e.startsAt))+'" data-calendar-type="events"><time><strong>'+new Date(e.startsAt).getUTCDate()+'</strong>'+formatUtcTime(e.startsAt)+' UTC</time><div><h3>'+escapeHtml(e.title)+'</h3><span>View event details</span></div><span aria-hidden="true">→</span></button>';}).join('') || '<p class="portal-empty">No events scheduled this month.</p>') + '</section>';
           app.querySelectorAll('[data-calendar-shift]').forEach(function(button){button.onclick=function(){const shift=Number(button.dataset.calendarShift);portalCalendarDate=shift?new Date(Date.UTC(portalCalendarDate.getUTCFullYear(),portalCalendarDate.getUTCMonth()+shift,1)):new Date();renderMemberCalendar();};});
         } catch(error) { app.innerHTML = '<div class="error">' + escapeHtml(error.message) + '</div>'; }
       }
@@ -7831,16 +7850,8 @@ ${portalHomeClient}
       }
 
       async function renderDashboard() {
-        const renderVersion = navigationVersion;
-        skeleton("Loading dashboard...");
-        try {
-          const results = await Promise.all([loadSettings(), state.auth?.authenticated ? loadDashboardEvents() : Promise.resolve([])]);
-          if (renderVersion !== navigationVersion) return;
-          renderDashboardData({}, [], results[1]);
-        } catch (error) {
-          if (renderVersion !== navigationVersion) return;
-          app.innerHTML = '<div class="error">Could not load dashboard data. ' + escapeHtml(error.message) + '</div>';
-        }
+        renderDashboardData({}, [], []);
+        loadSettings().catch(function() {});
       }
 
       function renderMembersTable(members) {
@@ -8971,6 +8982,11 @@ ${portalHomeClient}
           setActiveNav();
           return renderAdminAccessRequired();
         }
+        if (state.auth?.authenticated && pathRequiresVip(path) && !hasVipAccess()) {
+          app.innerHTML = pageHeader("Guardian VIP", "Unlock this feature with Guardian membership.", '<button class="primary" type="button" data-guardian-open>View membership</button><a class="secondary" href="/members" data-link>Members</a><a class="secondary" href="/calendar" data-link>Calendar</a>');
+          setActiveNav();
+          return;
+        }
         setActiveNav();
         if (path === "/migration") return renderMigration();
         if (path === "/migration/admin") return renderMigration(true);
@@ -9175,6 +9191,20 @@ ${portalHomeClient}
       }, { passive: false });
 
       document.addEventListener("click", async function(event) {
+        if (event.target.closest('[data-guardian-open]')) {
+          event.preventDefault();
+          openGuardianMembership();
+          return;
+        }
+        if (event.target.closest('[data-guardian-close]')) {
+          document.getElementById('guardianMembership').close();
+          return;
+        }
+        if (event.target.id === 'guardianMembership') {
+          const bounds=event.target.getBoundingClientRect();
+          if(event.clientX<bounds.left || event.clientX>bounds.right || event.clientY<bounds.top || event.clientY>bounds.bottom) event.target.close();
+          return;
+        }
         document.querySelectorAll(".profile-radar-controls details[open]").forEach(function(panel) {
           if (!panel.contains(event.target)) panel.removeAttribute("open");
         });

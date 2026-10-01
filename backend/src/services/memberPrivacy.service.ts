@@ -5,5 +5,7 @@ export function memberForViewer<T extends Record<string, any>>(member: T, admin 
   delete result.discordUsername;
   delete result.privateSiteAccess;
   delete result.privateAccessPath;
+  delete result.privateAccessVersion;
+  delete result.notes;
   return result;
 }

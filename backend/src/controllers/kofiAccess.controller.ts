@@ -1,15 +1,24 @@
 import type { Request, Response } from "express";
 import { env, isProduction } from "../config/env.js";
-import { isValidMemberSession, signSessionToken } from "../middleware/auth.js";
+import { hasVipAccess, isValidMemberSession, signSessionToken } from "../middleware/auth.js";
 import { UserModel } from "../models/user.model.js";
-import { isCurrentKofiAccess, normalizeKofiEmail } from "../services/kofiPayment.service.js";
+import { hasActiveKofiMembership, normalizeKofiEmail } from "../services/kofiPayment.service.js";
 import { clearPaymentAccess, paymentAccessUser } from "../services/paymentAccess.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { kingdomPaymentHtml } from "../views/kingdomAccessPage.js";
 
 function paymentState(user: any) {
-  if (isCurrentKofiAccess(user)) return isValidMemberSession(user) ? "approved" : "approval-pending";
+  if (hasVipAccess(user)) return "approved";
+  if (hasActiveKofiMembership(user)) return "approval-pending";
   return user.kofiRequestedEmail ? "review-pending" : "payment-required";
+}
+
+function memberSession(res: Response, user: any) {
+  const token = signSessionToken({ id: user._id.toString(), discordId: user.discordId, role: user.role,
+    privateSiteAccess: Boolean(user.privateSiteAccess), allianceId: user.allianceId.toString() });
+  res.cookie(env.SESSION_COOKIE_NAME, token, { httpOnly: true, secure: isProduction, sameSite: "lax",
+    path: "/", maxAge: 7 * 86_400_000 });
+  clearPaymentAccess(res);
 }
 
 export const getKofiAccessStatus = asyncHandler(async (req: Request, res: Response) => {
@@ -17,7 +26,17 @@ export const getKofiAccessStatus = asyncHandler(async (req: Request, res: Respon
   const user = await paymentAccessUser(req);
   if (!user) return res.status(401).json({ status: "expired", redirectUrl: "/kingdom/access?status=expired" });
   const status = paymentState(user);
-  res.json({ status, ...(status === "approved" ? { redirectUrl: "/kingdom/payment" } : {}) });
+  res.json({ status, ...(status === "approved" ? { redirectUrl: "/kingdom/payment" } : {}),
+    ...(isValidMemberSession(user) && !hasVipAccess(user) ? { canContinueRegular: true } : {}) });
+});
+
+export const continueAsRegularMember = asyncHandler(async (req: Request, res: Response) => {
+  res.set("Cache-Control", "private, no-store");
+  const user = await paymentAccessUser(req);
+  if (!user) return res.redirect("/kingdom/access?status=expired");
+  if (!isValidMemberSession(user)) return res.redirect("/kingdom/payment?status=pending-regular");
+  memberSession(res, user);
+  return res.redirect("/members");
 });
 
 export const showKingdomPayment = asyncHandler(async (req: Request, res: Response) => {
@@ -25,11 +44,7 @@ export const showKingdomPayment = asyncHandler(async (req: Request, res: Respons
   const user = await paymentAccessUser(req);
   if (!user) return res.redirect("/kingdom/access?status=expired");
   if (paymentState(user) === "approved") {
-    const token = signSessionToken({ id: user._id.toString(), discordId: user.discordId, role: user.role,
-      privateSiteAccess: Boolean(user.privateSiteAccess), allianceId: user.allianceId.toString() });
-    res.cookie(env.SESSION_COOKIE_NAME, token, { httpOnly: true, secure: isProduction, sameSite: "lax",
-      path: "/", maxAge: 7 * 86_400_000 });
-    clearPaymentAccess(res);
+    memberSession(res, user);
     return res.redirect("/base");
   }
   const status = typeof req.query.status === "string" ? req.query.status :
@@ -40,6 +55,7 @@ export const showKingdomPayment = asyncHandler(async (req: Request, res: Respons
   res.set("Content-Security-Policy", `${res.get("Content-Security-Policy")}; frame-src 'self' https://ko-fi.com`);
   res.type("html").send(kingdomPaymentHtml({ accountLabel: user.inGameUsername || user.username,
     googleEmail: user.googleSub ? user.email : undefined, status,
+    canContinueRegular: isValidMemberSession(user),
     stage: state === "approval-pending" ? "approval" : state === "review-pending" ? "review" : "payment" }));
 });
 

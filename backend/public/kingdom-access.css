@@ -118,3 +118,7 @@ input::placeholder { color: #9eaf9f; }
 @media (max-width: 850px) { .kingdom-access { grid-template-columns: 1fr; gap: 0; padding-top: 62px; } .kingdom-art { display: none; } .kingdom-card { width: min(100%,650px); justify-self: center; } .kingdom-member { grid-template-columns: 1fr 1fr; } .kingdom-member-actions { justify-content: flex-start; } }
 @media (max-width: 560px) { .kingdom-access,.kingdom-admin { width: calc(100% - 24px); } .kingdom-card { padding: 22px; } .kingdom-login,.kingdom-signup-panel { padding: 18px; } .kingdom-social { grid-template-columns: 1fr; } .kingdom-admin-head { align-items: stretch; flex-direction: column-reverse; } .kingdom-member { grid-template-columns: 1fr; gap: 11px; } }
 @media (max-width: 560px) { .kingdom-payment-progress { gap: 4px; } .kingdom-payment-progress li { gap: 4px; padding: 6px 5px; } .kingdom-payment-progress li small { font-size: 10px; } .kingdom-kofi-checkout iframe { height: 620px; } }
+
+.kingdom-vip-art { display:block; width:100%; height:auto; border-radius:5px; margin-bottom:22px; }
+.kingdom-vip-gate { width:min(840px,calc(100% - 28px)); }
+.kingdom-signup-note a,.kingdom-payment-return a { color:#f7d88e; text-underline-offset:3px; }

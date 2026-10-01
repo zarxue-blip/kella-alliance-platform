@@ -60,13 +60,13 @@ assert.equal(chooseEvent([],now),null);
 console.log('Current event selection checks passed.');
 
 // The cinematic home leads into the base without duplicating dashboard tools.
-function homeForRole(admin:boolean) {
-  return new Function('document','boardCurrentEvent','hasAdminAccess','escapeHtml',
+function homeForRole(admin:boolean, authenticated = true, vip = admin) {
+  return new Function('document','boardCurrentEvent','hasAdminAccess','escapeHtml','state','hasVipAccess',
     extract('renderAllianceBoard','initializeCharacterVideo')+'return renderAllianceBoard([]);'
-  )({body:{classList:{contains:()=>false}}},()=>null,()=>admin,(text:string)=>text);
+  )({body:{classList:{contains:()=>false}}},()=>null,()=>admin,(text:string)=>text,{auth:{authenticated}},()=>vip);
 }
-for (const admin of [true,false]) {
-  const home=homeForRole(admin);
+for (const [admin, authenticated, vip] of [[true,true,true],[false,true,true],[false,false,false]]) {
+  const home=homeForRole(admin,authenticated,vip);
   assert.match(home, /href="\/base" aria-label="Enter Kingdom"/);
   assert.ok(!home.includes('href="/officer"'));
   assert.ok(!home.includes('data-mini-calendar'));
@@ -74,5 +74,9 @@ for (const admin of [true,false]) {
   assert.ok(!home.includes('ONE BANNER. COUNTLESS ADVENTURES.'));
   assert.ok(!home.includes('A world beyond the ordinary.'));
   assert.ok(home.includes('Animation On'));
+  assert.ok(home.includes('kingdom-0927-hd-start.jpg'));
 }
+const regularHome=homeForRole(false,true,false);
+assert.match(regularHome,/href="\/kingdom\/payment" data-guardian-open aria-label="Enter Kingdom"/);
+assert.ok(!regularHome.includes('href="/base"'),'regular member entry must open Guardian membership');
 console.log('Simplified cinematic home checks passed.');

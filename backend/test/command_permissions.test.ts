@@ -94,6 +94,14 @@ for (
   });
 }
 
+// These fixtures exercise VIP actions and cross-user ownership after the
+// membership gate. Separate vipAccess tests cover regular member denials.
+for (const id of ["member", "editor"]) Object.assign(users[id], {
+  kofiPaymentRequired: true,
+  kofiPaymentEmail: `${id}@example.com`,
+  kofiPaidThrough: new Date(Date.now() + 86_400_000)
+});
+
 (UserModel as any).findById =
   (id: string) => ({
     lean: async () =>

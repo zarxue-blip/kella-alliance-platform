@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env, isProduction } from "../config/env.js";
 import { UserModel } from "../models/user.model.js";
+import { isValidMemberSession } from "../middleware/auth.js";
 
 const paymentIdentityCookie = "kella_payment_identity";
 const options = { httpOnly: true, secure: isProduction, sameSite: "lax" as const, path: "/" };
@@ -21,6 +22,18 @@ export function clearPaymentAccess(res: Response) {
 }
 
 export async function paymentAccessUser(req: Request) {
+  // A signed-in member can upgrade without repeating their signup. Prefer the
+  // current member identity over a payment cookie from an earlier account.
+  try {
+    const session = req.cookies?.[env.SESSION_COOKIE_NAME];
+    if (typeof session === "string") {
+      const payload = jwt.verify(session, env.JWT_SECRET, { algorithms: ["HS256"] }) as jwt.JwtPayload;
+      if (payload.type === "user" && typeof payload.id === "string") {
+        const user = await UserModel.findById(payload.id).select("+kofiRequestedEmail");
+        if (isValidMemberSession(user)) return user;
+      }
+    }
+  } catch { /* Try the limited signup identity below. */ }
   try {
     const cookie = req.cookies?.[paymentIdentityCookie];
     if (typeof cookie !== "string") return null;

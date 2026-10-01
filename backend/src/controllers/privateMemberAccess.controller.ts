@@ -9,8 +9,6 @@ import {
 } from "../services/privateMemberAccess.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HttpError } from "../utils/httpError.js";
-import { isCurrentKofiAccess } from "../services/kofiPayment.service.js";
-import { beginPaymentAccess } from "../services/paymentAccess.service.js";
 
 export const beginPrivateMemberAccess = asyncHandler(async (req: Request, res: Response) => {
   const { memberId, signature } = req.params;
@@ -26,7 +24,6 @@ export const beginPrivateMemberAccess = asyncHandler(async (req: Request, res: R
   const user = await UserModel.findOneAndUpdate(
     { discordId: privateIdentity },
     {
-      $setOnInsert: { kofiPaymentRequired: true },
       $set: {
         username: member.ign || "Private Member",
         role: "Member",
@@ -40,10 +37,6 @@ export const beginPrivateMemberAccess = asyncHandler(async (req: Request, res: R
     { upsert: true, new: true }
   );
   if (user.disabled) throw new HttpError(403, "This account has been terminated");
-  if (!isCurrentKofiAccess(user)) {
-    beginPaymentAccess(res, user);
-    return res.redirect("/kingdom/payment");
-  }
   const token = signSessionToken({
     id: user._id.toString(),
     discordId: privateIdentity,

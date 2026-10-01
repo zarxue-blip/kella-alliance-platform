@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { env, isProduction } from "../config/env.js";
-import { isDashboardAdminUser, signSessionToken, type AuthenticatedRequest } from "../middleware/auth.js";
+import { hasVipAccess, isDashboardAdminUser, isValidMemberSession, memberLandingPath, signSessionToken, type AuthenticatedRequest } from "../middleware/auth.js";
 import { UserModel } from "../models/user.model.js";
 import { exchangeGoogleCode, googleAuthorizationUrl, googleOAuthConfigured, type GoogleIdentity } from "../services/googleOAuth.service.js";
 import { getOrCreateLoginAlliance } from "../services/loginAlliance.service.js";
@@ -122,18 +122,18 @@ export const googleCallback = asyncHandler(async (req: Request, res: Response) =
       await syncKofiPaymentForGoogleUser(identity.email);
     }
     const current = await UserModel.findOne({ googleSub: identity.sub });
-    if (current && isCurrentKofiAccess(current)) {
+    if (isValidMemberSession(current)) {
       await UserModel.updateOne({ _id: current._id }, { $set: { lastLoginAt: new Date() } });
       googleUserSession(res, current);
-      return res.redirect("/base");
+      return res.redirect(memberLandingPath(current));
     }
     return paymentStep(res, current || existing);
   }
   if (login.inGameUsername) {
     const user = await createPendingGoogleUser(identity, login.inGameUsername);
-    if (user?.googleApprovalStatus === "approved" && !user.disabled && isCurrentKofiAccess(user)) {
+    if (isValidMemberSession(user)) {
       googleUserSession(res, user);
-      return res.redirect("/base");
+      return res.redirect(memberLandingPath(user));
     }
     return paymentStep(res, user);
   }
@@ -141,9 +141,9 @@ export const googleCallback = asyncHandler(async (req: Request, res: Response) =
     await UserModel.updateOne({ _id: existing._id }, { $set: { email: identity.email } });
     if (env.KOFI_VERIFICATION_TOKEN) await syncKofiPaymentForGoogleUser(identity.email);
     const current = await UserModel.findOne({ googleSub: identity.sub });
-    if (current?.googleApprovalStatus === "approved" && !current.disabled && isCurrentKofiAccess(current)) {
+    if (isValidMemberSession(current)) {
       googleUserSession(res, current);
-      return res.redirect("/base");
+      return res.redirect(memberLandingPath(current));
     }
     return paymentStep(res, current || existing);
   }
@@ -158,9 +158,9 @@ export const completeGoogleSignup = asyncHandler(async (req: Request, res: Respo
   const inGameUsername = parseInGameUsername(req.body?.inGameUsername);
   const user = await createPendingGoogleUser(identity, inGameUsername);
   res.clearCookie(googleSignupCookie, googleCookieOptions(req));
-  if (user?.googleApprovalStatus === "approved" && !user.disabled && isCurrentKofiAccess(user)) {
+  if (isValidMemberSession(user)) {
     googleUserSession(res, user);
-    return res.redirect("/base");
+    return res.redirect(memberLandingPath(user));
   }
   paymentStep(res, user);
 });
@@ -200,6 +200,7 @@ export const listKingdomSignups = asyncHandler(async (req: AuthenticatedRequest,
     email: user.email || "",
     status: user.provider === "local" ? user.localApprovalStatus || "pending" :
       user.provider === "google" ? user.googleApprovalStatus || "pending" : user.disabled ? "terminated" : "approved",
+    hasVipAccess: hasVipAccess(user),
     paymentRequired: requiresKofiPayment(user),
     paymentStatus: isCurrentKofiAccess(user) ? "paid" : "unpaid",
     paidThrough: user.kofiPaidThrough || null,

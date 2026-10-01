@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
 import { env, isProduction } from "../config/env.js";
-import { signSessionToken } from "../middleware/auth.js";
+import { isValidMemberSession, memberLandingPath, signSessionToken } from "../middleware/auth.js";
 import { UserModel } from "../models/user.model.js";
 import { getOrCreateLoginAlliance } from "../services/loginAlliance.service.js";
 import { hashLocalPassword, verifyLocalPassword } from "../services/localPassword.service.js";
@@ -106,7 +106,7 @@ export const localLogin = asyncHandler(async (req: Request, res: Response) => {
     return respond(req, res, 401, "invalid-credentials");
   }
   if (user.localApprovalStatus === "terminated") return respond(req, res, 403, "terminated");
-  if (!isCurrentKofiAccess(user)) {
+  if (!isValidMemberSession(user) && !isCurrentKofiAccess(user)) {
     return continueToPayment(req, res, user, 403);
   }
   if (user.localApprovalStatus !== "approved" || user.disabled) {
@@ -128,6 +128,7 @@ export const localLogin = asyncHandler(async (req: Request, res: Response) => {
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
   res.set("Cache-Control", "no-store");
-  if (isForm(req)) return res.redirect(303, "/base");
-  return res.json({ status: "approved", redirectUrl: "/base" });
+  const redirectUrl = memberLandingPath(user);
+  if (isForm(req)) return res.redirect(303, redirectUrl);
+  return res.json({ status: "approved", redirectUrl });
 });
