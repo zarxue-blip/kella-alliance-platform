@@ -198,6 +198,7 @@ export function createApp() {
   app.get(
     [
       "/",
+      "/dashboard",
       "/calendar",
       "/rankings",
       "/officer",

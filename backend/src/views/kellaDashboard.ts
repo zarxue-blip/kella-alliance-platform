@@ -4,10 +4,12 @@ import { migrationClient } from './migrationClient.js';
 import { lordResearchLevelCosts, lordResearchTreeData } from "../data/researchTree.data.js";
 import { trainingResourceCosts, trainingUnitTierSeconds, trainingUnitPower, trainingUnitEventRates } from "../data/trainingCosts.js";
 import { hospitalClient } from "./hospitalClient.js";
+import { workspaceDashboardClient } from "./workspaceDashboard.js";
 
 const navItems = [
   { path: "/migration", icon: "/assets/migration-gold.png", label: "Migration" },
   { path: "/", icon: "/assets/icons/dashboard.png", label: "Home" },
+  { path: "/dashboard", icon: "/assets/icons/dashboard.png", label: "Dashboard" },
   { path: "/calendar", icon: "/assets/icons/events.png", label: "Calendar" },
   { path: "/profile", icon: "/assets/icons/members.png", label: "My Profile" },
   { path: "/officer", icon: "/assets/icons/settings.png", label: "Officer", adminOnly: true },
@@ -3352,6 +3354,7 @@ export function kellaDashboardHtml() {
     <link rel="stylesheet" href="/assets/training-units.css?v=3" />
     <link rel="stylesheet" href="/assets/hospital.css?v=1" />
     <link rel="stylesheet" href="/assets/base-game/research-hud.css?v=2" />
+    <link rel="stylesheet" href="/assets/workspace-dashboard.css?v=1" />
   </head>
   <body>
     <div class="realm-coins" aria-hidden="true"><i style="--x:5%;--y:7%;--size:10px;--duration:12s;--delay:-0s" class="portal-coin"><span>✦</span></i><i style="--x:42%;--y:26%;--size:15px;--duration:13s;--delay:-2s" class="portal-coin"><span>✦</span></i><i style="--x:79%;--y:45%;--size:20px;--duration:14s;--delay:-4s" class="portal-coin"><span>✦</span></i><i style="--x:19%;--y:64%;--size:25px;--duration:15s;--delay:-6s" class="portal-coin"><span>✦</span></i><i style="--x:56%;--y:83%;--size:10px;--duration:16s;--delay:-8s" class="portal-coin"><span>✦</span></i><i style="--x:93%;--y:6%;--size:15px;--duration:17s;--delay:-10s" class="portal-coin"><span>✦</span></i><i style="--x:33%;--y:25%;--size:20px;--duration:18s;--delay:-12s" class="portal-coin"><span>✦</span></i><i style="--x:70%;--y:44%;--size:25px;--duration:12s;--delay:-14s" class="portal-coin"><span>✦</span></i><i style="--x:10%;--y:63%;--size:10px;--duration:13s;--delay:-16s" class="portal-coin"><span>✦</span></i><i style="--x:47%;--y:82%;--size:15px;--duration:14s;--delay:-18s" class="portal-coin"><span>✦</span></i><i style="--x:84%;--y:5%;--size:20px;--duration:15s;--delay:-20s" class="portal-coin"><span>✦</span></i><i style="--x:24%;--y:24%;--size:25px;--duration:16s;--delay:-22s" class="portal-coin"><span>✦</span></i><i style="--x:61%;--y:43%;--size:10px;--duration:17s;--delay:-24s" class="portal-coin"><span>✦</span></i><i style="--x:1%;--y:62%;--size:15px;--duration:18s;--delay:-26s" class="portal-coin"><span>✦</span></i><i style="--x:38%;--y:81%;--size:20px;--duration:12s;--delay:-28s" class="portal-coin"><span>✦</span></i><i style="--x:75%;--y:4%;--size:25px;--duration:13s;--delay:-30s" class="portal-coin"><span>✦</span></i><i style="--x:15%;--y:23%;--size:10px;--duration:14s;--delay:-32s" class="portal-coin"><span>✦</span></i><i style="--x:52%;--y:42%;--size:15px;--duration:15s;--delay:-34s" class="portal-coin"><span>✦</span></i></div>
@@ -3675,6 +3678,76 @@ ${hospitalClient}
           });
       }
 
+      function isWorkspaceRoute() {
+        return !embeddedTool && (location.pathname === "/dashboard" || new URLSearchParams(location.search).get("dashboard") === "1");
+      }
+
+      function workspaceDestination(path) {
+        if (!isWorkspaceRoute()) return path;
+        const url = new URL(path, location.origin);
+        if (url.origin !== location.origin) return path;
+        if (url.searchParams.get("embedded") === "1" || url.searchParams.get("embed") === "1" || url.searchParams.get("hud") === "1") return path;
+        const supported = ["/dashboard", "/members", "/calendar", "/attendance", "/officer", "/wiki", "/profile", "/research", "/training-tools", "/hospital", "/lord-tools", "/migration/admin", "/tools", "/events", "/alerts", "/shield-alerts", "/embed-sender", "/complaints", "/settings"];
+        if (supported.some(function(base) { return url.pathname === base || url.pathname.startsWith(base + "/"); })) url.searchParams.set("dashboard", "1");
+        return url.pathname + url.search + url.hash;
+      }
+
+      function workspaceNavLink(label, path, icon, fullDocument) {
+        const url = new URL(path, location.origin);
+        const locked = !hasVipAccess() && pathRequiresVip(url.pathname);
+        const destination = fullDocument ? path : workspaceDestination(path);
+        const icons = {
+          overview: '<rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="3" width="7" height="7" rx="1.4"/><rect x="3" y="14" width="7" height="7" rx="1.4"/><rect x="14" y="14" width="7" height="7" rx="1.4"/>',
+          members: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6M21 20v-2a6 6 0 0 0-4-5.6"/>',
+          calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 11h18M8 15h2M14 15h2"/>',
+          attendance: '<path d="M9 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-4"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="m8 14 3 3 5-6"/>',
+          tickets: '<path d="M3 7h18v4a3 3 0 0 0 0 6v3H3v-3a3 3 0 0 0 0-6V7ZM15 7v3m0 3v2m0 3v2"/>',
+          wiki: '<path d="M4 3h10l6 6v12H4V3Zm10 0v6h6M8 13h8M8 17h6"/>',
+          tools: '<path d="m9 3 6 0 1 4 4 1v6l-4 1-1 5H9l-1-5-4-1V8l4-1 1-4Z"/><circle cx="12" cy="11" r="3"/>',
+          migration: '<path d="M3 7h14m-4-4 4 4-4 4M21 17H7m4-4-4 4 4 4"/>',
+          profile: '<circle cx="12" cy="8" r="4"/><path d="M4 22v-2a8 8 0 0 1 16 0v2"/>',
+          kingdom: '<path d="M4 21V9l4-4 4 4 4-4 4 4v12H4Zm5 0v-6h6v6M8 5V2m8 3V2"/>',
+          research: '<path d="M9 3h6m-5 0v6L4 19a1.3 1.3 0 0 0 1 2h14a1.3 1.3 0 0 0 1-2L14 9V3M7 15h10"/>',
+          training: '<path d="m4 3 17 17M20 3 3 20M4 14l6 6M14 4l6 6"/>',
+          hospital: '<path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6V3Z"/>'
+        };
+        return '<a href="' + escapeHtml(locked ? '/kingdom/payment' : destination) + '" ' + (locked ? 'data-guardian-open class="guardian-nav-locked"' : fullDocument ? '' : 'data-link') + ' data-path="' + escapeHtml(url.pathname) + '" data-workspace-item="' + escapeHtml(path) + '" aria-label="' + escapeHtml(label + (locked ? ' — Guardian VIP' : '')) + '"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (icons[icon] || icons.tools) + '</svg><span>' + escapeHtml(label) + '</span>' + (locked ? '<small>VIP</small>' : '') + '</a>';
+      }
+
+      function updateWorkspaceShell() {
+        const enabled = isWorkspaceRoute() && state.auth?.authenticated;
+        document.body.classList.toggle("workspace-mode", Boolean(enabled));
+        const sidebar = document.querySelector('.shell > .sidebar');
+        const brand = sidebar.querySelector('.brand');
+        brand.setAttribute('href', enabled && hasVipAccess() ? '/dashboard' : '/');
+        brand.setAttribute('aria-label', enabled && hasVipAccess() ? 'Kella dashboard' : 'Kella home');
+        let header = document.querySelector('[data-workspace-header]');
+        if (enabled) {
+          if (!header) {
+            header = document.createElement('header');
+            header.className = 'workspace-header';
+            header.dataset.workspaceHeader = '';
+            header.innerHTML = '<details class="workspace-context"><summary aria-label="Current community: EVO"><span class="workspace-community-mark">E</span><span class="workspace-context-name"><strong>EVO</strong><small>Evolution · Call of Dragons</small></span><span aria-hidden="true">⌄</span></summary><div class="workspace-context-menu"><span class="workspace-context-label">Current community</span><a href="/dashboard" data-link><strong>EVO</strong><span>Evolution · Server 881</span></a><a href="/" data-link>Public homepage</a></div></details>';
+            document.querySelector('.shell').insertBefore(header, document.querySelector('.shell > main'));
+            header.appendChild(sidebar.querySelector('.mobile-nav-toggle'));
+            header.appendChild(sidebar.querySelector('.top-actions'));
+          }
+          if (!sidebar.querySelector('.workspace-footer')) {
+            const footer = document.createElement('div');
+            footer.className = 'workspace-footer';
+            sidebar.appendChild(footer);
+          }
+          sidebar.querySelector('.workspace-footer').innerHTML = '<span class="workspace-role">' + (hasAdminAccess() ? 'Administrator' : hasVipAccess() ? 'Guardian VIP' : 'Regular member') + '</span><a href="/" data-link>Public homepage <span aria-hidden="true">↗</span></a>';
+        } else {
+          if (header) {
+            sidebar.insertBefore(header.querySelector('.mobile-nav-toggle'), sidebar.querySelector('.side-spacer'));
+            sidebar.insertBefore(header.querySelector('.top-actions'), sidebar.querySelector('.side-spacer'));
+            header.remove();
+          }
+          sidebar.querySelector('.workspace-footer')?.remove();
+        }
+      }
+
       function navItemHtml(item) {
         const locked = state.auth?.authenticated && !hasVipAccess() && pathRequiresVip(item.path) && !item.adminOnly;
         return '<a aria-label="' + escapeHtml(item.label) + (locked ? ' — Guardian VIP' : '') + '" title="' + escapeHtml(item.label) + (locked ? ' — Guardian VIP' : '') + '" href="' + (locked ? '/kingdom/payment' : escapeHtml(item.path)) + '" ' + (locked ? 'data-guardian-open class="guardian-nav-locked"' : 'data-link') + ' data-path="' + escapeHtml(item.path) + '"><img class="nav-icon" src="' + escapeHtml(item.icon) + '" alt="" loading="lazy" /><span>' + escapeHtml(item.label) + '</span>' + (locked ? '<small aria-hidden="true">VIP</small>' : '') + '</a>';
@@ -3683,9 +3756,20 @@ ${hospitalClient}
       function renderSidebarNav() {
         const nav = document.querySelector("[data-sidebar-nav]");
         if (!nav) return;
-        const primary = state.auth?.authenticated ? ["/", "/calendar", "/members", "/wiki", "/profile"] : ["/"];
-        nav.innerHTML = primary.map(function(path) { return navItemHtml(dashboardNavItems.find(function(item) { return item.path === path; })); }).join("") +
-          (hasAdminAccess() ? '<div class="nav-section-label">Alliance management</div>' + navItemHtml(dashboardNavItems.find(function(item) { return item.path === "/officer"; })) : "");
+        updateWorkspaceShell();
+        if (document.body.classList.contains('workspace-mode')) {
+          const community = [['Overview','/dashboard','overview'],['Members','/members','members'],['Calendar','/calendar','calendar'],['Attendance & reports',hasAdminAccess() ? '/officer?section=attendance' : '/attendance','attendance']];
+          if (hasAdminAccess()) community.push(['Tickets','/officer?section=attendance&kind=tickets','tickets']);
+          community.push(['Wiki','/wiki','wiki']);
+          const tools = [['My profile','/profile','profile'],['Kingdom','/base','kingdom',true],['Research','/research','research'],['Training','/training-tools','training'],['Hospital','/hospital','hospital']];
+          const management = [['Migration','/migration/admin','migration'],['Signup approvals','/kingdom/admin','members',true],['Officer tools','/officer','tools'],['Discord tools','/tools','tools'],['Settings','/settings','tools']];
+          const group = function(title, items) { return '<div class="workspace-nav-group"><div class="workspace-nav-heading">' + title + '</div>' + items.map(function(item) { return workspaceNavLink(item[0],item[1],item[2],item[3]); }).join('') + '</div>'; };
+          nav.innerHTML = group('Community',community) + group('Member tools',tools) + (hasAdminAccess() ? group('Management',management) : '');
+        } else {
+          const primary = state.auth?.authenticated ? ["/"].concat(hasVipAccess() ? ["/dashboard"] : []).concat(["/calendar", "/members", "/wiki", "/profile"]) : ["/"];
+          nav.innerHTML = primary.map(function(path) { return navItemHtml(dashboardNavItems.find(function(item) { return item.path === path; })); }).join("") +
+            (hasAdminAccess() ? '<div class="nav-section-label">Alliance management</div>' + navItemHtml(dashboardNavItems.find(function(item) { return item.path === "/officer"; })) : "");
+        }
         const bottom = document.querySelector('.bottom-nav');
         if (bottom) bottom.innerHTML = (state.auth?.authenticated ? ['/', '/calendar', '/members', '/wiki'] : ['/']).map(function(path) { return navItemHtml(dashboardNavItems.find(function(item) { return item.path === path; })); }).join('') + '<button type="button" data-mobile-nav-toggle aria-label="More navigation" aria-expanded="false"><span aria-hidden="true">☰</span><span>More</span></button>';
         setActiveNav();
@@ -4800,7 +4884,15 @@ ${hospitalClient}
           let active = path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
           if (path === "/tools") active = ["/tools", "/events", "/alerts", "/shield-alerts", "/embed-sender"].some(function(prefix) { return location.pathname.startsWith(prefix); });
           if (path === "/members" && location.pathname === "/rankings") active = true;
-          if (path === "/officer" && pathRequiresAdmin(location.pathname)) active = true;
+          if (link.hasAttribute("data-workspace-item") && path === "/officer") {
+            const target = new URL(link.getAttribute("data-workspace-item"), location.origin);
+            const current = new URLSearchParams(location.search);
+            active = location.pathname === "/officer" && (target.searchParams.has("kind")
+              ? current.get("section") === "attendance" && current.get("kind") === target.searchParams.get("kind")
+              : target.searchParams.get("section") === "attendance"
+                ? current.get("section") === "attendance" && current.get("kind") !== "tickets"
+                : current.get("section") !== "attendance");
+          } else if (path === "/officer" && pathRequiresAdmin(location.pathname) && !link.hasAttribute("data-workspace-item")) active = true;
           link.classList.toggle("active", active);
           if(active) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
         });
@@ -7706,6 +7798,42 @@ ${hospitalClient}
       }
 
 ${portalHomeClient}
+${workspaceDashboardClient}
+
+      async function renderWorkspaceDashboard() {
+        const version = navigationVersion;
+        const admin = hasAdminAccess();
+        const data = {
+          summary: null, events: null, tickets: null, signups: null,
+          isAdmin: admin, username: state.auth?.user?.localUsername || state.auth?.user?.username || "",
+          allianceName: "Evolution", allianceTag: "EVO", errors: [], loading: true
+        };
+        app.innerHTML = workspaceOverviewHtml(data);
+        const tasks = [
+          { label: "Community", run: loadSummary() },
+          { label: "Calendar", run: loadDashboardEvents() },
+          { label: "Settings", run: loadSettings() }
+        ];
+        if (admin) {
+          tasks.push({ label: "Tickets", run: fetchJson("/api/dashboard/tickets", true) });
+          tasks.push({ label: "Member requests", run: fetchJson("/api/dashboard/kingdom-signups", true) });
+        }
+        const results = await Promise.allSettled(tasks.map(function(task) { return task.run; }));
+        if (version !== navigationVersion || location.pathname !== "/dashboard") return;
+        results.forEach(function(result, index) {
+          if (result.status === "rejected") {
+            data.errors.push({ label: tasks[index].label, message: "Try refreshing." });
+            return;
+          }
+          const value = result.value;
+          if (index === 0) data.summary = value;
+          if (index === 1) data.events = value.map(function(event) { return Object.assign({}, event, { groups: attendanceGroups(event) }); });
+          if (admin && index === 3) data.tickets = value.tickets || [];
+          if (admin && index === 4) data.signups = value.members || [];
+        });
+        data.loading = false;
+        app.innerHTML = workspaceOverviewHtml(data);
+      }
 
       let homeRankMetric = 'power';
       let homeRankRequest = 0;
@@ -7818,7 +7946,7 @@ ${portalHomeClient}
             app.innerHTML=pageHeader('Attendance & Reports','', '<a class="secondary" href="/officer" data-link>Officer</a>'+(kind!=='tickets'?'<a class="primary" href="/tools?tool='+({events:'events',war:'alerts',polls:'polls',shields:'shield'}[kind])+'" data-link>Create / send</a>':'')+'<button class="secondary" data-response-refresh>Refresh</button>')+
               '<div class="report-tabs" role="group" aria-label="Report category">'+kinds.map(k=>'<button data-report-kind="'+k[0]+'" aria-pressed="'+(kind===k[0])+'">'+k[1]+'</button>').join('')+'</div><div class="report-layout"><section class="card report-calendar"><header><button data-report-month="-1" aria-label="Previous month">‹</button><h3>'+monthTitle(month)+'</h3><button data-report-month="1" aria-label="Next month">›</button></header><div class="report-days">'+['S','M','T','W','T','F','S'].map(d=>'<small>'+d+'</small>').join('')+days+'</div><p class="muted">Dates and times in UTC</p></section><div class="report-results"><h3>'+escapeHtml(selected)+'</h3>'+
               (active.length?active.map(r=>'<article class="card report-combined"><header><h3>'+escapeHtml(r.title)+'</h3><time>'+formatUtcDateTime(r.at)+'</time></header>'+(r.note?'<p>'+escapeHtml(r.note)+'</p>':'')+(r.ticket?'<dl><dt>Ticket ID</dt><dd>'+escapeHtml(r.id)+'</dd><dt>Status</dt><dd>'+escapeHtml(r.ticket.status)+'</dd><dt>Closed</dt><dd>'+ (r.ticket.closedAt?formatUtcDateTime(r.ticket.closedAt):'Open')+'</dd></dl><button data-ticket-history="'+escapeHtml(r.id)+'">View history</button><div data-ticket-messages="'+escapeHtml(r.id)+'"></div>':'<div class="report-response-columns">'+r.groups.map(g=>'<section><h4>'+escapeHtml(g.label)+' <span class="badge">'+g.players.length+'</span></h4><ul>'+g.players.map(p=>'<li><strong>'+escapeHtml(p.name)+'</strong><small>'+formatUtcDateTime(p.at)+'</small></li>').join('')+'</ul>'+(!g.players.length?'<p class="muted">No responses</p>':'')+'</section>').join('')+'</div>')+'</article>').join(''):'<section class="card">'+empty('No records on this date.')+'</section>')+(kind==='tickets'?'<p class="muted">Use /ticket-panel in Discord to post the private support panel.</p>':'')+'</div></div>';
-            app.querySelectorAll('[data-report-kind]').forEach(b=>b.onclick=()=>{kind=b.dataset.reportKind;selected=dateKey(reports.find(r=>r.kind===kind)?.at)||new Date().toISOString().slice(0,10);month=new Date(selected+'T00:00:00Z');history.replaceState(null,'','/officer?section=attendance&kind='+kind);draw();});
+            app.querySelectorAll('[data-report-kind]').forEach(b=>b.onclick=()=>{kind=b.dataset.reportKind;selected=dateKey(reports.find(r=>r.kind===kind)?.at)||new Date().toISOString().slice(0,10);month=new Date(selected+'T00:00:00Z');history.replaceState(null,'',workspaceDestination('/officer?section=attendance&kind='+kind));setActiveNav();draw();});
             app.querySelectorAll('[data-report-date]').forEach(b=>b.onclick=()=>{selected=b.dataset.reportDate;draw();});
             app.querySelectorAll('[data-report-month]').forEach(b=>b.onclick=()=>{month=new Date(Date.UTC(year,m+Number(b.dataset.reportMonth),1));draw();});
             app.querySelector('[data-response-refresh]').onclick=()=>renderResponseCenter();
@@ -8969,7 +9097,7 @@ ${portalHomeClient}
           renderSidebarNav();
         }
         if (routeVersion !== navigationVersion) return;
-        if (!state.settings && location.pathname !== "/") loadSettings().catch(function() {});
+        if (!state.settings && !["/", "/dashboard"].includes(location.pathname)) loadSettings().catch(function() {});
         if (state.wikiDrag) { cancelAnimationFrame(state.wikiDrag.frame); state.wikiDrag = null; }
         const path = location.pathname;
         document.body.dataset.route = path.split("/")[1] || "home";
@@ -8991,6 +9119,7 @@ ${portalHomeClient}
         if (path === "/migration") return renderMigration();
         if (path === "/migration/admin") return renderMigration(true);
         if (path === "/") return renderDashboard();
+        if (path === "/dashboard") return renderWorkspaceDashboard();
         if (path === "/calendar") return renderMemberCalendar();
         if (path === "/rankings") return renderRankings();
         if (path === "/officer") return renderOfficer();
@@ -9053,9 +9182,11 @@ ${portalHomeClient}
       }
 
       function navigate(path) {
+        path = workspaceDestination(path);
         history.pushState({}, "", path);
         closeMobileNav();
         document.querySelector(".account-menu")?.removeAttribute("open");
+        document.querySelector(".workspace-context")?.removeAttribute("open");
         window.scrollTo({ top: 0, behavior: "instant" });
         route();
       }
@@ -9191,6 +9322,9 @@ ${portalHomeClient}
       }, { passive: false });
 
       document.addEventListener("click", async function(event) {
+        document.querySelectorAll(".workspace-context[open]").forEach(function(panel) {
+          if (!panel.contains(event.target)) panel.removeAttribute("open");
+        });
         if (event.target.closest('[data-guardian-open]')) {
           event.preventDefault();
           openGuardianMembership();
@@ -9247,7 +9381,9 @@ ${portalHomeClient}
         if (link) {
           if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
           event.preventDefault();
-          const destination = link.getAttribute("data-path") || link.getAttribute("href");
+          const destination = link.hasAttribute("data-workspace-item")
+            ? link.getAttribute("href")
+            : link.getAttribute("data-path") || link.getAttribute("href");
           if (link.matches('.board-note, .board-profile')) openBoardDestination(link, destination);
           else navigate(destination);
           return;
@@ -9301,6 +9437,11 @@ ${portalHomeClient}
         const action = event.target.closest("[data-action]");
         if (!action) return;
         const kind = action.getAttribute("data-action");
+        if (kind === "refresh-workspace") {
+          state.summary = null;
+          await renderWorkspaceDashboard();
+          return;
+        }
         if (kind === "discord-login") {
           window.location.href = "/api/auth/discord";
           return;
@@ -9316,7 +9457,7 @@ ${portalHomeClient}
         if (kind === "lord-view") {
           state.lordView = action.getAttribute("data-lord-view") || "overview";
           state.lordSearch = "";
-          if (location.pathname === "/profile") history.replaceState({}, "", "/profile?section=lord&tool=" + encodeURIComponent(state.lordView));
+          if (location.pathname === "/profile") history.replaceState({}, "", workspaceDestination("/profile?section=lord&tool=" + encodeURIComponent(state.lordView)));
           renderLordTools();
           return;
         }
@@ -10548,6 +10689,11 @@ ${portalHomeClient}
       document.addEventListener("pointercancel", finishWikiPointer);
 
       document.addEventListener("keydown", function(event) {
+        if (event.key === "Escape" && document.body.classList.contains("workspace-mode")) {
+          document.querySelector(".workspace-context")?.removeAttribute("open");
+          document.querySelector(".account-menu")?.removeAttribute("open");
+          closeMobileNav();
+        }
         if (embeddedTool && (location.pathname === "/training-tools" || location.pathname === "/hospital") && event.key === "Escape" && window.parent !== window) {
           event.preventDefault();
           window.parent.postMessage({ type: "kella:close-building-tool" }, location.origin);
@@ -10603,7 +10749,7 @@ ${portalHomeClient}
         if (event.target.matches("[data-lord-view-select]")) {
           state.lordView = event.target.value || "overview";
           state.lordSearch = "";
-          history.replaceState({}, "", "/profile?section=lord&tool=" + encodeURIComponent(state.lordView));
+          history.replaceState({}, "", workspaceDestination("/profile?section=lord&tool=" + encodeURIComponent(state.lordView)));
           renderLordTools(true);
           return;
         }
